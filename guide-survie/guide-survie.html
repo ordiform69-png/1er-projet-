@@ -60,6 +60,14 @@
   .check li { list-style: none; margin-left: -1.3em; }
   .check li::before { content: "☐ "; color: var(--green); }
   .small { font-size: .88em; color: var(--muted); }
+  .fiches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .fiches { grid-template-columns: 1fr; } }
+  .fiche { border: 2px solid var(--accent); border-radius: 8px; padding: .5em .8em; background: var(--page); break-inside: avoid; }
+  .fiche h4 { margin: .1em 0 .3em; font-family: "Trebuchet MS", system-ui, sans-serif; color: var(--accent); font-size: 1em; }
+  .fiche ol { margin: 0; padding-left: 1.2em; font-size: .9em; line-height: 1.4; }
+  .fiche li { margin: .1em 0; }
+  .fiche .ref { margin: .3em 0 0; font-size: .8em; color: var(--muted); text-align: right; }
+  @media print { .fiches { grid-template-columns: 1fr; } }
   /* Illustrations : couleurs via variables pour le mode sombre */
   .ill { --s: var(--ink); }
   .ill .stroke { stroke: var(--ink); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -119,6 +127,7 @@
 
   <nav class="toc" style="text-align:left">
     <h3>Sommaire</h3>
+    <p style="margin:.2em 0 .6em"><a href="#avant-propos">Avant-propos : à quoi sert ce livret</a></p>
     <ol>
       <li><a href="#priorites">Les priorités</a></li>
       <li><a href="#kit">Le kit de survie</a></li>
@@ -136,11 +145,41 @@
       <li><a href="#meteo">Météo et dangers</a></li>
       <li><a href="#montagne">Survie en montagne</a></li>
       <li><a href="#mer">Survie en mer</a></li>
+      <li><a href="#desert">Désert et chaleur extrême</a></li>
+      <li><a href="#froid">Grand froid, neige et glace</a></li>
+      <li><a href="#jungle">Forêt tropicale et jungle</a></li>
+      <li><a href="#ville">En ville et en cas de catastrophe</a></li>
       <li><a href="#rien">Avec rien sur soi</a></li>
       <li><a href="#outils">Avec un couteau ou un outil</a></li>
+      <li><a href="#fiches">Fiches réflexes</a></li>
+      <li><a href="#entrainement">Programme d'entraînement</a></li>
       <li><a href="#checklist">Check-lists</a></li>
     </ol>
   </nav>
+</section>
+
+<!-- ===================== AVANT-PROPOS ===================== -->
+<section class="page" id="avant-propos">
+  <h2>Avant-propos : à quoi sert ce livret</h2>
+  <p>Ce livret est fait pour quelqu'un qui part de zéro et veut acquérir des <b>bases solides pour faire face à toutes les conditions</b> : forêt, montagne, mer, désert, froid, tropiques, et même la ville en cas de catastrophe. Il réunit l'essentiel de ce que l'on enseigne dans les formations de survie et de secourisme, en langage simple.</p>
+
+  <h3>Les 3 principes qui reviennent partout</h3>
+  <ol>
+    <li><b>Prévenir vaut mieux que survivre.</b> Dire où l'on va, partir équipé, savoir renoncer : la plupart des drames commencent par l'oubli de l'un de ces trois points.</li>
+    <li><b>Les priorités avant tout.</b> Garder son calme, se protéger du froid ou de la chaleur, être trouvé, boire. La nourriture et le reste viennent après.</li>
+    <li><b>Le savoir-faire bat le savoir.</b> Lire ne suffit pas : ce qu'on a pratiqué au calme, on sait le refaire sous le stress.</li>
+  </ol>
+
+  <h3>Comment l'utiliser</h3>
+  <table>
+    <tr><th>Avant</th><td>Lisez-le en entier une première fois. Préparez votre kit (chapitre 2). Suivez le <a href="#entrainement">programme d'entraînement</a> pour transformer la lecture en réflexes.</td></tr>
+    <tr><th>Avant chaque sortie</th><td>Relisez le chapitre du milieu où vous allez (montagne, mer, désert, froid, tropiques) et la <a href="#checklist">check-list de départ</a>.</td></tr>
+    <tr><th>Sur le terrain</th><td>Gardez le PDF sur votre téléphone (il fonctionne sans réseau) et, idéalement, une version imprimée des <a href="#fiches">fiches réflexes</a> dans votre kit : un papier n'a pas besoin de batterie.</td></tr>
+    <tr><th>En situation</th><td>Commencez par la fiche réflexe qui correspond, puis allez au chapitre détaillé.</td></tr>
+  </table>
+
+  <h3>Ce que ce livret ne remplace pas</h3>
+  <p>Une formation aux premiers secours (PSC1), un stage de survie encadré, l'apprentissage des plantes avec un connaisseur, une formation avalanche ou mer. Il vous donne les bases et les bons réflexes ; la pratique fait le reste.</p>
 </section>
 
 <!-- ===================== 1. PRIORITÉS ===================== -->
@@ -1746,9 +1785,288 @@
   </div>
 </section>
 
+<!-- ===================== DÉSERT ===================== -->
+<section class="page" id="desert">
+  <h2><span class="num">17</span>Désert et chaleur extrême</h2>
+  <p>Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais les nuits peuvent être glaciales. Les mêmes règles valent pendant une <b>canicule</b> ou une randonnée en plein été dans le sud de l'Europe.</p>
+
+  <h3>Les règles d'or</h3>
+  <ul>
+    <li><b>Économisez la sueur, pas l'eau.</b> Buvez ce que vous avez, par petites gorgées régulières, mais limitez la transpiration : c'est elle qui vide le corps.</li>
+    <li><b>Restez habillé :</b> vêtements amples, clairs, manches longues, tête et nuque couvertes. La peau nue au soleil perd beaucoup plus d'eau.</li>
+    <li><b>Bougez la nuit</b>, à l'aube et au crépuscule. Entre 10 h et 17 h environ : à l'ombre, au repos.</li>
+    <li><b>Restez près du véhicule</b> en panne : il donne de l'ombre, des matériaux (rétroviseurs = miroirs, tapis, réservoirs) et se voit bien mieux qu'une personne.</li>
+    <li>Respirez par le nez, ne parlez pas inutilement, ne mangez que si vous avez de l'eau.</li>
+  </ul>
+
+  <figure class="ill">
+    <svg viewBox="0 0 600 220" role="img" aria-label="Abri contre le soleil à double toit avec 30 cm d'air entre les deux couches, surélevé du sol brûlant">
+      <circle cx="540" cy="35" r="22" fill="#f2c14e"/>
+      <path d="M0 190 H600" class="stroke"/>
+      <path d="M0 190 H600 V220 H0 Z" fill="#e6cf95"/>
+      <!-- tranchée -->
+      <path d="M150 190 V215 H430 V190" fill="#d9bf80" stroke="var(--ink)" stroke-width="1.5"/>
+      <!-- poteaux -->
+      <g stroke="#8a5a2b" stroke-width="5"><path d="M130 190 V70 M450 190 V70"/></g>
+      <!-- toits -->
+      <path d="M110 70 H470" stroke="#d4a017" stroke-width="6"/>
+      <path d="M110 105 H470" stroke="#e8e8e8" stroke-width="6"/>
+      <path d="M470 70 V105" class="thin"/>
+      <text x="480" y="93" class="txts">30 cm d'air</text>
+      <!-- personne -->
+      <rect x="190" y="198" width="190" height="14" rx="7" class="acc"/>
+      <circle cx="180" cy="204" r="9" class="acc"/>
+      <!-- flèches chaleur -->
+      <g class="sacc" stroke-width="2"><path d="M180 20 V60"/><path d="M173 50 L180 62 L187 50"/></g>
+      <text x="195" y="30" class="txts">toit extérieur clair ou réfléchissant</text>
+      <text x="20" y="150" class="txts">côtés ouverts :</text>
+      <text x="20" y="166" class="txts">l'air circule</text>
+      <text x="460" y="150" class="txts">sol creusé :</text>
+      <text x="460" y="166" class="txts">plus frais en dessous</text>
+    </svg>
+    <figcaption>Deux toiles (couverture de survie, bâche, vêtement) séparées d'environ 30 cm : l'air entre les deux bloque une grande partie de la chaleur. Creusez de 30 à 50 cm sous l'abri : la terre y est nettement plus fraîche qu'en surface.</figcaption>
+  </figure>
+
+  <h3>L'eau dans les zones arides</h3>
+  <ul>
+    <li>Prévoyez au moins <b>4 à 6 litres par jour</b> par forte chaleur, beaucoup plus en marchant. Mangez un peu salé si vous buvez beaucoup (boire des litres d'eau sans sel peut aussi être dangereux).</li>
+    <li>Cherchez l'eau au pied des falaises, à l'extérieur des virages des oueds asséchés (creusez là où le sable est humide), là où poussent des arbres verts ou des palmiers, là où convergent les traces d'animaux.</li>
+    <li>L'alambic solaire et le sac sur branche (chapitre 13) donnent un petit complément.</li>
+  </ul>
+
+  <h3>Dangers spécifiques</h3>
+  <ul>
+    <li><b>Crues soudaines :</b> ne campez jamais dans un lit de rivière asséché (oued, wadi) : un orage lointain peut le remplir en quelques minutes.</li>
+    <li><b>Tempête de sable :</b> couvrez nez, bouche et yeux avec un tissu, allongez-vous dos au vent derrière un obstacle, attendez qu'elle passe. Marquez votre direction avant qu'elle n'arrive.</li>
+    <li><b>Scorpions et serpents :</b> secouez chaussures et vêtements avant de les enfiler, ne glissez pas les mains sous les pierres.</li>
+    <li><b>Nuits froides :</b> gardez de quoi vous couvrir ; l'écart de température peut dépasser 30 °C.</li>
+    <li><b>Mirages et distances :</b> dans l'air sec et clair, tout paraît plus proche. Multipliez vos estimations.</li>
+  </ul>
+  <div class="box warn">
+    <strong>Coup de chaleur</strong>
+    Maux de tête, confusion, peau très chaude, nausées : urgence vitale. Ombre, allonger, déshabiller, mouiller toute la peau et éventer, petites gorgées si conscient (voir chapitre 8).
+  </div>
+</section>
+
+<!-- ===================== GRAND FROID ===================== -->
+<section class="page" id="froid">
+  <h2><span class="num">18</span>Grand froid, neige et glace</h2>
+  <p>Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le vent et l'humidité multiplient ses effets : par −5 °C avec un vent de 40 km/h, le corps ressent environ −15 °C.</p>
+
+  <h3>Rester au chaud</h3>
+  <ul>
+    <li><b>Système des 3 couches :</b> une couche près du corps qui évacue la sueur (laine ou synthétique, <b>pas de coton</b>), une couche chaude (polaire, doudoune), une couche coupe-vent et imperméable.</li>
+    <li>Règle C.O.L.D. (chapitre 11) : propre, sans transpirer, couches amples, au sec.</li>
+    <li>Mangez gras et sucré, buvez chaud : le corps a besoin de carburant pour produire de la chaleur. Ne mangez pas de neige : faites-la fondre.</li>
+    <li>Avant de dormir : mangez, urinez (le corps ne chauffe plus la vessie), mettez des vêtements secs, et une gourde d'eau chaude dans le sac de couchage.</li>
+  </ul>
+
+  <h3>Passer à travers la glace</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 600 220" role="img" aria-label="Sortir de l'eau glacée : se tourner vers d'où l'on vient, battre des pieds à l'horizontale, ramper puis rouler">
+      <rect x="0" y="100" width="600" height="120" class="blu" opacity=".3"/>
+      <path d="M0 100 H220 M300 100 H600" stroke="#cfe3ef" stroke-width="14"/>
+      <!-- personne qui sort -->
+      <circle cx="250" cy="82" r="12" class="acc"/>
+      <path d="M250 94 L200 98 L170 92 M250 94 L275 120 L310 125" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <g class="sblu" stroke-width="2"><path d="M320 130 l12 -4 M320 140 l12 2"/></g>
+      <!-- roulement -->
+      <g transform="translate(380,0)">
+        <ellipse cx="80" cy="85" rx="40" ry="10" class="acc" opacity=".8"/>
+        <path d="M40 70 q40 -30 80 0" class="sacc"/><path d="M110 62 L122 71 L108 76" class="sacc"/>
+        <text x="80" y="50" text-anchor="middle" class="txts">3. rouler, ne pas se lever</text>
+      </g>
+      <text x="40" y="40" class="txt">1. se tourner vers là d'où l'on vient</text>
+      <text x="40" y="60" class="txts">(la glace y était assez solide)</text>
+      <text x="250" y="175" class="txt" text-anchor="middle">2. battre des pieds à l'horizontale, tirer avec les bras</text>
+      <text x="250" y="195" class="txts" text-anchor="middle">(clés, couteau, pointes en guise de piolets)</text>
+    </svg>
+    <figcaption>Gardez votre calme pendant la première minute de choc respiratoire (règle 1-10-1, chapitre 16). Une fois dehors, ne vous levez pas : roulez puis rampez jusqu'à la rive.</figcaption>
+  </figure>
+  <ul>
+    <li><b>Prévention :</b> il faut au moins <b>15 cm</b> de glace transparente et dure pour marcher seul. Glace blanche, grise, près des berges, des roseaux ou des courants : beaucoup plus fragile. En cas de doute, ne vous y aventurez pas.</li>
+    <li><b>Pour aider quelqu'un :</b> ne courez jamais vers le trou. Allongez-vous pour répartir le poids, tendez une branche, une corde, une écharpe ; ou appelez le 112 et guidez la personne de la rive.</li>
+  </ul>
+
+  <h3>Bloqué en voiture dans la neige</h3>
+  <ol>
+    <li><b>Restez dans la voiture</b> : c'est un abri, et elle se voit mieux que vous. Ne partez à pied que si un abri est visible et proche.</li>
+    <li>Appelez le 112. Accrochez un tissu coloré à l'antenne ou à la vitre.</li>
+    <li>Faites tourner le moteur environ <b>10 minutes par heure</b> pour chauffer, en entrouvrant une vitre, et en vérifiant que <b>le pot d'échappement est dégagé de la neige</b> (sinon, risque mortel de monoxyde de carbone).</li>
+    <li>Bougez bras et jambes, serrez-vous à plusieurs, couvrez-vous de tout ce qui est disponible (tapis de sol, housses, papier).</li>
+    <li>La nuit, allumez le plafonnier quand le moteur tourne pour être repéré. Restez éveillés à tour de rôle.</li>
+  </ol>
+  <p class="small">L'hiver, gardez dans le coffre : couverture, pelle, lampe, gants, eau, barres énergétiques, chargeur de téléphone, chaînes.</p>
+
+  <h3>Blizzard</h3>
+  <p>Quand la visibilité tombe à quelques mètres : <b>ne bougez plus</b>. Abritez-vous derrière un rocher, des arbres, dans la neige (trou à neige, chapitre 15). Encordez-vous ou tenez-vous par la main si vous êtes plusieurs. On se perd à 20 mètres d'un refuge dans le blizzard.</p>
+</section>
+
+<!-- ===================== JUNGLE ===================== -->
+<section class="page" id="jungle">
+  <h2><span class="num">19</span>Forêt tropicale et jungle</h2>
+  <p>Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau ne manque pas, mais tout s'infecte vite et on s'y perd très facilement.</p>
+
+  <h3>Avant de partir</h3>
+  <ul>
+    <li>Consultez un médecin ou un centre de vaccinations internationales : <b>vaccins</b> (fièvre jaune, etc.) et <b>traitement préventif du paludisme</b> selon la région.</li>
+    <li>Emportez une moustiquaire imprégnée, un répulsif efficace, une trousse renforcée (désinfectant, pansements, antidiarrhéique, médicaments personnels), des vêtements longs à séchage rapide.</li>
+  </ul>
+
+  <h3>Dormir au-dessus du sol</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 600 220" role="img" aria-label="Hamac avec moustiquaire sous une bâche tendue entre deux arbres, au-dessus du sol">
+      <path d="M0 200 H600" class="stroke"/>
+      <rect x="60" y="20" width="22" height="180" fill="#6a4a2a"/>
+      <rect x="518" y="20" width="22" height="180" fill="#6a4a2a"/>
+      <!-- bâche -->
+      <path d="M82 50 H518" class="stroke" stroke-width="1.5"/>
+      <path d="M120 50 L60 120 M480 50 L540 120" class="thin"/>
+      <path d="M100 52 L300 32 L500 52 L480 110 L120 110 Z" class="grn" opacity=".55"/>
+      <!-- hamac -->
+      <path d="M82 120 Q300 220 518 120" stroke="#8a6a3a" stroke-width="3" fill="none"/>
+      <path d="M130 135 Q300 210 470 135 L470 120 Q300 175 130 120 Z" fill="#d9b86a"/>
+      <!-- moustiquaire -->
+      <path d="M140 112 Q300 90 460 112 L470 140 Q300 200 130 140 Z" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <!-- pluie -->
+      <g class="sblu" stroke-width="2"><path d="M200 5 l-5 15 M260 0 l-5 15 M340 5 l-5 15 M400 0 l-5 15"/></g>
+      <!-- fourmis/serpent -->
+      <path d="M220 198 q10 -8 20 0 t20 0 t20 0" class="sgrn" stroke-width="3"/>
+      <text x="300" y="70" text-anchor="middle" class="txt">bâche en pente (pluie)</text>
+      <text x="300" y="217" text-anchor="middle" class="txts">sol : humidité, fourmis, serpents, ruissellement</text>
+    </svg>
+    <figcaption>Hamac ou plateforme de branches à au moins 50 cm du sol, bâche au-dessus, moustiquaire bien fermée. Choisissez l'emplacement sans arbres morts au-dessus, sans nids de fourmis ni guêpes.</figcaption>
+  </figure>
+
+  <h3>Eau</h3>
+  <ul>
+    <li>La pluie est abondante : récupérez-la avec la bâche. C'est l'eau la plus sûre.</li>
+    <li>L'eau des rivières est presque toujours contaminée : faites-la bouillir ou traitez-la.</li>
+    <li><b>Lianes à eau :</b> certaines grosses lianes contiennent de l'eau potable. Coupez d'abord en haut, puis en bas, laissez couler dans la bouche sans toucher l'écorce. Buvez seulement si le liquide est <b>clair, sans goût amer ni odeur</b>. Liquide laiteux, coloré ou amer : jetez.</li>
+    <li>Bambous : de l'eau s'accumule parfois dans les segments (secouez pour entendre).</li>
+  </ul>
+
+  <h3>Se déplacer et s'orienter</h3>
+  <ul>
+    <li>La canopée cache le soleil et le GPS capte mal : faites des pauses dans les clairières pour relever votre position.</li>
+    <li>Suivez les cours d'eau vers l'aval : ils mènent vers les rivières, puis vers les villages et les pistes. Méfiez-vous des berges glissantes, des crues soudaines et, selon les régions, des caïmans ou crocodiles.</li>
+    <li>Ne saisissez ni lianes, ni troncs sans regarder (épines, fourmis, serpents). Tâtez le chemin devant vous avec un bâton.</li>
+    <li>Ne marchez pas de nuit.</li>
+  </ul>
+
+  <h3>Santé : les petits riens qui deviennent graves</h3>
+  <ul>
+    <li><b>Désinfectez chaque égratignure</b> : en climat chaud et humide, une plaie s'infecte en un ou deux jours.</li>
+    <li><b>Pieds :</b> séchez-les chaque soir, changez de chaussettes, laissez-les à l'air la nuit. Des pieds mouillés en permanence finissent par se blesser gravement (« pied d'immersion »).</li>
+    <li><b>Sangsues :</b> glissez un ongle sous la ventouse plutôt que de tirer ; désinfectez ensuite.</li>
+    <li><b>Moustiques :</b> manches et pantalons longs à l'aube et au crépuscule, répulsif, moustiquaire. Toute fièvre au retour d'une zone de paludisme = consultation en urgence, même des semaines après.</li>
+    <li>Ne mangez aucune plante, baie ou champignon inconnu : en zone tropicale, les espèces toxiques sont très nombreuses.</li>
+  </ul>
+</section>
+
+<!-- ===================== VILLE ===================== -->
+<section class="page" id="ville">
+  <h2><span class="num">20</span>En ville et en cas de catastrophe</h2>
+  <p>Coupure d'électricité, inondation, tempête, séisme, incendie : en cas de crise, les secours sont débordés et il faut pouvoir tenir seul <b>au moins 3 jours</b> chez soi.</p>
+
+  <h3>Le kit d'urgence de la maison (72 h)</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 640 220" role="img" aria-label="Contenu du kit d'urgence de la maison">
+      <g transform="translate(20,20)">
+        <rect x="0" y="20" width="50" height="90" rx="6" class="blu" opacity=".6"/><rect x="18" y="8" width="14" height="14" class="blu"/>
+        <rect x="58" y="20" width="50" height="90" rx="6" class="blu" opacity=".6"/><rect x="76" y="8" width="14" height="14" class="blu"/>
+        <text x="54" y="135" text-anchor="middle" class="txt">eau</text>
+        <text x="54" y="152" text-anchor="middle" class="txts">2–3 L/pers./jour</text>
+      </g>
+      <g transform="translate(155,30)">
+        <rect x="0" y="20" width="45" height="60" rx="4" fill="#b5843c"/><rect x="50" y="35" width="45" height="45" rx="4" fill="#c9a96a"/>
+        <text x="48" y="125" text-anchor="middle" class="txt">conserves</text>
+        <text x="48" y="142" text-anchor="middle" class="txts">+ ouvre-boîte</text>
+      </g>
+      <g transform="translate(285,30)">
+        <rect x="0" y="20" width="80" height="55" rx="8" fill="#555"/><circle cx="25" cy="48" r="14" fill="#888"/>
+        <path d="M60 20 L75 -5" class="stroke"/><rect x="48" y="36" width="24" height="5" fill="#bbb"/><rect x="48" y="48" width="24" height="5" fill="#bbb"/>
+        <text x="40" y="125" text-anchor="middle" class="txt">radio</text>
+        <text x="40" y="142" text-anchor="middle" class="txts">piles ou dynamo</text>
+      </g>
+      <g transform="translate(405,30)">
+        <rect x="10" y="35" width="60" height="22" rx="6" fill="#333"/><path d="M70 30 L95 20 V72 L70 62 Z" fill="#f2c14e"/>
+        <text x="50" y="125" text-anchor="middle" class="txt">lampe</text>
+        <text x="50" y="142" text-anchor="middle" class="txts">+ piles, bougies</text>
+      </g>
+      <g transform="translate(535,30)">
+        <rect x="0" y="20" width="70" height="55" rx="8" class="acc"/>
+        <path d="M35 30 V65 M18 47 H52" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+        <text x="35" y="125" text-anchor="middle" class="txt">trousse</text>
+        <text x="35" y="142" text-anchor="middle" class="txts">+ médicaments</text>
+      </g>
+      <text x="320" y="192" text-anchor="middle" class="txts">+ copies des papiers, argent liquide, double des clés, batterie externe,</text>
+      <text x="320" y="210" text-anchor="middle" class="txts">couvertures, sifflet, masques, lunettes de rechange</text>
+    </svg>
+    <figcaption>Rangé dans un sac facile à emporter, près de la sortie. Vérifiez les dates et les piles une fois par an.</figcaption>
+  </figure>
+
+  <h3>Se tenir informé</h3>
+  <ul>
+    <li>En France, l'alerte <b>FR-Alert</b> s'affiche directement sur les téléphones de la zone concernée. Les sirènes sont testées le premier mercredi du mois à midi : un son montant et descendant en dehors de ce test = mettez-vous à l'abri et écoutez la radio.</li>
+    <li>Radio à piles : les stations locales du service public donnent les consignes officielles.</li>
+    <li>Convenez en famille d'un <b>point de rendez-vous</b> et d'un proche à contacter (hors de la région), au cas où les réseaux locaux seraient saturés. Préférez les SMS aux appels.</li>
+  </ul>
+
+  <h3>Coupure d'électricité</h3>
+  <ul>
+    <li>Gardez le réfrigérateur et le congélateur <b>fermés</b> : environ 4 h pour le frigo, 24 à 48 h pour un congélateur plein.</li>
+    <li><b>Jamais</b> de groupe électrogène, barbecue, brasero ou chauffage d'appoint à combustion dans un espace fermé : le monoxyde de carbone tue sans odeur.</li>
+    <li>Débranchez les appareils sensibles pour éviter la surtension au retour du courant. Réunissez-vous dans une seule pièce l'hiver.</li>
+  </ul>
+
+  <h3>Inondation</h3>
+  <ul>
+    <li><b>Ne marchez et ne roulez jamais dans l'eau</b> en mouvement : 15 cm d'eau courante peuvent faire tomber un adulte, 30 cm emporter une voiture.</li>
+    <li>Montez à l'étage ou sur un point haut, avec le kit. Coupez électricité et gaz si vous pouvez le faire sans danger.</li>
+    <li>N'allez pas chercher les enfants à l'école : ils y sont pris en charge.</li>
+  </ul>
+
+  <h3>Séisme</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 600 150" role="img" aria-label="Se baisser, s'abriter sous une table solide, s'agripper au pied de la table">
+      <path d="M0 135 H600" class="stroke"/>
+      <g transform="translate(60,0)">
+        <circle cx="40" cy="60" r="12" class="acc"/><path d="M40 72 V110 L25 135 M40 110 L55 135 M40 82 L20 100 M40 82 L60 100" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <text x="40" y="30" text-anchor="middle" class="txt">1. se baisser</text>
+      </g>
+      <g transform="translate(220,0)">
+        <path d="M0 70 H160 M15 70 V135 M145 70 V135" stroke="#8a5a2b" stroke-width="8"/>
+        <circle cx="60" cy="110" r="10" class="acc"/><ellipse cx="85" cy="122" rx="25" ry="12" class="acc"/>
+        <path d="M110 120 L140 110" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>
+        <text x="80" y="30" text-anchor="middle" class="txt">2. s'abriter</text>
+        <text x="80" y="50" text-anchor="middle" class="txts">sous une table solide</text>
+      </g>
+      <g transform="translate(440,0)">
+        <text x="70" y="30" text-anchor="middle" class="txt">3. s'agripper</text>
+        <text x="70" y="50" text-anchor="middle" class="txts">au pied de la table,</text>
+        <text x="70" y="66" text-anchor="middle" class="txts">loin des vitres,</text>
+        <text x="70" y="82" text-anchor="middle" class="txts">jusqu'à la fin</text>
+        <text x="70" y="98" text-anchor="middle" class="txts">des secousses</text>
+      </g>
+    </svg>
+  </figure>
+  <ul>
+    <li>Dehors : éloignez-vous des bâtiments, murs, poteaux et câbles. En voiture : arrêtez-vous loin des ponts et des bâtiments, restez dedans.</li>
+    <li>Après : sortez par l'escalier (jamais l'ascenseur), méfiez-vous des répliques, ne rentrez pas dans un bâtiment endommagé, coupez le gaz si vous sentez une odeur et ne faites aucune flamme.</li>
+  </ul>
+
+  <h3>Incendie</h3>
+  <ul>
+    <li><b>Dans un logement :</b> sortez en vous baissant (la fumée chaude est en haut), fermez les portes derrière vous. Touchez une porte avec le dos de la main avant de l'ouvrir : chaude = ne pas ouvrir.</li>
+    <li>Si la fumée bloque l'escalier : restez chez vous, porte fermée, calfeutrez-la avec des linges mouillés, signalez-vous à la fenêtre, appelez le 18 / 112.</li>
+    <li><b>Feu de forêt</b> qui approche : ne fuyez pas à pied ou en voiture dans la fumée. Un bâtiment en dur, volets et fenêtres fermés, est en général le meilleur abri. Ouvrez le portail pour les pompiers.</li>
+  </ul>
+</section>
+
 <!-- ===================== AVEC RIEN SUR SOI ===================== -->
 <section class="page" id="rien">
-  <h2><span class="num">17</span>Avec rien sur soi</h2>
+  <h2><span class="num">21</span>Avec rien sur soi</h2>
   <p>Égaré après une simple promenade, en tenue légère, sans sac : c'est la situation la plus fréquente… et la plus difficile. Disons-le franchement : sans matériel, <b>votre meilleur atout est d'éviter de perdre de la chaleur et de l'énergie</b>, et d'être retrouvé vite. Le feu par friction ou la chasse, sans entraînement, sont presque toujours des pertes de temps.</p>
 
   <div class="box">
@@ -1907,7 +2225,7 @@
 
 <!-- ===================== AVEC UN OUTIL ===================== -->
 <section class="page" id="outils">
-  <h2><span class="num">18</span>Avec un couteau ou un outil</h2>
+  <h2><span class="num">22</span>Avec un couteau ou un outil</h2>
   <p>Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facile, attelle, réparation. Ce chapitre montre comment tirer le maximum d'un <b>couteau suisse</b>, d'un <b>couteau à lame fixe</b> et des autres petits outils du quotidien.</p>
 
   <h3>Le couteau suisse : chaque outil a son usage</h3>
@@ -2067,9 +2385,200 @@
   </div>
 </section>
 
+<!-- ===================== FICHES RÉFLEXES ===================== -->
+<section class="page" id="fiches">
+  <h2><span class="num">23</span>Fiches réflexes</h2>
+  <p>Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans le kit. Pour les détails, suivez le renvoi au chapitre.</p>
+
+  <div class="fiches">
+    <div class="fiche">
+      <h4>1 · Je suis perdu</h4>
+      <ol>
+        <li>Stop : je m'assois, je respire (S.T.O.P.).</li>
+        <li>J'appelle le 112, sinon SMS, depuis un point haut.</li>
+        <li>Je reste sur place si quelqu'un connaît mon itinéraire.</li>
+        <li>Abri et isolation du sol avant la nuit.</li>
+        <li>Signaux : couleur, SOS au sol, sifflet 6 coups/min.</li>
+      </ol>
+      <p class="ref">→ chapitres 1, 7, 21</p>
+    </div>
+    <div class="fiche">
+      <h4>2 · Nuit imprévue dehors</h4>
+      <ol>
+        <li>Je commence 2 h avant la nuit.</li>
+        <li>Endroit abrité du vent, sec, sans branches mortes au-dessus.</li>
+        <li>20 cm de feuilles sous moi, abri petit.</li>
+        <li>Vêtements secs, bourrés de feuilles, tête couverte.</li>
+        <li>Feu seulement si l'abri est prêt.</li>
+      </ol>
+      <p class="ref">→ chapitres 3, 4, 21</p>
+    </div>
+    <div class="fiche">
+      <h4>3 · Quelqu'un est inconscient</h4>
+      <ol>
+        <li>Je me protège et je le protège du danger.</li>
+        <li>Il respire ? Je regarde, j'écoute 10 s.</li>
+        <li>Oui : position latérale de sécurité (PLS).</li>
+        <li>Non : 112 et massage cardiaque, 100–120/min.</li>
+        <li>Je le couvre et je surveille sans arrêt.</li>
+      </ol>
+      <p class="ref">→ chapitre 8</p>
+    </div>
+    <div class="fiche">
+      <h4>4 · Saignement abondant</h4>
+      <ol>
+        <li>J'appuie fort sur la plaie, sans relâcher.</li>
+        <li>J'allonge la victime.</li>
+        <li>J'appelle le 112.</li>
+        <li>Membre, compression impossible : garrot large au-dessus.</li>
+        <li>Je note l'heure du garrot, je ne le desserre pas.</li>
+      </ol>
+      <p class="ref">→ chapitre 8</p>
+    </div>
+    <div class="fiche">
+      <h4>5 · Tombé dans l'eau froide</h4>
+      <ol>
+        <li>1re minute : je flotte, je calme ma respiration.</li>
+        <li>Je garde mes vêtements et le gilet.</li>
+        <li>Je ne nage pas vers une côte lointaine.</li>
+        <li>Je m'agrippe à ce qui flotte, je sors du maximum de l'eau.</li>
+        <li>Position HELP ou groupe serré, je signale.</li>
+      </ol>
+      <p class="ref">→ chapitre 16</p>
+    </div>
+    <div class="fiche">
+      <h4>6 · Passé à travers la glace</h4>
+      <ol>
+        <li>Je calme ma respiration (1 minute).</li>
+        <li>Je me tourne vers d'où je viens.</li>
+        <li>Pieds à l'horizontale, je bats des jambes et je tire.</li>
+        <li>Je roule, je ne me lève pas.</li>
+        <li>Au chaud, vêtements secs, 112.</li>
+      </ol>
+      <p class="ref">→ chapitre 18</p>
+    </div>
+    <div class="fiche">
+      <h4>7 · Orage en pleine nature</h4>
+      <ol>
+        <li>Éclair-tonnerre &lt; 30 s : je m'abrite.</li>
+        <li>Je quitte sommets, crêtes, arbres isolés, eau.</li>
+        <li>Je m'éloigne du métal.</li>
+        <li>Accroupi, pieds joints, sur mon sac.</li>
+        <li>Groupe : quelques mètres entre chacun.</li>
+      </ol>
+      <p class="ref">→ chapitre 14</p>
+    </div>
+    <div class="fiche">
+      <h4>8 · Voiture bloquée dans la neige</h4>
+      <ol>
+        <li>Je reste dans la voiture, j'appelle le 112.</li>
+        <li>Pot d'échappement dégagé, vitre entrouverte.</li>
+        <li>Moteur 10 min par heure.</li>
+        <li>Tissu coloré à l'extérieur, plafonnier la nuit.</li>
+        <li>Je bouge, je me couvre, on se relaie pour dormir.</li>
+      </ol>
+      <p class="ref">→ chapitre 18</p>
+    </div>
+    <div class="fiche">
+      <h4>9 · Coup de chaleur</h4>
+      <ol>
+        <li>Je mets la personne à l'ombre, allongée.</li>
+        <li>J'appelle le 112.</li>
+        <li>Je la déshabille, je mouille toute la peau.</li>
+        <li>J'évente sans arrêt.</li>
+        <li>Petites gorgées seulement si elle est consciente.</li>
+      </ol>
+      <p class="ref">→ chapitres 8, 17</p>
+    </div>
+    <div class="fiche">
+      <h4>10 · Catastrophe à la maison</h4>
+      <ol>
+        <li>Je me mets à l'abri selon le danger (étage, table, pièce close).</li>
+        <li>J'écoute la radio, je suis FR-Alert.</li>
+        <li>Je prends le kit 72 h.</li>
+        <li>Je coupe gaz et électricité si c'est sans danger.</li>
+        <li>SMS plutôt qu'appels, point de rendez-vous familial.</li>
+      </ol>
+      <p class="ref">→ chapitre 20</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ENTRAÎNEMENT ===================== -->
+<section class="page" id="entrainement">
+  <h2><span class="num">24</span>Programme d'entraînement</h2>
+  <p>Quatre niveaux, du salon au bivouac. Passez au niveau suivant quand toutes les cases du niveau en cours sont cochées. Comptez quelques mois à raison d'une activité par week-end.</p>
+
+  <figure class="ill">
+    <svg viewBox="0 0 600 130" role="img" aria-label="Progression en quatre niveaux : à la maison, sortie à la journée, nuit dehors, autonomie">
+      <path d="M40 100 H560" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
+      <g>
+        <circle cx="80" cy="100" r="18" class="grn"/><text x="80" y="106" text-anchor="middle" fill="#fff" style="font:bold 16px system-ui,sans-serif">1</text>
+        <circle cx="227" cy="100" r="18" class="blu"/><text x="227" y="106" text-anchor="middle" fill="#fff" style="font:bold 16px system-ui,sans-serif">2</text>
+        <circle cx="373" cy="100" r="18" fill="#d4a017"/><text x="373" y="106" text-anchor="middle" fill="#fff" style="font:bold 16px system-ui,sans-serif">3</text>
+        <circle cx="520" cy="100" r="18" class="acc"/><text x="520" y="106" text-anchor="middle" fill="#fff" style="font:bold 16px system-ui,sans-serif">4</text>
+      </g>
+      <g class="txt" text-anchor="middle">
+        <text x="80" y="40">À la maison</text><text x="227" y="40">Sortie journée</text><text x="373" y="40">Nuit dehors</text><text x="520" y="40">Autonomie</text>
+      </g>
+      <g class="txts" text-anchor="middle">
+        <text x="80" y="62">bases et kit</text><text x="227" y="62">orientation, feu</text><text x="373" y="62">abri, bivouac</text><text x="520" y="62">peu de matériel</text>
+      </g>
+    </svg>
+  </figure>
+
+  <h3>Niveau 1 — À la maison et au jardin</h3>
+  <ul class="check">
+    <li>Lire le livret en entier une fois.</li>
+    <li>Assembler son kit de survie (chapitre 2) et le kit d'urgence de la maison (chapitre 20).</li>
+    <li>Faire les 3 nœuds les yeux fermés (chapitre 12).</li>
+    <li>Allumer un feu dans un barbecue avec briquet, puis avec une pierre à feu et du coton-vaseline.</li>
+    <li>Fabriquer du coton-vaseline et du tissu charbonné.</li>
+    <li>Faire bouillir de l'eau dans une gourde métal ; essayer la méthode SODIS.</li>
+    <li>Mesurer son double pas sur 100 m (chapitre 11).</li>
+    <li>Suivre une formation aux premiers secours (PSC1, une journée).</li>
+  </ul>
+
+  <h3>Niveau 2 — Sorties à la journée</h3>
+  <ul class="check">
+    <li>Laisser son itinéraire à un proche à chaque sortie (le réflexe à prendre dès maintenant).</li>
+    <li>Suivre un itinéraire avec carte et boussole, sans GPS (le téléphone reste en secours).</li>
+    <li>Trouver le nord par la méthode du bâton et de la montre ; repérer l'étoile Polaire un soir.</li>
+    <li>Allumer un feu à la pierre à feu avec ce que l'on trouve (là où c'est autorisé).</li>
+    <li>Réussir un feu après la pluie : bois fendu, copeaux en plumes.</li>
+    <li>Construire un appentis en moins de 2 heures.</li>
+    <li>Reconnaître 5 plantes comestibles et leurs sosies, avec un guide ou une association.</li>
+    <li>Envoyer un signal au miroir à un ami situé à 500 m.</li>
+  </ul>
+
+  <h3>Niveau 3 — Une nuit dehors</h3>
+  <ul class="check">
+    <li>Bivouac avec tente et sac de couchage, pour apprendre à gérer froid, humidité et nuit.</li>
+    <li>Passer une nuit sous une bâche ou un appentis (sac de couchage gardé en secours).</li>
+    <li>Entretenir un feu toute une soirée avec un feu en étoile.</li>
+    <li>Filtrer (bouteille), puis faire bouillir de l'eau trouvée sur place.</li>
+    <li>Monter un alambic solaire et mesurer ce qu'il donne.</li>
+    <li>Faire une sortie en hiver ou par mauvais temps (encadrée ou à plusieurs).</li>
+  </ul>
+
+  <h3>Niveau 4 — Autonomie</h3>
+  <ul class="check">
+    <li>Réussir un feu à l'archet.</li>
+    <li>Construire une hutte de débris et y passer une nuit (avec sac de couchage à portée en cas de besoin).</li>
+    <li>Passer 24 h avec seulement le « trio idéal » : couteau, briquet, couverture de survie (à plusieurs, près d'un point de repli).</li>
+    <li>Faire un stage de survie encadré par des professionnels.</li>
+    <li>Selon vos projets : formation avalanche, stage de sécurité en mer, ou séjour accompagné en milieu désertique ou tropical.</li>
+  </ul>
+
+  <div class="box warn">
+    <strong>S'entraîner en sécurité</strong>
+    Toujours prévenir quelqu'un, garder un moyen de repli (sac de couchage, voiture, téléphone chargé), ne jamais s'entraîner seul aux exercices difficiles. Respectez la loi : feux souvent interdits en forêt et en été, bivouac réglementé dans les parcs naturels, cueillette interdite dans certaines zones protégées.
+  </div>
+</section>
+
 <!-- ===================== 12. CHECK-LISTS ===================== -->
 <section class="page" id="checklist">
-  <h2><span class="num">19</span>Check-lists</h2>
+  <h2><span class="num">25</span>Check-lists</h2>
 
   <h3>Avant de partir</h3>
   <ul class="check">
