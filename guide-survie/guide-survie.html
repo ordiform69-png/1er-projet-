@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petit guide de survie</title>
+<meta name="description" content="Petit livre de survie hors ligne : priorités, abri, feu, eau, orientation, signaux, premiers secours, nœuds et check-lists, avec illustrations.">
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --page: #fffdf8;
+    --ink: #2b2a26;
+    --muted: #6b6559;
+    --accent: #b5502a;
+    --green: #4f6b3a;
+    --blue: #2f5f7a;
+    --line: #d9cfbd;
+    --note: #f1e6cf;
+    --warn: #fbe3dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1b18; --page: #26241f; --ink: #ece6d8; --muted: #b3aa98;
+      --accent: #e4875f; --green: #9cbd7f; --blue: #7fb3d1; --line: #48433a;
+      --note: #34302a; --warn: #3d2a24;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  }
+  .page {
+    max-width: 760px; margin: 24px auto; padding: 40px 48px;
+    background: var(--page); border: 1px solid var(--line); border-radius: 6px;
+  }
+  @media (max-width: 640px) { .page { margin: 0; padding: 24px 16px; border-radius: 0; border-width: 0 0 1px; } }
+  h1, h2, h3 { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; line-height: 1.25; }
+  h1 { font-size: 2.3em; margin: .2em 0; }
+  h2 { font-size: 1.6em; margin: 0 0 .6em; color: var(--accent); border-bottom: 2px solid var(--line); padding-bottom: .3em; }
+  h2 .num { color: var(--muted); font-weight: normal; margin-right: .3em; }
+  h3 { font-size: 1.15em; margin: 1.4em 0 .4em; }
+  a { color: var(--blue); }
+  ul, ol { padding-left: 1.3em; }
+  li { margin: .25em 0; }
+  figure { margin: 1.4em 0; text-align: center; }
+  figure svg { width: 100%; height: auto; max-width: 560px; }
+  figcaption { font-size: .88em; color: var(--muted); font-style: italic; margin-top: .4em; }
+  .box { background: var(--note); border-left: 4px solid var(--green); padding: .8em 1em; margin: 1.2em 0; border-radius: 0 4px 4px 0; }
+  .box.warn { background: var(--warn); border-left-color: var(--accent); }
+  .box strong:first-child { display: block; font-family: "Trebuchet MS", system-ui, sans-serif; }
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: .95em; }
+  th, td { border: 1px solid var(--line); padding: .45em .6em; text-align: left; vertical-align: top; }
+  th { background: var(--note); font-family: "Trebuchet MS", system-ui, sans-serif; }
+  .cover { text-align: center; padding-top: 30px; }
+  .cover .sub { color: var(--muted); font-size: 1.1em; }
+  .toc ol { columns: 2; column-gap: 2em; }
+  @media (max-width: 640px) { .toc ol { columns: 1; } }
+  .check li { list-style: none; margin-left: -1.3em; }
+  .check li::before { content: "☐ "; color: var(--green); }
+  .small { font-size: .88em; color: var(--muted); }
+  /* Illustrations : couleurs via variables pour le mode sombre */
+  .ill { --s: var(--ink); }
+  .ill .stroke { stroke: var(--ink); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .ill .thin { stroke: var(--muted); fill: none; stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .ill .txt { fill: var(--ink); font: 15px "Trebuchet MS", system-ui, sans-serif; }
+  .ill .txts { fill: var(--muted); font: 13px "Trebuchet MS", system-ui, sans-serif; }
+  .ill .acc { fill: var(--accent); }
+  .ill .grn { fill: var(--green); }
+  .ill .blu { fill: var(--blue); }
+  .ill .pap { fill: var(--note); }
+  .ill .sacc { stroke: var(--accent); fill: none; stroke-width: 3; stroke-linecap: round; }
+  .ill .sgrn { stroke: var(--green); fill: none; stroke-width: 3; stroke-linecap: round; }
+  .ill .sblu { stroke: var(--blue); fill: none; stroke-width: 3; stroke-linecap: round; }
+
+  @media print {
+    :root { --bg: #fff; --page: #fff; }
+    body { font-size: 11.5pt; }
+    .page { margin: 0; border: 0; padding: 0; max-width: none; page-break-after: always; break-after: page; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    figure, .box, table { break-inside: avoid; }
+    h2, h3 { break-after: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+  @page { size: A5; margin: 14mm 12mm; }
+</style>
+</head>
+<body>
+
+<!-- ===================== COUVERTURE ===================== -->
+<section class="page cover">
+  <figure class="ill" aria-hidden="true">
+    <svg viewBox="0 0 400 230">
+      <circle cx="300" cy="60" r="28" class="acc" opacity=".85"/>
+      <path d="M0 200 L90 90 L150 160 L210 70 L320 200 Z" class="grn" opacity=".35"/>
+      <path d="M120 200 L210 70 L300 200 Z" class="grn" opacity=".6"/>
+      <path d="M190 98 L210 70 L230 98 L218 92 L210 100 L202 92 Z" fill="#fff" opacity=".9"/>
+      <!-- sapins -->
+      <g class="grn"><path d="M40 205 L55 160 L70 205 Z"/><path d="M60 205 L78 150 L96 205 Z"/><path d="M330 205 L348 150 L366 205 Z"/></g>
+      <!-- tente -->
+      <path d="M150 205 L190 150 L230 205 Z" class="acc"/>
+      <path d="M190 150 L190 205" class="stroke"/>
+      <!-- feu -->
+      <path d="M262 205 C252 190 262 182 266 170 C270 182 282 188 270 205 Z" class="acc"/>
+      <path d="M250 207 L285 199 M250 199 L285 207" class="stroke"/>
+      <path d="M0 207 H400" class="stroke"/>
+    </svg>
+  </figure>
+  <h1>Petit guide de survie</h1>
+  <p class="sub">Conseils pratiques pour rester en vie, se faire trouver<br>et rentrer chez soi.</p>
+  <p class="small">Version hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).</p>
+
+  <div class="box warn" style="text-align:left">
+    <strong>Avertissement</strong>
+    Ce livret donne des repères généraux. Il ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours.
+    <b>En cas d'urgence : appelez le 112</b> (numéro d'urgence européen, joignable depuis n'importe quel réseau disponible).
+  </div>
+
+  <nav class="toc" style="text-align:left">
+    <h3>Sommaire</h3>
+    <ol>
+      <li><a href="#priorites">Les priorités</a></li>
+      <li><a href="#kit">Le kit de survie</a></li>
+      <li><a href="#abri">S'abriter</a></li>
+      <li><a href="#feu">Faire du feu</a></li>
+      <li><a href="#eau">Trouver et purifier l'eau</a></li>
+      <li><a href="#orientation">S'orienter</a></li>
+      <li><a href="#signaux">Se faire repérer</a></li>
+      <li><a href="#secours">Premiers secours</a></li>
+      <li><a href="#nourriture">Se nourrir</a></li>
+      <li><a href="#noeuds">Trois nœuds utiles</a></li>
+      <li><a href="#meteo">Météo et dangers</a></li>
+      <li><a href="#checklist">Check-lists</a></li>
+    </ol>
+  </nav>
+</section>
+
+<!-- ===================== 1. PRIORITÉS ===================== -->
+<section class="page" id="priorites">
+  <h2><span class="num">1</span>Les priorités</h2>
+  <p>En situation difficile, le plus grand danger est souvent la panique. Avant d'agir, il faut savoir <b>dans quel ordre</b> traiter les problèmes.</p>
+
+  <h3>La règle des 3</h3>
+  <p>Un repère simple (approximatif) pour hiérarchiser vos besoins :</p>
+  <figure class="ill">
+    <svg viewBox="0 0 560 170" role="img" aria-label="Règle des 3 : 3 minutes sans air, 3 heures sans abri, 3 jours sans eau, 3 semaines sans nourriture">
+      <g transform="translate(10,10)">
+        <rect x="0" y="0" width="125" height="120" rx="10" class="pap"/>
+        <text x="62" y="50" text-anchor="middle" class="acc" style="font:bold 40px system-ui,sans-serif">3</text>
+        <text x="62" y="75" text-anchor="middle" class="txt">minutes</text>
+        <text x="62" y="100" text-anchor="middle" class="txts">sans air</text>
+      </g>
+      <g transform="translate(148,10)">
+        <rect x="0" y="0" width="125" height="120" rx="10" class="pap"/>
+        <text x="62" y="50" text-anchor="middle" class="acc" style="font:bold 40px system-ui,sans-serif">3</text>
+        <text x="62" y="75" text-anchor="middle" class="txt">heures</text>
+        <text x="62" y="100" text-anchor="middle" class="txts">sans abri*</text>
+      </g>
+      <g transform="translate(286,10)">
+        <rect x="0" y="0" width="125" height="120" rx="10" class="pap"/>
+        <text x="62" y="50" text-anchor="middle" class="blu" style="font:bold 40px system-ui,sans-serif">3</text>
+        <text x="62" y="75" text-anchor="middle" class="txt">jours</text>
+        <text x="62" y="100" text-anchor="middle" class="txts">sans eau</text>
+      </g>
+      <g transform="translate(424,10)">
+        <rect x="0" y="0" width="125" height="120" rx="10" class="pap"/>
+        <text x="62" y="50" text-anchor="middle" class="grn" style="font:bold 40px system-ui,sans-serif">3</text>
+        <text x="62" y="75" text-anchor="middle" class="txt">semaines</text>
+        <text x="62" y="100" text-anchor="middle" class="txts">sans nourriture</text>
+      </g>
+      <text x="280" y="158" text-anchor="middle" class="txts">* par grand froid, pluie, vent ou forte chaleur</text>
+    </svg>
+    <figcaption>Conséquence : l'abri et l'eau passent presque toujours avant la nourriture.</figcaption>
+  </figure>
+
+  <h3>La méthode S.T.O.P.</h3>
+  <table>
+    <tr><th>S — Stop</th><td>Arrêtez-vous. Asseyez-vous, buvez un peu, respirez lentement. Ne marchez pas au hasard.</td></tr>
+    <tr><th>T — Think (Réfléchir)</th><td>Que s'est-il passé ? Qui sait où je suis ? Quand va-t-on s'inquiéter de mon absence ?</td></tr>
+    <tr><th>O — Observer</th><td>Météo, heure de coucher du soleil, blessures, matériel disponible, ressources autour (eau, bois, abri naturel).</td></tr>
+    <tr><th>P — Planifier</th><td>Décidez : rester sur place ou bouger ? Listez les tâches dans l'ordre et commencez.</td></tr>
+  </table>
+
+  <div class="box">
+    <strong>Rester ou partir ?</strong>
+    Si quelqu'un connaît votre itinéraire, <b>restez sur place</b> : les secours cherchent d'abord là où vous êtes censé être. Ne bougez que si l'endroit est dangereux, ou si personne ne viendra et que vous connaissez le chemin.
+  </div>
+
+  <h3>Avant de partir, toujours</h3>
+  <ul>
+    <li>Laissez votre itinéraire et votre heure de retour à un proche.</li>
+    <li>Consultez la météo et l'heure du coucher du soleil.</li>
+    <li>Partez avec un téléphone chargé et une batterie externe ; téléchargez les cartes hors ligne.</li>
+  </ul>
+</section>
+
+<!-- ===================== 2. KIT ===================== -->
+<section class="page" id="kit">
+  <h2><span class="num">2</span>Le kit de survie</h2>
+  <p>Un petit kit, toujours dans le sac, vaut mieux qu'un gros kit resté à la maison. Il tient dans une trousse de la taille d'une main.</p>
+
+  <figure class="ill">
+    <svg viewBox="-10 0 580 250" role="img" aria-label="Contenu d'un kit de survie">
+      <!-- couteau -->
+      <g transform="translate(20,30)">
+        <rect x="0" y="10" width="55" height="18" rx="6" class="acc"/>
+        <path d="M55 12 L120 12 L105 26 L55 26 Z" class="pap"/><path d="M55 12 L120 12 L105 26 L55 26 Z" class="stroke"/>
+        <text x="60" y="55" text-anchor="middle" class="txts">couteau</text>
+      </g>
+      <!-- briquet -->
+      <g transform="translate(170,15)">
+        <rect x="0" y="12" width="26" height="42" rx="4" class="blu"/>
+        <rect x="3" y="0" width="20" height="14" rx="2" class="stroke"/>
+        <path d="M13 -10 C8 -16 13 -20 15 -26 C18 -18 20 -14 13 -10 Z" class="acc"/>
+        <text x="13" y="72" text-anchor="middle" class="txts">briquet</text>
+      </g>
+      <!-- ferro -->
+      <g transform="translate(240,22)">
+        <rect x="0" y="0" width="10" height="45" rx="3" class="stroke"/>
+        <rect x="-4" y="40" width="18" height="16" rx="3" class="grn"/>
+        <text x="5" y="72" text-anchor="middle" class="txts">ferro</text>
+      </g>
+      <!-- sifflet -->
+      <g transform="translate(300,28)">
+        <path d="M0 10 H40 A16 16 0 1 1 30 28 H0 Z" class="acc"/>
+        <circle cx="42" cy="22" r="5" class="pap"/>
+        <text x="30" y="66" text-anchor="middle" class="txts">sifflet</text>
+      </g>
+      <!-- lampe frontale -->
+      <g transform="translate(395,20)">
+        <ellipse cx="40" cy="25" rx="40" ry="18" class="stroke"/>
+        <rect x="26" y="0" width="28" height="20" rx="5" class="grn"/>
+        <circle cx="40" cy="10" r="6" class="pap"/>
+        <text x="40" y="74" text-anchor="middle" class="txts">frontale</text>
+      </g>
+      <!-- couverture de survie -->
+      <g transform="translate(20,130)">
+        <rect x="0" y="0" width="85" height="60" rx="3" fill="#d4a017"/>
+        <path d="M0 0 L85 60 M0 30 L42 60 M42 0 L85 30" stroke="#fff" stroke-width="1.5" opacity=".6"/>
+        <text x="42" y="82" text-anchor="middle" class="txts">couverture de survie</text>
+      </g>
+      <!-- cordelette -->
+      <g transform="translate(150,130)">
+        <ellipse cx="35" cy="30" rx="32" ry="26" class="sacc"/>
+        <ellipse cx="35" cy="30" rx="22" ry="17" class="sacc"/>
+        <ellipse cx="35" cy="30" rx="12" ry="9" class="sacc"/>
+        <text x="35" y="82" text-anchor="middle" class="txts">cordelette 10 m</text>
+      </g>
+      <!-- pastilles -->
+      <g transform="translate(260,135)">
+        <rect x="0" y="0" width="60" height="45" rx="5" class="pap"/><rect x="0" y="0" width="60" height="45" rx="5" class="stroke"/>
+        <circle cx="15" cy="15" r="6" class="blu"/><circle cx="32" cy="15" r="6" class="blu"/><circle cx="49" cy="15" r="6" class="blu"/>
+        <circle cx="15" cy="31" r="6" class="blu"/><circle cx="32" cy="31" r="6" class="blu"/>
+        <text x="30" y="77" text-anchor="middle" class="txts">pastilles eau</text>
+      </g>
+      <!-- trousse secours -->
+      <g transform="translate(355,130)">
+        <rect x="0" y="0" width="70" height="55" rx="8" class="acc"/>
+        <path d="M35 12 V43 M20 28 H50" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+        <text x="35" y="82" text-anchor="middle" class="txts">mini-trousse</text>
+      </g>
+      <!-- boussole -->
+      <g transform="translate(470,130)">
+        <circle cx="30" cy="28" r="28" class="pap"/><circle cx="30" cy="28" r="28" class="stroke"/>
+        <path d="M30 6 L37 28 L30 28 Z" class="acc"/><path d="M30 50 L23 28 L30 28 Z" class="txts"/>
+        <text x="30" y="82" text-anchor="middle" class="txts">boussole</text>
+      </g>
+    </svg>
+    <figcaption>L'essentiel : couper, allumer, signaler, éclairer, se protéger, purifier, soigner, s'orienter.</figcaption>
+  </figure>
+
+  <h3>Liste de base</h3>
+  <ul>
+    <li><b>Feu :</b> 2 moyens différents (briquet + pierre à feu / allumettes tempête) et un peu d'amadou (coton + vaseline dans une boîte étanche).</li>
+    <li><b>Couper :</b> couteau à lame fixe ou couteau multifonction.</li>
+    <li><b>Protection :</b> couverture de survie, sac poubelle épais (poncho, abri, bâche).</li>
+    <li><b>Eau :</b> gourde en métal (permet de faire bouillir), pastilles de purification ou filtre.</li>
+    <li><b>Signal :</b> sifflet, miroir de signalisation, lampe frontale + piles.</li>
+    <li><b>Orientation :</b> carte papier de la zone, boussole.</li>
+    <li><b>Soins :</b> pansements, compresses, bande, désinfectant, médicaments personnels.</li>
+    <li><b>Divers :</b> cordelette (10 m), ruban adhésif, barres énergétiques, crayon et papier.</li>
+  </ul>
+  <div class="box">
+    <strong>Astuce</strong>
+    Le meilleur outil de survie reste un téléphone chargé. En mode avion il tient plusieurs jours : allumez-le seulement pour appeler ou vérifier votre position.
+  </div>
+</section>
+
+<!-- ===================== 3. ABRI ===================== -->
+<section class="page" id="abri">
+  <h2><span class="num">3</span>S'abriter</h2>
+  <p>Le corps perd sa chaleur de quatre façons : par le <b>vent</b>, l'<b>humidité</b>, le <b>contact avec le sol</b> et le <b>rayonnement</b>. Un bon abri bloque les quatre.</p>
+
+  <h3>Choisir l'emplacement</h3>
+  <ul>
+    <li>Terrain plat et sec, légèrement surélevé ; jamais au fond d'un ravin ou d'un lit de rivière (crues soudaines).</li>
+    <li>À l'abri du vent dominant (derrière un rocher, une butte, des arbres).</li>
+    <li>Pas sous des arbres morts ou des branches cassées, ni au pied d'une pente instable.</li>
+    <li>Près de l'eau et du bois, mais pas au bord immédiat (humidité, insectes).</li>
+  </ul>
+
+  <figure class="ill">
+    <svg viewBox="0 0 560 260" role="img" aria-label="Schéma d'un abri en appentis">
+      <path d="M0 225 H560" class="stroke"/>
+      <!-- deux arbres -->
+      <rect x="95" y="60" width="16" height="165" class="txts" opacity=".55"/>
+      <rect x="405" y="60" width="16" height="165" class="txts" opacity=".55"/>
+      <circle cx="103" cy="55" r="45" class="grn" opacity=".5"/>
+      <circle cx="413" cy="55" r="45" class="grn" opacity=".5"/>
+      <!-- faîtière -->
+      <path d="M80 110 L440 110" stroke="#8a5a2b" stroke-width="9" stroke-linecap="round"/>
+      <!-- chevrons -->
+      <g stroke="#8a5a2b" stroke-width="5" stroke-linecap="round">
+        <path d="M130 110 L190 225"/><path d="M190 110 L250 225"/><path d="M250 110 L310 225"/><path d="M310 110 L370 225"/><path d="M370 110 L430 225"/>
+      </g>
+      <!-- couverture de branchages -->
+      <path d="M115 105 L445 105 L455 228 L180 228 Z" class="grn" opacity=".45"/>
+      <!-- litière isolante -->
+      <path d="M40 222 Q110 205 180 222" class="sgrn"/>
+      <rect x="30" y="214" width="140" height="10" rx="5" fill="#a07b3c" opacity=".7"/>
+      <!-- feu réflecteur -->
+      <path d="M20 225 C12 210 22 200 25 188 C30 202 40 208 30 225 Z" class="acc"/>
+      <!-- vent -->
+      <g class="sblu"><path d="M545 140 H480"/><path d="M545 160 H490"/><path d="M545 180 H480"/>
+        <path d="M488 133 L478 140 L488 147"/><path d="M498 153 L488 160 L498 167"/><path d="M488 173 L478 180 L488 187"/></g>
+      <text x="500" y="125" class="txts">vent</text>
+      <text x="230" y="95" class="txt">faîtière solide</text>
+      <text x="300" y="250" class="txts">branches + feuillage (30 cm d'épaisseur)</text>
+      <text x="35" y="250" class="txts">lit de feuilles sèches</text>
+    </svg>
+    <figcaption>L'appentis : une perche entre deux arbres, des branches inclinées, une épaisse couche de feuillage. Dos au vent, ouverture vers le feu.</figcaption>
+  </figure>
+
+  <h3>Les règles d'or</h3>
+  <ol>
+    <li><b>Isolez-vous du sol</b> : c'est la priorité. Une couche de 15 à 20 cm de feuilles sèches, d'aiguilles de pin ou de branches de sapin compressée sous vous. Le sol froid vole la chaleur bien plus vite que l'air.</li>
+    <li><b>Petit, c'est mieux</b> : un abri juste assez grand pour vous se réchauffe avec votre seule chaleur corporelle.</li>
+    <li><b>Restez au sec</b> : retirez les vêtements mouillés dès que possible, faites-les sécher près du feu.</li>
+    <li><b>Commencez tôt</b> : construire un abri prend 1 à 3 heures. Commencez au moins 2 heures avant la nuit.</li>
+  </ol>
+
+  <div class="box">
+    <strong>La couverture de survie</strong>
+    Face <b>dorée</b> ou <b>argentée</b> : ce qui compte surtout, c'est de s'enrouler dedans en évitant le vent et de garder des vêtements secs entre elle et la peau. Elle limite les pertes par rayonnement et par le vent, mais n'isole presque pas du sol : posez-vous toujours sur quelque chose.
+  </div>
+</section>
+
+<!-- ===================== 4. FEU ===================== -->
+<section class="page" id="feu">
+  <h2><span class="num">4</span>Faire du feu</h2>
+  <p>Le feu réchauffe, sèche, purifie l'eau, éloigne les animaux, se voit de loin et remonte le moral. Mais il est aussi dangereux : respectez les interdictions locales et ne le laissez jamais sans surveillance.</p>
+
+  <figure class="ill">
+    <svg viewBox="0 0 640 230" role="img" aria-label="Le triangle du feu et les trois tailles de combustible">
+      <g transform="translate(20,20)">
+        <path d="M100 10 L190 170 L10 170 Z" class="pap"/><path d="M100 10 L190 170 L10 170 Z" class="stroke"/>
+        <path d="M100 120 C85 100 98 90 100 72 C106 92 118 100 102 120 Z" class="acc"/>
+        <text x="100" y="195" text-anchor="middle" class="txt">combustible</text>
+        <text x="20" y="80" text-anchor="middle" class="txt">air</text>
+        <text x="190" y="80" text-anchor="middle" class="txt">chaleur</text>
+      </g>
+      <g transform="translate(270,20)">
+        <text x="0" y="15" class="txt">Préparez 3 tas AVANT d'allumer :</text>
+        <!-- amadou -->
+        <g transform="translate(10,40)">
+          <path d="M0 30 C10 0 30 35 40 5 C50 30 60 10 70 30 Z" fill="#c9a96a"/>
+          <text x="100" y="22" class="txt">1. amadou</text>
+          <text x="100" y="40" class="txts">herbe sèche, écorce de bouleau</text>
+        </g>
+        <!-- petit bois -->
+        <g transform="translate(10,95)" stroke="#8a5a2b" stroke-width="3" stroke-linecap="round">
+          <path d="M0 10 L70 4"/><path d="M0 18 L70 14"/><path d="M5 26 L70 22"/>
+          <text x="100" y="15" class="txt" stroke="none">2. petit bois</text>
+          <text x="100" y="33" class="txts" stroke="none">brindilles, épaisseur d'allumette à crayon</text>
+        </g>
+        <!-- bûches -->
+        <g transform="translate(10,145)" stroke="#8a5a2b" stroke-width="9" stroke-linecap="round">
+          <path d="M5 8 L65 4"/><path d="M5 24 L65 22"/>
+          <text x="100" y="15" class="txt" stroke="none">3. combustible</text>
+          <text x="100" y="33" class="txts" stroke="none">branches du pouce au poignet</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>Un feu a besoin de trois choses. La cause d'échec n°1 : ne pas avoir assez de petit bois prêt.</figcaption>
+  </figure>
+
+  <h3>Monter un feu en tipi</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 560 210" role="img" aria-label="Construction d'un feu en tipi en trois étapes">
+      <path d="M0 180 H560" class="stroke"/>
+      <!-- étape 1 -->
+      <g transform="translate(40,0)">
+        <ellipse cx="70" cy="180" rx="60" ry="10" class="txts" opacity=".35"/>
+        <path d="M45 178 C55 150 75 170 85 150 C90 165 98 160 100 178 Z" fill="#c9a96a"/>
+        <text x="70" y="205" text-anchor="middle" class="txts">① boule d'amadou</text>
+      </g>
+      <!-- étape 2 -->
+      <g transform="translate(210,0)">
+        <ellipse cx="70" cy="180" rx="60" ry="10" class="txts" opacity=".35"/>
+        <path d="M50 178 C60 155 75 170 85 155 C90 168 96 165 95 178 Z" fill="#c9a96a"/>
+        <g stroke="#8a5a2b" stroke-width="3" stroke-linecap="round">
+          <path d="M35 180 L70 105"/><path d="M105 180 L70 105"/><path d="M55 182 L70 105"/><path d="M88 182 L70 105"/><path d="M70 182 L70 105"/>
+        </g>
+        <text x="70" y="205" text-anchor="middle" class="txts">② tipi de brindilles</text>
+      </g>
+      <!-- étape 3 -->
+      <g transform="translate(380,0)">
+        <ellipse cx="70" cy="180" rx="60" ry="10" class="txts" opacity=".35"/>
+        <g stroke="#8a5a2b" stroke-linecap="round">
+          <path d="M20 182 L70 85" stroke-width="8"/><path d="M120 182 L70 85" stroke-width="8"/><path d="M45 184 L70 85" stroke-width="5"/><path d="M98 184 L70 85" stroke-width="5"/>
+        </g>
+        <path d="M70 178 C50 160 62 140 66 120 C72 140 90 150 78 178 Z" class="acc"/>
+        <path d="M70 178 C62 166 68 158 70 148 C74 160 80 166 74 178 Z" fill="#f2c14e"/>
+        <text x="70" y="205" text-anchor="middle" class="txts">③ allumer côté vent</text>
+      </g>
+    </svg>
+  </figure>
+  <ul>
+    <li>Allumez par le bas, du côté d'où vient le vent, et laissez une ouverture pour l'air.</li>
+    <li>Ajoutez le bois <b>progressivement</b> : n'étouffez pas une petite flamme sous une grosse bûche.</li>
+    <li>Le bois mort <b>encore accroché aux arbres</b> est plus sec que celui au sol. S'il casse net avec un « crac », il est sec.</li>
+    <li>Sur sol enneigé ou humide, faites une plateforme de branches vertes sous le feu.</li>
+    <li>Pour éteindre : noyez, remuez, noyez encore. Les cendres doivent être froides au toucher.</li>
+  </ul>
+  <div class="box warn">
+    <strong>Danger</strong>
+    Jamais de feu dans un abri fermé ou une tente (monoxyde de carbone, incendie). Évitez les pierres de rivière autour du foyer : humides, elles peuvent éclater.
+  </div>
+</section>
+
+<!-- ===================== 5. EAU ===================== -->
+<section class="page" id="eau">
+  <h2><span class="num">5</span>Trouver et purifier l'eau</h2>
+  <p>Un adulte a besoin d'environ 2 à 3 litres d'eau par jour, bien plus par forte chaleur ou effort. Signes de déshydratation : soif, urines foncées et rares, maux de tête, fatigue, vertiges.</p>
+
+  <h3>Où chercher</h3>
+  <ul>
+    <li>Suivez les pentes vers le bas : l'eau s'accumule au fond des vallées.</li>
+    <li>Végétation plus verte et dense, traces d'animaux convergentes, vols d'oiseaux à l'aube et au crépuscule.</li>
+    <li><b>Eau de pluie</b> : tendez une bâche ou un sac plastique en entonnoir vers un récipient. C'est souvent l'eau la plus saine.</li>
+    <li><b>Rosée</b> : à l'aube, essuyez l'herbe avec un tissu propre et essorez-le.</li>
+    <li>Préférez l'eau qui coule à l'eau stagnante, et prélevez en amont de toute activité (pâturage, village).</li>
+  </ul>
+
+  <figure class="ill">
+    <svg viewBox="0 0 560 230" role="img" aria-label="Trois méthodes de purification : ébullition, pastilles, filtre">
+      <!-- ébullition -->
+      <g transform="translate(20,10)">
+        <path d="M40 150 C30 135 40 128 44 118 C48 130 58 136 48 150 Z" class="acc"/>
+        <path d="M70 150 C62 138 70 132 72 124 C76 134 84 138 76 150 Z" class="acc"/>
+        <path d="M20 70 H110 V115 Q110 120 105 120 H25 Q20 120 20 115 Z" class="txts" opacity=".7"/>
+        <path d="M24 78 H106" class="sblu"/>
+        <g class="sblu" stroke-width="2"><circle cx="45" cy="95" r="4"/><circle cx="65" cy="100" r="5"/><circle cx="85" cy="92" r="3"/></g>
+        <path d="M45 60 C40 50 50 45 45 35 M65 60 C60 50 70 45 65 35 M85 60 C80 50 90 45 85 35" class="thin"/>
+        <text x="65" y="180" text-anchor="middle" class="txt">Faire bouillir</text>
+        <text x="65" y="200" text-anchor="middle" class="txts">1 min à gros bouillons</text>
+        <text x="65" y="216" text-anchor="middle" class="txts">(3 min au-dessus de 2000 m)</text>
+      </g>
+      <!-- pastilles -->
+      <g transform="translate(210,10)">
+        <path d="M45 40 H95 V55 Q115 70 115 95 V150 Q115 160 105 160 H35 Q25 160 25 150 V95 Q25 70 45 55 Z" class="pap"/>
+        <path d="M45 40 H95 V55 Q115 70 115 95 V150 Q115 160 105 160 H35 Q25 160 25 150 V95 Q25 70 45 55 Z" class="stroke"/>
+        <path d="M27 100 H113 V150 Q113 158 105 158 H35 Q27 158 27 150 Z" class="blu" opacity=".45"/>
+        <circle cx="70" cy="20" r="10" class="blu"/>
+        <path d="M70 32 V48" class="thin"/>
+        <text x="70" y="180" text-anchor="middle" class="txt">Pastilles</text>
+        <text x="70" y="200" text-anchor="middle" class="txts">respecter le temps</text>
+        <text x="70" y="216" text-anchor="middle" class="txts">indiqué (30 min à 4 h)</text>
+      </g>
+      <!-- filtre -->
+      <g transform="translate(395,10)">
+        <rect x="50" y="20" width="44" height="120" rx="12" class="grn" opacity=".75"/>
+        <path d="M58 40 H86 M58 55 H86 M58 70 H86 M58 85 H86 M58 100 H86 M58 115 H86" stroke="#fff" stroke-width="1.5" opacity=".6"/>
+        <path d="M72 5 V20" class="sblu"/>
+        <path d="M72 140 V155" class="sblu"/>
+        <circle cx="72" cy="160" r="3" class="blu"/>
+        <text x="72" y="180" text-anchor="middle" class="txt">Filtre / paille</text>
+        <text x="72" y="200" text-anchor="middle" class="txts">bactéries + parasites,</text>
+        <text x="72" y="216" text-anchor="middle" class="txts">pas toujours les virus</text>
+      </g>
+    </svg>
+    <figcaption>L'ébullition est la méthode la plus fiable contre les micro-organismes.</figcaption>
+  </figure>
+
+  <div class="box">
+    <strong>Préfiltrer une eau trouble</strong>
+    Versez-la à travers un tissu propre (t-shirt, chaussette) ou laissez-la décanter, puis purifiez-la. Un filtre improvisé (sable, charbon) <b>clarifie</b> l'eau mais <b>ne la rend pas potable</b> : il faut ensuite la faire bouillir ou la traiter.
+  </div>
+  <div class="box warn">
+    <strong>Ne buvez jamais</strong>
+    l'eau de mer, l'urine, ni l'alcool : ils aggravent la déshydratation. Évitez de manger de la neige sans la faire fondre : elle refroidit le corps. Faites-la fondre (et purifiez-la si possible).
+  </div>
+  <p class="small">En cas de pénurie : rationnez l'effort, pas l'eau. Buvez à petites gorgées, restez à l'ombre aux heures chaudes, respirez par le nez, ne mangez que si vous avez de quoi boire.</p>
+</section>
+
+<!-- ===================== 6. ORIENTATION ===================== -->
+<section class="page" id="orientation">
+  <h2><span class="num">6</span>S'orienter</h2>
+  <p>Une carte et une boussole restent imbattables. Sans elles, la nature donne des indices — mais ils sont approximatifs : combinez-en plusieurs.</p>
+
+  <h3>Avec le soleil</h3>
+  <ul>
+    <li>Le soleil se lève à l'<b>est</b> environ, se couche à l'<b>ouest</b> environ, et passe au <b>sud</b> à midi solaire (hémisphère nord).</li>
+    <li><b>Méthode du bâton</b> : plantez un bâton droit, marquez le bout de l'ombre. Attendez 15–20 min, marquez à nouveau. La ligne de la 1<sup>re</sup> marque vers la 2<sup>e</sup> pointe à peu près vers l'<b>est</b>.</li>
+  </ul>
+
+  <figure class="ill">
+    <svg viewBox="0 0 560 230" role="img" aria-label="Méthode du bâton et méthode de la montre">
+      <!-- bâton -->
+      <g transform="translate(10,10)">
+        <ellipse cx="130" cy="150" rx="120" ry="40" class="grn" opacity=".2"/>
+        <path d="M130 150 L130 50" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>
+        <path d="M130 150 L60 170" class="thin"/>
+        <path d="M130 150 L95 182" class="thin"/>
+        <circle cx="60" cy="170" r="6" class="acc"/>
+        <circle cx="95" cy="182" r="6" class="blu"/>
+        <path d="M45 166 L120 190" class="sacc"/>
+        <path d="M112 182 L122 191 L109 194" class="sacc"/>
+        <text x="40" y="160" class="txts">1</text>
+        <text x="102" y="178" class="txts">2</text>
+        <text x="128" y="205" class="txt">Est</text>
+        <text x="130" y="35" text-anchor="middle" class="txts">bâton</text>
+      </g>
+      <!-- montre -->
+      <g transform="translate(330,10)">
+        <circle cx="100" cy="100" r="80" class="pap"/><circle cx="100" cy="100" r="80" class="stroke"/>
+        <text x="100" y="38" text-anchor="middle" class="txt">12</text>
+        <text x="160" y="105" text-anchor="middle" class="txts">3</text>
+        <text x="100" y="172" text-anchor="middle" class="txts">6</text>
+        <text x="40" y="105" text-anchor="middle" class="txts">9</text>
+        <!-- aiguille des heures sur 4h -->
+        <path d="M100 100 L148 128" stroke-width="6" class="stroke"/>
+        <!-- bissectrice -->
+        <path d="M100 100 L172 58" class="sacc" stroke-dasharray="6 4"/>
+        <path d="M100 100 L100 28" class="thin"/>
+        <circle cx="215" cy="150" r="13" fill="#f2c14e"/>
+        <path d="M148 128 L200 145" class="thin"/>
+        <text x="190" y="50" class="txt" style="fill:var(--accent)">Sud</text>
+        <circle cx="100" cy="100" r="4" class="acc"/>
+      </g>
+    </svg>
+    <figcaption>À gauche : la méthode du bâton. À droite : pointez la petite aiguille vers le soleil ; le sud est au milieu entre elle et le 12 (hémisphère nord).</figcaption>
+  </figure>
+
+  <h3>Méthode de la montre (à aiguilles)</h3>
+  <p>Tenez la montre à plat, pointez la <b>petite aiguille vers le soleil</b>. La direction à mi-chemin entre la petite aiguille et le <b>12</b> indique le <b>sud</b>. En heure d'été, prenez plutôt le <b>1</b> à la place du 12. Pas de montre à aiguilles ? Dessinez-en une au sol.</p>
+
+  <h3>La nuit : l'étoile Polaire</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 560 210" role="img" aria-label="Trouver l'étoile Polaire à partir de la Grande Ourse">
+      <rect x="0" y="0" width="560" height="210" rx="10" fill="#1f2a3a"/>
+      <g fill="#fff">
+        <circle cx="360" cy="150" r="4"/><circle cx="300" cy="160" r="4"/><circle cx="250" cy="140" r="3.5"/>
+        <circle cx="210" cy="128" r="3.5"/><circle cx="160" cy="135" r="3.5"/><circle cx="115" cy="160" r="3.5"/><circle cx="80" cy="190" r="3.5"/>
+        <circle cx="400" cy="40" r="6"/>
+        <circle cx="150" cy="40" r="1.5"/><circle cx="480" cy="110" r="1.5"/><circle cx="40" cy="60" r="1.2"/><circle cx="520" cy="180" r="1.2"/>
+      </g>
+      <path d="M360 150 L300 160 L250 140 L210 128 L160 135 L115 160 L80 190" stroke="#9ab" stroke-width="1" fill="none" opacity=".6"/>
+      <path d="M360 150 L345 105" stroke="#9ab" stroke-width="1" opacity=".6"/>
+      <circle cx="345" cy="105" r="4" fill="#fff"/>
+      <path d="M300 160 L345 105" stroke="#9ab" stroke-width="1" opacity=".6"/>
+      <path d="M360 150 L345 105" stroke="#9ab" stroke-width="1" opacity=".6"/>
+      <path d="M345 105 L398 45" stroke="#f2c14e" stroke-width="2" stroke-dasharray="6 5"/>
+      <text x="410" y="35" fill="#f2c14e" style="font:15px system-ui,sans-serif">Étoile Polaire = Nord</text>
+      <text x="380" y="168" fill="#cde" style="font:13px system-ui,sans-serif">Grande Ourse</text>
+      <text x="410" y="95" fill="#cde" style="font:12px system-ui,sans-serif">≈ 5 fois l'écart</text>
+    </svg>
+    <figcaption>Prolongez le bord de la « casserole » de la Grande Ourse d'environ 5 fois l'écart entre ses deux étoiles : vous tombez sur l'étoile Polaire, qui indique le nord.</figcaption>
+  </figure>
+
+  <div class="box warn">
+    <strong>Mythes à oublier</strong>
+    « La mousse pousse au nord » : pas fiable, elle pousse là où c'est humide et ombragé. Utilisez-la au mieux comme un indice parmi d'autres.
+  </div>
+  <p><b>Se déplacer :</b> visez un repère lointain (rocher, arbre remarquable), marchez jusqu'à lui, puis choisissez-en un autre dans la même direction. Sans repère, on tourne en rond. Si vous êtes perdu, suivre un cours d'eau vers l'aval mène souvent vers des habitations — mais attention aux gorges et cascades.</p>
+</section>
+
+<!-- ===================== 7. SIGNAUX ===================== -->
+<section class="page" id="signaux">
+  <h2><span class="num">7</span>Se faire repérer</h2>
+  <p>Être trouvé est l'objectif n°1. Pensez « <b>contraste</b>, <b>mouvement</b>, <b>répétition</b> ».</p>
+
+  <h3>Le téléphone</h3>
+  <ul>
+    <li><b>112</b> fonctionne dans toute l'Europe, même sans crédit, et passe souvent par un autre opérateur si le vôtre ne capte pas.</li>
+    <li>Pas de réseau ? Montez sur un point haut et réessayez. Un <b>SMS</b> passe parfois là où un appel échoue (en France, le <b>114</b> par SMS est le numéro d'urgence pour les personnes sourdes ou malentendantes).</li>
+    <li>Notez vos coordonnées GPS (appli boussole ou cartes) pour les donner aux secours.</li>
+    <li>Économisez la batterie : luminosité au minimum, mode avion entre deux tentatives.</li>
+  </ul>
+
+  <h3>Signaux visuels et sonores</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 560 240" role="img" aria-label="Signaux de détresse : sifflet, miroir, signes au sol">
+      <!-- sifflet -->
+      <g transform="translate(10,10)">
+        <path d="M10 40 H55 A18 18 0 1 1 45 60 H10 Z" class="acc"/>
+        <g class="sacc"><path d="M90 30 q10 15 0 30"/><path d="M105 22 q15 23 0 46"/></g>
+        <text x="65" y="105" text-anchor="middle" class="txt">6 coups / minute</text>
+        <text x="65" y="125" text-anchor="middle" class="txts">puis 1 min de pause</text>
+      </g>
+      <!-- miroir -->
+      <g transform="translate(190,10)">
+        <rect x="10" y="40" width="40" height="30" rx="4" class="pap"/><rect x="10" y="40" width="40" height="30" rx="4" class="stroke"/>
+        <circle cx="30" cy="55" r="3" class="acc"/>
+        <path d="M50 50 L160 10" stroke="#f2c14e" stroke-width="3"/>
+        <path d="M50 60 L160 20" stroke="#f2c14e" stroke-width="1.5" opacity=".6"/>
+        <path d="M135 6 l15 0 l10 6 l-10 6 l-15 0 l-8 -6 Z" class="blu"/>
+        <text x="85" y="105" text-anchor="middle" class="txt">Miroir / écran</text>
+        <text x="85" y="125" text-anchor="middle" class="txts">visible à des km</text>
+      </g>
+      <!-- SOS / V / X -->
+      <g transform="translate(390,10)">
+        <rect x="0" y="10" width="160" height="100" rx="8" class="grn" opacity=".3"/>
+        <path d="M30 30 L50 90 L70 30" stroke="#fff" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <path d="M95 30 L140 90 M140 30 L95 90" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+        <text x="50" y="135" text-anchor="middle" class="txt">V</text>
+        <text x="118" y="135" text-anchor="middle" class="txt">X</text>
+      </g>
+      <text x="280" y="175" text-anchor="middle" class="txts">Au sol, signes de 3 m minimum, contrastés (pierres, branches, tranchées dans la neige)</text>
+      <text x="280" y="200" text-anchor="middle" class="txt">V = besoin d'aide · X = besoin d'aide médicale · ↑ = je pars par là</text>
+      <text x="280" y="225" text-anchor="middle" class="txts">Y = oui · N = non</text>
+    </svg>
+  </figure>
+  <ul>
+    <li><b>Signal international de détresse en montagne</b> : 6 signaux par minute (coups de sifflet, éclats de lumière), une minute de pause, puis recommencer. La réponse est 3 signaux par minute. Le chiffre 3 (3 feux, 3 coups) est aussi compris partout comme un appel à l'aide.</li>
+    <li><b>Feu de signalisation</b> : préparez-le à l'avance dans un endroit dégagé ; la journée, ajoutez des feuilles vertes pour une fumée blanche bien visible.</li>
+    <li><b>Couleurs vives</b> : étalez vêtements, couverture de survie (face brillante), bâche dans une clairière.</li>
+    <li><b>Hélicoptère</b> : debout, bras levés en <b>Y</b> = « oui, j'ai besoin d'aide ». Un bras levé, l'autre baissé = « non, tout va bien ». Fixez tout ce qui pourrait s'envoler.</li>
+  </ul>
+  <figure class="ill">
+    <svg viewBox="0 0 400 175" role="img" aria-label="Signaux aux hélicoptères : bras en Y pour oui, un bras levé et un bras baissé pour non">
+      <g transform="translate(70,10)" class="stroke">
+        <circle cx="40" cy="22" r="12"/><path d="M40 34 V85 M40 85 L25 125 M40 85 L55 125 M40 45 L12 8 M40 45 L68 8"/>
+      </g>
+      <text x="110" y="166" text-anchor="middle" class="txt" style="fill:var(--green)">OUI — besoin d'aide</text>
+      <g transform="translate(250,10)" class="stroke">
+        <circle cx="40" cy="22" r="12"/><path d="M40 34 V85 M40 85 L25 125 M40 85 L55 125 M40 45 L72 8 M40 45 L15 82"/>
+      </g>
+      <text x="290" y="166" text-anchor="middle" class="txt" style="fill:var(--accent)">NON — tout va bien</text>
+    </svg>
+  </figure>
+</section>
+
+<!-- ===================== 8. PREMIERS SECOURS ===================== -->
+<section class="page" id="secours">
+  <h2><span class="num">8</span>Premiers secours</h2>
+  <p>Retenez la séquence : <b>Protéger</b> (se mettre en sécurité, soi et la victime) → <b>Alerter</b> (112) → <b>Secourir</b>.</p>
+
+  <h3>Saignement abondant</h3>
+  <ol>
+    <li><b>Appuyez fort</b> directement sur la plaie avec la main (protégée si possible) ou un tissu propre. Maintenez sans relâcher.</li>
+    <li>Allongez la victime, alertez les secours.</li>
+    <li>Si la compression est impossible ou inefficace sur un membre et que le saignement met la vie en danger : <b>garrot</b> 5–7 cm au-dessus de la plaie (bande large, pas une ficelle), serré jusqu'à l'arrêt du saignement. <b>Notez l'heure</b> et ne le desserrez plus.</li>
+  </ol>
+
+  <h3>Personne inconsciente qui respire : la PLS</h3>
+  <figure class="ill">
+    <svg viewBox="0 0 560 150" role="img" aria-label="Position latérale de sécurité">
+      <path d="M20 125 H540" class="stroke"/>
+      <g class="stroke">
+        <!-- tête -->
+        <circle cx="120" cy="85" r="20"/>
+        <!-- corps -->
+        <path d="M140 92 Q220 70 320 95"/>
+        <path d="M140 112 Q230 125 320 110"/>
+        <!-- bras sous la tête -->
+        <path d="M150 92 Q130 60 100 68"/>
+        <!-- bras du dessus au sol -->
+        <path d="M170 110 L185 123"/>
+        <!-- jambe du dessus pliée -->
+        <path d="M320 95 L380 70 L420 122"/>
+        <!-- jambe du dessous tendue -->
+        <path d="M320 110 L470 118"/>
+      </g>
+      <path d="M95 92 q-12 6 -22 4" class="sblu" stroke-width="2"/>
+      <text x="60" y="50" class="txts" text-anchor="middle">bouche</text>
+      <text x="60" y="65" class="txts" text-anchor="middle">vers le sol</text>
+      <text x="400" y="40" class="txts">genou plié</text>
+      <text x="400" y="55" class="txts">= stabilité</text>
+    </svg>
+    <figcaption>Sur le côté, tête basculée en arrière, bouche ouverte vers le sol pour que les liquides s'écoulent. Vérifiez la respiration régulièrement.</figcaption>
+  </figure>
+  <div class="box warn">
+    <strong>Ne respire pas ?</strong>
+    Appelez le 112 et commencez le massage cardiaque : au centre de la poitrine, bras tendus, enfoncer de 5 à 6 cm, <b>100 à 120 compressions par minute</b>. Ne vous arrêtez pas avant l'arrivée des secours ou d'un défibrillateur.
+  </div>
+
+  <h3>Hypothermie (froid)</h3>
+  <p><b>Signes :</b> frissons intenses, maladresse, paroles confuses, somnolence. Quand les frissons s'arrêtent, c'est grave.</p>
+  <ul>
+    <li>À l'abri du vent, isolé du sol, retirer les vêtements mouillés, envelopper (couverture de survie, duvet, contact peau à peau).</li>
+    <li>Boissons chaudes et sucrées <b>seulement si la personne est consciente</b> et avale bien.</li>
+    <li>Pas d'alcool, pas de frictions, manipuler doucement.</li>
+  </ul>
+
+  <h3>Coup de chaleur</h3>
+  <p><b>Signes :</b> peau chaude, maux de tête, nausées, confusion, parfois arrêt de la transpiration. C'est une urgence.</p>
+  <ul>
+    <li>À l'ombre, allonger, déshabiller, mouiller la peau et éventer. Faire boire par petites gorgées si conscient.</li>
+  </ul>
+
+  <h3>Entorse / fracture</h3>
+  <ul>
+    <li>Ne pas bouger la zone. Immobiliser dans la position trouvée avec une attelle improvisée (bâtons, carton, sac de couchage roulé) attachée au-dessus et en dessous de la blessure.</li>
+    <li>Vérifier que les doigts / orteils restent chauds et colorés : ne pas serrer trop.</li>
+  </ul>
+
+  <h3>Brûlure</h3>
+  <ul><li>Refroidir à l'eau tempérée au moins <b>10 minutes</b>. Ne pas percer les cloques, pas de corps gras. Couvrir d'un tissu propre.</li></ul>
+
+  <h3>Morsure de serpent (vipère en France)</h3>
+  <ul><li>Calmer et allonger la victime, immobiliser le membre, retirer bagues et montres. Alerter. <b>Ne pas</b> inciser, sucer, ni poser de garrot.</li></ul>
+
+  <h3>Tique</h3>
+  <ul><li>Retirer au plus vite avec un tire-tique (tourner), désinfecter, noter la date. Consulter en cas de rougeur qui s'étend ou de fièvre dans les semaines qui suivent.</li></ul>
+</section>
+
+<!-- ===================== 9. NOURRITURE ===================== -->
+<section class="page" id="nourriture">
+  <h2><span class="num">9</span>Se nourrir</h2>
+  <p>On peut tenir des semaines sans manger. La nourriture est la <b>dernière</b> priorité : chercher à manger coûte de l'énergie et de l'eau, et une intoxication peut être bien plus dangereuse que la faim.</p>
+
+  <div class="box warn">
+    <strong>Règle absolue</strong>
+    Ne mangez <b>jamais</b> une plante ou un champignon que vous ne connaissez pas avec certitude. Certains champignons mortels ressemblent à des espèces comestibles, et les symptômes peuvent n'apparaître qu'après plusieurs heures. Aucun « test » maison n'est fiable pour les champignons.
+  </div>
+
+  <h3>Ressources plus sûres (en Europe)</h3>
+  <table>
+    <tr><th>Ressource</th><th>Conseils</th></tr>
+    <tr><td>Fruits bien connus</td><td>Mûres, framboises, myrtilles, noisettes, châtaignes, faînes (avec modération). En cas de doute, abstenez-vous.</td></tr>
+    <tr><td>Plantes très reconnaissables</td><td>Ortie (cuite), pissenlit (feuilles et fleurs), plantain. Attention aux ombellifères (type carotte sauvage) : certaines sont mortelles, évitez toute la famille.</td></tr>
+    <tr><td>Insectes</td><td>Sauterelles, grillons, larves : cuits. Évitez les insectes aux couleurs vives, poilus ou malodorants.</td></tr>
+    <tr><td>Poissons</td><td>Toujours bien cuits.</td></tr>
+  </table>
+
+  <ul>
+    <li>Cuisez tout ce qui peut l'être : la cuisson élimine la plupart des parasites.</li>
+    <li>Ne mangez que si vous avez assez d'eau : la digestion consomme de l'eau.</li>
+    <li>Rationnez vos réserves : mieux vaut un peu chaque jour que tout le premier jour.</li>
+  </ul>
+</section>
+
+<!-- ===================== 10. NŒUDS ===================== -->
+<section class="page" id="noeuds">
+  <h2><span class="num">10</span>Trois nœuds utiles</h2>
+
+  <figure class="ill">
+    <svg viewBox="0 0 560 245" role="img" aria-label="Nœud de chaise, nœud de cabestan, nœud de taquet coinceur">
+      <!-- chaise -->
+      <g transform="translate(10,10)">
+        <path d="M80 0 V60" class="sacc"/>
+        <path d="M80 60 C60 60 55 80 70 88" class="sacc"/>
+        <path d="M70 88 C40 110 40 170 80 175 C120 170 120 110 90 88" class="sacc"/>
+        <path d="M90 88 C105 80 100 60 80 62 C70 70 75 85 95 80 L120 50" class="sacc"/>
+        <text x="80" y="205" text-anchor="middle" class="txt">Nœud de chaise</text>
+        <text x="80" y="222" text-anchor="middle" class="txts">boucle qui ne glisse pas</text>
+      </g>
+      <!-- cabestan -->
+      <g transform="translate(200,10)">
+        <rect x="70" y="0" width="22" height="180" rx="4" fill="#8a5a2b" opacity=".75"/>
+        <path d="M10 70 H70" class="sgrn"/>
+        <path d="M70 70 L92 80" class="sgrn"/>
+        <path d="M70 85 L92 95" class="sgrn" opacity=".5"/>
+        <path d="M70 100 L92 110" class="sgrn"/>
+        <path d="M92 110 H150" class="sgrn"/>
+        <text x="80" y="205" text-anchor="middle" class="txt">Cabestan</text>
+        <text x="80" y="222" text-anchor="middle" class="txts">attacher à un poteau</text>
+      </g>
+      <!-- tendeur -->
+      <g transform="translate(390,10)">
+        <path d="M80 0 V30" stroke="#8a5a2b" stroke-width="10" stroke-linecap="round"/>
+        <path d="M80 30 V170" class="sblu"/>
+        <path d="M80 30 C60 60 60 150 80 170" class="sblu"/>
+        <ellipse cx="72" cy="100" rx="14" ry="6" class="sblu"/>
+        <ellipse cx="72" cy="115" rx="14" ry="6" class="sblu"/>
+        <ellipse cx="72" cy="140" rx="14" ry="6" class="sblu"/>
+        <circle cx="80" cy="175" r="6" class="txts"/>
+        <text x="80" y="205" text-anchor="middle" class="txt">Nœud tendeur</text>
+        <text x="80" y="222" text-anchor="middle" class="txts">retendre une corde de bâche</text>
+      </g>
+    </svg>
+  </figure>
+
+  <h3>Nœud de chaise</h3>
+  <p>Faites une petite boucle dans la corde (« le puits »). Le bout libre (« le lapin ») <b>sort du puits</b>, <b>fait le tour de l'arbre</b> (la partie longue de la corde), puis <b>redescend dans le puits</b>. Serrez. La grande boucle ainsi formée ne se resserre pas : idéal pour s'encorder ou pour amarrer.</p>
+
+  <h3>Nœud de cabestan</h3>
+  <p>Deux tours croisés autour d'un poteau, le second tour passant sous le premier. Rapide à faire et à défaire ; idéal pour commencer à tendre une corde entre deux arbres. Ajoutez une demi-clé pour le sécuriser.</p>
+
+  <h3>Nœud tendeur (de tente)</h3>
+  <p>Passez la corde autour du piquet, revenez vers la corde tendue et faites deux tours à l'intérieur de la boucle, puis un tour à l'extérieur. Le nœud coulisse pour retendre et bloque sous tension.</p>
+</section>
+
+<!-- ===================== 11. MÉTÉO ===================== -->
+<section class="page" id="meteo">
+  <h2><span class="num">11</span>Météo et dangers</h2>
+
+  <h3>Orage</h3>
+  <ul>
+    <li>Comptez les secondes entre l'éclair et le tonnerre, divisez par 3 : distance en km. Moins de 30 secondes (10 km) : mettez-vous à l'abri.</li>
+    <li>Quittez sommets, crêtes, arbres isolés et plans d'eau. Éloignez-vous des objets métalliques.</li>
+    <li>Sans abri : accroupi, pieds joints, sur un sac, la tête baissée. Groupe : écartez-vous de quelques mètres les uns des autres.</li>
+  </ul>
+
+  <figure class="ill">
+    <svg viewBox="0 0 600 190" role="img" aria-label="Signes de changement de temps">
+      <g transform="translate(20,10)">
+        <path d="M20 70 a30 30 0 0 1 50 -25 a35 35 0 0 1 65 10 a25 25 0 0 1 5 50 h-115 a20 20 0 0 1 -5 -35 Z" class="txts" opacity=".6"/>
+        <path d="M80 108 L70 128 L84 126 L76 145" stroke="#f2c14e" stroke-width="4" fill="none" stroke-linejoin="round"/>
+        <text x="85" y="15" text-anchor="middle" class="txts">cumulus qui gonflent</text>
+      </g>
+      <g transform="translate(220,10)">
+        <path d="M10 40 Q60 20 120 40" class="thin"/>
+        <path d="M0 60 Q70 35 140 60" class="thin"/>
+        <path d="M20 80 Q80 60 130 80" class="thin"/>
+        <text x="70" y="120" text-anchor="middle" class="txt">Cirrus en « queues de chat »</text>
+        <text x="70" y="140" text-anchor="middle" class="txts">dégradation sous 12–24 h</text>
+      </g>
+      <g transform="translate(410,10)">
+        <path d="M10 80 H140" class="stroke"/>
+        <path d="M20 80 L40 40 L60 80 Z M70 80 L95 30 L120 80 Z" class="grn" opacity=".5"/>
+        <path d="M0 30 H140" class="thin"/>
+        <path d="M0 45 H140" class="thin"/>
+        <text x="70" y="120" text-anchor="middle" class="txt">Vent qui tourne,</text>
+        <text x="70" y="140" text-anchor="middle" class="txts">chute brutale de température</text>
+      </g>
+    </svg>
+    <figcaption>Les nuages à fort développement vertical l'après-midi annoncent souvent un orage.</figcaption>
+  </figure>
+
+  <h3>Autres dangers</h3>
+  <ul>
+    <li><b>Rivières</b> : ne traversez pas si l'eau dépasse les genoux ou si le courant est fort. Détachez la ceinture du sac, gardez vos chaussures, faites face à l'amont avec un bâton.</li>
+    <li><b>Brouillard</b> : arrêtez-vous plutôt que d'avancer à l'aveugle près de falaises.</li>
+    <li><b>Nuit</b> : ne marchez pas de nuit en terrain inconnu. Installez-vous avant.</li>
+    <li><b>Animaux</b> : faites du bruit en marchant, ne nourrissez pas et ne vous approchez pas. Face à un chien de troupeau (patou) : restez calme, contournez largement le troupeau, ne courez pas.</li>
+    <li><b>Avalanche</b> : en montagne enneigée, consultez le bulletin et partez équipé (DVA, pelle, sonde) et formé.</li>
+  </ul>
+</section>
+
+<!-- ===================== 12. CHECK-LISTS ===================== -->
+<section class="page" id="checklist">
+  <h2><span class="num">12</span>Check-lists</h2>
+
+  <h3>Avant de partir</h3>
+  <ul class="check">
+    <li>Itinéraire + heure de retour laissés à un proche</li>
+    <li>Météo et heure de coucher du soleil vérifiées</li>
+    <li>Téléphone chargé + batterie externe + cartes hors ligne</li>
+    <li>Carte papier + boussole</li>
+    <li>Eau (au moins 1,5 L) + de quoi en purifier</li>
+    <li>Vêtement chaud + veste imperméable, même en été</li>
+    <li>Lampe frontale</li>
+    <li>Kit de survie + mini-trousse de secours</li>
+    <li>En-cas énergétiques</li>
+  </ul>
+
+  <h3>Si je suis perdu</h3>
+  <ol>
+    <li><b>S.T.O.P.</b> : je m'arrête, je respire, je réfléchis.</li>
+    <li>J'essaie le <b>112</b> (puis un SMS, puis depuis un point haut).</li>
+    <li>Je me mets à l'abri du vent, de la pluie et du sol froid.</li>
+    <li>Je prépare un feu et des signaux.</li>
+    <li>Je m'occupe de l'eau.</li>
+    <li>Je reste visible et je garde le moral : je m'occupe, je parle, je planifie.</li>
+  </ol>
+
+  <h3>Numéros utiles</h3>
+  <table>
+    <tr><th>112</th><td>Urgences, toute l'Europe (et de nombreux autres pays)</td></tr>
+    <tr><th>15</th><td>SAMU — urgence médicale (France)</td></tr>
+    <tr><th>18</th><td>Pompiers (France)</td></tr>
+    <tr><th>17</th><td>Police / Gendarmerie (France)</td></tr>
+    <tr><th>114</th><td>Urgences par SMS / appli, personnes sourdes ou malentendantes (France)</td></tr>
+    <tr><th>196</th><td>Secours en mer (France)</td></tr>
+  </table>
+
+  <div class="box">
+    <strong>Le mental</strong>
+    Les survivants ont souvent un point commun : ils acceptent la situation vite et passent à l'action par petites étapes. Fixez-vous des objectifs courts (« finir l'abri avant la nuit »), célébrez chaque réussite, pensez à ceux qui vous attendent.
+  </div>
+
+  <p class="small" style="text-align:center;margin-top:2em">— Fin du livret — Bonne route et soyez prudents. —</p>
+</section>
+
+</body>
+</html>
