@@ -13,7 +13,8 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 ## Livrable
 
-- `livrable/guide-survie-2026-11-09.zip` — paquet de livraison (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
+- `livrable/guide-survie-2026-11-09-livrable.pdf` — **livrable en fichier unique** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
+- `livrable/guide-survie-2026-11-09.zip` — paquet détaillé (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
 
 ## Corrections éditoriales
 
