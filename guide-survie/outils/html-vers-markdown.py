@@ -20,7 +20,7 @@ def inline(node):
             out.append(inline(c))
         elif c.name == "br":
             out.append(" ")
-        elif c.name in ("ol", "ul"):
+        elif c.name in ("ol", "ul", "svg"):
             continue
         else:
             out.append(inline(c))

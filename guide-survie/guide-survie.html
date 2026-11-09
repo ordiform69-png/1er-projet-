@@ -79,6 +79,9 @@
   figure.photo .lab { display: block; font: 600 .85em "Trebuchet MS", system-ui, sans-serif; margin-top: .2em; color: var(--ink); text-align: left; }
   figure.photo .credit { display: block; font-size: .7em; font-style: normal; color: var(--muted); text-align: left; line-height: 1.3; }
   .credits td { font-size: .8em; word-break: break-word; }
+  .picto { width: 2.1em; height: 2.1em; flex: none; color: var(--accent); }
+  .fiche h4, h3.avec-picto { display: flex; align-items: center; gap: .5em; }
+  h3.avec-picto .picto { width: 1.8em; height: 1.8em; }
 
   .annexe { font-size: .86em; }
   .annexe table { font-size: .82em; }
@@ -2492,7 +2495,7 @@
 
   <div class="fiches">
     <div class="fiche">
-      <h4>1 · Je suis perdu</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Boussole"><title>Boussole</title><circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 10 L29 24 L24 38 L19 24 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="24" r="2.5" fill="currentColor"/></svg><span>1 · Je suis perdu</span></h4>
       <ol>
         <li>Stop : je cesse d'agir dans la précipitation ; je vérifie que l'endroit est sûr (S.T.O.P.).</li>
         <li>J'appelle le 112 depuis ma position sûre. Si je ne peux pas parler ou entendre&nbsp;: 114 (SMS ou appli). Si l'appel ne passe pas&nbsp;: SMS à un proche qui alerte les secours et me le confirme. Après l'alerte, je reste joignable (pas de mode avion).</li>
@@ -2503,7 +2506,7 @@
       <p class="ref">→ chapitres 1, 7, 21</p>
     </div>
     <div class="fiche">
-      <h4>2 · Nuit imprévue dehors</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Lune et abri"><title>Lune et abri</title><path d="M30 6a10 10 0 1 0 10 13a8 8 0 0 1-10-13z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 42 L20 22 L34 42 Z M20 22 V42" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>2 · Nuit imprévue dehors</span></h4>
       <ol>
         <li>Protection minimale dès que nécessaire, avec une large marge avant la nuit.</li>
         <li>Endroit abrité du vent, sec, sans branches mortes au-dessus.</li>
@@ -2514,7 +2517,7 @@
       <p class="ref">→ chapitres 3, 4, 21</p>
     </div>
     <div class="fiche">
-      <h4>3 · Un adulte est inconscient</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Personne allongée et cœur"><title>Personne allongée et cœur</title><circle cx="9" cy="34" r="4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 35 H42 M20 35 L24 42 M32 35 L36 42" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 20c-3-5-11-2-7 4l7 6 7-6c4-6-4-9-7-4z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>3 · Un adulte est inconscient</span></h4>
       <ol>
         <li>Je me protège et je le protège du danger.</li>
         <li>Respire-t-il normalement ? Halètements espacés = non.</li>
@@ -2525,7 +2528,7 @@
       <p class="ref">→ chapitre 8</p>
     </div>
     <div class="fiche">
-      <h4>3 bis · Enfant ou nourrisson qui ne respire pas</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Enfant et cœur"><title>Enfant et cœur</title><circle cx="16" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 18 V32 M10 24 H22 M16 32 L11 42 M16 32 L21 42" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M35 22c-3-5-11-2-7 4l7 6 7-6c4-6-4-9-7-4z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>3 bis · Enfant ou nourrisson qui ne respire pas</span></h4>
       <ol>
         <li>Il ne répond pas et ne respire pas, ou respire anormalement (vérifiez pendant 10 s au plus, après avoir libéré les voies aériennes) : c'est un arrêt, commencez.</li>
         <li>Appelez le 15 ou le 112 en haut-parleur (ou faites appeler et apporter un DAE), puis suivez les consignes du régulateur.</li>
@@ -2536,7 +2539,7 @@
       <p class="ref">→ chapitre 8</p>
     </div>
     <div class="fiche">
-      <h4>3 ter · Malaise, douleur dans la poitrine, signes d'AVC</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Cœur et tracé cardiaque"><title>Cœur et tracé cardiaque</title><path d="M24 14c-5-8-19-4-12 7l12 11 12-11c7-11-7-15-12-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 42 H16 L20 34 L25 46 L29 38 H44" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>3 ter · Malaise, douleur dans la poitrine, signes d'AVC</span></h4>
       <ol>
         <li>Je la mets au repos : allongée, ou assise si elle respire mal.</li>
         <li>Douleur dans la poitrine qui serre ou dure plus de 5 minutes, essoufflement, sueurs, pâleur : 15 ou 112 tout de suite.</li>
@@ -2547,7 +2550,7 @@
       <p class="ref">→ chapitre 8</p>
     </div>
     <div class="fiche">
-      <h4>4 · Saignement abondant</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Goutte de sang"><title>Goutte de sang</title><path d="M24 5 C18 15 12 21 12 28 a12 12 0 0 0 24 0 C36 21 30 15 24 5 z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 30 H30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>4 · Saignement abondant</span></h4>
       <ol>
         <li>J'appuie fort sur la plaie, sans relâcher.</li>
         <li>J'allonge la victime.</li>
@@ -2558,7 +2561,7 @@
       <p class="ref">→ chapitre 8</p>
     </div>
     <div class="fiche">
-      <h4>5 · Tombé dans l'eau froide</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Tête hors de l'eau"><title>Tête hors de l'eau</title><circle cx="24" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 30 q5 -5 10 0 t10 0 t10 0 t10 0 M4 40 q5 -5 10 0 t10 0 t10 0 t10 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>5 · Tombé dans l'eau froide</span></h4>
       <ol>
         <li>1re minute : je flotte, je calme ma respiration.</li>
         <li>Je garde mes vêtements et le gilet.</li>
@@ -2569,7 +2572,7 @@
       <p class="ref">→ chapitre 16</p>
     </div>
     <div class="fiche">
-      <h4>6 · Passé à travers la glace</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Glace fissurée"><title>Glace fissurée</title><path d="M4 18 H44 M10 18 L18 28 L14 36 M18 28 L28 30 L34 40 M28 30 L36 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 6 l2 4 l2-4 M24 10 V14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>6 · Passé à travers la glace</span></h4>
       <ol>
         <li>Je garde la tête hors de l'eau et je laisse ma respiration se calmer (le choc passe en général en moins d'une minute).</li>
         <li>Je me tourne vers d'où je viens.</li>
@@ -2580,7 +2583,7 @@
       <p class="ref">→ chapitre 18</p>
     </div>
     <div class="fiche">
-      <h4>7 · Orage en pleine nature</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Nuage d'orage et éclair"><title>Nuage d'orage et éclair</title><path d="M12 26 a8 8 0 0 1 2-15 a10 10 0 0 1 19 2 a7 7 0 0 1 3 13 z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 26 L18 36 H26 L21 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>7 · Orage en pleine nature</span></h4>
       <ol>
         <li>Tonnerre audible : je rejoins tout de suite un bâtiment fermé ou un véhicule fermé à toit rigide, si c'est possible sans danger.</li>
         <li>Je n'attends pas d'intervalle &lt; 30 s.</li>
@@ -2591,7 +2594,7 @@
       <p class="ref">→ chapitre 14</p>
     </div>
     <div class="fiche">
-      <h4>8 · Voiture bloquée dans la neige</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Voiture et flocon"><title>Voiture et flocon</title><path d="M6 34 V26 L12 18 H34 L40 26 V34 Z M6 26 H40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="36" r="3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="36" r="3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 4 V14 M19 6.5 L29 11.5 M29 6.5 L19 11.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>8 · Voiture bloquée dans la neige</span></h4>
       <ol>
         <li>Je reste avec la voiture tant qu'elle est sûre, j'appelle le 112.</li>
         <li>Pot d'échappement dégagé, vitre entrouverte.</li>
@@ -2602,7 +2605,7 @@
       <p class="ref">→ chapitre 18</p>
     </div>
     <div class="fiche">
-      <h4>9 · Coup de chaleur</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Soleil et thermomètre"><title>Soleil et thermomètre</title><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3 V6 M16 26 V29 M3 16 H6 M26 16 H29 M7 7 L9 9 M23 23 L25 25 M7 25 L9 23 M23 9 L25 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 10 V32 a5 5 0 1 0 4 0 V10 a2 2 0 0 0 -4 0 z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>9 · Coup de chaleur</span></h4>
       <ol>
         <li>Confusion ou malaise : j'appelle le 15 ou le 112 immédiatement.</li>
         <li>Je la mets au frais et je refroidis sans attendre.</li>
@@ -2613,7 +2616,7 @@
       <p class="ref">→ chapitres 8, 17</p>
     </div>
     <div class="fiche">
-      <h4>10 · Catastrophe à la maison</h4>
+      <h4><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Maison fissurée"><title>Maison fissurée</title><path d="M6 22 L24 6 L42 22 M10 19 V42 H38 V19" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 10 L22 20 L28 26 L23 34 L26 42" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>10 · Catastrophe à la maison</span></h4>
       <ol>
         <li>Je me mets à l'abri selon le danger (étage, table, pièce close).</li>
         <li>J'écoute la radio, je suis FR-Alert.</li>
@@ -2708,7 +2711,7 @@
 <section class="page" id="checklist">
   <h2><span class="num">25</span>Check-lists</h2>
 
-  <h3>Avant de partir</h3>
+  <h3 class="avec-picto"><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Sac à dos"><title>Sac à dos</title><path d="M14 14 a10 10 0 0 1 20 0 V42 H14 Z M18 10 a6 6 0 0 1 12 0 M14 26 H34 M20 26 V32 H28 V26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Avant de partir</span></h3>
   <ul class="check">
     <li>Plan de sortie écrit laissé à un proche, avec heure limite d'alerte convenue</li>
     <li>Météo et heure de coucher du soleil vérifiées</li>
@@ -2727,7 +2730,7 @@
     <li>En-cas énergétiques</li>
   </ul>
 
-  <h3>Si je suis perdu</h3>
+  <h3 class="avec-picto"><svg class="picto" viewBox="0 0 48 48" role="img" aria-label="Boussole"><title>Boussole</title><circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 10 L29 24 L24 38 L19 24 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="24" r="2.5" fill="currentColor"/></svg><span>Si je suis perdu</span></h3>
   <ol>
     <li><b>S.T.O.P.</b> : je cesse d'agir dans la précipitation, je vérifie que l'endroit est sûr, puis je réfléchis.</li>
     <li>J'essaie le <b>112</b> depuis ma position sûre (point proche seulement si le trajet est sûr). Si je ne peux pas parler ou entendre : 114 ; si l'appel ne passe pas, SMS à un proche chargé d'alerter. Après l'alerte, je reste joignable.</li>
