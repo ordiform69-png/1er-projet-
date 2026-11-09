@@ -441,7 +441,7 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 
 | Ressource | Conseils |
 |---|---|
-| Fruits bien connus | Mûres, framboises, noisettes, châtaignes. Faînes : uniquement après identification certaine du hêtre, grillées et en petite quantité ; ne pas consommer de faînes vertes (voir chapitre 10). Myrtilles : au moindre doute, s'abstenir *(formulation spécialisée non transmise)*. En cas de doute, abstenez-vous. |
+| Fruits bien connus | Mûres, framboises, noisettes, châtaignes. Faînes : uniquement après identification certaine du hêtre, grillées et en petite quantité ; ne pas consommer de faînes vertes (voir chapitre 10). Myrtilles : seulement après identification certaine ; sosies toxiques (dont la belladone) au chapitre 10. En cas de doute, abstenez-vous. |
 | Plantes très reconnaissables | Ortie (cuite), pissenlit (feuilles et fleurs), plantain. Attention aux ombellifères (type carotte sauvage) : certaines sont mortelles, évitez toute la famille. |
 | Insectes | Couleur, pilosité et odeur ne constituent pas une clé de comestibilité : un débutant doit s'abstenir d'en consommer sans identification fiable. Des allergies croisées sont possibles, notamment chez les personnes allergiques aux crustacés ou aux acariens. |
 | Poissons | La cuisson réduit de nombreux risques infectieux, mais ne rend pas comestible une espèce inconnue et ne détruit pas toutes les toxines. Évitez les poissons non identifiés, les poissons récifaux à risque et les aliments mal conservés. |
@@ -473,12 +473,21 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 | **Ortie** | Pique ; feuilles dentées opposées, tige carrée. | Jeunes feuilles d'ortie correctement identifiée : à consommer **après cuisson**, par exemple en soupe. Manipulez les feuilles fraîches avec des gants ; ne comptez pas sur un simple écrasement pour les manger. Fibres de la tige → cordelette. |
 | **Pissenlit** | Rosette au ras du sol, latex blanc, fleur jaune unique par tige creuse. | Feuilles crues (amères) ou cuites, fleurs, racine grillée. |
 | **Plantain** | Feuilles en rosette à nervures parallèles très marquées, épi brun. | Jeunes feuilles cuites. N'appliquez pas de feuille mâchée ni de végétal brut sur une écorchure (chapitre 8, petites plaies). |
-| **Ronce, framboisier, myrtille** | Bien connus ; baies en grappe de petites boules. | Fruits crus. En cas de diarrhée : réhydratation d'abord (chapitre 8). Myrtilles : au moindre doute, s'abstenir *(formulation spécialisée non transmise)*. |
+| **Ronce, framboisier** | Bien connus ; baies en grappe de petites boules. | Fruits crus. En cas de diarrhée : réhydratation d'abord (chapitre 8). |
+| **Myrtille** | Petit arbrisseau des sous-bois. Ses baies, bleu-noir à reflet bleuté, poussent une par une sur la tige (ni en grappe, ni soudées par deux). | Fruits crus, seulement après identification certaine. Sosies toxiques : voir l'encadré « Myrtille : les sosies toxiques » ci-dessous. |
 | **Noisetier, châtaignier, hêtre** | Voir comparaison châtaigne / marron. | Noisettes crues, châtaignes cuites, faînes en petite quantité (grillées). |
 | **Trèfle, pâquerette, pourpier** | Chacun nécessite une identification précise. Le pourpier (*Portulaca oleracea*) peut être confondu avec des euphorbes prostrées irritantes. Un latex blanc impose le rejet, sans goûter ; son absence ne suffit pas à établir la comestibilité. | Feuilles et fleurs, en complément, après identification certaine. |
 | **Ail des ours** | Sous-bois humides au printemps, **forte odeur d'ail** quand on froisse la feuille, une feuille par tige. | Feuilles crues ou cuites. **Voir sosies mortels !** |
 | **Pin, sapin, épicéa** | Aiguilles. Ne pas confondre avec l'**if** (aiguilles plates, souples, baies rouges) : mortel. | Aiguilles fraîches en infusion (vitamine C). Écorce interne blanche comestible en dernier recours. |
 | **Massette (typha)** | Bord des étangs, épi brun en « saucisse ». L'épi est un repère sur les plantes qui le portent ; il ne permet pas d'identifier à lui seul des jeunes pousses sans épi. | Usages alimentaires : identification certaine de l'espèce exigée ; ne récoltez pas de pousses ou de rhizomes pour les manger sur la seule base de cette fiche. Duvet de l'épi = excellent amadou. |
+
+> **Myrtille : les sosies toxiques**
+> - **belladone** : baies noires luisantes, comme de petites cerises, au goût sucré trompeur ; quelques baies peuvent suffire à provoquer un coma ou un décès ;
+> - **parisette** : une seule baie bleu-noir au sommet d'une tige non ligneuse qui porte 4 feuilles en croix ;
+> - **chèvrefeuille à baies noires** : baies soudées par deux ;
+> - **morelle noire** : plante non ligneuse, baies noires en grappe ;
+> - **troène, nerprun, bourdaine** : arbustes à baies noires ou bleu-noir.
+>
 
 ---
 
@@ -912,7 +921,7 @@ Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau 
 
 - L'eau de pluie recueillie sur un support propre peut être une ressource utile, sans être automatiquement potable. Évitez les supports souillés, utilisez un récipient propre, traitez-la avant consommation (sauf décision de dernier recours face à une déshydratation menaçante, voir chapitre 21) et protégez-la de la recontamination pendant le stockage.
 - L'eau des rivières est presque toujours contaminée : faites-la bouillir ou traitez-la.
-- **Lianes à eau :** au moindre doute, s'abstenir. *(Formulation spécialisée non transmise.)*
+- **Lianes à eau :** ne buvez pas le liquide d'une liane, même en zone tropicale, sauf si l'espèce a été identifiée avec certitude comme sûre. L'aspect, l'odeur ou le goût du liquide ne permettent pas de savoir s'il est sans danger, et ce livret ne donne aucune méthode de test. Cherchez une autre source d'eau et traitez-la comme indiqué au chapitre 5.
 - Bambous : de l'eau s'accumule parfois dans les segments (secouez pour entendre).
 
 ### Se déplacer et s'orienter

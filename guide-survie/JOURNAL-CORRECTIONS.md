@@ -244,3 +244,15 @@ Une demande précise a été préparée pour les agents (`partage-grok/DEMANDE-G
 - La conduite après noyade de l'enfant selon le RTN reste à fournir.
 
 **En attente** : réponses de l'agent Botaniste (if, myrtilles, lianes).
+
+### I bis. Agent Botaniste — myrtille et lianes (v1.1 en cours)
+
+Points reçus : POINT 6 (myrtille) et POINT 7 (lianes). Les textes de remplacement sont repris tels quels. **Le point sur l'if n'a pas encore été reçu.**
+
+| Emplacement | Avant | Après | Source |
+|---|---|---|---|
+| Ch. 10, tableau des comestibles | Ligne « Ronce, framboisier, myrtille » ; myrtille « au moindre doute, s'abstenir (formulation spécialisée non transmise) » | Ligne « Ronce, framboisier » inchangée ; nouvelle ligne **Myrtille** (description) ; nouvel encadré **« Myrtille : les sosies toxiques »** (belladone, parisette, chèvrefeuille à baies noires, morelle noire, troène, nerprun, bourdaine), avec les limites de l'identification et la conduite en cas d'ingestion (centre antipoison sans attendre, 15/112/114, ne pas faire vomir) | Anses ; CAP de Lille (tableau des plantes à baies, fiche parisette, dépliant) ; La Revue du Praticien |
+| Ch. 9, fruits | « Myrtilles : au moindre doute, s'abstenir (formulation…) » | « Myrtilles : seulement après identification certaine ; sosies toxiques (dont la belladone) au chapitre 10 » | Renvoi |
+| Ch. 19, lianes à eau | « au moindre doute, s'abstenir (formulation…) » | **Abstention définitive** : ne pas boire le liquide d'une liane sauf espèce identifiée avec certitude comme sûre ; aucune méthode de test ; chercher une autre source d'eau et la traiter (chapitre 5) | ATP 3-50.21 (2018), FM 3-05.70, FM 21-76 (manuels militaires, pas des validations sanitaires) ; Anses ; CAP de Lille ; MedlinePlus |
+
+Le conseil de l'ATP 3-50.21 de faire vomir n'a pas été repris (il contredit le CAP de Lille et MedlinePlus). « Chapitre consacré à l'eau (numéro à valider) » a été remplacé par « chapitre 5 ». L'airelle des marais n'est pas mentionnée, faute de source (le Botaniste la laisse « à valider » si l'éditeur souhaite l'ajouter).
