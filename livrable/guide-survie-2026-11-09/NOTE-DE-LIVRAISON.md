@@ -8,7 +8,7 @@
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | **Le livret complet, qui contient tout** : le guide illustré (dessins et 28 photos libres), puis les annexes A (note de version), B (journal des corrections) et C (contrôles). A5, lisible hors ligne et imprimable |
+| `guide-survie.pdf` | **Le livret complet, qui contient tout** : le guide illustré (dessins, pictogrammes et 56 photos libres), puis les annexes A (note de version), B (journal des corrections) et C (contrôles). A5, lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 12 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Le même livret complet en version web autonome (un seul fichier, hors ligne, mode sombre) |
 | `guide-survie-corrige.md` | Le même livret complet en Markdown, annexes comprises |
@@ -68,10 +68,10 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-8aebf2caa17ddc885f4bac6f6cd42390de9b4afb33a95747a2408b69d1d4d001  guide-survie.pdf
-8d71c3121ab897cc15e28d524ae504d08153b9e0dcc70aec002776bcb9914bde  fiches-reflexes.pdf
-338af9c3559224231fd2a14ca63633b60f4838ca930d74557641848f8cb663d3  guide-survie.html
-06dff260cf798fdc0c7b82f74742f9143e5e530421f71da9ef469e95edceaea0  guide-survie-corrige.md
-d35ea7d2a4ec0323c32491ca9651b531c9e58121530bc68be701cbbab30401ab  JOURNAL-CORRECTIONS.md
+6072d061760a7285b35ed6507bdc869f28c39c6cbc5233fe17f0d787ba5039ed  guide-survie.pdf
+4813ce0609c706bc6423bf392cd54087b878ef03eb5b87823525166e68423a07  fiches-reflexes.pdf
+fd75bbc706188a0fa7988e76450fb9b5c27b59d7c7e9bd5b922a9034377d8e08  guide-survie.html
+c94cabb52e0f5edb0121ac5533cbfc194360edfd7bb04e96cf65de15276541a3  guide-survie-corrige.md
+bc771f1c7fdd17d4bb9fd0f53ec39a7f9ee09c6aef00141ec07b49ead268aa93  JOURNAL-CORRECTIONS.md
 ef06dbba16c42cb65bf509540b9ea1fef2b022e6a375eff182c4de493051f2fd  CONTROLE-PERSISTANCE.md
 ```

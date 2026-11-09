@@ -99,6 +99,8 @@ Convenez d'un plan court : priorité immédiate, prochaine action, personne char
 > **Ne jamais se disperser**
 > Évitez de partir seul. En groupe, restez ensemble et marchez à deux (chacun veille sur un partenaire) ; donnez un sifflet à chacun. Ne laissez jamais le groupe s'étirer hors de vue : une personne ouvre la marche et personne ne la dépasse ; une autre ferme la marche (« serre-file ») et vérifie que personne ne reste derrière. Prévenez la tête ou le serre-file avant de vous arrêter ou de vous écarter. Si quelqu'un veut faire demi-tour ou explorer, il ne part jamais seul. Si vous êtes séparé du groupe, restez où vous êtes, sauf danger immédiat. **Si quelqu'un manque à l'appel** : arrêtez-vous et regroupez tout le monde ; appelez-le et sifflez par séries de 6, puis écoutez sa réponse. S'il ne répond pas, alertez aussitôt le 112 en donnant le dernier endroit où il a été vu, l'heure, la couleur de ses vêtements, ce qu'il porte et son état de santé. Ensuite, revenez ensemble, sans vous séparer, à ce dernier point et restez-y tant que c'est sûr. Ne partez jamais le chercher seul hors du sentier.
 
+> 📷 *Photo : Randonneurs en file sur un sentier de montagne boisé (© brewbooks — CC BY-SA 2.0 (crédit n° 29)).* En groupe, restez ensemble et gardez tout le monde en vue : une personne ouvre la marche, une autre la ferme.
+
 > **Rester ou partir ?**
 > Si quelqu'un connaît votre itinéraire, **restez sur place** : les secours cherchent d'abord là où vous êtes censé être. Ne bougez que pour échapper à un danger immédiat, ou pour rejoindre une destination identifiée par un trajet connu et praticable ; sinon, restez localisable dans un endroit sûr (voir chapitre 21).
 
@@ -148,6 +150,8 @@ Un petit kit, toujours dans le sac, vaut mieux qu'un gros kit resté à la maiso
 ## 3S'abriter
 
 Le corps perd sa chaleur de quatre façons : par le **vent**, l'**humidité**, le **contact avec le sol** et le **rayonnement**. Un bon abri bloque les quatre.
+
+> 📷 *Photo : Bâche tendue en abri dans une forêt, matériel à l'abri dessous (© Umnak — CC BY-SA 2.0 (crédit n° 30)).* Une bâche tendue protège du vent et de la pluie ; elle ne remplace pas l'isolation du sol (voir plus bas et chapitre 12).
 
 ### Choisir l'emplacement
 
@@ -294,6 +298,8 @@ Une eau claire, courante ou sortant du sol n'est pas nécessairement potable. Co
 
 **Faire bouillir :** portez l'eau claire à gros bouillons pendant au moins 1 minute, ou 3 minutes au-dessus d'environ 2 000 m. Si l'ARS ou la mairie donne une autre durée (en France, souvent 5 minutes pour l'eau du robinet), suivez-la. Laissez refroidir dans un récipient propre et fermé, et consommez cette eau dans les 72 heures, de préférence gardée au frais.
 
+> 📷 *Photo : Eau portée à ébullition sur un réchaud (© eggrole — CC BY 2.0 (crédit n° 31)) ; Filtrage de l'eau d'un ruisseau (© Chris Hunkeler — CC BY-SA 2.0 (crédit n° 32)).* Les deux moyens les plus sûrs pour une eau claire : l'ébullition à gros bouillons, ou un filtre dont la notice précise ce qu'il retient (bactéries, protozoaires, virus).
+
 Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques. Écartez les eaux suspectes de pollution. Une eau claire peut être contaminée.
 
 > **Eaux à ne pas boire, même traitées**
@@ -391,6 +397,8 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 - **Couleurs vives** : étalez vêtements, couverture de survie (face brillante), bâche dans une clairière.
 - **Hélicoptère** : lorsqu'un hélicoptère vous cherche, une seule personne se tient debout, immobile, les deux bras levés en **Y** pour demander de l'aide, si possible dos au vent, puis suit les consignes de l'équipage. Un bras levé, l'autre baissé = « non, tout va bien ». Fixez les objets susceptibles de s'envoler. N'approchez jamais l'appareil sans instruction explicite et ne passez jamais à l'arrière.
 
+> 📷 *Photo : Miroir de signalisation (mode d'emploi au dos) (© signal mirror — CC BY 2.0 (crédit n° 33)) ; Sifflets de détresse (© Olgierd Rudak — CC BY-SA 4.0 (crédit n° 34)) ; Hélicoptère de secours en montagne (© Jarosław Pocztarski — CC BY 2.0 (crédit n° 35)).* Trois moyens de se faire repérer : le miroir de signalisation (au soleil), le sifflet (6 coups par minute, puis une minute de pause), et les signaux du corps quand l'hélicoptère arrive.
+
 > 🖼 *Illustration : Signaux aux hélicoptères : bras en Y pour oui, un bras levé et un bras baissé pour non.*
 
 ---
@@ -424,6 +432,8 @@ Si la personne ne répond pas mais respire normalement après un événement **n
 
 > **Ne respire pas normalement ? Arrêt cardiaque**
 > Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions.
+
+> 📷 *Photo : Armoire murale verte contenant un défibrillateur automatisé externe (© Leonard Bentley — CC BY-SA 2.0 (crédit n° 36)).* Défibrillateur automatisé externe (DAE) en accès public, avec son logo vert : repérez-les sur vos trajets habituels. Il guide l'utilisateur à la voix.
 
 > **Arrêt cardiaque de l'enfant et du nourrisson**
 > Référence suivie : Références techniques nationales – Premiers secours citoyen (RTN PSC, DGSCGC, France), celles qu'enseigne la formation PSC1.
@@ -543,6 +553,8 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 | Insectes | Couleur, pilosité et odeur ne constituent pas une clé de comestibilité : un débutant doit s'abstenir d'en consommer sans identification fiable. Des allergies croisées sont possibles, notamment chez les personnes allergiques aux crustacés ou aux acariens. |
 | Poissons | La cuisson réduit de nombreux risques infectieux, mais ne rend pas comestible une espèce inconnue et ne détruit pas toutes les toxines. Évitez les poissons non identifiés, les poissons récifaux à risque et les aliments mal conservés. |
 
+> 📷 *Photo : Mûres : seules les noires sont mûres (© Andrew_Writer — CC BY 2.0 (crédit n° 37)) ; Noisettes (Corylus avellana) (© Ivar Leidus — CC BY-SA 4.0 (crédit n° 38)).* Fruits sauvages faciles à reconnaître : la mûre (fruit fait de petites boules serrées, sur une ronce épineuse) et la noisette. Dans les régions citées au chapitre 10 (règle 3), cuisez les fruits cueillis près du sol.
+
 **La cuisson ne rend pas comestible une plante ou un champignon toxique :** elle tue des parasites, mais le poison de l'if ou de l'amanite phalloïde résiste à la cuisson et au séchage. On ne cuit que ce qui est déjà identifié avec certitude comme comestible.
 
 - Cuisez tout ce qui peut l'être : la cuisson élimine la plupart des parasites.
@@ -589,6 +601,8 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 > - **troène, nerprun, bourdaine** : arbustes à baies noires ou bleu-noir.
 > Attention : la belladone a, elle aussi, des baies isolées. Ces indices aident à repérer une erreur, mais ils ne suffisent pas à identifier une myrtille ; une application de reconnaissance ne suffit pas non plus. Au moindre doute, ne mangez pas. Si une baie a un goût inhabituel ou désagréable, recrachez-la et arrêtez.
 > Si quelqu'un a avalé une baie douteuse, appelez un centre antipoison sans attendre les symptômes. Appelez le 15 ou le 112 (114 pour les personnes sourdes, malentendantes ou aphasiques) en cas de troubles graves : difficulté à respirer, perte de connaissance, trouble cardiaque. Ne faites pas vomir. Gardez la cueillette ou prenez-la en photo.
+
+> 📷 *Photo : Myrtille (Vaccinium myrtillus), planche botanique (© Free Public Domain Illustrations by rawpixel — CC BY 2.0 (crédit n° 39)) ; Belladone (Atropa belladonna) : mortelle (© wlcutler — CC BY 2.0 (crédit n° 40)).* Ne confondez jamais myrtille et belladone : la belladone porte de grosses baies noires luisantes, isolées elles aussi, parmi de grandes feuilles. Ces images ne suffisent pas à identifier une plante.
 
 ---
 
@@ -821,6 +835,8 @@ L'alambic peut aussi servir avec de l'eau de mer ou une eau boueuse versée dans
 - Aucune posture ni aucun abri léger ne rend l'extérieur sûr. Évitez les crêtes, les arbres isolés, l'eau et les conducteurs.
 - Restez à l'abri 30 minutes après le dernier tonnerre.
 
+> 📷 *Photo : Cumulonimbus en formation (© Tatters ✾ — CC BY-SA 2.0 (crédit n° 41)) ; Orage et éclairs (© Matt Biddulph — CC BY-SA 2.0 (crédit n° 42)).* Un nuage qui monte très haut en forme de chou-fleur ou d'enclume (cumulonimbus) annonce l'orage : quittez crêtes, sommets et eau avant que la foudre ne tombe.
+
 > 🖼 *Illustration : Signes de changement de temps.* Les nuages à fort développement vertical l'après-midi annoncent souvent un orage.
 
 ### Autres dangers
@@ -839,6 +855,8 @@ L'alambic peut aussi servir avec de l'eau de mer ou une eau boueuse versée dans
 ## 15Survie en montagne
 
 La montagne combine froid, altitude, météo changeante et terrain dangereux. Retard, fatigue et changement de temps font partie des risques à surveiller ; l'issue dépend aussi de facteurs incontrôlables.
+
+> 📷 *Photo : Sac airbag, DVA, sonde et pelle (© User:Nolispanmo — CC BY-SA 3.0 (crédit n° 43)) ; Crampons et piolet (© simonov — CC BY-SA 2.0 (crédit n° 44)).* En terrain d'avalanche, chacun porte DVA, pelle et sonde, et sait s'en servir. Sur neige dure ou glace : crampons et piolet, après apprentissage encadré.
 
 ### Avant et pendant la course
 
@@ -968,6 +986,8 @@ Avant de vous avancer sur l'estran, renseignez-vous sur les heures de marée du 
 
 Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais les nuits peuvent être glaciales. Les mêmes règles valent pendant une **canicule** ou une randonnée en plein été dans le sud de l'Europe.
 
+> 📷 *Photo : Dunes de sable orangées avec une ligne de traces de pas (© auteur non indiqué — CC0 (crédit n° 45)).* Dans les dunes, les repères changent vite et l'ombre manque : déplacez-vous aux heures fraîches et restez près de votre véhicule en cas de panne.
+
 ### Les règles d'or
 
 - **Économisez la sueur, pas l'eau.** Buvez ce que vous avez, par petites gorgées régulières, mais limitez la transpiration : c'est elle qui vide le corps.
@@ -1002,6 +1022,8 @@ Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais l
 ## 18Grand froid, neige et glace
 
 Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le vent et l'humidité multiplient ses effets : par −5 °C avec un vent de 40 km/h, le corps ressent environ −15 °C.
+
+> 📷 *Photo : Fissure dans une glace mince (© Horia Varlan — CC BY 2.0 (crédit n° 46)) ; Bivouac d'hiver encadré (© GlacierNPS — Domaine public (crédit n° 47)).* La glace d'un lac peut être fine même par grand froid : une fissure, de la neige qui cache l'eau ou un courant suffisent. Pour la nuit, une tente adaptée, un bon couchage et un sol isolé.
 
 ### Rester au chaud
 
@@ -1044,6 +1066,8 @@ Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau 
 
 - Consultez un médecin ou un centre de vaccinations internationales : **vaccins** (fièvre jaune, etc.) et **traitement préventif du paludisme** selon la région.
 - Emportez une moustiquaire imprégnée, un répulsif efficace, une trousse renforcée (pansements, sachets de solution de réhydratation orale, médicaments personnels préparés avec un professionnel ; voir chapitre 8), des vêtements longs à séchage rapide.
+
+> 📷 *Photo : Rivière en forêt tropicale (© mripp — CC BY 2.0 (crédit n° 48)) ; Hamac avec moustiquaire (© oft-quoted Mandrake Silvertongue — CC BY 2.0 (crédit n° 49)).* En forêt tropicale : rivières en crue rapide, humidité permanente et moustiques. Dormir surélevé sous une moustiquaire limite les piqûres et le contact avec le sol.
 
 ### Dormir au-dessus du sol
 
@@ -1105,6 +1129,8 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 - Un **détecteur de monoxyde de carbone** à piles, installé près des chambres, peut donner l'alerte avant que vous ne ressentiez des symptômes. Il complète l'entretien des appareils et l'aération, il ne les remplace pas. S'il sonne : sortez tout le monde à l'air libre, appelez les secours et ne rentrez pas sans leur accord. Remplacez-le selon la notice. Signes d'intoxication : voir chapitre 15.
 - Débranchez les appareils sensibles pour éviter la surtension au retour du courant. Réunissez-vous dans une seule pièce l'hiver.
 
+> 📷 *Photo : Radio à manivelle qui recharge un téléphone (© cogdogblog — CC0 (crédit n° 51)) ; Détecteur de monoxyde de carbone (© Donald Trung Quoc Don (Chữ Hán: 徵國單) - Wikimedia Commons - © CC BY-SA 4.0 Intern… — CC BY-SA 4.0 (crédit n° 52)).* Deux objets utiles à la maison : une radio à manivelle ou à piles pour recevoir les consignes sans électricité, et un détecteur de monoxyde de carbone près des chambres.
+
 ### Inondation
 
 - **Ne marchez et ne roulez jamais dans l'eau** en mouvement : 15 cm d'eau courante peuvent faire tomber un adulte, 30 cm emporter une voiture.
@@ -1112,6 +1138,8 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 - N'allez pas chercher les enfants à l'école : ils y sont pris en charge.
 - **Eau du robinet :** après une inondation, ne la buvez pas tant que la mairie ou le distributeur d'eau n'a pas confirmé qu'elle est potable. En attendant, buvez de l'eau en bouteille dont le bouchon est resté scellé, aussi pour préparer les repas et vous brosser les dents. Ne consommez pas une bouteille ou une conserve restée dans l'eau de crue. L'eau d'un puits inondé n'est pas potable : demandez conseil à la mairie avant de la réutiliser. Lavez-vous les mains au savon après tout contact avec l'eau de crue.
 - Ne descendez pas dans les sous-sols ni les parkings souterrains inondés. Faites vérifier l'électricité et le chauffage par un professionnel avant de les remettre en marche. N'utilisez pas de nettoyeur ou de pompe à moteur thermique dans la maison, le garage ou la cave, même ouverts (monoxyde de carbone).
+
+> 📷 *Photo : Rue inondée avec des voitures, photo d'archives en noir et blanc (© Seattle Municipal Archives — CC BY 2.0 (crédit n° 50)).* Ne traversez jamais une rue inondée, à pied ou en voiture : l'eau cache le courant, les trous et les plaques d'égout soulevées.
 
 ### Canicule
 
@@ -1282,6 +1310,8 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 
 Si vous ne deviez emporter que trois objets : **un couteau avec scie**, **un briquet + une pierre à feu**, **une couverture de survie**. Ces outils augmentent vos possibilités, mais ne rendent pas les techniques faciles et ne remplacent ni l'apprentissage, ni l'évaluation de vos limites, ni l'équipement adapté au milieu (eau, vêtements, couchage et isolation, éclairage, orientation, moyen d'alerte).
 
+> 📷 *Photo : Couteau multifonction (© IK's World Trip — CC BY 2.0 (crédit n° 53)) ; Hachette plantée dans un billot (© auteur non indiqué — CC0 (crédit n° 54)).* Un couteau multifonction et une hachette rendent de grands services, mais demandent apprentissage, étui et prudence (voir les règles de ce chapitre).
+
 > **Bon à savoir (France)**
 > En France, le classement et les règles applicables dépendent du couteau. Pour une arme de catégorie D, port et transport hors du domicile sont interdits sans motif légitime, apprécié au cas par cas. La randonnée ou la pêche peuvent expliquer la présence d'un outil adapté, sans donner une autorisation automatique. Porter un couteau pour se défendre n'est pas en soi un motif légitime. Protégez la lame, rangez l'outil avec votre matériel et vérifiez les règles du lieu, des transports et du pays avant le départ. En dehors de l'activité, transportez l'outil fermé ou dans son étui, rangé dans le sac, pas sur vous ; dans les transports publics, rien de visible.
 
@@ -1422,6 +1452,8 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 Quatre niveaux, du salon au bivouac. Comptez quelques mois à raison d'une activité par week-end.
 
+> 📷 *Photo : Boussole posée sur une carte topographique (© luis perez — CC BY 2.0 (crédit n° 55)).* S'entraîner avec une carte et une boussole, d'abord près de chez soi, avant d'en avoir besoin.
+
 Les niveaux sont des repères de progression, pas une qualification. Avant de passer au suivant, répétez les gestes essentiels et faites vérifier leur exécution par une personne compétente. Pour un exercice, simulez les limites de matériel sans supprimer l'accès immédiat aux moyens de sécurité prévus. Fixez avant de commencer une durée, un point de repli et des motifs d'arrêt. Toute personne peut interrompre l'exercice. Reconnaître sa fatigue, demander de l'aide et renoncer à une tâche devenue dangereuse font partie des compétences à apprendre.
 
 > 🖼 *Illustration : Progression en quatre niveaux : à la maison, sortie à la journée, nuit dehors, autonomie.*
@@ -1494,6 +1526,8 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Zone sans réseau : balise PLB enregistrée
 - [ ] En-cas énergétiques
 
+> 📷 *Photo : Matériel de randonnée étalé au sol avant d'être rangé dans le sac (© cogdogblog — CC BY 2.0 (crédit n° 56)).* Étalez tout votre matériel avant de partir et cochez la liste : c'est le meilleur moyen de ne rien oublier.
+
 ### Si je suis perdu
 
 1. **S.T.O.P.** : je cesse d'agir dans la précipitation, je vérifie que l'endroit est sûr, puis je réfléchis.
@@ -1562,7 +1596,7 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 
 ## Crédits photographiques
 
-Les photographies proviennent de Flickr et de Wikimedia Commons (recherche via Openverse) et sont publiées sous licence libre : domaine public, CC0, CC BY ou CC BY-SA. Les licences CC BY et CC BY-SA imposent de citer l'auteur et la licence ; les photos sous CC BY-SA restent sous cette licence. Les photos ont seulement été redimensionnées. Elles illustrent une technique ou une espèce mais **ne suffisent jamais, seules, à identifier une plante** ni à apprendre un geste.
+Les photographies proviennent de Flickr, de Wikimedia Commons et de Rawpixel (recherche via Openverse) et sont publiées sous licence libre : domaine public, CC0, CC BY ou CC BY-SA. Les licences CC BY et CC BY-SA imposent de citer l'auteur et la licence ; les photos sous CC BY-SA restent sous cette licence. Les photos ont seulement été redimensionnées. Elles illustrent une technique ou une espèce mais **ne suffisent jamais, seules, à identifier une plante** ni à apprendre un geste.
 
 Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ; CC BY 3.0 : https://creativecommons.org/licenses/by/3.0/ ; CC BY-SA 2.0 : https://creativecommons.org/licenses/by-sa/2.0/ ; CC BY-SA 2.5 : https://creativecommons.org/licenses/by-sa/2.5/ ; CC BY-SA 3.0 : https://creativecommons.org/licenses/by-sa/3.0/ ; CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/ ; CC0 : https://creativecommons.org/publicdomain/zero/1.0/ ; Domaine public : https://creativecommons.org/publicdomain/mark/1.0/.
 
@@ -1596,6 +1630,34 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 | 26 | Courant d'arrachement (panneaux) | Invertzoo | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=35031316 |
 | 27 | Gilets de sauvetage | Only in Oregon | CC BY 2.0 | https://www.flickr.com/photos/46052415@N08/51929205803 |
 | 28 | Sauvetage sur glace (exercice) | Joint Base Elmendorf-Richardson | Domaine public | https://www.flickr.com/photos/47082109@N02/51805000280 |
+| 29 | Randonnée en groupe | brewbooks | CC BY-SA 2.0 | https://www.flickr.com/photos/93452909@N00/2749147657 |
+| 30 | Abri sous bâche | Umnak | CC BY-SA 2.0 | https://www.flickr.com/photos/11376383@N00/487501150 |
+| 31 | Ébullition sur réchaud | eggrole | CC BY 2.0 | https://www.flickr.com/photos/35387910@N04/5402581394 |
+| 32 | Filtre à eau | Chris Hunkeler | CC BY-SA 2.0 | https://www.flickr.com/photos/14913305@N00/33500630740 |
+| 33 | Miroir de signalisation | signal mirror | CC BY 2.0 | https://www.flickr.com/photos/53832127@N04/26704594443 |
+| 34 | Sifflets de détresse | Olgierd Rudak | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=184974248 |
+| 35 | Hélicoptère de secours | Jarosław Pocztarski | CC BY 2.0 | https://www.flickr.com/photos/22439313@N07/28873127192 |
+| 36 | Défibrillateur en accès public | Leonard Bentley | CC BY-SA 2.0 | https://www.flickr.com/photos/31363949@N02/16852876539 |
+| 37 | Mûres | Andrew_Writer | CC BY 2.0 | https://www.flickr.com/photos/78135748@N00/5039711815 |
+| 38 | Noisettes | Ivar Leidus | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=98707662 |
+| 39 | Myrtille (planche) | Free Public Domain Illustrations by rawpixel | CC BY 2.0 | https://www.flickr.com/photos/153584064@N07/47224763171 |
+| 40 | Belladone | wlcutler | CC BY 2.0 | https://www.flickr.com/photos/20664893@N00/7960747492 |
+| 41 | Cumulonimbus | Tatters ✾ | CC BY-SA 2.0 | https://www.flickr.com/photos/62938898@N00/11048322775 |
+| 42 | Éclairs | Matt Biddulph | CC BY-SA 2.0 | https://www.flickr.com/photos/51035707449@N01/4787447725 |
+| 43 | Matériel avalanche | User:Nolispanmo | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=6005774 |
+| 44 | Crampons et piolet | simonov | CC BY-SA 2.0 | https://www.flickr.com/photos/26209464@N00/2270509848 |
+| 45 | Dunes de sable | auteur non indiqué | CC0 | https://www.rawpixel.com/image/5917279/photo-image-public-domain-free-landscape |
+| 46 | Glace fissurée | Horia Varlan | CC BY 2.0 | https://www.flickr.com/photos/10361931@N06/5351062125 |
+| 47 | Bivouac d'hiver | GlacierNPS | Domaine public | https://www.flickr.com/photos/43288043@N04/26077401240 |
+| 48 | Rivière tropicale | mripp | CC BY 2.0 | https://www.flickr.com/photos/56218409@N03/15062712938 |
+| 49 | Hamac et moustiquaire | oft-quoted Mandrake Silvertongue | CC BY 2.0 | https://www.flickr.com/photos/8145878@N02/2219952814 |
+| 50 | Rue inondée (archives) | Seattle Municipal Archives | CC BY 2.0 | https://www.flickr.com/photos/24256351@N04/4363265410 |
+| 51 | Radio à manivelle | cogdogblog | CC0 | https://www.flickr.com/photos/37996646802@N01/3325047694 |
+| 52 | Détecteur de CO | Donald Trung Quoc Don (Chữ Hán: 徵國單) - Wikimedia Commons - © CC BY-SA 4.0 Intern… | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=129241777 |
+| 53 | Couteau multifonction | IK's World Trip | CC BY 2.0 | https://www.flickr.com/photos/28238346@N00/4046500800 |
+| 54 | Hachette | auteur non indiqué | CC0 | https://www.rawpixel.com/image/3300519/free-photo-image-axe-blur-background |
+| 55 | Boussole sur une carte | luis perez | CC BY 2.0 | https://www.flickr.com/photos/65092670@N00/3879235872 |
+| 56 | Matériel étalé avant le départ | cogdogblog | CC BY 2.0 | https://www.flickr.com/photos/37996646802@N01/16918154738 |
 
 ---
 
@@ -1608,7 +1670,7 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 
 ### Ce livret contient tout
 
-1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 28 photos libres, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
+1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
 2. **Annexe A — Note de version** (cette page) : historique des versions et points encore à faire vérifier.
 3. **Annexe B — Journal des corrections** : chaque correction avec son chapitre, l'avant, l'après, la source et les arbitrages.
 4. **Annexe C — Contrôles** : vérification automatique que chaque correction est en place, version par version.
@@ -1651,6 +1713,12 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 
 - **Verdict des neuf agents sur la v1.3** : « publiable après corrections mineures », sous réserve de la relecture humaine ; aucun point critique.
 - **17 points appliqués** : un témoin non formé réanime quand même, guidé par le régulateur ; aucun appareil à combustion dans une tente ; fausse alerte de balise : 196 par téléphone, VHF 16 en mer ; cuisson des fruits **et des feuilles** sauvages dans les régions de la règle 3 (ail des ours compris) ; 114 harmonisé partout ; sirènes, barrages, réserve d'eau, glossaire (ARS, DGSCGC, ERC) ; détail dans le annexe B, partie M.
+
+### Illustrations (v1.4)
+
+- **28 nouvelles photos libres** (56 au total), choisies une à une : groupe en randonnée, abri sous bâche, ébullition et filtre, miroir, sifflet et hélicoptère, défibrillateur, mûres et noisettes, myrtille et belladone, orage, matériel d'avalanche et crampons, désert, glace fissurée et bivouac d'hiver, forêt tropicale et hamac, inondation, radio à manivelle et détecteur de CO, couteau et hachette, carte et boussole, matériel étalé.
+- **14 pictogrammes** sur les fiches réflexes et les check-lists.
+- **Mise en page imprimée** corrigée : plus de pages vides ni de pages de deux ou trois lignes ; en-têtes de tableau répétés.
 
 ### Points encore à faire vérifier
 
@@ -2148,7 +2216,18 @@ Verdict des neuf agents : **« publiable après corrections mineures »**, sous 
 
 ### N bis. Mise en page imprimée
 
-Signalement de l'éditeur : certaines pages étaient vides, d'autres ne portaient que deux ou trois lignes. Il y avait trois causes : chaque chapitre commençait sur une nouvelle page (les fins de chapitre restaient seules), les grands tableaux et encadrés ne pouvaient pas être coupés, et les grandes illustrations ne tenaient pas dans la place restante. Corrections : les chapitres s'enchaînent, avec un saut de page seulement après la couverture et avant l'avant-propos, les fiches réflexes et les annexes ; les tableaux se coupent entre deux lignes ; les longs encadrés peuvent se couper ; les illustrations sont limitées à 8 cm (dessins) et 7 cm (photos) à l'impression ; un titre ne reste jamais seul en bas de page. Mesure par `outils/controle-mise-en-page.py` : 29 pages remplies à moins de 50 % avant correction (dont 8 presque vides), **3 après** (le bas du sommaire et deux pages suivies d'un grand dessin), **aucune à moins de 30 %**. Le livret passe de 225 à 202 pages. Le texte n'est pas modifié.
+Signalement de l'éditeur : certaines pages étaient vides, d'autres ne portaient que deux ou trois lignes. Il y avait trois causes : chaque chapitre commençait sur une nouvelle page (les fins de chapitre restaient seules), les grands tableaux et encadrés ne pouvaient pas être coupés, et les grandes illustrations ne tenaient pas dans la place restante. Corrections : les chapitres s'enchaînent, avec un saut de page seulement après la couverture et avant l'avant-propos, les fiches réflexes et les annexes ; les tableaux se coupent entre deux lignes ; les longs encadrés peuvent se couper ; les illustrations sont limitées à 8 cm (dessins) et 7 cm (photos) à l'impression ; un titre ne reste jamais seul en bas de page. Mesure par `outils/controle-mise-en-page.py` : 29 pages remplies à moins de 50 % avant correction (dont 8 presque vides), **3 après** (le bas du sommaire et deux pages suivies d'un grand dessin), **aucune à moins de 30 %**. Le livret passe de 225 à 202 pages (puis 217 avec les nouvelles photos). Le texte n'est pas modifié.
+
+### N ter. Plus d'illustrations (v1.4)
+
+Signalement de l'éditeur : « ça manque d'illustration visuelle et d'image ». Le comptage par chapitre montrait des chapitres longs sans aucune image (premiers secours : 3 000 mots et 3 photos ; nourriture, fiches réflexes, check-lists : aucune).
+
+- **28 photos ajoutées** (crédits n° 29 à 56), recherchées via Openverse sous licences libres (CC0, domaine public, CC BY, CC BY-SA) et **vérifiées une à une** : sujet, titre, espèce et licence. Écartées : images hors sujet, photos de personnes identifiables sans lien avec le geste, schémas étrangers trompeurs, espèce incertaine. Pour la myrtille, une planche botanique de *Vaccinium myrtillus* est préférée à une photo de « blueberries » dont l'espèce n'est pas certaine ; elle est placée à côté de la belladone.
+- Les légendes reprennent les consignes du livret (sifflet : 6 coups par minute ; cuisson des fruits cueillis près du sol, règle 3 ; DAE ; glace mince), sans rien ajouter de nouveau.
+- **14 pictogrammes** dessinés (fiches 1 à 10, 3 bis, 3 ter ; check-lists), en couleurs du thème, lisibles en mode sombre.
+- Mise en page : blocs de 3 photos ou plus sur 3 colonnes à l'impression ; en-têtes des tableaux en `thead`, donc répétés en haut de page et jamais seuls en bas de page ; plus de saut de page forcé avant les fiches réflexes.
+- Outils : `outils/ajout-photos.py` (sélection dans `source/photos-ajout-v14.json`), `outils/pictos.py`, `outils/ajout-pictos.py`.
+- Contrôles : 887 / 887 éléments retrouvés dans le Markdown ; 102 / 102 ; 72 / 72 ; 26 / 26 ; liens et balises valides ; mise en page : aucune page remplie à moins de 30 %.
 
 ---
 

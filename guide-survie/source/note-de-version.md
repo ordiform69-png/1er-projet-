@@ -5,7 +5,7 @@
 
 ### Ce livret contient tout
 
-1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 28 photos libres, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
+1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
 2. **Annexe A — Note de version** (cette page) : historique des versions et points encore à faire vérifier.
 3. **Annexe B — Journal des corrections** : chaque correction avec son chapitre, l'avant, l'après, la source et les arbitrages.
 4. **Annexe C — Contrôles** : vérification automatique que chaque correction est en place, version par version.
@@ -48,6 +48,12 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 
 - **Verdict des neuf agents sur la v1.3** : « publiable après corrections mineures », sous réserve de la relecture humaine ; aucun point critique.
 - **17 points appliqués** : un témoin non formé réanime quand même, guidé par le régulateur ; aucun appareil à combustion dans une tente ; fausse alerte de balise : 196 par téléphone, VHF 16 en mer ; cuisson des fruits **et des feuilles** sauvages dans les régions de la règle 3 (ail des ours compris) ; 114 harmonisé partout ; sirènes, barrages, réserve d'eau, glossaire (ARS, DGSCGC, ERC) ; détail dans le annexe B, partie M.
+
+### Illustrations (v1.4)
+
+- **28 nouvelles photos libres** (56 au total), choisies une à une : groupe en randonnée, abri sous bâche, ébullition et filtre, miroir, sifflet et hélicoptère, défibrillateur, mûres et noisettes, myrtille et belladone, orage, matériel d'avalanche et crampons, désert, glace fissurée et bivouac d'hiver, forêt tropicale et hamac, inondation, radio à manivelle et détecteur de CO, couteau et hachette, carte et boussole, matériel étalé.
+- **14 pictogrammes** sur les fiches réflexes et les check-lists.
+- **Mise en page imprimée** corrigée : plus de pages vides ni de pages de deux ou trois lignes ; en-têtes de tableau répétés.
 
 ### Points encore à faire vérifier
 
