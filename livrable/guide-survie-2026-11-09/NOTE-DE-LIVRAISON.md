@@ -9,7 +9,7 @@
 | Fichier | Rôle |
 |---|---|
 | `guide-survie.pdf` | Livret complet, A5, 155 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
-| `fiches-reflexes.pdf` | Les 10 fiches réflexes seules (A5, 4 pages), à imprimer et glisser dans le kit |
+| `fiches-reflexes.pdf` | Les 11 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
 | `JOURNAL-CORRECTIONS.md` | Chaque correction : chapitre, avant, après, source ; arbitrages ; illustrations à revoir |
