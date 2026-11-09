@@ -1,15 +1,15 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.2 — 9 novembre 2026**, après intégration des 72 contenus manquants relevés par les neuf agents.  
-**Statut** : **version 1.2**. Tous les points et manques transmis sont intégrés et contrôlés. Seul le dosage de l'eau de Javel reste « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3 et 3 bis) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.3 — 9 novembre 2026**, après la vérification consolidée de la v1.2 par les neuf agents (42 points).  
+**Statut** : **version 1.3**. Tous les points transmis sont intégrés et contrôlés ; le livret ne contient plus aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 182 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
-| `fiches-reflexes.pdf` | Les 11 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
+| `guide-survie.pdf` | Livret complet, A5, 185 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
+| `fiches-reflexes.pdf` | Les 12 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
 | `JOURNAL-CORRECTIONS.md` | Chaque correction : chapitre, avant, après, source ; arbitrages ; illustrations à revoir |
@@ -48,18 +48,25 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **72 contenus manquants intégrés** : malaise et douleur thoracique, AVC, hypoglycémie, convulsions, traumatisme crânien, plaie grave, piqûres, monoxyde de carbone, vêtements en feu, plan de sortie avec heure d'alerte, que dire au 112, enfant perdu, groupe, balise PLB, carte et balisage, marées, barrages, chasse, eau à la maison et après inondation, nourrisson, canicule, centres antipoison, petit glossaire… (détail : journal, partie K).
 - **Référentiel français vérifié** (RTN PSC, juillet 2026) : l'encadré enfant est conforme ; la conduite après noyade de l'enfant suit la procédure générale.
 
-## Reste « à valider »
+## Version 1.3
 
-- **Dosage de l'eau de Javel** : non intégré, faute de protocole validé ; le livret renvoie aux consignes des autorités sanitaires.
+- **42 points de la vérification consolidée appliqués**, dont 7 critiques : malaise et AVC (aucun médicament en cas de signe d'AVC), réanimation de l'enfant (profondeur en cm, insufflations prioritaires), monoxyde de carbone (jamais à l'intérieur, même ouvert), voiture et feu de forêt, bougie de tranchée (jamais d'eau sur la cire qui brûle), eau de Javel, plantes crues et règle 3.
+- **Arbitrages** : deux référentiels pour l'enfant (RTN PSC et ERC 2025) ; Javel sans dosage, sur consigne des autorités ; 114 réservé aux personnes qui ne peuvent pas parler ou entendre ; ration d'eau en mer sans chiffre ; nouvelle **fiche 3 ter** (malaise, douleur dans la poitrine, AVC) ; détail dans le journal, partie L.
+- **Markdown** : défaut du convertisseur corrigé (texte d'encadré après une liste) ; contrôle d'exhaustivité 833 / 833.
+
+## Reste à faire avant publication
+
+- Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
+- Aucun élément « à valider » dans le livret.
 
 
 ## Empreintes SHA-256
 
 ```
-7d35dd11a0d1219478205dcfee2cab90a73eb75622fdaa35df018479e464bac7  guide-survie.pdf
-12c84c7a58053e6d35c2266e7071d032c31a089a1ff874bed38ee69b1225ccb9  fiches-reflexes.pdf
-206160332259eebb69021090c7f39ec5a3a7d64b3da38edad30079815a8abaae  guide-survie.html
-a18fac9592da0d2c5f5217a06266689ebaa7a3d8c93431e23d2120e6c6b25bf3  guide-survie-corrige.md
-73c3d6ace55a7c9aee166c0a9e55e3d0e1f21350266ae8d2324363debd813000  JOURNAL-CORRECTIONS.md
-87cc77c0569fab6721081b979b7f895e5fc75786e041cd24a282771171985679  CONTROLE-PERSISTANCE.md
+dcbc0f449d914b9c36e46d2131bc560ab1e9e92e1f84d5bab6f56d840a065dc1  guide-survie.pdf
+d1ce7b2e4e3f54b6ffbf65c20d95b0bfa24d32ac1521a055629e83cc04a9f46b  fiches-reflexes.pdf
+087b95d08379a13e9280e590df0ee5f807532a7579df6b0824432bbc96cce4d9  guide-survie.html
+4158d4c27a363e76cb0b75ecfae43ab5504e6dd597ae87b91efde4ac8b004e44  guide-survie-corrige.md
+1c01ecbb307cafc967aa26bb4a529d0e99495724065270bb0fbdafb42a4174d6  JOURNAL-CORRECTIONS.md
+7d0ba988756ea5bb0f96091bdf3e712756fed1f072e42bc2df8f8e4c856d11dd  CONTROLE-PERSISTANCE.md
 ```

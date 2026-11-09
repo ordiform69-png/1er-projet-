@@ -3,7 +3,7 @@
 Livret de survie illustré, en français, utilisable **hors ligne**, pour acquérir des bases solides face à toutes les conditions :
 
 - `guide-survie/guide-survie.html` — version web autonome, illustrée de dessins et de 28 photos sous licence libre (crédits en fin de livret) (aucune connexion requise, mode sombre, imprimable).
-- `guide-survie/guide-survie.pdf` — version PDF au format A5 (182 pages), à garder sur le téléphone ou à imprimer.
+- `guide-survie/guide-survie.pdf` — version PDF au format A5 (185 pages), à garder sur le téléphone ou à imprimer.
 
 **Avant-propos** puis 25 chapitres :
 
@@ -13,7 +13,7 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 ## Livrable
 
-- `livrable/guide-survie-v1.2-livrable.pdf` — **livrable en fichier unique, version 1.2** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
+- `livrable/guide-survie-v1.3-livrable.pdf` — **livrable en fichier unique, version 1.3** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
 - `livrable/guide-survie-2026-11-09.zip` — paquet détaillé (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
 
 ## Corrections éditoriales

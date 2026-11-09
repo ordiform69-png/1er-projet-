@@ -367,9 +367,70 @@ Le PDF cité par le Médecin (secourisme.net, « Références techniques nationa
 |---|---|---|
 | Rapport compressions / insufflations | « enfant et nourrisson : 15 compressions thoraciques / 2 insufflations » ; pas d'insufflations initiales | Conforme |
 | Sauveteur seul | Avec téléphone : haut-parleur et RCP immédiate ; « en l'absence de téléphone ou de réseau, quitter la victime pour aller alerter puis revenir » | Conforme |
-| Profondeur | Nourrisson : « environ 4 cm » ; enfant : « environ 5 cm » (un tiers du thorax) | Conforme |
+| Profondeur | Nourrisson : « environ 4 cm » ; enfant : « environ 5 cm » (un tiers du thorax) | Conforme en partie seulement en v1.2 (le livret disait « au moins un tiers ») ; **corrigé en v1.3** : centimètres du RTN (voir partie L) |
 | DAE | Électrodes enfants ; à défaut, électrodes adultes au milieu du thorax et au milieu du dos | Conforme |
 | Compressions seules | Note rattachée à la ligne adulte (« uniquement les compressions thoraciques en continu ») | Conservé pour l'enfant, comme le propose le Médecin ; réserve maintenue dans ce journal |
 | Noyade | Aucune procédure spécifique : la noyade est citée parmi les causes, la conduite générale s'applique | Ch. 16 mis à jour : pour l'enfant, même conduite que l'encadré du ch. 8. **Dernière réserve « noyade de l'enfant » levée.** |
 
-**Seul élément encore « à valider » dans le livret : le dosage de l'eau de Javel** (encadré du ch. 5).
+**Seul élément encore « à valider » dans le livret v1.2 : le dosage de l'eau de Javel** (encadré du ch. 5). Levé en v1.3 : renvoi aux autorités, sans dosage (partie L).
+
+---
+
+## L. Version 1.3 — vérification consolidée des neuf agents (42 points)
+
+Rapport « Vérification consolidée v1.2 → v1.3 » du 9 novembre 2026 : 58 points bruts, 42 après fusion (7 critiques, 15 importants, 20 reformulations), 12 conflits. Les 42 points sont appliqués par `corrections-v13.py` (56 remplacements) et contrôlés par `controle-v13.py`.
+
+Règle d'arbitrage inchangée : **en cas de contradiction, la version la plus sûre** ; une formulation « à valider » n'est intégrée que si elle est sourcée ; **aucun dosage** n'est ajouté.
+
+### Arbitrages de l'auteur
+
+| Point | Sujet | Choix retenu |
+|---|---|---|
+| 1 | Malaise : traitement prescrit / AVC | Texte du Médecin : traitement prescrit seulement à sa demande ou sur consigne du 15, **sauf signe d'AVC** (aucun médicament, ni à boire ni à manger). |
+| 2 | Arrêt cardiaque de l'enfant | **Deux référentiels**, version du Médecin : profondeur en cm (RTN : environ 5 cm enfant, 4 cm nourrisson), insufflations prioritaires chez l'enfant ; compressions seules seulement si l'on ne peut pas ou ne sait pas insuffler (ERC 2025, le RTN ne le précisant que pour l'adulte). Appliqué au ch. 8 et à la fiche 3 bis. |
+| 5 | Bougie de tranchée | Texte Bushcraft : cire fondue au bain-marie, extinction par couvercle ou plaque, **jamais d'eau sur de la cire qui brûle**. |
+| 6 | Eau de Javel | Encadré de l'Expert Eau, titre « **Eau de Javel : seulement sur consigne des autorités** », **sans dosage** (aucune autorité sanitaire française ne fixe de dose grand public ; l'option « 2 gouttes » n'est pas retenue). La dernière mention « à valider » du livret disparaît. |
+| 8 | 114 | Fusion Militaire + Éditeur : le 114 est réservé aux personnes qui ne peuvent pas parler ou entendre ; « si l'appel ne passe pas : SMS à un proche ». Ch. 7, ch. 21, fiche 1, check-list. Le 114 n'est pas présenté au randonneur entendant sans réseau (non confirmé par Urgence 114). |
+| 9 | Eau douce en mer | Texte du Médecin, **sans chiffre de ration** (500 mL/j et « rien le 1er jour » non retenus). |
+| 10 | Nourrisson | Paragraphe complet de l'Expert Eau (mention « convient pour la préparation des aliments des nourrissons », 24 h, hygiène des biberons, stérilisation non nécessaire). |
+| 12 | Check-list « Si je suis perdu » | Psychologue : nouvelle étape 3 « Je reste sur place si quelqu'un connaît mon itinéraire, sauf danger immédiat » ; liste renumérotée. |
+| 14 | La nuit | Texte du Psychologue **sans « c'est fréquent »** (non sourcé). |
+| 17 | Quelqu'un manque à l'appel | Fusion : appeler et siffler par séries de 6 ; sans réponse, alerter le 112 aussitôt ; puis revenir ensemble au dernier point et y rester si c'est sûr ; jamais de recherche seul. |
+| 18 | Balise PLB | Navigateur + Militaire, **sans** « en y indiquant votre sortie » ni la mention juridique sur l'absence de sanction (non confirmées) ; fausse alerte : « prévenez aussitôt les secours (112 ; en mer : VHF canal 16 ou 196) ». |
+| 20 / 28 | Fiche malaise / AVC | Créée sous le numéro **3 ter** (sans renuméroter les fiches 4 à 10), avec les 5 gestes du Médecin, plus prudents que la version Éditeur (pas de « traitement prescrit » dans la fiche). Chapeau : « Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. » |
+| 24 | « Urinez avant de dormir » | Texte Abri Feu : conseil gardé pour le confort (ne pas sortir du couchage la nuit), **justification physiologique retirée**. |
+| 25 | Feu en forêt | Texte Abri Feu : « sauf urgence vitale » supprimé (aucune exception dans l'art. L131-1 du Code forestier) ; en détresse, abri, isolation et alerte d'abord. |
+| 26 | Bâche en A | Texte Bushcraft (ligne de faîtage, vent sur un pan ou une extrémité étroite, pas sur l'ouverture). |
+| 27 | Renvoi « récipient pour bouillir » | Texte Expert Eau : renvoi au ch. 13 « Faire bouillir : un vrai récipient » et au ch. 22. |
+| 41 | Glossaire | EPIRB, VHF, MOB ajoutés ; MOB défini par « Homme à la mer » sans développement anglais (non vérifié). |
+| 42 | RTN PSC | Sigle cité dans l'encadré enfant du ch. 8 ; glossaire : « Références techniques nationales – Premiers secours citoyen (DGSCGC) ». |
+
+### Points appliqués sans conflit
+
+3 (monoxyde de carbone : jamais dans un logement, un garage, une cave ou une tente, même ouverts ; groupe électrogène uniquement dehors) · 4 (déjà en voiture près du feu : ne pas sortir) · 7 (tableau des plantes aligné sur la règle 3 : pissenlit cuit, fruits de ronce cuits dans les régions concernées, rappel au ch. 9) · 11 (ébullition : au moins 1 minute ; suivre la durée de l'ARS si elle est différente ; 72 h) · 13 (consignes pendant l'alerte : radio et notifications allumées) · 15 (« les secours sont prévenus » seulement si c'est vrai ; CUMP) · 16 (belladone, voir ci-dessous) · 19 (vigilance jaune, orange, rouge ; horaires de mise à jour) · 21 (nœud plat : demi-nœuds de sens opposés ; nœud de vache) · 22 (cordelette 15 m ; bâche 2 × 2,5 m dans le kit) · 23 (couteau : encadré juridique séparé de la nouvelle rubrique « Ranger et transporter une lame ») · 29 (balisage PR / GR / GR de Pays) · 30 (Pointeurs de la Croix du Sud) · 31 (accord « chaque enfant ») · 32 (études d'accidents **d'avalanche**) · 33 (fiche 6 : le choc passe en moins d'une minute) · 34 (fruits de la ronce) · 35 (« Nœuds utiles ») · 36 (bois fendu après apprentissage encadré) · 37 (cercle de sécurité expliqué) · 38 (3 L/pers./jour distribués en crise) · 39 (renvoi « encadré ci-dessus » précisé) · 40 (fiche 3 : « j'utilise le défibrillateur »).
+
+### Point 16 et défaut du Markdown
+
+La phrase « La belladone a, elle aussi, des baies isolées » figurait bien dans le HTML et le PDF v1.2, mais **pas dans le Markdown** : le convertisseur HTML → Markdown perdait le texte libre placé après une liste dans un encadré. Cinq passages étaient touchés (encadré RTN de l'enfant, encadré myrtille). Le convertisseur est corrigé et un contrôle d'exhaustivité compare désormais chaque paragraphe, élément de liste, cellule, légende et texte d'encadré du HTML au Markdown : **833 éléments, 0 manquant**. La phrase est renforcée (« Attention : … »).
+
+### Correction de la partie K bis
+
+La ligne « Profondeur : conforme » de la partie K bis n'était vraie qu'en partie : le livret disait « au moins un tiers du thorax » (formulation européenne), le RTN « environ 4 cm / environ 5 cm ». Depuis la v1.3, le livret donne les centimètres du RTN. La consigne « compressions seules » chez l'enfant est désormais attribuée explicitement à l'ERC 2025.
+
+### Éléments signalés « à valider » par les agents : traitement
+
+| Élément | Traitement |
+|---|---|
+| Bain-marie (source non institutionnelle) | Intégré : c'est la méthode la plus prudente, et l'interdiction de l'eau sur la cire en feu est sourcée (pompiers). |
+| Orientation de la bâche | Intégrée (texte Bushcraft, source AMC). |
+| « C'est fréquent » | Retiré. |
+| Traitement prescrit hors AVC (fiche Éditeur) | Non repris dans la fiche 3 ter ; reste au ch. 8 (« à sa demande ou sur consigne du 15 »). |
+| Développement anglais de MOB | Non intégré. |
+| Intitulé officiel du RTN PSC | Repris du titre du document DGSCGC téléchargé en v1.2 (« Références techniques nationales — Premiers secours citoyen »). |
+| Dépliant ministère lait infantile | Non nécessaire : le texte retenu s'appuie sur Anses, ameli et 1000 premiers jours. |
+| Rationnement en mer (Seaspray, McCance, 500 mL/j) | Aucun chiffre intégré. |
+| Dosage de la Javel | Aucun dosage intégré. |
+| Texte « manque à l'appel » | Fusion des trois versions ; l'ordre (alerte avant le retour) suit la version la plus protectrice. |
+| Notifications Météo-France, « Météo des forêts » | Conservés (texte du Militaire pour les notifications : orange et rouge). |
+
+**Le livret ne contient plus aucune mention « à valider ».** Les agents recommandent toujours une relecture humaine des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) par un formateur PSC ou un médecin, et des parties botaniques par un botaniste, avant publication.

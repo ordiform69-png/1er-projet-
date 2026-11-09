@@ -85,3 +85,18 @@ Les 45 points ont été appliqués, sous la forme de 56 remplacements (voir le j
 | Remplacements v1.1 | 54 / 56 ; les 2 écarts sont voulus (ligne « centre antipoison » remplacée par les numéros ; couverture en v1.2) |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
 | Mentions « à valider » restantes | 1 (dosage de l'eau de Javel) |
+
+## Version 1.3 — contrôle des 42 points de la vérification consolidée
+
+Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v13.py`). Le script `controle-v13.py` vérifie pour chacun que le nouveau texte est présent et que l'ancien a disparu ; les trois textes calculés (encadré Javel, paragraphe Nourrisson, fiche 3 ter) sont contrôlés par marqueurs.
+
+| Contrôle | Résultat |
+|---|---|
+| Contrôles v1.3 sur la version 1.3 | **58 / 58** conformes |
+| Témoin : mêmes contrôles sur la version 1.2 | 0 / 58 (le contrôle détecte bien les anciennes phrases) |
+| Points 001 à 102 | 102 / 102 conformes (HTML et PDF) ; Markdown : 101 / 102, le faux écart connu du point 055 (mise en gras) |
+| Manques v1.2 (`controle-v12.py`) | 72 / 72 couverts ; seul le titre « Eau de Javel : à valider » a disparu, comme voulu |
+| Remplacements v1.1 | 47 / 56 ; les 9 écarts sont voulus (les 2 déjà signalés en v1.2, plus 7 passages réécrits en v1.3 : fiche 3, belladone, bougie de tranchée, fiche 1, check-list, tableau « 1re heure », fiche 6) |
+| Exhaustivité du Markdown (nouveau contrôle) | **833 / 833** éléments textuels du HTML retrouvés (v1.2 : 5 manquaient, défaut du convertisseur corrigé) |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
+| Mentions « à valider » restantes | **0** |
