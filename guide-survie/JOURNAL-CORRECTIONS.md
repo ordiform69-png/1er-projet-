@@ -225,3 +225,22 @@ Mention « Version 1.0 — 9 novembre 2026 » ajoutée sur la couverture. Contr�
 - **if, myrtilles, lianes** : abstention, « formulation spécialisée non transmise ».
 
 Une demande précise a été préparée pour les agents (`partage-grok/DEMANDE-GROK-V1.1.md`) ; leurs réponses donneront une version 1.1.
+
+## I. Version 1.1 (en cours) — réanimation de l'enfant et du nourrisson
+
+**Points reçus** : POINT 2 (fiche courte, 5 lignes) et POINT 3 (liste d'arbitrage) de l'agent Médecin. **Le POINT 1 (texte complet du chapitre 8) n'a pas été reçu.**
+
+**Arbitrage de l'éditeur** : le livret suit le **référentiel technique national PSC (France)**, celui qu'enseigne la formation PSC1 recommandée par le livret.
+
+| Emplacement | Avant | Après | Source |
+|---|---|---|---|
+| Ch. 8 | Encadré « À valider : procédure enfant… » | Encadré « Arrêt cardiaque de l'enfant et du nourrisson » : les 5 gestes du POINT 2, option RTN (15:2, sans insufflations initiales), plus deux précisions RTN du POINT 3 (environ 4 cm chez le nourrisson et 5 cm chez l'enfant ; seul sans téléphone, alerter puis revenir) et la mention « ne pas improviser » | DGSCGC, RTN PSC (édition juillet 2026 citée par l'agent), fiches 02PR03, 02FT07, 02FT08, 02FT09 |
+| Fiches réflexes | Fiche 3 « Quelqu'un est inconscient » | Fiche 3 « Un adulte est inconscient » + nouvelle **fiche 3 bis** « Enfant ou nourrisson qui ne respire pas » (5 lignes du POINT 2, option RTN) | Idem |
+| Ch. 16, Noyade | Procédure générale (5 insufflations initiales, ERC) | Ajout : « Enfant ou nourrisson : conduite après noyade selon le référentiel français à valider ; 15 ou 112 en haut-parleur et consignes du régulateur » | Prudence : le texte noyade actuel suit l'ERC et diverge du RTN chez l'enfant |
+
+**Réserves** :
+- L'édition « RTN PSC juillet 2026 » citée par l'agent n'a pas pu être confirmée par une recherche en ligne. À faire confirmer par l'agent (lien ou référence de publication).
+- La consigne « compressions seules si vous ne savez pas insuffler » vient de l'ERC ; selon l'agent, le RTN ne la mentionne explicitement que pour l'adulte. Elle est conservée, car elle figure sans option dans le texte proposé par l'agent.
+- La conduite après noyade de l'enfant selon le RTN reste à fournir.
+
+**En attente** : réponses de l'agent Botaniste (if, myrtilles, lianes).

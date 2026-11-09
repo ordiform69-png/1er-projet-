@@ -368,8 +368,13 @@ Si la personne ne répond pas mais respire normalement après un événement **n
 > **Ne respire pas normalement ? Arrêt cardiaque**
 > Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions.
 
-> **À valider**
-> Procédure enfant : à valider, ne pas extrapoler la procédure adulte. Noyade : voir chapitre 16.
+> **Arrêt cardiaque de l'enfant et du nourrisson**
+> 1. Il ne répond pas et ne respire pas, ou respire anormalement (vérifiez pendant 10 s au plus, après avoir libéré les voies aériennes) : c'est un arrêt, commencez.
+> 2. Appelez le 15 ou le 112 en haut-parleur (ou faites appeler et apporter un DAE), puis suivez les consignes du régulateur.
+> 3. Insufflations par bouche-à-bouche (bouche-à-bouche-et-nez pour le nourrisson) : cycles de 15 compressions et 2 insufflations.
+> 4. Faites 100 à 120 compressions par minute en enfonçant d'au moins un tiers du thorax : une main pour l'enfant (deux si nécessaire), les deux pouces pour le nourrisson. Si vous ne savez pas insuffler, faites des compressions seules, en continu.
+> 5. Utilisez le DAE dès que possible, avec les électrodes ou le mode enfant. À défaut, utilisez les électrodes adultes, l'une devant au milieu de la poitrine et l'autre dans le dos.
+>
 
 ### Étouffement (adulte)
 
@@ -790,6 +795,8 @@ Repérez-le avant de vous baigner : bande d'eau plus sombre et plus calme entre 
 
 Après une extraction réalisée sans mettre le sauveteur en danger, vérifiez la réaction et la respiration. Si la personne ne répond pas et ne respire pas normalement, faites appeler le 112. Si vous savez les réaliser, commencez par **5 insufflations initiales**, puis poursuivez la réanimation selon votre formation et les instructions des secours. Si vous ne pouvez pas insuffler, faites au moins les compressions. N'essayez pas de « vider les poumons ». Une gêne respiratoire persistante après submersion nécessite une évaluation médicale urgente.
 
+**Enfant ou nourrisson :** la conduite après noyade selon le référentiel français reste à valider ; appelez le 15 ou le 112 en haut-parleur et suivez les consignes du régulateur (voir aussi chapitre 8).
+
 ### Homme à la mer (depuis un bateau)
 
 1. Criez « **Un homme à la mer !** », lancez immédiatement une bouée ou tout objet flottant.
@@ -1119,7 +1126,7 @@ Si vous ne deviez emporter que trois objets : **un couteau avec scie**, **un bri
 
 ## 23Fiches réflexes
 
-Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans le kit. Pour les détails, suivez le renvoi au chapitre.
+Onze fiches, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans le kit. Pour les détails, suivez le renvoi au chapitre.
 
 #### 1 · Je suis perdu
 
@@ -1141,13 +1148,23 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 
 → chapitres 3, 4, 21
 
-#### 3 · Quelqu'un est inconscient
+#### 3 · Un adulte est inconscient
 
 1. Je me protège et je le protège du danger.
 2. Respire-t-il normalement ? Halètements espacés = non.
 3. Oui : position latérale de sécurité (PLS).
 4. Non : 112 en haut-parleur, défibrillateur, compressions 100–120/min, 5–6 cm ; défibrillateur dès qu'il arrive.
 5. Je le couvre et je surveille sans arrêt.
+
+→ chapitre 8
+
+#### 3 bis · Enfant ou nourrisson qui ne respire pas
+
+1. Il ne répond pas et ne respire pas, ou respire anormalement (vérifiez pendant 10 s au plus, après avoir libéré les voies aériennes) : c'est un arrêt, commencez.
+2. Appelez le 15 ou le 112 en haut-parleur (ou faites appeler et apporter un DAE), puis suivez les consignes du régulateur.
+3. Insufflations par bouche-à-bouche (bouche-à-bouche-et-nez pour le nourrisson) : cycles de 15 compressions et 2 insufflations.
+4. Faites 100 à 120 compressions par minute en enfonçant d'au moins un tiers du thorax : une main pour l'enfant (deux si nécessaire), les deux pouces pour le nourrisson. Si vous ne savez pas insuffler, faites des compressions seules, en continu.
+5. Utilisez le DAE dès que possible, avec les électrodes ou le mode enfant. À défaut, utilisez les électrodes adultes, l'une devant au milieu de la poitrine et l'autre dans le dos.
 
 → chapitre 8
 
