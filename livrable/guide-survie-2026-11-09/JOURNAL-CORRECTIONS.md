@@ -422,7 +422,7 @@ La ligne « Profondeur : conforme » de la partie K bis n'était vraie qu'en par
 | Élément | Traitement |
 |---|---|
 | Bain-marie (source non institutionnelle) | Intégré : c'est la méthode la plus prudente, et l'interdiction de l'eau sur la cire en feu est sourcée (pompiers). |
-| Orientation de la bâche | Intégrée (texte Bushcraft, source AMC). |
+| Orientation de la bâche | Intégrée (texte Bushcraft ; montage en A : source AMC ; orientation au vent : analyse de l'agent, à valider par un formateur). Reformulée en v1.4 (partie M). |
 | « C'est fréquent » | Retiré. |
 | Traitement prescrit hors AVC (fiche Éditeur) | Non repris dans la fiche 3 ter ; reste au ch. 8 (« à sa demande ou sur consigne du 15 »). |
 | Développement anglais de MOB | Non intégré. |
@@ -434,3 +434,47 @@ La ligne « Profondeur : conforme » de la partie K bis n'était vraie qu'en par
 | Notifications Météo-France, « Météo des forêts » | Conservés (texte du Militaire pour les notifications : orange et rouge). |
 
 **Le livret ne contient plus aucune mention « à valider ».** Les agents recommandent toujours une relecture humaine des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) par un formateur PSC ou un médecin, et des parties botaniques par un botaniste, avant publication.
+
+---
+
+## M. Version 1.4 — relecture finale consolidée de la v1.3 (17 points)
+
+Verdict des neuf agents : **« publiable après corrections mineures »**, sous réserve de la relecture humaine. Aucun point critique ; 4 importants, 13 reformulations, 5 conflits. Les 17 points sont appliqués par `corrections-v14.py` (26 remplacements) et contrôlés par `controle-v13.py` appliqué à ce script (26 / 26 ; témoin v1.3 : 0 / 26).
+
+### Arbitrages de l'auteur (règle : la version la plus sûre)
+
+| Point | Sujet | Choix retenu |
+|---|---|---|
+| 1 | « Ne les improvisez pas » (RCP de l'enfant) | Texte du Médecin : un témoin non formé réanime quand même, guidé par le régulateur. |
+| 2 | Monoxyde de carbone et tente | Texte Abri Feu : « Dans une tente, aucun appareil à combustion, même aéré ». |
+| 3 | Annuler une fausse alerte PLB | Fiche officielle du ministère de la Mer (DGAMPA) : **196 par téléphone, même à terre ; VHF canal 16 en mer** (version Navigateur). Le 112 est retiré de cette consigne, faute de source. La phrase « pas de sanction » n'est pas rétablie : c'est une affirmation juridique que nous ne pouvons pas vérifier pour la France. Elle est remplacée par une incitation neutre : « Signaler l'erreur tout de suite évite de lancer des recherches inutiles. » |
+| 4 | Portée de la règle 3 | Version du Botaniste, la plus protectrice : cuisson des **fruits et des feuilles** sauvages cueillis près du sol dans les régions citées ; ail des ours : feuilles cuites ; pissenlit cru seulement hors milieu humide, zone pâturée et régions citées. Au ch. 9 : pissenlit (feuilles cuites) et plantain (jeunes feuilles cuites, ajout de l'Éditeur). |
+| 6 | Reliquats du 114 | Fusion : ch. 4, ch. 7 et numéros utiles selon le Médecin (violences intrafamiliales, personnes aphasiques et sourdaveugles) ; ch. 20 selon le Militaire. L'encadré myrtille et la ligne « If » ajoutent les personnes aphasiques. |
+| 7 | Croix du Sud | Version Navigateur : repérer la croix, prolonger l'axe, puis contrôler avec les Pointeurs. |
+| 9 | Orientation de la bâche | Texte Abri Feu : le vent frappe un des grands pans, pas une extrémité ouverte. Il lève l'ambiguïté signalée (dans ce montage, les extrémités étroites sont les ouvertures). Orientation au vent : analyse des agents, sans source institutionnelle. |
+
+### Points appliqués sans conflit
+
+5 (fiche 1 : « sauf danger immédiat » ; espace insécable devant « : 114 ») · 10 (réserve d'eau remplie au robinet ; eau bouillie ou javellisée gardée 72 h au plus) · 11 (préparation des repas citée une seule fois) · 12 (Javel : la concentration indiquée par la consigne) · 13 (Markdown : plus d'espace entre le gras et la ponctuation qui suit ; correction dans le convertisseur) · 14 (ch. 4 : jamais d'eau sur la cire en feu) · 15 (sirènes : essai d'un cycle d'1 min 41 s ; vrai signal en trois cycles) · 16 (corne de brume des grands barrages) · 17 (glossaire : ARS, DGSCGC, ERC ; ERC défini sans traduction française non vérifiée).
+
+### Point 8 : annexes périmées
+
+- Annexe B, « Ce qui reste hors périmètre » : la liste est datée « état à la v1.0 » et renvoie aux parties J, K et L, où ces éléments ont été levés.
+- Note de livraison, v1.2 : « l'encadré enfant est conforme » est remplacé par le texte de l'Éditeur (RTN complété par l'ERC 2025, partie L).
+- Partie L : « Orientation de la bâche » précise la source (montage en A : AMC ; orientation au vent : analyse des agents).
+- Contrôle : « mentions « à valider » restantes : 0 » vaut pour le **corps du livret**. Les annexes, elles, citent les éléments que les agents gardent « à valider » (liste ci-dessous).
+
+### Restent « à valider » selon les agents (aucun dans le corps du livret)
+
+| Élément | Traitement v1.4 |
+|---|---|
+| Interlocuteur d'une PLB déclenchée loin des côtes | 196 retenu (source officielle) ; confirmation CNES/FMCC souhaitable. |
+| Règle 3 et feuilles d'ail des ours | Cuisson retenue (plus protecteur) ; à confirmer par le botaniste. |
+| Orientation de la bâche au vent | Texte Abri Feu intégré ; à confirmer par un formateur. |
+| Heure de l'essai des sirènes | « En général à midi ». |
+| « Monter sur les hauteurs » près d'un barrage | Intégré : c'est la conduite la plus protectrice. |
+| Traduction d'ERC | Non traduit. |
+| Bain-marie pour la cire | Conservé (méthode la plus prudente). |
+| Pêche « hors urgence vitale » (ch. 14) ; « moteur 10 min par heure » (fiche 8) | Signalés hors domaine ; inchangés, à revoir lors de la relecture humaine. |
+
+**Relecture humaine avant publication** : ch. 8 et fiches 3, 3 bis et 3 ter par un formateur PSC ou un médecin (y compris le choix des deux référentiels) ; ch. 9, 10 et 19 par un botaniste.

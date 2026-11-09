@@ -28,8 +28,8 @@ for node in ast.walk(ast.parse(src)):
         else:
             bad += 1
             print("À REVOIR :", pt, "nouveau absent" if not present else "ancien encore présent")
-# marqueurs des deux remplacements calculés
-for pt, must, never in [
+# marqueurs des remplacements calculés (script v1.3 seulement)
+for pt, must, never in [] if '"P06"' not in src else [
     ("P06", "Eau de Javel : seulement sur consigne des autorités", "Le protocole transmis (Javel à 2,6 %)"),
     ("P20", "<h4>3 ter · Malaise, douleur dans la poitrine, signes d'AVC</h4>", "<h4>3 ter · Malaise ou signes d'AVC</h4>"),
     ("P10", "convient pour la préparation des aliments des nourrissons", "(à défaut, une eau bouillie puis refroidie)"),

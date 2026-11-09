@@ -13,7 +13,7 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 ## Livrable
 
-- `livrable/guide-survie-v1.3-livrable.pdf` — **livrable en fichier unique, version 1.3** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
+- `livrable/guide-survie-v1.4-livrable.pdf` — **livrable en fichier unique, version 1.4** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
 - `livrable/guide-survie-2026-11-09.zip` — paquet détaillé (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
 
 ## Corrections éditoriales

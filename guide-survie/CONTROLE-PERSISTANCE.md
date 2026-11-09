@@ -59,6 +59,8 @@ Le rapport conserve ces divergences **sans arbitrage**. Le livret, lui, ne peut 
 
 ## Ce qui reste hors périmètre ou à compléter
 
+*État à la v1.0 ; ces éléments ont été levés depuis (voir le journal, parties G, J, K et L).*
+
 - **Point 065** : nœud de chaise et tendeur illustrés en étapes ; cabestan décrit en 5 étapes numérotées (v1.0).
 - **Procédure enfant** de l'arrêt cardiaque : toujours « à valider ».
 - **If, myrtilles, lianes** : abstention seulement (« formulation spécialisée non transmise »).
@@ -99,4 +101,18 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Remplacements v1.1 | 47 / 56 ; les 9 écarts sont voulus (les 2 déjà signalés en v1.2, plus 7 passages réécrits en v1.3 : fiche 3, belladone, bougie de tranchée, fiche 1, check-list, tableau « 1re heure », fiche 6) |
 | Exhaustivité du Markdown (nouveau contrôle) | **833 / 833** éléments textuels du HTML retrouvés (v1.2 : 5 manquaient, défaut du convertisseur corrigé) |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
-| Mentions « à valider » restantes | **0** |
+| Mentions « à valider » restantes dans le corps du livret | **0** |
+
+## Version 1.4 — contrôle des 17 points de la relecture finale
+
+| Contrôle | Résultat |
+|---|---|
+| Remplacements v1.4 (`controle-v13.py corrections-v14.py`) | **26 / 26** conformes |
+| Témoin : mêmes contrôles sur la version 1.3 | 0 / 26 |
+| Remplacements v1.3 | 58 / 58 sur la v1.3 ; les passages réécrits en v1.4 sont voulus |
+| Points 001 à 102 | 102 / 102 conformes |
+| Manques v1.2 | 72 / 72 couverts |
+| Remplacements v1.1 | 45 / 56 ; 2 écarts de plus qu'en v1.3, voulus (ligne « If » et ch. 20 : 114) |
+| Exhaustivité du Markdown | **836 / 836** ; plus d'espace parasite entre le gras et la ponctuation |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
+| Mentions « à valider » dans le corps du livret | **0** (celles des annexes : journal, partie M) |

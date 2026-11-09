@@ -1,7 +1,7 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.3 — 9 novembre 2026**, après la vérification consolidée de la v1.2 par les neuf agents (42 points).  
-**Statut** : **version 1.3**. Tous les points transmis sont intégrés et contrôlés ; le livret ne contient plus aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.4 — 9 novembre 2026**, après la relecture finale de la v1.3 par les neuf agents (17 points ; verdict : publiable après corrections mineures).  
+**Statut** : **version 1.4, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
@@ -46,7 +46,7 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Version 1.2
 
 - **72 contenus manquants intégrés** : malaise et douleur thoracique, AVC, hypoglycémie, convulsions, traumatisme crânien, plaie grave, piqûres, monoxyde de carbone, vêtements en feu, plan de sortie avec heure d'alerte, que dire au 112, enfant perdu, groupe, balise PLB, carte et balisage, marées, barrages, chasse, eau à la maison et après inondation, nourrisson, canicule, centres antipoison, petit glossaire… (détail : journal, partie K).
-- **Référentiel français vérifié** (RTN PSC, juillet 2026) : l'encadré enfant est conforme ; la conduite après noyade de l'enfant suit la procédure générale.
+- **Référentiel français vérifié** (RTN PSC, juillet 2026) ; en v1.3, l'encadré enfant suit le RTN, complété par la mention ERC 2025 pour les compressions seules (journal, partie L). La conduite après noyade de l'enfant suit la procédure générale.
 
 ## Version 1.3
 
@@ -54,19 +54,24 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Arbitrages** : deux référentiels pour l'enfant (RTN PSC et ERC 2025) ; Javel sans dosage, sur consigne des autorités ; 114 réservé aux personnes qui ne peuvent pas parler ou entendre ; ration d'eau en mer sans chiffre ; nouvelle **fiche 3 ter** (malaise, douleur dans la poitrine, AVC) ; détail dans le journal, partie L.
 - **Markdown** : défaut du convertisseur corrigé (texte d'encadré après une liste) ; contrôle d'exhaustivité 833 / 833.
 
+## Version 1.4
+
+- **Verdict des neuf agents sur la v1.3** : « publiable après corrections mineures », sous réserve de la relecture humaine ; aucun point critique.
+- **17 points appliqués** : un témoin non formé réanime quand même, guidé par le régulateur ; aucun appareil à combustion dans une tente ; fausse alerte de balise : 196 par téléphone, VHF 16 en mer ; cuisson des fruits **et des feuilles** sauvages dans les régions de la règle 3 (ail des ours compris) ; 114 harmonisé partout ; sirènes, barrages, réserve d'eau, glossaire (ARS, DGSCGC, ERC) ; détail dans le journal, partie M.
+
 ## Reste à faire avant publication
 
 - Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
-- Aucun élément « à valider » dans le livret.
+- Points que les agents gardent « à valider » hors du corps du livret (journal, partie M) : interlocuteur d'une PLB loin des côtes, règle 3 et ail des ours, orientation de la bâche.
 
 
 ## Empreintes SHA-256
 
 ```
-dcbc0f449d914b9c36e46d2131bc560ab1e9e92e1f84d5bab6f56d840a065dc1  guide-survie.pdf
-d1ce7b2e4e3f54b6ffbf65c20d95b0bfa24d32ac1521a055629e83cc04a9f46b  fiches-reflexes.pdf
-087b95d08379a13e9280e590df0ee5f807532a7579df6b0824432bbc96cce4d9  guide-survie.html
-4158d4c27a363e76cb0b75ecfae43ab5504e6dd597ae87b91efde4ac8b004e44  guide-survie-corrige.md
-1c01ecbb307cafc967aa26bb4a529d0e99495724065270bb0fbdafb42a4174d6  JOURNAL-CORRECTIONS.md
-7d0ba988756ea5bb0f96091bdf3e712756fed1f072e42bc2df8f8e4c856d11dd  CONTROLE-PERSISTANCE.md
+496425b47f537425c3f7bd6e4c1dc8818e08f3fcf46ac8d3e7d47b368ae903a1  guide-survie.pdf
+392d52e2798046f6b67ab3bc247bcd710dd1c93a2998d029a50e165c20e20b21  fiches-reflexes.pdf
+04e70106de46a9296f76958a0ea6dc8aef646df3915b07f74bb556073eae5cd2  guide-survie.html
+a63c753d1cf2396d4b66151a2a7431984b7f8ed5667b95a19bd7544d72b09432  guide-survie-corrige.md
+6e28f130d9eb8105811e5e867a7f0820d1a645520a48188122d7183997f9fca0  JOURNAL-CORRECTIONS.md
+ef06dbba16c42cb65bf509540b9ea1fef2b022e6a375eff182c4de493051f2fd  CONTROLE-PERSISTANCE.md
 ```
