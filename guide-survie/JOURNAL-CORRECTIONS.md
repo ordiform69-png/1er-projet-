@@ -306,3 +306,70 @@ Couverture : « Version 1.1 ».
 **Remarques non transformées en correction** : le Médecin juge que « bien boire » (traité au point 40) et la phrase sur la vessie (ch. 18, « urinez avant de dormir ») restent à justifier ; aucune source n'a été transmise pour la seconde, elle est conservée. 15 crédits photo Flickr n'ont pas été revérifiés par l'Éditeur.
 
 **Recommandation des agents** : faire relire les parties enfant (ch. 8, fiche 3 bis) et plantes (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.
+
+## K. Version 1.2 — 72 contenus manquants (consolidation des neuf agents)
+
+Les 72 manques transmis (21 vitaux, 35 importants, 16 utiles) sont **tous intégrés**, en 68 opérations : plusieurs manques voisins sont regroupés dans une même rubrique. Script : `manques-v12.py` ; contrôle : `controle-v12.py` (72/72 couverts, HTML valide, aucun lien cassé). Les contrôles précédents restent conformes (102/102 ; v1.1 : 54/56, les 2 écarts étant volontaires : la ligne « centre antipoison » est remplacée par la liste des numéros, la couverture passe en v1.2).
+
+**Règle d'arbitrage** (inchangée) : en cas de conflit, la version la plus sûre, ou une fusion des textes compatibles. Pour les mentions « à valider », seuls les éléments sourcés sont intégrés ; les fragments sans source sont retirés.
+
+### Conflits (8)
+
+| Manque | Décision |
+|---|---|
+| 1 Douleur thoracique, AVC | Les **deux rubriques du Médecin** (plus complètes que la version combinée de l'Éditeur). **Pas d'aspirine** : choix du référentiel français, cohérent avec le chapitre 8. |
+| 2 Plan de sortie | **Fusion** des trois textes (plan écrit, heure limite d'alerte, voiture, photo du groupe, « il ne dérange personne », confirmation du retour) ; rappel dans la check-list. |
+| 3 Que dire au 112, AML | **Fusion** en une seule rubrique au ch. 7 (Éditeur + Militaire + Médecin) et une puce AML (Navigateur) ; renvoi depuis le ch. 8. |
+| 4 Enfant perdu | **Fusion** : texte du Psychologue (« serre un arbre ») + règle « dire où l'on va » du Navigateur. |
+| 5 Groupe | **Fusion** des trois textes (binômes, serre-file, conduite si quelqu'un manque). « Regroupez-vous à chaque carrefour » **retiré** (à valider, non sourcé). |
+| 44 Balise PLB | Texte du Navigateur au ch. 7 + mention dans le kit (ch. 2) et la check-list. L'obligation légale d'enregistrement n'est pas affirmée (à valider). |
+| 45 Vigilance | **Fusion** Éditeur (Vigicrues, niveaux) + Militaire (notifications) ; check-list. |
+| 46 Chasse | **Fusion** des deux textes. |
+
+### Arbitrages signalés par les agents
+
+| N° | Sujet | Décision |
+|---|---|---|
+| 1 | Aspirine 300 mg | Non retenue (référentiel français). |
+| 2 et 5 | **Eau de Javel** | **Dosage non intégré.** Le protocole transmis (6 gouttes d'un mélange de 250 mL de Javel à 2,6 % dans 1 L, soit environ 1,5 mg de chlore par litre) repose sur une source unique et donne environ 4 fois moins de chlore que la consigne américaine équivalente. Faute de validation, le livret renvoie aux consignes des autorités sanitaires ou à la notice d'un produit de traitement ; encadré « Eau de Javel : à valider ». |
+| 3 | Faire boire en déshydratation grave | Fusion prudente : « ne faites boire qu'une personne bien consciente qui avale sans difficulté » (cohérent avec le ch. 8). Même précaution ajoutée à l'épuisement par la chaleur (manque 39). |
+| 4 | Couverture de survie et flammes | Conservé (cohérence avec le ch. 22). |
+| 6 | Fiche réflexe malaise/AVC | Non créée (texte non transmis). |
+| 7 | Cordelette | Kit : « 10 à 15 m ». |
+
+### Éléments « à valider » : traitement
+
+| Manque | Traitement |
+|---|---|
+| 12 Guide DGALN | Intégré : la règle est soutenue par l'ARS et le CDC. |
+| 31 Liste « usine, mine… » | Liste retirée ; reste « en aval d'un rejet de produits chimiques ou de carburant ». |
+| 32 Lait infantile | Intégré (CDC). Équivalent français non recherché ; à faire relire par le Médecin. |
+| 34 Ballon d'eau chaude | Intégré sans méthode de vidange ; « suivez sa notice ». |
+| 53 « Pas une preuve de faute » | Reformulé : « la culpabilité est fréquente : parlez-en ». |
+| 56 Accès aux massifs | Bouches-du-Rhône présenté comme un exemple. |
+| 60 Boire par temps froid | Seul l'élément sourcé est gardé (boire régulièrement, sans alcool) ; « moins soif au froid » et l'astuce de la gourde sont retirés. |
+| 71 Peur de la nuit | Intégré sans affirmation sur la perception des bruits. |
+| 72 DVA | « Détecteur de victimes d'avalanche ». Les numéros de page du sommaire ne sont pas ajoutés (non générables de façon fiable dans le HTML source). |
+
+### Signalements hors domaine intégrés
+
+Inondation : ne pas descendre dans les sous-sols et parkings inondés ; faire vérifier l'électricité et le chauffage ; pas de nettoyeur ou de pompe thermique dans la maison (monoxyde de carbone). Non intégré : faune sauvage selon la destination (aucun texte transmis).
+
+### Nouveaux contenus principaux
+
+Chapitre 1 : jugement altéré par le froid, groupe, enfant perdu, plan de sortie, vigilance, accès aux massifs. Chapitre 2 : trousse complète, kit au sec, iode, PLB. Chapitre 4 : loi française sur le feu, feu qui s'échappe, vêtements en feu. Chapitre 5 : déshydratation grave, eaux à ne pas boire, Javel (à valider), hygiène. Chapitre 6 : carte au 1:25 000, suivre sa progression, balisage, premier doute, Croix du Sud. Chapitre 7 : que dire au 112, AML, PLB. Chapitre 8 : soutien au blessé, saignement de nez, convulsions, douleur thoracique, AVC, hypoglycémie, hypothermie par temps doux, réchauffement, épuisement par la chaleur, traumatisme crânien et rachis, plaie grave, tiques et Lyme, piqûres d'hyménoptères. Chapitre 9 : cuisson, animaux, test universel. Chapitre 10 : applications, douve, échinococcose, glands, champignon déjà mangé, plantes photosensibilisantes. Chapitre 12 : abouter, bâche, brêlage carré. Chapitre 14 : barrages, chasse, munitions. Chapitre 15 : signes d'intoxication au CO, pièges de décision. Chapitre 16 : marées. Chapitre 17 : crème solaire. Chapitre 18 : boire au froid. Chapitre 20 : signal d'alerte, information, réserve d'eau, nourrisson, détecteur de CO, eau après inondation, canicule. Chapitre 21 : la nuit. Chapitre 22 : règles du couteau, entretien, gants, rangement. Chapitres 23 à 25 : fiche 10, entraînement, check-lists, centres antipoison, aide psychologique, enfants après le retour. Nouveau **Petit glossaire**.
+
+### K bis. Vérification du référentiel français (RTN PSC, juillet 2026)
+
+Le PDF cité par le Médecin (secourisme.net, « Références techniques nationales — Premiers secours citoyen ») a été téléchargé et son texte extrait (50 pages, créé le 8 juillet 2026, fiches datées 07-2026). **La réserve sur l'existence de la source est levée.** Constats, fiche 02PR03 et fiches techniques associées :
+
+| Point | Référentiel | Livret |
+|---|---|---|
+| Rapport compressions / insufflations | « enfant et nourrisson : 15 compressions thoraciques / 2 insufflations » ; pas d'insufflations initiales | Conforme |
+| Sauveteur seul | Avec téléphone : haut-parleur et RCP immédiate ; « en l'absence de téléphone ou de réseau, quitter la victime pour aller alerter puis revenir » | Conforme |
+| Profondeur | Nourrisson : « environ 4 cm » ; enfant : « environ 5 cm » (un tiers du thorax) | Conforme |
+| DAE | Électrodes enfants ; à défaut, électrodes adultes au milieu du thorax et au milieu du dos | Conforme |
+| Compressions seules | Note rattachée à la ligne adulte (« uniquement les compressions thoraciques en continu ») | Conservé pour l'enfant, comme le propose le Médecin ; réserve maintenue dans ce journal |
+| Noyade | Aucune procédure spécifique : la noyade est citée parmi les causes, la conduite générale s'applique | Ch. 16 mis à jour : pour l'enfant, même conduite que l'encadré du ch. 8. **Dernière réserve « noyade de l'enfant » levée.** |
+
+**Seul élément encore « à valider » dans le livret : le dosage de l'eau de Javel** (encadré du ch. 5).

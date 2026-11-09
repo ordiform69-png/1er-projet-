@@ -1,14 +1,14 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.1 — 9 novembre 2026**, après le rapport consolidé des neuf agents (45 points appliqués).  
-**Statut** : **version 1.1**. Tous les points transmis sont appliqués et contrôlés. Les agents recommandent une relecture des parties enfant (ch. 8, fiche 3 bis) et plantes (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.2 — 9 novembre 2026**, après intégration des 72 contenus manquants relevés par les neuf agents.  
+**Statut** : **version 1.2**. Tous les points et manques transmis sont intégrés et contrôlés. Seul le dosage de l'eau de Javel reste « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3 et 3 bis) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 155 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
+| `guide-survie.pdf` | Livret complet, A5, 182 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 11 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
@@ -43,18 +43,23 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **If, myrtille, lianes** : textes sourcés du Botaniste (sosies toxiques de la myrtille, toxicité de l'if, abstention définitive sur les lianes).
 - **45 points du rapport consolidé** appliqués ; 12 conflits tranchés par la règle « version la plus sûre » (détail : journal, partie J).
 
+## Version 1.2
+
+- **72 contenus manquants intégrés** : malaise et douleur thoracique, AVC, hypoglycémie, convulsions, traumatisme crânien, plaie grave, piqûres, monoxyde de carbone, vêtements en feu, plan de sortie avec heure d'alerte, que dire au 112, enfant perdu, groupe, balise PLB, carte et balisage, marées, barrages, chasse, eau à la maison et après inondation, nourrisson, canicule, centres antipoison, petit glossaire… (détail : journal, partie K).
+- **Référentiel français vérifié** (RTN PSC, juillet 2026) : l'encadré enfant est conforme ; la conduite après noyade de l'enfant suit la procédure générale.
+
 ## Reste « à valider »
 
-- Conduite après **noyade chez l'enfant** selon le référentiel français (le livret renvoie au régulateur du 15).
+- **Dosage de l'eau de Javel** : non intégré, faute de protocole validé ; le livret renvoie aux consignes des autorités sanitaires.
 
 
 ## Empreintes SHA-256
 
 ```
-f32a21024df9046ef11b80ecd35262af054e3cbfa9d38ca22ca7d2eede5d26c0  guide-survie.pdf
-b23ef4da724b275c77961e1a6addeddc7809d8312703cd921cff12aca0c8da2a  fiches-reflexes.pdf
-b9c8ef2105ddc5b4e1bec44c27ceeadbc7b8dd1d95b52ca34f6fa826db54e6cf  guide-survie.html
-92433f24a0a87a9b4c4bcb23ea8e7c9168f7793a19693ca27b54c897b84c189c  guide-survie-corrige.md
-edabfa494c30714cf7a6172713acd9cbd80090a1d59b0a736dc2aad26f5b6a0a  JOURNAL-CORRECTIONS.md
-c643708b679264b725f23a96fac1a2e2f4a2a22553e2077186de2190387f2073  CONTROLE-PERSISTANCE.md
+7d35dd11a0d1219478205dcfee2cab90a73eb75622fdaa35df018479e464bac7  guide-survie.pdf
+12c84c7a58053e6d35c2266e7071d032c31a089a1ff874bed38ee69b1225ccb9  fiches-reflexes.pdf
+206160332259eebb69021090c7f39ec5a3a7d64b3da38edad30079815a8abaae  guide-survie.html
+a18fac9592da0d2c5f5217a06266689ebaa7a3d8c93431e23d2120e6c6b25bf3  guide-survie-corrige.md
+73c3d6ace55a7c9aee166c0a9e55e3d0e1f21350266ae8d2324363debd813000  JOURNAL-CORRECTIONS.md
+87cc77c0569fab6721081b979b7f895e5fc75786e041cd24a282771171985679  CONTROLE-PERSISTANCE.md
 ```

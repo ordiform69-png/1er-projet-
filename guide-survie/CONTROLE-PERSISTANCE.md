@@ -75,3 +75,13 @@ Les 45 points ont été appliqués, sous la forme de 56 remplacements (voir le j
 | Points 001 à 102 (rapport précédent) | 102 / 102 toujours conformes |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
 | Mentions « formulation spécialisée non transmise » | 0 |
+
+## Version 1.2 — contrôle de l'intégration des 72 manques
+
+| Contrôle | Résultat |
+|---|---|
+| Manques couverts (`controle-v12.py`) | **72 / 72** |
+| Points 001 à 102 | 102 / 102 conformes |
+| Remplacements v1.1 | 54 / 56 ; les 2 écarts sont voulus (ligne « centre antipoison » remplacée par les numéros ; couverture en v1.2) |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
+| Mentions « à valider » restantes | 1 (dosage de l'eau de Javel) |

@@ -2,7 +2,7 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version 1.1 — 9 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.2 — 9 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
@@ -37,7 +37,7 @@ Avant-propos : à quoi sert ce livret
 24. Programme d'entraînement
 25. Check-lists
 
-Crédits photographiques
+Petit glossaire · Crédits photographiques
 
 ---
 
@@ -89,18 +89,29 @@ Un repère simple (approximatif) pour hiérarchiser vos besoins :
 
 Après une frayeur, vous pouvez trembler, pleurer, rester figé ou avoir l'impression que tout est irréel. Ces réactions ne prouvent ni faiblesse ni maladie. Pour retrouver un point d'appui, sentez le contact de vos pieds ou de vos mains, regardez autour de vous et nommez quelques éléments présents, puis choisissez une action simple. Pour aider quelqu'un, présentez-vous, parlez lentement et demandez ce dont il a besoin. Proposez une consigne à la fois. Écoutez s'il souhaite parler, sans imposer le récit de l'événement ni le contact physique. (Voir aussi la respiration, chapitre 11.)
 
+> **Quand le corps flanche, le jugement aussi**
+> Le froid peut empêcher de penser clairement, et la personne touchée ne s'en aperçoit pas toujours. La chaleur et l'altitude peuvent aussi rendre confus (chapitres 8 et 15). Avant une décision importante (partir, se séparer, renoncer à l'abri), demandez l'avis d'un autre membre du groupe. Surveillez-vous mutuellement : maladresse, paroles confuses, somnolence ou idée inhabituelle. Si vous êtes seul et avez froid, mettez-vous d'abord à l'abri et au chaud avant de décider quoi que ce soit.
+
 ### À plusieurs
 
 Convenez d'un plan court : priorité immédiate, prochaine action, personne chargée de chaque tâche et moment de réévaluation. Pour une consigne importante, nommez son destinataire, faites-lui répéter ce qu'il a compris, puis confirmez. Chacun peut signaler un doute, sa fatigue ou le besoin d'une pause, quel que soit son niveau. Demandez régulièrement : qu'est-ce qui pourrait nous faire changer de plan ? Les efforts déjà fournis ne justifient pas de poursuivre une action devenue inadaptée.
 
+> **Ne jamais se disperser**
+> Évitez de partir seul. En groupe, restez ensemble et marchez à deux (chacun veille sur un partenaire) ; donnez un sifflet à chacun. Ne laissez jamais le groupe s'étirer hors de vue : une personne ouvre la marche et personne ne la dépasse ; une autre ferme la marche (« serre-file ») et vérifie que personne ne reste derrière. Prévenez la tête ou le serre-file avant de vous arrêter ou de vous écarter. Si quelqu'un veut faire demi-tour ou explorer, il ne part jamais seul. Si vous êtes séparé du groupe, restez où vous êtes, sauf danger immédiat. **Si quelqu'un manque à l'appel** : arrêtez-vous et regroupez tout le monde ; revenez ensemble au dernier endroit où il a été vu et attendez-le là tant que c'est sûr ; alertez le 112 en donnant ce dernier point, l'heure, la couleur de ses vêtements, ce qu'il porte et son état de santé. Ne partez pas le chercher seul hors du sentier.
+
 > **Rester ou partir ?**
 > Si quelqu'un connaît votre itinéraire, **restez sur place** : les secours cherchent d'abord là où vous êtes censé être. Ne bougez que pour échapper à un danger immédiat, ou pour rejoindre une destination identifiée par un trajet connu et praticable ; sinon, restez localisable dans un endroit sûr (voir chapitre 21).
 
+> **Si un enfant se perd**
+> Avant chaque sortie, apprenez aux enfants à toujours dire à un adulte où ils vont, et cette phrase simple : « Si tu te perds, serre un arbre et ne bouge plus. » Son « arbre » peut aussi être un gros rocher ou un banc : l'essentiel est de rester au même endroit. Expliquez-lui qu'il doit se couvrir, fermer sa veste et s'asseoir sur des feuilles plutôt que sur le sol. Dites-lui que les personnes qui crient son nom viennent l'aider, qu'il doit leur répondre, siffler ou agiter les bras, ne jamais se cacher, et que personne ne sera fâché contre lui. Donnez à chaque enfant un sifflet et un vêtement de couleur vive.
+
 ### Avant de partir, toujours
 
-- Laissez votre itinéraire et votre heure de retour à un proche.
+- **Plan de sortie écrit**, laissé à un proche : participants (et leur numéro), itinéraire et variantes, lieu de stationnement (modèle et plaque de la voiture), matériel, heure de retour prévue et **heure limite d'alerte**. Convenez avec lui : « Sans nouvelles de moi à telle heure, appelle le 112 et donne ce plan » ; dites-lui qu'il ne dérange personne en le faisant. Ajoutez une description des vêtements ou une photo du groupe prise au départ. Tenez-vous à ce plan ; si vous en changez, prévenez-le ; au retour, confirmez-lui que vous êtes rentré. Choisissez une sortie adaptée à la personne la moins entraînée.
 - Consultez la météo et l'heure du coucher du soleil.
 - Partez avec un téléphone chargé et une batterie externe ; téléchargez les cartes hors ligne.
+- Consultez la carte de **vigilance de Météo-France** (vigilance.meteofrance.fr, mise à jour deux fois par jour) et, près d'un cours d'eau, **Vigicrues** (vigicrues.gouv.fr) ; activez au besoin les notifications de vigilance dans l'application Météo-France. Vigilance orange : soyez très vigilant et suivez les conseils des pouvoirs publics. Vigilance rouge : respectez impérativement leurs consignes. Au besoin, reportez ou modifiez votre sortie.
+- En été, dans les départements exposés aux feux de forêt, l'accès aux massifs peut être limité ou interdit selon le risque du jour : consultez la veille la carte d'accès publiée par la préfecture et respectez-la (exemple : dans les Bouches-du-Rhône, du 1er juin au 30 septembre, elle est mise à jour vers 18 h pour le lendemain).
 
 ---
 
@@ -115,11 +126,14 @@ Un petit kit, toujours dans le sac, vaut mieux qu'un gros kit resté à la maiso
 - **Feu :** 2 moyens différents (briquet + pierre à feu / allumettes tempête) et un peu d'amadou (coton + vaseline dans une boîte étanche).
 - **Couper :** couteau à lame fixe ou couteau multifonction.
 - **Protection :** couverture de survie, sac poubelle épais (poncho, abri, bâche).
-- **Eau :** récipient permettant de faire bouillir (voir chapitre 22), pastilles de purification et/ou filtre. Ils ne sont pas interchangeables : vérifiez séparément les performances du filtre contre les bactéries, les protozoaires et les virus. Si le filtre ne retient pas les virus et que leur présence est possible, complétez par une désinfection adaptée. Le chlore ordinaire et l'iode ne protègent pas suffisamment contre *Cryptosporidium* ; certains produits au dioxyde de chlore peuvent le traiter, avec un temps de contact prolongé conforme à leur notice. Mesurez le volume d'eau et respectez exactement la dose, la température d'emploi et le temps de contact indiqués.
+- **Eau :** récipient permettant de faire bouillir (voir chapitre 22), pastilles de purification et/ou filtre. Ils ne sont pas interchangeables : vérifiez séparément les performances du filtre contre les bactéries, les protozoaires et les virus. Si le filtre ne retient pas les virus et que leur présence est possible, complétez par une désinfection adaptée. Le chlore ordinaire et l'iode ne protègent pas suffisamment contre *Cryptosporidium* ; certains produits au dioxyde de chlore peuvent le traiter, avec un temps de contact prolongé conforme à leur notice. Mesurez le volume d'eau et respectez exactement la dose, la température d'emploi et le temps de contact indiqués. Évitez l'eau traitée à l'iode si vous êtes enceinte, si vous avez un problème de thyroïde ou une allergie à l'iode ; personne ne doit en boire plus de quelques semaines d'affilée.
 - **Signal :** sifflet, miroir de signalisation, lampe frontale + piles.
 - **Orientation :** carte papier de la zone, boussole.
-- **Soins :** pansements, compresses, bande, désinfectant, médicaments personnels.
-- **Divers :** cordelette (10 m), ruban adhésif, barres énergétiques, crayon et papier.
+- **Soins :** gants jetables ; pansements de plusieurs tailles et pansements anti-ampoules ; compresses stériles ; bande et pansement compressif ; sparadrap ; désinfectant cutané incolore ; solution hydroalcoolique ; sérum physiologique en unidoses ; petits ciseaux, pince à écharde, tire-tique ; 2 sachets de sels de réhydratation orale ; sucre en emballage individuel ; tous vos médicaments personnels en quantité suffisante, y compris ceux prévus en cas d'urgence (auto-injecteur d'adrénaline, inhalateur prescrits) ; une fiche d'urgence plastifiée (identité, traitements, allergies, antécédents importants, personne à prévenir). Autres médicaments : seulement sur avis médical. Vérifiez les dates et complétez la trousse après chaque sortie.
+- **Divers :** cordelette (10 à 15 m), ruban adhésif, barres énergétiques, crayon et papier.
+- **Zone sans réseau fiable :** balise personnelle de détresse (PLB), voir chapitre 7.
+
+**Garder le kit au sec et le vérifier.** Rangez le kit, les vêtements de rechange et le sac de couchage dans un sac étanche ou un sac poubelle épais, à l'intérieur du sac à dos, même si celui-ci a une housse de pluie. Avant chaque sortie, faites un contrôle rapide : le briquet s'allume, la lampe fonctionne et les piles de rechange sont là, le téléphone et la batterie sont chargés, le couteau coupe et se ferme bien. Vérifiez les dates de péremption des pansements, des médicaments et des pastilles. Remplacez tout de suite ce que vous avez utilisé.
 
 > 📷 *Photo : Couverture de survie argentée dépliée et son emballage (Photo : Firetwister (auteur présumé, voir la source) — CC BY-SA 3.0 (crédit n° 24)).* Couverture de survie dans son emballage et dépliée : un appoint léger, pas un sac de couchage ni un isolant du sol.
 
@@ -161,7 +175,7 @@ Le corps perd sa chaleur de quatre façons : par le **vent**, l'**humidité**, l
 Le feu réchauffe, sèche, permet de faire bouillir l'eau, se voit de loin et remonte le moral. Il ne garantit pas l'éloignement des animaux : respectez les consignes locales et stockez nourriture, déchets et produits odorants selon les règles du lieu ; ne brûlez pas les restes alimentaires pour les faire disparaître. Il est aussi dangereux : ne le laissez jamais sans surveillance.
 
 > **Avant d'allumer**
-> Vérifiez les restrictions du lieu et du jour auprès du gestionnaire ou des autorités locales. Renoncez si le vent disperse les escarbilles, si le sol organique peut couver ou si vous ne disposez pas de moyens suffisants pour éteindre complètement. Privilégiez un foyer aménagé autorisé et gardez l'eau d'extinction à portée. N'utilisez ni essence, ni alcool, ni solvant pour allumer ou raviver.
+> Vérifiez les restrictions du lieu et du jour auprès du gestionnaire ou des autorités locales. Renoncez si le vent disperse les escarbilles, si le sol organique peut couver ou si vous ne disposez pas de moyens suffisants pour éteindre complètement. Privilégiez un foyer aménagé autorisé et gardez l'eau d'extinction à portée. N'utilisez ni essence, ni alcool, ni solvant pour allumer ou raviver. **En France**, seul le propriétaire du terrain (ou son occupant) peut porter ou allumer du feu dans les bois et forêts et jusqu'à 200 m de ceux-ci : un randonneur n'y fait pas de feu, sauf urgence vitale. En période de risque, le préfet peut interdire tout emploi du feu, voire l'accès aux massifs. Avant de partir, consultez la « Météo des forêts » de Météo-France et les consignes de la préfecture. Le non-respect est sanctionné.
 
 > 🖼 *Illustration : Le triangle du feu et les trois tailles de combustible.* Un feu a besoin de trois choses. La cause d'échec n°1 : ne pas avoir assez de petit bois prêt.
 
@@ -174,9 +188,13 @@ Le feu réchauffe, sèche, permet de faire bouillir l'eau, se voit de loin et re
 - Le bois mort **encore accroché aux arbres** est plus sec que celui au sol. S'il casse net avec un « crac », il est sec.
 - Sur sol enneigé ou humide, faites une plateforme de branches vertes sous le feu.
 - Pour éteindre : noyez, remuez, noyez encore. Les cendres doivent être froides au toucher.
+- **Si votre feu s'échappe ou si vous voyez un départ de feu** : alertez immédiatement (112, 18, ou 114 par SMS si vous ne pouvez pas parler). Localisez le feu sans vous mettre en danger, éloignez-vous de la fumée et ne traversez jamais un front de flammes ou de fumée. Une voiture n'est pas un abri sûr : rejoignez si possible une habitation débroussaillée et suivez les consignes des secours.
 
 > **Danger**
 > Jamais de feu, de braises ni d'appareil à combustion dans une tente, un abri de neige ou un abri couvert, même muni d'une aération (monoxyde de carbone, incendie). Le feu se fait à l'extérieur, à distance des parois. Évitez les pierres de rivière autour du foyer : humides, elles peuvent éclater.
+
+> **Vêtements en feu : s'arrêter, se laisser tomber, se rouler**
+> Si vos vêtements prennent feu : arrêtez-vous, laissez-vous tomber au sol en couvrant votre visage avec les mains, et roulez-vous jusqu'à ce que les flammes s'éteignent. Ne courez pas. Si la personne ne peut pas le faire, étouffez les flammes avec une couverture épaisse ou une veste, pas avec une couverture de survie. Refroidissez ensuite la brûlure à l'eau (chapitre 8) et alertez si elle est étendue.
 
 ---
 
@@ -259,6 +277,8 @@ Ne percez ni ne court-circuitez jamais une batterie au lithium (téléphone, bat
 
 Un adulte a besoin d'environ 2 à 3 litres d'eau par jour, bien plus par forte chaleur ou effort. Signes de déshydratation : soif, urines foncées et rares, maux de tête, fatigue, vertiges.
 
+**Signes graves :** bouche et langue très sèches, yeux creux, peau qui reste plissée quand on la pince, très peu d'urines, désorientation, malaise ou comportement inhabituel. Appelez le 15 (ou le 112) si la personne a des troubles de la conscience, refuse ou ne peut pas boire, ou si sa peau change de couleur ; ne faites boire qu'une personne bien consciente qui avale sans difficulté (chapitre 8). Les personnes âgées ont souvent une soif tardive et faible : proposez-leur à boire régulièrement, sans attendre qu'elles le demandent. Les nourrissons et les jeunes enfants se déshydratent vite par la chaleur : proposez souvent à boire et appelez un médecin en cas de fièvre ou de changement de comportement.
+
 ### Où chercher
 
 - L'eau s'accumule souvent dans les creux et les fonds de vallon. Ne descendez la chercher que par un terrain visible et praticable, dont le retour est sûr ; si vous êtes perdu, ne quittez pas un endroit sûr et localisable pour une recherche hasardeuse (voir chapitres 6 et 21).
@@ -276,7 +296,15 @@ Une eau claire, courante ou sortant du sol n'est pas nécessairement potable. Co
 
 Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques. Écartez les eaux suspectes de pollution. Une eau claire peut être contaminée.
 
+> **Eaux à ne pas boire, même traitées**
+> Une eau calme colorée de façon inhabituelle (verte, bleue, rouge), avec une écume ou des amas en surface, ou qui sent mauvais ; une eau près de poissons morts ; une eau qui sent le carburant ou un produit chimique, ou qui coule en aval d'un rejet de produits chimiques ou de carburant. Certaines toxines d'algues (cyanobactéries) résistent à l'ébullition. Cherchez une autre source. Tenez enfants et chiens éloignés de ces eaux.
+
 **Filtres et pastilles :** vérifiez les micro-organismes effectivement ciblés et respectez la notice : volume, dose, température et temps de contact. Un filtre de randonnée n'élimine pas nécessairement les virus ; toutes les pastilles n'agissent pas sur les mêmes parasites (voir chapitre 2). Après traitement, conservez l'eau fermée, séparez le matériel ayant touché l'eau brute de celui utilisé pour l'eau potable, ne plongez pas les mains dans la réserve et ne mélangez pas eau traitée et eau brute.
+
+> **Eau de Javel : à valider**
+> En crise à la maison, l'eau de Javel peut servir à désinfecter une eau claire, mais le dosage dépend de sa concentration et doit être exact. Le protocole transmis (Javel à 2,6 %) n'a pas pu être validé et diffère fortement des recommandations étrangères : ce livret ne donne donc pas de dosage. Suivez les consignes des autorités sanitaires (ARS, mairie) ou de la notice d'un produit de traitement de l'eau ; n'utilisez jamais une Javel parfumée ou avec additif. Faute de consigne fiable, faites bouillir. La Javel ne retire aucun produit chimique.
+
+**Hygiène autour de l'eau :** lavez-vous les mains au savon avant de manipuler l'eau ou la nourriture et après être allé aux toilettes ; à défaut, utilisez un gel hydroalcoolique à au moins 60 % d'alcool. Sans toilettes, enterrez vos selles à au moins 20 cm de profondeur et à au moins 60 m de tout cours d'eau, lac ou source, en aval du point où vous puisez l'eau. Ne faites jamais vos besoins dans l'eau. Lavez-vous, et lavez la vaisselle et les vêtements, à au moins 30 m de l'eau que vous buvez.
 
 > **Préfiltrer une eau trouble**
 > Versez-la à travers un tissu propre (t-shirt, chaussette) ou laissez-la décanter, puis purifiez-la. Un filtre improvisé (sable, charbon) **clarifie** l'eau mais **ne la rend pas potable** : il faut ensuite la faire bouillir ou la traiter. Fabrication pas à pas, désinfection au soleil et alambic : voir le chapitre 13.
@@ -300,6 +328,21 @@ Avant une sortie autonome, apprenez sur terrain facile à lire légende, échell
 
 > 📷 *Photo : Boussole Suunto posée sur une carte routière (Photo : Olgierd — CC BY 2.0 (crédit n° 23)).* Boussole à plaque posée sur une carte : outil de référence, à condition d'avoir appris à s'en servir.
 
+### Lire la carte
+
+Pour marcher, prenez une carte topographique au 1:25 000 (en France, IGN TOP 25 ou série bleue) : 1 cm sur la carte = 250 m sur le terrain, donc 4 cm = 1 km. Les courbes de niveau, complétées de cotes d'altitude, montrent le relief. La légende indique la déclinaison magnétique, valable pour une année donnée. Avant de partir, mesurez les distances de chaque étape et notez-les sur votre fiche d'itinéraire.
+
+### Suivre sa progression
+
+Orientez la carte : tournez-la pour que son nord coïncide avec le nord de la boussole, ou alignez-la sur une route ou une lisière. En marchant, « cochez » chaque repère passé (carrefour, ruisseau, col) et retournez-vous de temps en temps pour mémoriser le retour. Quand c'est possible, suivez une ligne évidente (chemin, lisière, crête large et sûre). Pour un objectif discret, visez d'abord un repère proche et facile à trouver. Repérez aussi à l'avance une « ligne d'arrêt » au-delà de l'objectif (route, rivière, début de descente) : si vous l'atteignez, vous êtes allé trop loin.
+
+### Le balisage des sentiers
+
+Sur les sentiers balisés de la FFRandonnée, la couleur indique le type de sentier : blanc-rouge pour un GR, jaune-rouge pour un GR de Pays, jaune pour une promenade (PR). La forme donne la consigne : un trait (deux pour un GR) = bonne direction ; un trait fléché = changement de direction ; une croix = mauvaise direction. Méfiez-vous des marques orange (itinéraires équestres) et des marques forestières ou communales. Plus de balise depuis longtemps ? Revenez à la dernière balise vue.
+
+> **Au premier doute, arrêtez-vous**
+> Au premier doute (plus de balise depuis un moment, terrain qui ne correspond pas à la carte, trajet plus long que prévu), arrêtez-vous tout de suite. Notez l'heure et cherchez ce qui ne colle pas. Si le chemin parcouru est clair et sûr, revenez sur vos pas jusqu'au dernier point certain : dernière balise vue, carrefour identifié, repère reconnu. Ne continuez jamais « pour voir ». Si le retour n'est pas évident, appliquez S.T.O.P. et restez sur place (chapitre 1).
+
 ### Avec le soleil
 
 - Hors des tropiques, le Soleil se trouve au **sud** à midi solaire dans l'hémisphère nord et au nord dans l'hémisphère sud. Dans les tropiques, sa position à midi dépend de la latitude et de la saison. Lever et coucher donnent seulement des secteurs généraux (est, ouest), avec de grands écarts saisonniers ; aux régions polaires, ils peuvent être absents. Midi solaire ne signifie pas midi à la montre.
@@ -314,6 +357,8 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 ### La nuit : l'étoile Polaire
 
 > 🖼 *Illustration : Trouver l'étoile Polaire : prolonger la droite Mérak–Dubhé d'environ cinq fois leur écart.* Dans l'hémisphère nord, repérez Mérak puis Dubhé, les deux étoiles du bord extérieur de la casserole, à l'opposé du manche. Prolongez leur droite de Mérak vers Dubhé, au-delà de Dubhé, d'environ cinq fois leur écart pour trouver la Polaire. Sa direction projetée vers l'horizon indique approximativement le nord géographique ; elle devient difficile à observer près de l'équateur et n'est pas utilisable dans l'hémisphère sud.
+
+**Hémisphère sud : la Croix du Sud.** Prolongez son grand axe, du haut vers le bas de la croix, d'environ 4,5 fois sa longueur. Le point obtenu est proche du pôle sud céleste ; à la verticale de ce point, sur l'horizon, se trouve approximativement le sud. Ce repère est approximatif : contrôlez-le avec une autre méthode et ne l'utilisez pas seul pour suivre un cap.
 
 > **Mythes à oublier**
 > « La mousse pousse au nord » : pas fiable, elle pousse là où c'est humide et ombragé. Utilisez-la au mieux comme un indice parmi d'autres.
@@ -330,7 +375,10 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 
 - **112** fonctionne dans toute l'Europe, même sans crédit, et passe souvent par un autre opérateur si le vôtre ne capte pas.
 - Essayez d'abord le **112** par appel, depuis votre emplacement sûr. Un point proche et dégagé peut améliorer la réception, mais ne vous y rendez que si le trajet et le retour sont manifestement sûrs ; ne gagnez pas une crête ou une pente risquée pour une réception hypothétique. Si vous devez changer de position, laissez si possible une indication de l'heure, de votre destination et de votre direction, puis prévenez les secours dès que la liaison est possible.
+- **Que dire au téléphone (112, 15 ou 18) :** restez calme. Donnez votre nom et le numéro d'où vous appelez, puis le lieu le plus précis possible : massif, commune, lieu-dit, nom du sommet ou du sentier, altitude, repères, coordonnées GPS (voir ci-dessous). Dites ce qui s'est passé et à quelle heure, combien de personnes sont concernées et dans quel état, les gestes déjà faits, la météo et les dangers sur place. Répondez aux questions, appliquez les consignes et ne raccrochez qu'avec l'accord de l'opérateur. Si vous chargez quelqu'un d'alerter, vérifiez avant qu'il a toutes les informations, puis qu'il a bien appelé. Si possible, envoyez une personne accueillir et guider les secours. Si l'état de la victime s'aggrave, rappelez.
+- **Localisation automatique :** en France, lors d'un appel au 112 depuis un smartphone, votre position est en général transmise automatiquement aux secours (système AML), sans application ni action de votre part, parfois même avec une faible couverture. Laissez la localisation activée. Cette transmission n'est pas garantie : donnez quand même votre position à voix haute et décrivez le lieu.
 - **SMS :** en France, n'envoyez pas par défaut un SMS au 112. Le **114** permet une alerte écrite, notamment aux personnes sourdes, malentendantes ou aphasiques, et dans certaines situations où parler est impossible. Une faible couverture peut parfois permettre un SMS sans garantir sa transmission. Indiquez votre identité, votre position précise, le danger, le nombre et l'état des personnes, puis recherchez une confirmation de prise en charge. Si vous écrivez à un proche, demandez-lui explicitement d'alerter les secours et de confirmer l'avoir fait.
+- **Balise personnelle de détresse (PLB, 406 MHz) :** en zone isolée sans réseau fiable, elle envoie une alerte et votre position par satellite. Enregistrez-la avant le départ ; en France, auprès du registre des balises 406 MHz (registre406.cnes.fr), en y indiquant votre sortie. Apprenez à l'utiliser, gardez-la sur vous, pas au fond du sac, et ne la déclenchez qu'en détresse réelle. Elle complète le téléphone et le plan laissé à un proche ; elle ne les remplace pas.
 - **Coordonnées GPS :** vérifiez que votre position vient d'être acquise et observez son incertitude : arbres, falaises et bâtiments peuvent dégrader la précision. Aux secours, lisez latitude puis longitude avec le format affiché, les signes ou indications N/S et E/O, puis faites répéter. Ajoutez le lieu nommé, votre dernier point certain et une description du terrain ; une capture lisible peut compléter ces renseignements. Ne considérez jamais le point affiché comme une garantie de position exacte.
 - **Après avoir joint les secours**, gardez au moins un téléphone allumé, connecté au réseau, accessible et au chaud, et suivez leurs consignes concernant les rappels et la localisation. Économisez la batterie en réduisant la luminosité et les usages inutiles, pas avec le mode avion. Répondez aux rappels du **0 800 112 112** (numéro officiel de rappel des services d'urgence en France). Si aucune liaison n'est possible et que la batterie devient critique, espacez les tentatives selon la situation, sans intervalle fixe.
 
@@ -351,6 +399,11 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 
 Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime) → **Alerter** (112) → **Secourir**.
 
+Pour l'alerte, voir « Que dire au téléphone », chapitre 7.
+
+> **Le blessé n'a pas besoin que de gestes**
+> Restez près de lui si c'est sûr, dites-lui votre prénom et ce que vous faites, et dites-lui que les secours sont prévenus. Écoutez-le sans le juger et ne lui promettez pas ce que vous ne savez pas. Si quelqu'un meurt, occupez-vous d'abord de la sécurité des vivants et laissez chacun réagir à sa façon. Après coup, la culpabilité est fréquente : parlez-en. Demandez de l'aide auprès de la cellule d'urgence médico-psychologique (via le 15) ou de votre médecin.
+
 ### Saignement abondant
 
 1. **Appuyez fort** directement sur la plaie avec la main (protégée si possible) ou un tissu propre. Maintenez sans relâcher.
@@ -358,6 +411,10 @@ Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime
 3. Hémorragie d'un membre que la compression ne permet pas de contrôler : privilégiez un **garrot conçu à cet effet**. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, **notez l'heure** et ne le desserrez pas. N'utilisez jamais une ficelle ou une cordelette seule.
 
 > 📷 *Photo : Formation à la pose d'un garrot sur un bras de mannequin (Photo : NavyMedicine — Domaine public (crédit n° 14)).* Formation à la pose d'un garrot tourniquet conçu à cet effet, sur mannequin. Ce geste s'apprend en formation pratique.
+
+### Saignement de nez
+
+Asseyez la personne, tête penchée en avant ; ne l'allongez pas. Demandez-lui de se moucher fort, puis de serrer les deux narines avec les doigts pendant 10 minutes sans relâcher. Demandez un avis médical si le saignement ne s'arrête pas ou revient, s'il fait suite à une chute ou à un coup, ou si la personne prend un médicament qui fait saigner davantage. Alertez le 15 ou le 112 en cas de sueurs abondantes, de sensation de froid, de pâleur intense ou de malaise.
 
 ### Personne inconsciente qui respire normalement : la PLS
 
@@ -376,6 +433,10 @@ Si la personne ne répond pas mais respire normalement après un événement **n
 > 5. Utilisez le DAE dès que possible, avec les électrodes ou le mode enfant. À défaut, utilisez les électrodes adultes, l'une devant au milieu de la poitrine et l'autre dans le dos.
 >
 
+### Convulsions
+
+Ne retenez pas les mouvements et ne mettez rien dans la bouche. Écartez ce qui peut blesser, protégez la tête avec un vêtement plié, desserrez col et ceinture, retirez les lunettes. Ne déplacez la personne qu'en cas de danger immédiat. Notez l'heure de début. Dès que les secousses s'arrêtent, mettez-la sur le côté (PLS), restez avec elle et surveillez sa respiration. Ne lui donnez rien à boire. Appelez le 15 ou le 112 si la crise dure plus de cinq minutes, si elle se répète sans retour à la normale, si la personne reste inconsciente ou ne reprend pas vite une respiration normale, si elle est blessée, si la crise est survenue dans l'eau, ou s'il s'agit d'une première crise.
+
 ### Étouffement (adulte)
 
 Chez l'adulte qui s'étouffe, encouragez la toux si elle reste efficace. Si la personne ne peut plus parler, respirer ou tousser efficacement, faites alerter les secours et donnez jusqu'à **5 claques dans le dos** ; si elles échouent, donnez jusqu'à **5 compressions abdominales**. Alternez jusqu'à désobstruction ou perte de connaissance. Si elle perd connaissance, commencez la réanimation guidée par les secours. Ne fouillez pas sa bouche à l'aveugle. Les gestes diffèrent chez le nourrisson et lorsque les compressions abdominales sont impossibles : une formation pratique est nécessaire. Une évaluation médicale est indiquée après des compressions de désobstruction.
@@ -384,13 +445,29 @@ Chez l'adulte qui s'étouffe, encouragez la toux si elle reste efficace. Si la p
 
 Après un aliment, un médicament ou une piqûre, une difficulté respiratoire, un gonflement de la langue ou de la gorge, un malaise important ou une perte de connaissance doit faire suspecter une anaphylaxie, même sans éruption cutanée. Appelez immédiatement le 15 ou le 112. Aidez la personne à utiliser son auto-injecteur d'adrénaline prescrit selon sa notice, son plan d'urgence ou les instructions du régulateur. Ne la laissez pas se lever ou marcher. Allongez-la ; si elle respire difficilement, adaptez la position avec les secours. Les antihistaminiques ne remplacent pas l'adrénaline.
 
+### Malaise, douleur dans la poitrine
+
+Une personne consciente qui « ne se sent pas bien » peut faire une urgence grave. Mettez-la tout de suite au repos : allongée, assise si elle respire mal, sinon dans la position où elle se sent le mieux. Appelez sans attendre le 15 ou le 112 si elle présente notamment : une douleur dans la poitrine qui serre, dure plus de cinq minutes ou s'étend aux bras, à la mâchoire ou au dos ; un essoufflement ; des sueurs abondantes ou une pâleur intense ; une difficulté à parler ; un mal de tête sévère et inhabituel. Au moindre doute, appelez aussi. Notez son âge, depuis quand elle a ces signes, si c'est déjà arrivé et quels médicaments elle prend : le médecin du 15 vous le demandera. Ne lui donnez aucun médicament de votre propre initiative. Aidez-la seulement à prendre son traitement prescrit (par exemple son inhalateur si elle est asthmatique), à sa demande ou sur consigne du 15. Protégez-la du froid, de la chaleur et des intempéries, surveillez-la sans arrêt et parlez-lui. Si elle perd connaissance et ne respire plus normalement, c'est un arrêt cardiaque (encadré ci-dessus).
+
+### Signes d'AVC : pensez VITE
+
+**V** : Visage paralysé (bouche de travers, sourire impossible). **I** : Impossible de bouger un bras ou une jambe, ou faiblesse d'un membre. **T** : Trouble de la parole (mots qui ne sortent pas ou incompréhensibles). **E** : Éviter le pire en appelant le 15 ou le 112. Un seul de ces signes, apparu brutalement, suffit pour appeler, même s'il disparaît en quelques minutes. Appelez aussi en cas de perte brutale de la vue d'un œil ou de vision double, de perte soudaine de l'équilibre, ou de mal de tête brutal, intense et inhabituel. Notez l'heure du début des signes. Aidez la personne à s'asseoir ou à s'allonger. Ne lui donnez ni à boire, ni à manger, ni aucun médicament, même son traitement habituel. Si elle ne répond plus mais respire normalement, mettez-la en PLS et surveillez sa respiration.
+
+### Personne diabétique confuse ou somnolente
+
+Chez une personne diabétique, un changement brutal de comportement, une confusion ou une somnolence doivent faire penser à un manque de sucre (hypoglycémie). Si elle est bien réveillée et avale bien : donnez-lui du sucre tout de suite (morceaux de sucre, bonbons sucrés, 50 à 100 mL de jus de fruits ou une boisson sucrée, ou ses propres comprimés de glucose). Si les signes persistent au bout de 15 minutes, redonnez du sucre. Une fois remise, faites-lui manger une collation. Appelez le 15 ou le 112 si elle ne s'améliore pas ou si son état se dégrade. Si elle ne répond pas : rien par la bouche, appelez le 15 ou le 112 et, si elle respire normalement, mettez-la en PLS.
+
 ### Hypothermie (froid)
 
 **Signes :** frissons intenses, maladresse, paroles confuses, somnolence. Une personne exposée au froid qui devient confuse, maladroite ou somnolente nécessite une alerte urgente, même si elle frissonne encore.
 
+L'hypothermie ne survient pas seulement dans la neige : être mouillé par la pluie ou le brouillard, puis exposé au vent, peut refroidir rapidement, même en été. Des frissons persistants ou violents sont un signal d'alarme sérieux. Une personne qui se refroidit dit souvent que « ça va » : surveillez vos compagnons et protégez-vous avant d'être trempé (vêtement de pluie, abri du vent, bonnet).
+
 - Mettez-la à l'abri, isolez-la du sol, manipulez-la doucement et gardez-la autant que possible allongée. Retirez les vêtements mouillés à l'abri si vous pouvez immédiatement les remplacer ou envelopper la personne au sec. Le contact peau à peau ne suffit pas à traiter une hypothermie importante. Évitez les sources brûlantes et les bains ou douches chauds.
 - Boissons chaudes et sucrées **seulement si la personne est consciente** et avale bien.
 - Pas d'alcool, pas de frictions, manipuler doucement.
+
+**Réchauffer sans danger :** mettez la personne au sec dans un sac de couchage ou des couvertures sèches, avec un bonnet, sur un isolant. Vous pouvez placer des bouillottes tièdes ou des chaufferettes bien enveloppées (jamais au contact direct de la peau) au cou, aux aisselles et à l'aine, et contrôler régulièrement la peau. Boissons chaudes seulement si elle est consciente et avale bien, jamais d'alcool. Alertez si elle devient confuse ou somnolente.
 
 ### Coup de chaleur
 
@@ -398,10 +475,16 @@ Après un aliment, un médicament ou une piqûre, une difficulté respiratoire, 
 
 - Une confusion, un comportement inhabituel ou un malaise important après exposition à la chaleur impose d'appeler immédiatement le 15 ou le 112 et de refroidir sans attendre. Placez la personne au frais, retirez les vêtements superflus, mouillez largement la peau et éventez. Ne donnez rien à boire si elle est confuse, somnolente, vomit ou avale difficilement. Une transpiration abondante n'exclut pas un coup de chaleur.
 
+**Avant le coup de chaleur : l'épuisement.** La chaleur peut d'abord provoquer une grande fatigue, une faiblesse, des vertiges, des maux de tête, des nausées, des crampes, des sueurs abondantes, une peau pâle et moite. Arrêtez l'effort, allongez la personne à l'ombre ou au frais, desserrez ses vêtements, mouillez sa peau et éventez-la. Faites-la boire par petites gorgées seulement si elle est bien consciente, avale sans difficulté et n'a pas de nausées. Si elle vomit, si son état s'aggrave ou ne s'améliore pas rapidement, ou en cas de confusion : 15 ou 112.
+
 ### Entorse / fracture
 
 - Ne pas bouger la zone. Immobiliser dans la position trouvée avec une attelle improvisée (bâtons, carton, sac de couchage roulé) attachée au-dessus et en dessous de la blessure.
 - Vérifier que les doigts / orteils restent chauds et colorés : ne pas serrer trop.
+
+### Chute ou choc violent : tête, cou, dos
+
+Après une chute de hauteur, un choc violent ou en cas de douleur du cou ou du dos, ne déplacez pas la personne, sauf danger immédiat. Si elle est consciente, demandez-lui fermement de ne pas bouger, surtout la tête. Ne la forcez jamais dans une position. Couvrez-la contre le froid sans la mobiliser, appelez le 15 ou le 112, surveillez-la et parlez-lui. Après un choc à la tête, même si elle semble aller bien, demandez un avis médical et alertez de nouveau si une perte de connaissance, même brève, des maux de tête qui persistent, des vomissements, une agitation, une somnolence, une confusion ou un trouble de la vue apparaissent. Elle doit alors cesser tout effort. Membre déformé : ne tentez pas de le remettre droit.
 
 ### Brûlure
 
@@ -417,9 +500,19 @@ Après un aliment, un médicament ou une piqûre, une difficulté respiratoire, 
 
 > 📷 *Photo : Crochet tire-tique jaune retirant une tique sur la peau (Photo : Otom — CC BY-SA 3.0 (crédit n° 15)).* Un tire-tique (crochet) : glissé sous la tique au ras de la peau, il s'utilise selon sa notice.
 
+**Prévenir les tiques :** en forêt, dans les hautes herbes ou les broussailles, portez des vêtements longs et clairs, serrés aux poignets et aux chevilles, et emportez un tire-tique. Au retour, puis le lendemain, examinez tout le corps (aisselles, plis des genoux, organes génitaux, nombril, oreilles, cou, cuir chevelu), et celui des enfants avec soin. Surveillez la zone de la piqûre pendant un mois : une plaque rouge qui s'étend entre 3 et 30 jours après peut signaler la maladie de Lyme et impose de consulter.
+
+### Piqûre de guêpe, d'abeille ou de frelon
+
+Le plus souvent : douleur, rougeur et gonflement au point de piqûre. Piqûre à la main : retirez les bagues. Abeille : retirez vite le dard en grattant avec l'ongle ou le bord d'une carte, sans le pincer. Lavez à l'eau et au savon, appliquez du froid enveloppé dans un tissu, et cessez tout effort pendant 30 minutes. Vérifiez la vaccination antitétanique. Appelez immédiatement le 15 ou le 112 en cas de piqûre dans la bouche ou la gorge, de difficulté à respirer ou à avaler, de gonflement de la langue, des lèvres ou du visage, de malaise ou d'urticaire généralisée (voir Anaphylaxie), de piqûres multiples (plus de 20 chez l'adulte, dès 4 ou 5 chez l'enfant), ou d'allergie connue au venin : aidez alors la personne à utiliser son auto-injecteur d'adrénaline. Consultez si la zone reste très rouge, gonflée et douloureuse au-delà de 24 heures.
+
 ### Petites plaies
 
 - N'appliquez ni feuille mâchée, ni plante écrasée, ni mousse sauvage sur une plaie. Pour une petite plaie superficielle, lavez-vous les mains, nettoyez à l'eau potable et au savon, puis protégez avec un pansement propre. Consultez pour une plaie profonde, souillée, une morsure, une perte de sensibilité ou de mouvement, ou si la vaccination antitétanique n'est pas à jour. Rougeur qui s'étend, douleur croissante, pus ou fièvre nécessitent un avis médical ; une aggravation rapide ou un malaise important impose une alerte urgente.
+
+### Plaie grave
+
+**Objet planté** (bâton, éclat, couteau) : ne le retirez jamais. **Plaie de la poitrine** : laissez la personne assise, sans couvrir la plaie avec un pansement étanche. **Plaie du ventre** : allongez-la, jambes pliées. **Plaie de l'œil** : allongée, yeux fermés, en lui demandant de ne pas bouger la tête. Dans tous les cas : en cas de saignement abondant, appliquez la rubrique « Saignement abondant » sans retirer l'objet ; protégez la personne du froid, appelez le 15 ou le 112 et surveillez-la. **Doigt ou autre partie du corps arrachée** : arrêtez d'abord le saignement. Enveloppez la partie dans un tissu propre humidifié, mettez-la dans un sac fermé et étanche, puis posez ce sac dans un autre sac contenant de la glace ou de l'eau glacée, sans contact direct avec la glace. Notez le nom et l'heure, et remettez-la aux secours.
 
 ### Diarrhée : réhydrater d'abord
 
@@ -435,6 +528,9 @@ On peut tenir des semaines sans manger. La nourriture est la **dernière** prior
 > **Règle absolue**
 > Ne mangez **jamais** une plante ou un champignon que vous ne connaissez pas avec certitude. Certains champignons mortels ressemblent à des espèces comestibles, et les symptômes peuvent n'apparaître qu'après plusieurs heures. Aucun « test » maison n'est fiable pour les champignons.
 
+- Ne vous fiez pas à ce que mangent les animaux : un oiseau peut manger sans danger les « baies » de l'if, dont la graine est très toxique pour l'homme.
+- Le « test universel de comestibilité » décrit dans certains manuels de survie n'est pas une méthode pour débutant : il oblige à goûter puis avaler une plante inconnue, alors que quelques baies ou une petite quantité de certaines plantes peuvent suffire à tuer. Ce livret ne le recommande pas.
+
 ### Ressources plus sûres (en Europe)
 
 Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plantes utiles ».
@@ -445,6 +541,8 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 | Plantes très reconnaissables | Ortie (cuite), pissenlit (feuilles et fleurs), plantain. Attention aux ombellifères (type carotte sauvage) : certaines sont mortelles, évitez toute la famille. |
 | Insectes | Couleur, pilosité et odeur ne constituent pas une clé de comestibilité : un débutant doit s'abstenir d'en consommer sans identification fiable. Des allergies croisées sont possibles, notamment chez les personnes allergiques aux crustacés ou aux acariens. |
 | Poissons | La cuisson réduit de nombreux risques infectieux, mais ne rend pas comestible une espèce inconnue et ne détruit pas toutes les toxines. Évitez les poissons non identifiés, les poissons récifaux à risque et les aliments mal conservés. |
+
+**La cuisson ne rend pas comestible une plante ou un champignon toxique :** elle tue des parasites, mais le poison de l'if ou de l'amanite phalloïde résiste à la cuisson et au séchage. On ne cuit que ce qui est déjà identifié avec certitude comme comestible.
 
 - Cuisez tout ce qui peut l'être : la cuisson élimine la plupart des parasites.
 - En pénurie sévère d'eau, évitez les aliments très salés et limitez les aliments très riches en protéines, mais ne transformez pas ce conseil en jeûne systématique. L'apport énergétique est important dans le froid ; les personnes diabétiques ou fragiles doivent suivre un plan préparé avec leur soignant.
@@ -457,9 +555,9 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriquer une corde. Mais une erreur d'identification peut tuer. Ce chapitre concerne les plantes courantes d'**Europe tempérée**.
 
 > **Les 5 règles avant de cueillir**
-> 1. **Certitude à 100 %** sur l'identification, avec plusieurs critères (feuille, fleur, tige, odeur, milieu). Un doute = on ne mange pas.
+> 1. **Certitude à 100 %** sur l'identification, avec plusieurs critères (feuille, fleur, tige, odeur, milieu). Un doute = on ne mange pas. Une application de reconnaissance ne suffit jamais pour décider de manger une plante, et ne mangez jamais un champignon identifié par une application.
 > 2. Apprenez d'abord les **sosies toxiques** (voir « Les sosies mortels à connaître », plus loin dans ce chapitre) en même temps que la plante comestible.
-> 3. Ne cueillez pas au bord des routes, des champs traités, ni près des déjections animales (douve du foie : lavez et cuisez les plantes des prés humides).
+> 3. Ne cueillez pas au bord des routes, des champs traités, ni près des déjections animales. Ne mangez jamais de cresson sauvage cru, ni de plantes crues cueillies en milieu humide (pissenlit, menthe…) : elles peuvent porter la douve du foie, et le lavage, même au vinaigre, ne l'élimine pas ; seule la cuisson la tue. Les baies et plantes cueillies près du sol peuvent être souillées par les renards : dans le quart nord-est de la France et le Massif central notamment, cuisez systématiquement les fruits sauvages (la congélation ne suffit pas).
 > 4. Une plante comestible correctement identifiée peut provoquer une allergie. Une petite dégustation ne constitue pas un test permettant d'exclure ce risque : ne réalisez pas de test de tolérance sur le terrain. Évitez de découvrir de nouveaux aliments sauvages en situation isolée et respectez vos allergies connues (anaphylaxie : chapitre 8).
 > 5. Femmes enceintes, enfants, personnes sous traitement : abstenez-vous des usages « médicinaux ».
 >
@@ -476,6 +574,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 | **Ronce, framboisier** | Bien connus ; baies en grappe de petites boules. | Fruits crus. En cas de diarrhée : réhydratation d'abord (chapitre 8). |
 | **Myrtille** | Petit arbrisseau des sous-bois ; baies bleu-noir à reflet bleuté, isolées sur la tige (ni en grappe, ni soudées par deux). Ces indices ne suffisent pas à l'identifier. | Uniquement si vous la connaissez déjà avec certitude. Sosies toxiques : voir l'encadré « Myrtille : les sosies toxiques » ci-dessous. |
 | **Noisetier, châtaignier, hêtre** | Voir comparaison châtaigne / marron. | Noisettes crues, châtaignes cuites, faînes en petite quantité (grillées). |
+| **Glands (chêne)** | Fruits du chêne. | Ne les mangez pas : leurs tanins provoquent des troubles digestifs (constipation, douleurs, parfois diarrhée sanglante). |
 | **Trèfle, pâquerette, pourpier** | Chacun nécessite une identification précise. Le pourpier (*Portulaca oleracea*) peut être confondu avec des euphorbes prostrées irritantes. Un latex blanc impose le rejet, sans goûter ; son absence ne suffit pas à établir la comestibilité. | Feuilles et fleurs, en complément, après identification certaine. |
 | **Ail des ours** | Sous-bois humides au printemps, **forte odeur d'ail** quand on froisse la feuille, une feuille par tige. | Feuilles crues ou cuites. **Voir sosies mortels !** |
 | **Pin, sapin, épicéa** | Aiguilles. Attention : le sapin a, comme l'if, des aiguilles plates et souples, et l'if ne porte ses « baies » rouges que sur certains arbres et à certaines saisons. Aucun de ces caractères ne permet d'écarter l'**if**, mortel (voir « Les sosies mortels à connaître »). | Ne faites pas d'infusion d'aiguilles et ne consommez ni pousses ni écorce d'un conifère que vous n'avez pas identifié avec certitude, de préférence appris sur le terrain avec un connaisseur. Au moindre doute, abstenez-vous. |
@@ -508,7 +607,13 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 > 📷 *Photo : Grande ciguë (Conium maculatum) — MORTELLE (Photo : Matt Lavin — CC BY-SA 2.0 (crédit n° 11)) ; If (Taxus baccata) — TRÈS TOXIQUE (Photo : Juhele_CZ — CC0 (crédit n° 12)).* Deux plantes mortelles. Au moindre doute, s'abstenir : ces photos ne permettent pas d'identifier une plante.
 
 > **Intoxication suspectée**
-> Après ingestion d'une plante toxique ou en cas de doute sur une plante consommée, contactez immédiatement un centre antipoison, même sans symptôme. En cas de détresse vitale, appelez le 15 ou le 112. Ne faites pas vomir. Conservez les restes et des photographies de la plante, sans retarder l'appel, et indiquez l'heure, la partie consommée et la quantité estimée.
+> Après ingestion d'une plante toxique ou en cas de doute sur une plante consommée, contactez immédiatement un centre antipoison, même sans symptôme. En cas de détresse vitale, appelez le 15 ou le 112. Ne faites pas vomir. Conservez les restes et des photographies de la plante, sans retarder l'appel, et indiquez l'heure, la partie consommée et la quantité estimée (numéros des centres antipoison : chapitre 25).
+
+> **Champignon sauvage déjà mangé ?**
+> Appelez un centre antipoison sans attendre, même si tout va bien : les intoxications les plus graves commencent par plusieurs heures sans aucun symptôme, et les premiers signes peuvent n'apparaître que 12 heures après le repas, ou plus tard. Des troubles qui apparaissent vite ne rassurent pas non plus : plusieurs espèces ont pu être mangées. La cuisson ne détruit pas ces toxines. Notez l'heure du repas et des premiers signes et gardez les restes. Détresse : 15 ou 112.
+
+> **Plantes qui brûlent la peau au soleil**
+> Certaines plantes de la famille de la carotte (berce du Caucase, très grande, à tige creuse tachée de pourpre ; berce commune ; angélique) contiennent une sève qui brûle la peau au soleil. Les cloques peuvent apparaître un à trois jours après le contact. Ne les utilisez ni pour l'abri ni pour le feu ; portez des manches longues et des gants. En cas de contact : lavez à l'eau froide et au savon, protégez la zone du soleil pendant plusieurs jours, et consultez si la zone est étendue, si les yeux sont touchés ou s'il s'agit d'un enfant.
 
 ### Plantes qui soignent les petits bobos
 
@@ -627,6 +732,18 @@ Passez la corde autour du piquet, revenez vers la corde tendue et faites deux to
 
 Les étapes du nœud de chaise et du nœud tendeur sont illustrées ci-dessus ; le cabestan est décrit pas à pas et photographié terminé.
 
+### Abouter deux cordes
+
+Le nœud plat (deux demi-nœuds croisés dans le même sens) sert à fermer un sac ou un bandage. Ne l'utilisez pas pour joindre deux cordes qui vont tirer : il peut glisser et se défaire. Pour abouter deux cordelettes de même diamètre, faites un double nœud de pêcheur : superposez les deux bouts, faites deux tours avec le premier bout autour des deux cordes, puis repassez-le dans ces tours et serrez ; faites la même chose avec l'autre bout, dans l'autre sens. Tirez sur les deux cordes pour que les deux nœuds se collent, et laissez des bouts libres assez longs. Ce nœud peut devenir très difficile à défaire. Comme les autres nœuds du livret, il ne sert pas à porter une personne.
+
+### Monter une bâche sur une ligne de faîtage
+
+Choisissez deux arbres sains, à 3 à 4,5 m l'un de l'autre, sans branche morte au-dessus (chapitre 3). Tendez une cordelette entre eux à hauteur de taille. Attachez un bout avec un nœud de chaise ou un cabestan sécurisé, et l'autre avec un nœud qui se règle, comme le nœud tendeur. Posez la bâche à cheval sur la corde, centrée, puis fixez les quatre coins au sol avec des piquets ou des pierres, le côté bas face au vent. Retendez avant la nuit. Comptez environ 15 m de cordelette et une bâche d'environ 2 × 2,5 m pour une personne. Une couverture de survie se déchire facilement et ne fait pas une bonne toile d'abri.
+
+### Assembler deux perches : le brêlage carré
+
+Pour fixer deux perches en croix, commencez par un nœud de cabestan sur l'une d'elles. Enroulez ensuite la corde autour des deux perches, en passant alternativement dessus et dessous, sur 3 ou 4 tours bien serrés. Faites ensuite 3 ou 4 tours de serrage entre les deux perches, autour des tours précédents. Terminez par deux ou trois demi-clés serrées. Testez l'assemblage en le chargeant à la main avant de vous en servir. Il convient à une structure de camp (cadre d'abri, étagère), pas à porter une personne sans formation (chapitre 13).
+
 ---
 
 ## 13Fabrications simples et efficaces
@@ -707,9 +824,12 @@ L'alambic peut aussi servir avec de l'eau de mer ou une eau boueuse versée dans
 ### Autres dangers
 
 - **Rivières** : privilégiez un pont sûr, un détour ou le demi-tour ; n'entrez pas dans une rivière en crue. Une profondeur inférieure aux genoux ne garantit pas un passage sûr : courant, froid, turbidité, fond instable et obstacles en aval peuvent rendre le gué dangereux ; vérifiez aussi la sortie. Pour un passage simple réellement évalué par une personne compétente, gardez vos chaussures, utilisez un appui et ouvrez la ceinture ventrale **et la sangle pectorale** du sac afin de pouvoir vous en dégager en cas de chute. Au moindre doute, renoncez.
+- **Barrages et centrales :** même par beau temps, des lâchers d'eau peuvent faire monter brusquement le niveau et le courant d'une rivière, y compris loin de l'ouvrage. Respectez les panneaux jaunes, restez sur les berges, ne vous installez jamais sur un îlot, prenez un repère visuel du niveau de l'eau et évitez les endroits sans repli rapide. L'accès est interdit dans les 50 m en amont et en aval d'un barrage ou d'une centrale.
 - **Brouillard** : arrêtez-vous plutôt que d'avancer à l'aveugle près de falaises.
 - **Nuit** : ne marchez pas de nuit en terrain inconnu. Installez-vous avant.
 - **Animaux** : faites du bruit en marchant, ne nourrissez pas et ne vous approchez pas. Face à un chien de troupeau (patou) : restez calme, contournez largement le troupeau, ne courez pas.
+- **Période de chasse** (en général de début septembre à fin février, avec des extensions possibles) : renseignez-vous sur les jours et les lieux de chasse (mairie, fédération départementale, ONF en forêt domaniale). Restez sur les sentiers fréquentés, évitez l'aube et le crépuscule, portez des couleurs vives et faites-vous entendre. Un panneau « chasse en cours » signale une battue : il n'interdit pas le passage mais impose la vigilance ; contournez si possible et signalez-vous à un chasseur. Si des chiens de battue arrivent, arrêtez-vous et attendez qu'ils s'éloignent.
+- **Munition ou objet suspect** : ne touchez jamais un objet ressemblant à une munition (obus, grenade), même rouillé. Prenez une photo si possible, marquez l'endroit, recouvrez-le délicatement d'herbe ou de terre sans le déplacer, puis éloignez-vous. Appelez le 17 en indiquant le lieu précis, sa description et votre numéro de téléphone.
 - **Avalanche, altitude, froid extrême** : voir le chapitre 15, « Survie en montagne ».
 
 ---
@@ -724,6 +844,9 @@ La montagne combine froid, altitude, météo changeante et terrain dangereux. Re
 - Fixez une **heure limite de demi-tour** et respectez-la, même si le sommet est proche. Préparez une fiche indiquant distances, montées cumulées, difficultés, points de contrôle, demi-tour et replis. Sur chemin facile, estimez une base en heures par *distance en km ÷ 4 + montée cumulée en m ÷ 600*, puis ajoutez pauses et marge et adaptez au plus lent, au sac et au terrain ; recalculez selon votre progression réelle. Cette estimation ne s'applique pas telle quelle au terrain technique ou à la neige profonde. Pour une première sortie hivernale difficile, partez avec un encadrant compétent plutôt que seulement à plusieurs débutants.
 - Emportez une couche chaude et un coupe-vent même en été : on perd environ **6 °C tous les 1 000 m**, et le vent refroidit bien davantage.
 - Protégez yeux et peau : à 3 000 m, les UV sont bien plus forts qu'en plaine, et la neige les renvoie.
+
+> **Quatre pensées qui doivent vous alerter**
+> « On l'a déjà fait cent fois. » « On a dit qu'on irait au sommet. » « Il est expérimenté, il sait ce qu'il fait. » « D'autres y vont, donc ça passe. » Ces pensées sont normales, mais des études d'accidents montrent qu'elles poussent les groupes à prendre plus de risques. Quand vous en entendez une, arrêtez-vous et regardez les faits du jour : météo, horaire, état de chacun. Le plus inquiet du groupe a le droit de demander le demi-tour.
 
 ### Le mal aigu des montagnes
 
@@ -747,7 +870,7 @@ Une zone blanche ou grise, dure et insensible après exposition au froid (doigts
 > 📷 *Photo : Dôme de neige avec une entrée basse, dans un jardin enneigé (Photo : Urgeap — CC BY-SA 4.0 (crédit n° 25)).* Un quinzhee (abri creusé dans un tas de neige tassée), vu de l'extérieur. Technique à apprendre encadré : ne pas improviser.
 
 > **Danger**
-> N'utilisez aucun appareil à combustion dans une tente ou un abri de neige, même muni d'une aération. Une ouverture ne garantit pas l'absence de monoxyde de carbone. N'y introduisez jamais de braises. Ne creusez jamais dans une pente qui peut avalancher.
+> N'utilisez aucun appareil à combustion dans une tente ou un abri de neige, même muni d'une aération. Une ouverture ne garantit pas l'absence de monoxyde de carbone. N'y introduisez jamais de braises. Ne creusez jamais dans une pente qui peut avalancher. **Reconnaître une intoxication au monoxyde de carbone** : maux de tête, vertiges, nausées, fatigue ou confusion près d'un feu, d'un réchaud, d'un moteur ou d'un appareil de chauffage. Ces signes ressemblent à une grippe sans fièvre et touchent souvent plusieurs personnes en même temps ; une personne qui dort peut mourir sans avoir ressenti de symptôme. Faites sortir immédiatement tout le monde à l'air libre, sans chercher la source, appelez le 112 (ou le 15 ou le 18), et ne revenez pas sans l'accord des secours.
 
 ### Avalanche
 
@@ -804,7 +927,11 @@ Repérez-le avant de vous baigner : bande d'eau plus sombre et plus calme entre 
 
 Après une extraction réalisée sans mettre le sauveteur en danger, vérifiez la réaction et la respiration. Si la personne ne répond pas et ne respire pas normalement, faites appeler le 112. Si vous savez les réaliser, commencez par **5 insufflations initiales** (consigne des recommandations européennes ERC 2025 ; le référentiel français PSC ne prévoit pas d'insufflations initiales spécifiques), puis poursuivez la réanimation selon votre formation et les instructions des secours. Si vous ne pouvez pas insuffler, faites au moins les compressions. N'essayez pas de « vider les poumons ». Une gêne respiratoire persistante après submersion nécessite une évaluation médicale urgente.
 
-**Enfant ou nourrisson :** la conduite après noyade selon le référentiel français reste à valider ; appelez le 15 ou le 112 en haut-parleur et suivez les consignes du régulateur (voir aussi chapitre 8).
+**Enfant ou nourrisson :** le référentiel français ne prévoit pas de procédure particulière pour la noyade ; appliquez la conduite de l'encadré « Arrêt cardiaque de l'enfant et du nourrisson » (chapitre 8 et fiche 3 bis), en appelant le 15 ou le 112 en haut-parleur et en suivant les consignes du régulateur.
+
+### Marées et pêche à pied
+
+Avant de vous avancer sur l'estran, renseignez-vous sur les heures de marée du port le plus proche, sur le coefficient (100 ou plus = danger), sur la météo et sur les dangers locaux. Ne partez pas seul, prévenez quelqu'un de votre heure de retour, emportez un téléphone et une montre. La mer remonte très vite et peut arriver de tous côtés, même derrière vous, encercler un banc de sable et vous isoler. Commencez à revenir dès l'heure de la basse mer : le retour est toujours plus long que l'aller. Urgence : 196 ou 112.
 
 ### Homme à la mer (depuis un bateau)
 
@@ -847,6 +974,8 @@ Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais l
 - **Restez près du véhicule** en panne : il donne de l'ombre, des matériaux (rétroviseurs = miroirs, tapis, réservoirs) et se voit bien mieux qu'une personne.
 - Respirez par le nez, ne parlez pas inutilement, ne mangez que si vous avez de l'eau.
 
+**Crème solaire :** sur la peau non couverte, appliquez généreusement une crème solaire « large spectre » (UVA et UVB), indice 15 au minimum. Renouvelez au moins toutes les 2 heures, et plus souvent si vous transpirez ou vous baignez. Les nuages laissent passer une grande partie des UV, et aucune crème ne bloque tout : gardez chapeau, vêtements et ombre. Les crèmes en aérosol peuvent s'enflammer : tenez-les loin du feu.
+
 > 🖼 *Illustration : Abri contre le soleil à double toit avec 30 cm d'air entre les deux couches, surélevé du sol brûlant.* Deux toiles (couverture de survie, bâche, vêtement) séparées d'environ 30 cm : l'air entre les deux peut limiter l'échauffement. Installez d'abord une ombre opaque et stable, avec une bonne circulation d'air. Le creusement reste optionnel : seulement si le terrain s'y prête, si l'effort est faible et si l'emplacement est hors zone de ruissellement ou d'inondation. Ne sacrifiez pas votre repos à un terrassement dont le bénéfice est incertain.
 
 ### L'eau dans les zones arides
@@ -877,6 +1006,7 @@ Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le v
 - **Système des 3 couches :** une couche près du corps qui évacue la sueur (laine ou synthétique, **pas de coton**), une couche chaude (polaire, doudoune), une couche coupe-vent et imperméable.
 - Règle C.O.L.D. (chapitre 11) : propre, sans transpirer, couches amples, au sec.
 - Mangez gras et sucré, buvez chaud : le corps a besoin de carburant pour produire de la chaleur. Ne mangez pas de neige : faites-la fondre puis traitez l'eau obtenue comme une eau naturelle (la fonte ne désinfecte pas).
+- Au froid aussi, continuez à boire régulièrement, de préférence des boissons tièdes ou chaudes, sans alcool : l'alcool ne réchauffe pas.
 - Avant de dormir : mangez, urinez (le corps ne chauffe plus la vessie), mettez des vêtements secs. Bouillotte : seulement avec un récipient compatible avec l'eau chaude, une eau non brûlante, une fermeture étanche vérifiée, enveloppé sans contact direct avec la peau (voir chapitre 13).
 
 ### Passer à travers la glace
@@ -951,10 +1081,18 @@ Coupure d'électricité, inondation, tempête, séisme, incendie : en cas de cri
 
 Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personne selon les recommandations françaises, à adapter aux besoins ; pour couvrir aussi la préparation des aliments et une hygiène minimale, le CDC recommande environ 3,8 litres par personne et par jour, à augmenter selon la chaleur et les besoins particuliers (ce stock n'est pas une quantité à boire obligatoirement) —, de la nourriture non périssable consommable sans cuisson, un ouvre-boîte, une radio et une lampe avec piles de rechange, un chargeur et une batterie externe, une trousse de secours, les médicaments personnels, des vêtements chauds, des couvertures, des lunettes de secours, des copies des documents essentiels, de l'argent liquide et des doubles des clés. Adaptez les réserves aux enfants, aux personnes dépendantes et aux animaux. Rangez le kit dans un endroit accessible, à l'abri de l'eau, et contrôlez régulièrement son contenu.
 
+**Constituer et renouveler la réserve d'eau.** Le plus simple et le plus sûr : de l'eau en bouteille du commerce, non ouverte, renouvelée avant sa date limite. Si vous remplissez vous-même des contenants : utilisez des récipients alimentaires propres, solides et bien fermés, jamais un bidon ayant contenu Javel, carburant ou pesticide. Lavez-les au savon et rincez avant de les remplir. Notez « eau de boisson » et la date, rangez-les au frais, à l'abri de la lumière et loin des produits toxiques, et renouvelez l'eau tous les 6 mois. Pour vous servir, utilisez un ustensile propre, jamais les mains.
+
+**Réserves d'eau cachées.** Sans réserve, il reste souvent de l'eau utilisable à la maison : le ballon d'eau chaude sanitaire (celui qui alimente robinets et douche, pas le circuit des radiateurs ; pour le vider sans danger, suivez sa notice) ; les glaçons faits avec une eau saine ; le réservoir de la chasse d'eau (pas la cuvette), seulement si l'eau est claire et sans produit colorant ou désinfectant ; le jus des conserves de fruits et légumes. Ne buvez pas l'eau des radiateurs ni du circuit de chauffage. L'eau de piscine ou de spa sert à l'hygiène et au ménage, pas à boire. Suivez les consignes des autorités, qui peuvent demander de fermer le robinet général.
+
+**Nourrisson.** Le lait infantile liquide prêt à l'emploi est le plus sûr en crise, car il ne demande pas d'eau ; gardez-en dans le kit. Sinon, préparez le lait en poudre avec de l'eau en bouteille tant que les autorités n'ont pas déclaré l'eau du robinet potable (à défaut, une eau bouillie puis refroidie). Respectez exactement les doses de la boîte. Sans moyen de bien laver les biberons, donnez le lait dans un gobelet jetable propre. Ne fabriquez jamais de lait « maison ». L'allaitement se poursuit normalement.
+
 ### Se tenir informé
 
 - En France, l'alerte **FR-Alert** s'affiche directement sur les téléphones de la zone concernée. Les sirènes sont testées le premier mercredi du mois à midi : un son montant et descendant en dehors de ce test = mettez-vous à l'abri et écoutez la radio.
+- **Au signal d'alerte**, rejoignez le bâtiment le plus proche : ne restez ni dehors ni dans votre voiture. Fermez portes, fenêtres et volets ; si vous le pouvez, arrêtez la ventilation et le chauffage. N'évacuez que sur consigne des autorités. La fin de l'alerte est annoncée par un son continu de 30 secondes : restez à l'abri jusque-là.
 - Radio à piles : les stations locales du service public donnent les consignes officielles.
+- Fiez-vous aux sources officielles et méfiez-vous des rumeurs. Écoutez les consignes à heures fixes plutôt qu'en continu : voir et revoir les mêmes images entretient la peur. Éloignez les enfants des reportages et des vidéos de l'événement. Entre deux points d'information, occupez-vous avec des tâches utiles ou une activité qui vous fait du bien.
 - Convenez en famille d'un **point de rendez-vous** et d'un proche à contacter (hors de la région), au cas où les réseaux locaux seraient saturés. Pour joindre vos proches, préférez les SMS aux appels ; pour les secours, appelez le 112 (alerte écrite : 114, chapitre 7).
 - **Chaque personne compte :** demandez à chacun ce qui l'aide à comprendre et à agir. Adressez-vous directement à la personne, utilisez des consignes courtes et vérifiez leur compréhension sans la mettre à l'épreuve. Adaptez les tâches à ses possibilités et respectez ses choix autant que la sécurité le permet. Gardez autant que possible les enfants avec un adulte familier et rassurant, expliquez simplement ce qui se passe et proposez-leur des tâches sans danger. Un handicap ou un trouble psychique ne signifie pas qu'une personne ne peut pas contribuer au groupe.
 
@@ -962,6 +1100,7 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 
 - Gardez les portes **fermées**. Sans autre source de froid, comptez environ 4 heures pour un réfrigérateur, 48 heures pour un congélateur plein et 24 heures s'il est à moitié plein ; les conditions réelles peuvent modifier ces délais. Ne goûtez jamais un aliment pour vérifier sa sécurité. Jetez les denrées périssables insuffisamment maintenues au froid. Des aliments encore pourvus de cristaux de glace ou maintenus à 4 °C ou moins peuvent être conservés ou recongelés selon les consignes de sécurité alimentaire.
 - **Jamais** de groupe électrogène, barbecue, brasero ou chauffage d'appoint à combustion dans un espace fermé : le monoxyde de carbone tue sans odeur.
+- Un **détecteur de monoxyde de carbone** à piles, installé près des chambres, peut donner l'alerte avant que vous ne ressentiez des symptômes. Il complète l'entretien des appareils et l'aération, il ne les remplace pas. S'il sonne : sortez tout le monde à l'air libre, appelez les secours et ne rentrez pas sans leur accord. Remplacez-le selon la notice. Signes d'intoxication : voir chapitre 15.
 - Débranchez les appareils sensibles pour éviter la surtension au retour du courant. Réunissez-vous dans une seule pièce l'hiver.
 
 ### Inondation
@@ -969,6 +1108,12 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 - **Ne marchez et ne roulez jamais dans l'eau** en mouvement : 15 cm d'eau courante peuvent faire tomber un adulte, 30 cm emporter une voiture.
 - Montez à l'étage ou sur un point haut, avec le kit. Coupez électricité et gaz si vous pouvez le faire sans danger.
 - N'allez pas chercher les enfants à l'école : ils y sont pris en charge.
+- **Eau du robinet :** après une inondation, ne la buvez pas tant que la mairie ou le distributeur d'eau n'a pas confirmé qu'elle est potable. En attendant, buvez de l'eau en bouteille dont le bouchon est resté scellé, aussi pour préparer les repas et vous brosser les dents. Ne consommez pas une bouteille ou une conserve restée dans l'eau de crue. L'eau d'un puits inondé n'est pas potable : demandez conseil à la mairie avant de la réutiliser. Lavez-vous les mains au savon après tout contact avec l'eau de crue.
+- Ne descendez pas dans les sous-sols ni les parkings souterrains inondés. Faites vérifier l'électricité et le chauffage par un professionnel avant de les remettre en marche. N'utilisez pas de nettoyeur ou de pompe à moteur thermique dans la maison (monoxyde de carbone).
+
+### Canicule
+
+Fermez volets et fenêtres côté soleil pendant la journée, et ouvrez en grand la nuit dès que l'air extérieur est plus frais. Mouillez-vous le corps, buvez régulièrement, évitez l'alcool et les efforts, et passez quelques heures dans un lieu frais si votre logement chauffe trop. Prenez des nouvelles des personnes fragiles. En cas de malaise, appelez le 15.
 
 ### Séisme
 
@@ -1066,6 +1211,8 @@ Sans briquet, cherchez d'abord une solution simple : des **lunettes de presbyte*
 
 Si vous êtes seul, donnez un rythme simple à l'attente : vérifier votre situation, accomplir une tâche utile, puis vous reposer. Vous pouvez vous parler ou noter votre plan si cela vous aide ; ce n'est pas une obligation. Appuyez-vous sur ce qui compte pour vous : une personne, une activité, une valeur ou un projet. Vous n'avez pas à rester positif en permanence ni à vous épuiser pour rester occupé. Le délai de secours peut varier de quelques heures à plusieurs jours selon la situation ; aucun délai n'est garanti. L'absence de secours visibles ne prouve pas l'absence de recherches. Concentrez-vous sur ce que vous pouvez faire maintenant : vous protéger, préserver vos ressources et maintenir vos moyens de signalement.
 
+La nuit, l'obscurité et les bruits peuvent faire peur : c'est fréquent. Installez-vous avant la nuit et posez à portée de main la lampe, le sifflet et le téléphone. Ne vous déplacez pas dans l'obscurité : attendez le jour pour réévaluer. Si vous vous réveillez inquiet, reprenez un point d'appui simple (sentir le sol, nommer ce qui vous entoure, voir chapitre 1). Gardez la lampe pour signaler et pour les vrais besoins.
+
 ---
 
 ## 22Avec un couteau ou un outil
@@ -1095,6 +1242,8 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 
 > 🖼 *Illustration : Zone dangereuse entre les cuisses et position sûre : coudes sur les genoux, couper vers l'extérieur.* Le « triangle de sang » : l'intérieur des cuisses abrite l'artère fémorale. Une blessure à cet endroit est une urgence vitale.
 
+**Règles de base.** Avant d'ouvrir la lame, tendez le bras et tournez sur vous-même : personne ni rien ne doit se trouver à portée de la lame. Si quelqu'un s'approche, arrêtez-vous. Asseyez-vous sur un appui stable, les coudes sur les genoux, et travaillez devant vous ou sur le côté, loin des cuisses. Coupez toujours en éloignant la lame de vous, et gardez la main qui tient le bois derrière le tranchant. Ne travaillez pas fatigué ni dans la pénombre, et gardez la trousse de secours à portée. Après chaque usage, refermez ou rengainez la lame ; pour la passer à quelqu'un, fermez-la ou rengainez-la d'abord, puis tendez le manche. En cas de coupure, appuyez sur la plaie et voyez le chapitre 8.
+
 ### Les techniques de base au couteau
 
 > 🖼 *Illustration : Copeaux en plumes, encoche, et fendage au bâton.* Après fendage, le cœur peut être plus sec, sans garantie. Le bâtonnage s'apprend encadré, avec un couteau dont le fabricant autorise cet usage.
@@ -1108,6 +1257,8 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 ### Affûter sur le terrain
 
 > 🖼 *Illustration : Affûter une lame sur une pierre plate mouillée à environ 20 degrés.* Suivez le biseau et les recommandations du fabricant : pour un couteau suisse Victorinox, l'indication est de 15 à 20° par face ; ce n'est pas une règle pour tous les couteaux. N'utilisez pas deux pièces de monnaie comme référence universelle d'angle. Posez l'abrasif (pierre à grain fin, dessous non émaillé d'une tasse) sur un support stable et gardez les doigts hors du trajet. Sur cuir posé sur un support, déplacez la lame dos en avant, tranchant à la traîne, afin de ne pas couper le cuir.
+
+**Entretenir ses outils.** Après usage, et surtout après la pluie, la sève ou des aliments, nettoyez la lame. Pour un couteau suisse, ouvrez et fermez les outils dans de l'eau tiède jusqu'à ce qu'ils bougent librement. Séchez tout complètement, puis mettez une petite goutte d'huile prévue pour couteaux et compatible avec les aliments sur les articulations. Pas de lave-vaisselle, et pas de trempage prolongé pour un manche en bois. Une tache sombre sur l'acier est un début de rouille : nettoyez et huilez. Rangez l'outil sec et fermé.
 
 ### Les autres outils qui changent tout
 
@@ -1124,12 +1275,14 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 | **Gourde métal simple paroi** | Privilégiez une popote prévue pour la cuisson. Ne chauffez directement une gourde simple paroi que si la notice de son modèle autorise cet usage, bouchon et accessoires incompatibles retirés, sortie de vapeur libre. Stabilisez le récipient et prévoyez un moyen sûr de le saisir. Ne chauffez jamais un contenant fermé ni une gourde isotherme double paroi. Laissez refroidir avant de boire ou de refermer. |
 | **Lampe frontale** | Mains libres pour travailler de nuit ; mode rouge pour garder la vision nocturne ; mode clignotant = signal. |
 
+**Scier sans se blesser :** posez la pièce contre un appui dur et gardez la main qui la tient bien loin de la lame, surtout au début de la coupe, quand la lame peut sauter. Un gant de travail sur cette main protège des échardes et des petites entailles. Si vous bloquez le bois avec le pied, portez des chaussures fermées qui couvrent les orteils. Un gant ne remplace pas la bonne position : il réduit les petites blessures, il n'empêche pas une coupure grave.
+
 ### Le trio idéal dans une poche
 
 Si vous ne deviez emporter que trois objets : **un couteau avec scie**, **un briquet + une pierre à feu**, **une couverture de survie**. Ces outils augmentent vos possibilités, mais ne rendent pas les techniques faciles et ne remplacent ni l'apprentissage, ni l'évaluation de vos limites, ni l'équipement adapté au milieu (eau, vêtements, couchage et isolation, éclairage, orientation, moyen d'alerte).
 
 > **Bon à savoir (France)**
-> En France, le classement et les règles applicables dépendent du couteau. Pour une arme de catégorie D, port et transport hors du domicile sont interdits sans motif légitime, apprécié au cas par cas. La randonnée ou la pêche peuvent expliquer la présence d'un outil adapté, sans donner une autorisation automatique. Porter un couteau pour se défendre n'est pas en soi un motif légitime. Protégez la lame, rangez l'outil avec votre matériel et vérifiez les règles du lieu, des transports et du pays avant le départ.
+> En France, le classement et les règles applicables dépendent du couteau. Pour une arme de catégorie D, port et transport hors du domicile sont interdits sans motif légitime, apprécié au cas par cas. La randonnée ou la pêche peuvent expliquer la présence d'un outil adapté, sans donner une autorisation automatique. Porter un couteau pour se défendre n'est pas en soi un motif légitime. Protégez la lame, rangez l'outil avec votre matériel et vérifiez les règles du lieu, des transports et du pays avant le départ. Transportez un couteau pliant fermé et un couteau à lame fixe toujours dans son étui, dans une pochette au milieu du sac, pas dans une poche où vous mettez la main sans regarder. À la ceinture, dans son étui, la lame pointe vers le bas. Faites de même pour la scie (lame repliée) et la hachette (protège-lame). À la maison, rangez les lames propres, sèches, fermées et hors de portée des jeunes enfants.
 
 ---
 
@@ -1244,6 +1397,7 @@ Onze fiches, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans le k
 3. Je prends le kit 72 h.
 4. Je coupe gaz et électricité si c'est sans danger.
 5. SMS aux proches plutôt qu'appels, point de rendez-vous familial ; secours : 112.
+6. Je ne bois l'eau du robinet que si la mairie la déclare potable ; sinon, eau en bouteille scellée.
 
 → chapitre 20
 
@@ -1264,6 +1418,8 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Faire les 3 nœuds les yeux fermés (chapitre 12).
 - [ ] Allumer un feu dans un barbecue avec briquet, puis avec une pierre à feu et du coton-vaseline.
 - [ ] Fabriquer du coton-vaseline ; tissu charbonné seulement avec une personne qui maîtrise la technique, dehors, là où un feu est autorisé.
+- [ ] Faire vérifier par une personne compétente le cercle de sécurité, la position assise et le passage d'une lame fermée ou rengainée (chapitre 22).
+- [ ] Nettoyer, sécher et huiler son couteau.
 - [ ] Faire bouillir de l'eau dans une popote prévue pour la cuisson (ou une gourde simple paroi seulement si sa notice l'autorise, bouchon retiré) ; essayer la méthode SODIS.
 - [ ] Mesurer son double pas sur 100 m (chapitre 11).
 - [ ] Suivre une formation aux premiers secours (PSC1, une journée).
@@ -1276,6 +1432,8 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Allumer un feu à la pierre à feu avec ce que l'on trouve (là où c'est autorisé).
 - [ ] Réussir un feu après la pluie : bois fendu, copeaux en plumes.
 - [ ] Construire un appentis stable, fixations montrées et vérifiées par une personne compétente, sans viser un chrono.
+- [ ] Monter une bâche sur une ligne de faîtage et la retendre (chapitre 12).
+- [ ] Réaliser un brêlage carré et le tester à la main.
 - [ ] Reconnaître 5 plantes comestibles et leurs sosies, avec un guide ou une association.
 - [ ] Envoyer un signal au miroir à un ami situé à 500 m.
 
@@ -1305,8 +1463,10 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 
 ### Avant de partir
 
-- [ ] Itinéraire + heure de retour laissés à un proche
+- [ ] Plan de sortie écrit laissé à un proche, avec heure limite d'alerte convenue
 - [ ] Météo et heure de coucher du soleil vérifiées
+- [ ] Vigilance Météo-France et Vigicrues vérifiées ; accès aux massifs autorisé (été)
+- [ ] Enfants : consigne « serre un arbre » apprise, sifflet et vêtement voyant
 - [ ] Téléphone chargé + batterie externe + cartes hors ligne
 - [ ] Carte papier + boussole
 - [ ] Eau adaptée à la durée, à l'effort et à la météo, avec une marge pour un retard (1,5 L ne suffit pas à toute sortie ; ne comptez sur un ravitaillement que s'il est réellement accessible) + de quoi la traiter
@@ -1315,6 +1475,8 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Vêtement chaud + veste imperméable, même en été
 - [ ] Lampe frontale
 - [ ] Kit de survie + mini-trousse de secours
+- [ ] Crème solaire, lunettes de soleil, chapeau
+- [ ] Zone sans réseau : balise PLB enregistrée
 - [ ] En-cas énergétiques
 
 ### Si je suis perdu
@@ -1339,7 +1501,7 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 | 3114 | Prévention du suicide, gratuit, 24 h/24 et 7 j/7, pour la personne en souffrance et son entourage (France) |
 | 0 800 112 112 | Numéro de **rappel** des services d'urgence (France) : répondez-y |
 | 196 | Secours en mer (France) |
-| Centre antipoison | Numéro du centre antipoison de votre région, à relever avant le départ (annuaire officiel des centres antipoison) ; détresse vitale : 15 ou 112 (France) |
+| Centres antipoison | France, 24 h/24, 7 j/7 : Angers 02 41 48 21 21 · Bordeaux 05 56 96 40 80 · Lille 0 800 59 59 59 · Lyon 04 72 11 69 11 · Marseille 04 91 75 25 25 · Nancy 03 83 22 50 50 · Paris 01 40 05 48 48 · Toulouse 05 61 77 74 47. N'attendez pas les symptômes pour appeler. Personne inconsciente ou qui respire mal : 15 ou 112. |
 
 > **Le mental**
 > Avoir peur, hésiter ou avoir besoin d'aide ne signifie pas manquer de volonté. En difficulté, choisissez une petite action sûre et réalisable, puis réévaluez. Se reposer, demander du soutien ou renoncer peuvent être des décisions adaptées. Lorsque la communication est possible, cherchez un contact de soutien. L'issue ne dépend pas uniquement du mental.
@@ -1348,9 +1510,31 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 > Si une personne dit vouloir mourir ou se blesser, prenez ses paroles au sérieux. Écoutez sans juger et demandez une aide professionnelle. Si cela ne vous met pas en danger, restez avec elle ou organisez une présence jusqu'au relais. En cas de danger immédiat, appelez le 112 ou le 15 en France. En France, le **3114** est le numéro gratuit de prévention du suicide, accessible 24 h/24 et 7 j/7, pour la personne en souffrance et son entourage. Il ne remplace pas les secours en cas d'urgence immédiate.
 
 > **Après le retour**
-> Des cauchemars, souvenirs intrusifs, irritabilité, tristesse, peur ou difficultés de sommeil peuvent survenir. Ces signes ne suffisent pas à poser un diagnostic. Recherchez du soutien à votre rythme ; personne ne doit vous obliger à raconter l'événement en détail. Consultez si la souffrance est importante, si votre sommeil ou votre vie quotidienne sont perturbés, ou si les difficultés persistent, notamment au-delà d'un mois. N'attendez pas un mois pour demander de l'aide si vous allez mal.
+> Des cauchemars, souvenirs intrusifs, irritabilité, tristesse, peur ou difficultés de sommeil peuvent survenir. Ces signes ne suffisent pas à poser un diagnostic. Recherchez du soutien à votre rythme ; personne ne doit vous obliger à raconter l'événement en détail. Consultez si la souffrance est importante, si votre sommeil ou votre vie quotidienne sont perturbés, ou si les difficultés persistent, notamment au-delà d'un mois. N'attendez pas un mois pour demander de l'aide si vous allez mal. **Vers qui se tourner :** votre médecin traitant, qui peut vous orienter. Après une catastrophe, une cellule d'urgence médico-psychologique (CUMP) est souvent mise en place : en cas d'urgence, appelez le 15. Si les difficultés durent plus d'un mois, le centre régional du psychotraumatisme de votre région peut vous accompagner. Il n'est jamais trop tard pour demander de l'aide, même des années après.
+
+> **Après le retour, pour les enfants**
+> Un enfant peut redevenir « plus petit » (pipi au lit, besoin d'être porté), avoir peur d'être séparé de vous, faire des colères ou des cauchemars. Ces réactions disparaissent souvent avec le temps. Répondez à ses questions simplement et avec des mots vrais, laissez-le en parler ou dessiner s'il le souhaite, sans l'y obliger. Reprenez vite les habitudes (repas, coucher, école) et évitez-lui les images de l'événement. Parlez-en au médecin si la peur, la tristesse ou la colère durent plus de deux à quatre semaines, s'aggravent ou gênent sa vie à l'école ou en famille.
 
 — Fin du livret — Bonne route et soyez prudents. —
+
+---
+
+## Petit glossaire
+
+|  |  |
+|---|---|
+| AML | Localisation automatique d'un smartphone lors d'un appel d'urgence (ch. 7) |
+| BERA | Bulletin d'estimation du risque d'avalanche (ch. 15) |
+| CROSS | Centres de secours en mer, joignables au 196 (ch. 16) |
+| CUMP | Cellule d'urgence médico-psychologique (ch. 8 et 25) |
+| DAE | Défibrillateur automatisé externe (ch. 8) |
+| DVA | Détecteur de victimes d'avalanche, à utiliser avec pelle et sonde (ch. 15) |
+| FR-Alert | Alerte officielle diffusée sur les téléphones (ch. 20) |
+| PLB | Balise personnelle de détresse, 406 MHz (ch. 7) |
+| PLS | Position latérale de sécurité (ch. 8) |
+| PSC1 | Formation de base aux premiers secours (ch. 8) |
+| RTN PSC | Référentiel technique national des premiers secours citoyens (ch. 8) |
+| SRO | Solution de réhydratation orale (ch. 8) |
 
 ---
 
