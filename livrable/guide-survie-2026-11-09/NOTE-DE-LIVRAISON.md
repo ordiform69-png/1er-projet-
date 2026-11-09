@@ -68,10 +68,10 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-99217c0586a0694686e1b7cb48b8bdab8b6614a69d2b8ce6d0e8e195539a1f7d  guide-survie.pdf
-5a752c5f7b2cd76370a15346dcab32b81ffb4bbc4c8fc7ca48806deca55335cb  fiches-reflexes.pdf
-26dbb8090c7d4bd84815de090011b614897270b8a380723c376327f4ca007128  guide-survie.html
-09b4b0a404aa7e9d5bec15b2a86a8d3f306860a0a34d5b9e4c29c349190e6c28  guide-survie-corrige.md
-9d11597fb82199d46191f719877fb90836af88649ff2001d34b7b1551a604b39  JOURNAL-CORRECTIONS.md
+8aebf2caa17ddc885f4bac6f6cd42390de9b4afb33a95747a2408b69d1d4d001  guide-survie.pdf
+8d71c3121ab897cc15e28d524ae504d08153b9e0dcc70aec002776bcb9914bde  fiches-reflexes.pdf
+338af9c3559224231fd2a14ca63633b60f4838ca930d74557641848f8cb663d3  guide-survie.html
+06dff260cf798fdc0c7b82f74742f9143e5e530421f71da9ef469e95edceaea0  guide-survie-corrige.md
+d35ea7d2a4ec0323c32491ca9651b531c9e58121530bc68be701cbbab30401ab  JOURNAL-CORRECTIONS.md
 ef06dbba16c42cb65bf509540b9ea1fef2b022e6a375eff182c4de493051f2fd  CONTROLE-PERSISTANCE.md
 ```

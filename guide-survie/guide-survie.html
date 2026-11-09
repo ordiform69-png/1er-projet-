@@ -103,10 +103,24 @@
   @media print {
     :root { --bg: #fff; --page: #fff; }
     body { font-size: 11.5pt; }
-    .page { margin: 0; border: 0; padding: 0; max-width: none; page-break-after: always; break-after: page; }
-    .page:last-child { page-break-after: auto; break-after: auto; }
-    figure, .box, table { break-inside: avoid; }
-    h2, h3 { break-after: avoid; }
+    /* Mise en page imprimée : les chapitres s'enchaînent sans laisser de pages presque vides ;
+       saut de page seulement après la couverture et avant l'avant-propos, les fiches et les annexes. */
+    .page { margin: 0; border: 0; padding: 0; max-width: none; break-after: auto; page-break-after: auto; }
+    .page + .page { margin-top: 1.6em; }
+    .cover { break-after: page; page-break-after: always; }
+    #avant-propos, #fiches, #annexe-note { break-before: page; page-break-before: always; margin-top: 0; }
+    p, li { orphans: 3; widows: 3; }
+    figure { break-inside: avoid; }
+    .box { break-inside: auto; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+    .box > strong:first-child { break-after: avoid; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid; }
+    thead { display: table-header-group; }
+    figure svg { max-height: 8cm; }
+    figure.photo img { max-height: 7cm; width: auto; max-width: 100%; margin: 0 auto; }
+    figure figcaption { font-size: .85em; }
+    figure.photo { max-width: 100%; }
+    h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
     a { color: inherit; text-decoration: none; }
   }
   @page { size: A5; margin: 14mm 12mm; }
@@ -4167,6 +4181,8 @@
 <hr />
 <h2>N. Un seul livret qui contient tout (v1.4)</h2>
 <p>À la demande de l'éditeur, le livret (<code>guide-survie.html</code>, <code>guide-survie.pdf</code>, <code>guide-survie-corrige.md</code>) contient désormais tout : le guide, puis l'<strong>annexe A</strong> (note de version et points encore à faire vérifier), l'<strong>annexe B</strong> (ce journal) et l'<strong>annexe C</strong> (les contrôles). Le fichier séparé « livrable » n'existe plus. Le texte du guide est rédigé dans <code>source/livret-corps.html</code> ; <code>outils/construire-livret.py</code> et <code>outils/livret-pdf.js</code> assemblent le livret. Les contrôles portent sur le texte du guide seul, car ce journal cite volontairement les anciennes phrases.</p>
+<h3>N bis. Mise en page imprimée</h3>
+<p>Signalement de l'éditeur : certaines pages étaient vides, d'autres ne portaient que deux ou trois lignes. Il y avait trois causes : chaque chapitre commençait sur une nouvelle page (les fins de chapitre restaient seules), les grands tableaux et encadrés ne pouvaient pas être coupés, et les grandes illustrations ne tenaient pas dans la place restante. Corrections : les chapitres s'enchaînent, avec un saut de page seulement après la couverture et avant l'avant-propos, les fiches réflexes et les annexes ; les tableaux se coupent entre deux lignes ; les longs encadrés peuvent se couper ; les illustrations sont limitées à 8 cm (dessins) et 7 cm (photos) à l'impression ; un titre ne reste jamais seul en bas de page. Mesure par <code>outils/controle-mise-en-page.py</code> : 29 pages remplies à moins de 50 % avant correction (dont 8 presque vides), <strong>3 après</strong> (le bas du sommaire et deux pages suivies d'un grand dessin), <strong>aucune à moins de 30 %</strong>. Le livret passe de 225 à 202 pages. Le texte n'est pas modifié.</p>
 </section>
 
 <section class="page annexe" id="annexe-controle">

@@ -2146,6 +2146,10 @@ Verdict des neuf agents : **« publiable après corrections mineures »**, sous 
 
 À la demande de l'éditeur, le livret (`guide-survie.html`, `guide-survie.pdf`, `guide-survie-corrige.md`) contient désormais tout : le guide, puis l'**annexe A** (note de version et points encore à faire vérifier), l'**annexe B** (ce journal) et l'**annexe C** (les contrôles). Le fichier séparé « livrable » n'existe plus. Le texte du guide est rédigé dans `source/livret-corps.html` ; `outils/construire-livret.py` et `outils/livret-pdf.js` assemblent le livret. Les contrôles portent sur le texte du guide seul, car ce journal cite volontairement les anciennes phrases.
 
+### N bis. Mise en page imprimée
+
+Signalement de l'éditeur : certaines pages étaient vides, d'autres ne portaient que deux ou trois lignes. Il y avait trois causes : chaque chapitre commençait sur une nouvelle page (les fins de chapitre restaient seules), les grands tableaux et encadrés ne pouvaient pas être coupés, et les grandes illustrations ne tenaient pas dans la place restante. Corrections : les chapitres s'enchaînent, avec un saut de page seulement après la couverture et avant l'avant-propos, les fiches réflexes et les annexes ; les tableaux se coupent entre deux lignes ; les longs encadrés peuvent se couper ; les illustrations sont limitées à 8 cm (dessins) et 7 cm (photos) à l'impression ; un titre ne reste jamais seul en bas de page. Mesure par `outils/controle-mise-en-page.py` : 29 pages remplies à moins de 50 % avant correction (dont 8 presque vides), **3 après** (le bas du sommaire et deux pages suivies d'un grand dessin), **aucune à moins de 30 %**. Le livret passe de 225 à 202 pages. Le texte n'est pas modifié.
+
 ---
 
 # Annexe C — Contrôles

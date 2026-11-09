@@ -4,7 +4,7 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 **Un seul livret contient tout** : le guide, puis les annexes A (note de version et points à faire vérifier), B (journal des corrections) et C (contrôles). Il existe en trois formats identiques :
 
-- `guide-survie/guide-survie.pdf` — PDF au format A5 (225 pages, pages numérotées), à garder sur le téléphone ou à imprimer.
+- `guide-survie/guide-survie.pdf` — PDF au format A5 (202 pages numérotées), à garder sur le téléphone ou à imprimer.
 - `guide-survie/guide-survie.html` — version web autonome, illustrée de dessins et de 28 photos sous licence libre (aucune connexion requise, mode sombre, imprimable).
 - `guide-survie/guide-survie-corrige.md` — texte intégral en Markdown.
 
