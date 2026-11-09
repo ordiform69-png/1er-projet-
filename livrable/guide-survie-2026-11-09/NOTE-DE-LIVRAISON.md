@@ -8,7 +8,7 @@
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 125 pages, illustré, lisible hors ligne et imprimable |
+| `guide-survie.pdf` | Livret complet, A5, 142 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 10 fiches réflexes seules (A5, 4 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
@@ -39,18 +39,17 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 **À compléter** :
 - Procédure **enfant** de l'arrêt cardiaque (« à valider », ne pas extrapoler la procédure adulte).
 - **If, myrtilles, lianes** : abstention seulement, formulation spécialisée non transmise.
-- **Schémas pas à pas** du cabestan et du nœud tendeur (chapitre 12).
-- **Trois illustrations encore en tension** avec le texte : coches ✓/✗ sur les plantes (ch. 10), « Est » et « Sud » dans le dessin du bâton et de la montre (ch. 6), « …à faire bouillir ! » sous le filtre (ch. 13).
+- **Illustrations** : 28 photos sous licence libre ajoutées (crédits en fin de livret) ; coches ✓/✗ des plantes supprimées ; légendes « Est/Sud » et filtre alignées. Reste : schéma pas à pas du **nœud de cabestan**.
 
 **Recommandé** : une relecture finale par un formateur aux premiers secours (PSC) sur les chapitres 8, 16 et 23 avant toute diffusion.
 
 ## Empreintes SHA-256
 
 ```
-6854e47b424f8b27aeb67e3fa82fc4aa44e7e86850600cca475de3ba66bb6f58  guide-survie.pdf
-24a0824f9d14e872f4f549ab9a3b0c3117f0e25d59ed80396ed1c5a4a1e9fd42  fiches-reflexes.pdf
-57464829feaf1af73d9cced5b658cea4a58909edd2b0991abb44bcc95f57af7c  guide-survie.html
-d6bafe90ff2bfe09df5019ee8d634b833a5debfc2a302be6380cea84771a7796  guide-survie-corrige.md
-5fa8d0bc2e75c06d3a26924a38788eb1d512622a2972e63f1a45e424d60bd5a8  JOURNAL-CORRECTIONS.md
+d94883869921eb071f5ae004956fde4fb0782ec336079f075a7ec048b46d16c5  guide-survie.pdf
+ffa3a5e2b7f77cf4d8b0ee5e094406256da6b58b991326c19a4f5eae85daf2d9  fiches-reflexes.pdf
+bd2ee0d3a93a5017f76d232797b67cc9274aac0f31698684e9394a3517e1cd67  guide-survie.html
+d271d8b1f5a7c2358c9ea3f28eb420d93da2bb2b70cfa82ca4356a52ddd67419  guide-survie-corrige.md
+4e3e8261c7b30116682a5680fdc69a34a1d80a6e16d5eeee525ef7ebf9d306f1  JOURNAL-CORRECTIONS.md
 e646ce6166871d65245cdcba2721cdc29c0f34cd1c4c7bb7812bda057bc7dd2c  CONTROLE-PERSISTANCE.md
 ```

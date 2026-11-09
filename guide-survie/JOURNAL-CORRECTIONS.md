@@ -184,3 +184,25 @@ Encordement, assurage et secours sur corde ; recherche au DVA ; garrot improvis�
 ## F. Contrôle de persistance (rapport consolidé 001–102)
 
 Voir `CONTROLE-PERSISTANCE.md`. Résultat : 102 points sur 102 conformes, après correction de 10 reprises secondaires qui persistaient (fiche 2, entraînement, ch. 3, 13, 18, 21 et 22). Le script de contrôle est fourni (`controle-persistance.py`). Les divergences entre agents sont listées avec le texte actuellement en place, dont trois sont à trancher par l'éditeur : points 003, 019 et 022 (le point 022 crée une incohérence entre les ch. 5 et 19).
+
+## G. Photos libres de droits et cohérence des visuels (9 novembre 2026)
+
+**28 photos sous licence libre** ajoutées (domaine public, CC0, CC BY, CC BY-SA), trouvées via Openverse sur Flickr et Wikimedia Commons. Chacune a été vérifiée visuellement et par son titre (nom latin de l'espèce, description officielle). Auteur, licence et source sont indiqués sous chaque photo et sur la page « Crédits photographiques », avec les liens vers les textes des licences.
+
+| Chapitre | Visuel avant | Visuel après |
+|---|---|---|
+| 2 | — | Photo de couverture de survie (rappel : appoint, pas un isolant) |
+| 4 bis | Dessin de la pierre à feu | Dessin conservé + photo pierre à feu et couteau ; photo de copeaux en plumes |
+| 6 | « Est », « Sud » affirmatifs | « ≈ Est », « ≈ Sud », légende « schémas de principe, approximatifs » ; photo boussole sur carte |
+| 8 | Dessin de PLS approximatif | Illustration PLS (Laboratoires Servier) ; photo de formation au garrot tourniquet ; photo de tire-tique |
+| 10 | Dessins de plantes avec coches ✓/✗ | **Coches supprimées** : grille de photos (ortie, pissenlit, plantain, ronce, massette, châtaigne) ; ail des ours, muguet, colchique, marron d'Inde ; grande ciguë et if. Légende de l'ail des ours conservée (« dessins » remplacé par « photos ») |
+| 12 | Dessin de nœud de chaise erroné | Nœud de chaise et nœud tendeur **en 4 étapes** (photos/schémas), cabestan photographié |
+| 13 | Dessin SODIS ; « …à faire bouillir ! » | Photo SODIS (Eawag) ; mention « …puis la traiter (ébullition…) » |
+| 15 | Coupe de l'abri de neige | Coupe conservée + photo d'un quinzhee (« ne pas improviser ») |
+| 16 | Schéma du courant d'arrachement | Schéma conservé + photo des panneaux officiels ; photo de gilets de sauvetage |
+| 18 | Schéma de sortie de l'eau glacée | Schéma conservé + photo d'exercice de sauvetage sur glace (pompiers équipés) |
+| 20 | Dessin du séisme | Pictogrammes « se baisser, s'abriter, s'agripper » |
+
+**Écartées après vérification** : couverture « thermique » de navette spatiale (pas une couverture de survie), garrot à boucle de prise de sang (pas un garrot d'hémorragie), garrot pneumatique (peu adapté au grand public), « nœud de chaise » cowboy (variante différente du texte), unité de purification lourde présentée comme filtre, « châtaigne ? » au titre incertain, « grottes de neige » naturelles.
+
+**Reste à compléter** : schéma pas à pas du nœud de cabestan.

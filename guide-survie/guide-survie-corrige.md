@@ -37,6 +37,8 @@ Avant-propos : à quoi sert ce livret
 24. Programme d'entraînement
 25. Check-lists
 
+Crédits photographiques
+
 ---
 
 ## Avant-propos : à quoi sert ce livret
@@ -119,6 +121,8 @@ Un petit kit, toujours dans le sac, vaut mieux qu'un gros kit resté à la maiso
 - **Soins :** pansements, compresses, bande, désinfectant, médicaments personnels.
 - **Divers :** cordelette (10 m), ruban adhésif, barres énergétiques, crayon et papier.
 
+> 📷 *Photo : Couverture de survie argentée dépliée et son emballage (Photo : Firetwister (auteur présumé, voir la source) — CC BY-SA 3.0 (crédit n° 24)).* Couverture de survie dans son emballage et dépliée : un appoint léger, pas un sac de couchage ni un isolant du sol.
+
 > **Ce kit ne suffit pas seul**
 > Ce mini-kit complète l'équipement de sortie : il ne remplace pas des vêtements adaptés, une protection contre la pluie et le vent, une isolation du sol et, lorsque nécessaire, un couchage adapté aux températures attendues. La couverture de survie est un appoint, pas un matelas ni un sac de couchage tous temps.
 
@@ -196,6 +200,8 @@ Classées de la plus facile à la plus difficile. Règle d'or : **préparez tout
 
 > 🖼 *Illustration : Utiliser une pierre à feu : garder le grattoir fixe et tirer la tige vers l'arrière.* En tirant la tige plutôt qu'en poussant le grattoir, on ne disperse pas l'amadou. Grattez d'abord le revêtement noir d'une tige neuve.
 
+> 📷 *Photo : Pierre à feu rouge avec cordon, couteau à lame fixe et étui (Photo : Wtshymanski — CC BY-SA 4.0 (crédit n° 21)).* Pierre à feu (ferrocérium) et son grattoir, à côté d'un couteau à lame fixe.
+
 Fonctionne mouillée, par le froid, en altitude, des milliers de fois. Les étincelles (≈ 3 000 °C) allument du coton, de l'écorce de bouleau finement grattée, du tissu charbonné ou de l'amadou de champignon, mais rarement de l'herbe un peu humide.
 
 ### 3. Le soleil et une lentille
@@ -236,6 +242,8 @@ Ne percez ni ne court-circuitez jamais une batterie au lithium (téléphone, bat
 - Faites une **plateforme** de branches ou de pierres plates pour isoler le feu du sol mouillé.
 - Ne tendez pas une bâche ordinaire au-dessus du foyer et n'utilisez pas une couverture de survie comme écran exposé à sa chaleur. Gardez couchage, vêtements, réserves de bois et parois combustibles hors de portée des flammes, du rayonnement et des projections. Réévaluez leur disposition si le vent change ; si vous ne pouvez pas les protéger, renoncez au feu.
 - Préparez **le double** de petit bois, et faites sécher le combustible suivant autour du feu.
+
+> 📷 *Photo : Bâtons taillés en copeaux fins et bouclés, couteau à côté (Photo : lacides brochado sal… — CC BY-SA 3.0 (crédit n° 22)).* Copeaux en plumes taillés dans du bois sec : de fins copeaux qui restent attachés au bâton.
 
 ### Quel bois brûler ?
 
@@ -290,12 +298,14 @@ Avant une sortie autonome, apprenez sur terrain facile à lire légende, échell
 
 **Les trois nords :** les méridiens indiquent le nord géographique, la boussole le nord magnétique et le quadrillage le nord de sa projection. Vérifiez pour votre carte la correction entre quadrillage et nord magnétique : elle dépend du lieu et de la date et tient compte de la déclinaison magnétique et de la convergence du quadrillage. Apprenez à l'appliquer avec la notice de votre boussole, sans la compter deux fois. Effectuez les mesures loin des aimants, du téléphone et des objets métalliques susceptibles de perturber l'aiguille.
 
+> 📷 *Photo : Boussole Suunto posée sur une carte routière (Photo : Olgierd — CC BY 2.0 (crédit n° 23)).* Boussole à plaque posée sur une carte : outil de référence, à condition d'avoir appris à s'en servir.
+
 ### Avec le soleil
 
 - Hors des tropiques, le Soleil se trouve au **sud** à midi solaire dans l'hémisphère nord et au nord dans l'hémisphère sud. Dans les tropiques, sa position à midi dépend de la latitude et de la saison. Lever et coucher donnent seulement des secteurs généraux (est, ouest), avec de grands écarts saisonniers ; aux régions polaires, ils peuvent être absents. Midi solaire ne signifie pas midi à la montre.
 - **Méthode du bâton** : utilisez un bâton vertical sur un sol horizontal et marquez précisément les positions successives de l'extrémité de son ombre. La ligne de la 1re marque vers la 2e donne seulement une indication grossière de l'**est** : elle n'est pas nécessairement proche d'un est exact, même après 15 à 20 minutes. Contrôlez-la avec une référence fiable et ne l'utilisez pas seule pour suivre un cap ou rejoindre un objectif étroit.
 
-> 🖼 *Illustration : Méthode du bâton et méthode de la montre.* À gauche : la méthode du bâton. À droite : pointez la petite aiguille vers le soleil ; le sud est au milieu entre elle et le 12 (hémisphère nord).
+> 🖼 *Illustration : Méthode du bâton et méthode de la montre.* Schémas de principe, approximatifs : à gauche la méthode du bâton (indication grossière de l'est), à droite la méthode de la montre réglée à l'heure solaire (axe nord–sud approximatif, hémisphère nord). Ne les utilisez pas seuls pour suivre un cap.
 
 ### Méthode de la montre (à aiguilles)
 
@@ -347,9 +357,11 @@ Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime
 2. Allongez la victime, alertez les secours.
 3. Hémorragie d'un membre que la compression ne permet pas de contrôler : privilégiez un **garrot conçu à cet effet**. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, **notez l'heure** et ne le desserrez pas. N'utilisez jamais une ficelle ou une cordelette seule.
 
+> 📷 *Photo : Formation à la pose d'un garrot sur un bras de mannequin (Photo : NavyMedicine — Domaine public (crédit n° 14)).* Formation à la pose d'un garrot tourniquet conçu à cet effet, sur mannequin. Ce geste s'apprend en formation pratique.
+
 ### Personne inconsciente qui respire normalement : la PLS
 
-> 🖼 *Illustration : Position latérale de sécurité.* Sur le côté, tête basculée en arrière, bouche ouverte vers le sol pour que les liquides s'écoulent. Surveillez la respiration en permanence.
+> 📷 *Photo : Personne allongée sur le côté en position latérale de sécurité (Photo : Laboratoires Servier — CC BY-SA 3.0 (crédit n° 13)).* Position latérale de sécurité : sur le côté, jambe du dessus pliée pour la stabilité, tête basculée en arrière, bouche vers le sol pour que les liquides s'écoulent. Surveillez la respiration en permanence. Elle s'apprend en formation (PSC1).
 
 Si la personne ne répond pas mais respire normalement après un événement **non traumatique**, placez-la en PLS, alertez et surveillez sa respiration en permanence. **Après un traumatisme ou si la cause est inconnue**, laissez-la sur le dos, maintenez ses voies aériennes libres et suivez les instructions des secours. Si elle vomit ou régurgite, tournez-la sur le côté en préservant autant que possible l'axe tête-cou-tronc, avec de l'aide si disponible.
 
@@ -397,6 +409,8 @@ Après un aliment, un médicament ou une piqûre, une difficulté respiratoire, 
 ### Tique
 
 - Retirez rapidement la tique avec un tire-tique selon sa notice. À défaut, utilisez une pince fine au plus près de la peau et tirez régulièrement sans torsion ni à-coups. N'écrasez pas son abdomen et n'appliquez ni huile, ni alcool, ni chaleur avant le retrait. Nettoyez ensuite la zone, notez date et lieu, et consultez si une rougeur s'étend, si une fièvre apparaît ou en cas d'autre symptôme.
+
+> 📷 *Photo : Crochet tire-tique jaune retirant une tique sur la peau (Photo : Otom — CC BY-SA 3.0 (crédit n° 15)).* Un tire-tique (crochet) : glissé sous la tique au ras de la peau, il s'utilise selon sa notice.
 
 ### Petites plaies
 
@@ -447,7 +461,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 
 ### Les comestibles faciles à reconnaître
 
-> 🖼 *Illustration : Ortie, pissenlit, plantain et ronce.*
+> 📷 *Photo : Ortie (Urtica dioica) (Photo : Matt Lavin — CC BY-SA 2.0 (crédit n° 1)) ; Pissenlit (planche botanique) (Photo : mikkeldybdal.md — Domaine public (crédit n° 2)) ; Plantain (Plantago major) (Photo : Starr Environmental — CC BY 2.0 (crédit n° 3)) ; Ronce : mûres pas encore mûres (Photo : hedera.baltica — CC BY-SA 2.0 (crédit n° 4)) ; Massette (Typha latifolia) (Photo : Tenesse85 — Domaine public (crédit n° 5)) ; Châtaigne : bogue à piquants fins (Photo : conskeptical — CC BY-SA 2.0 (crédit n° 6)).* Plantes comestibles courantes, à reconnaître avec plusieurs critères (feuilles, tige, fleurs, milieu). Ces photos ne suffisent pas, seules, à identifier une plante : apprenez-les sur le terrain avec un connaisseur.
 
 | Plante | Comment la reconnaître | Utilisation |
 |---|---|---|
@@ -465,7 +479,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 
 ### Les sosies mortels à connaître
 
-> 🖼 *Illustration : Ail des ours comparé au muguet et au colchique ; châtaigne comparée au marron d'Inde.* L'odeur d'ail est un critère utile, mais elle ne suffit pas à garantir l'identification. Examinez chaque feuille et plusieurs caractères botaniques ; ne cueillez jamais par brassées. L'odeur peut se transmettre aux mains et aux autres feuilles. Ces dessins ne permettent pas, seuls, d'identifier une plante comestible. Au moindre doute, abstenez-vous.
+> 📷 *Photo : Ail des ours (Allium ursinum) en sous-bois (Photo : blumenbiene — CC BY 2.0 (crédit n° 7)) ; Muguet — TOXIQUE (planche botanique) (Photo : mikkeldybdal.md — Domaine public (crédit n° 8)) ; Colchique — TOXIQUE (fleurs, automne) (Photo : Ronald van der Graaf — CC BY 2.0 (crédit n° 9)) ; Marron d'Inde — TOXIQUE (Photo : hedera.baltica — CC BY-SA 2.0 (crédit n° 10)).* L'odeur d'ail est un critère utile, mais elle ne suffit pas à garantir l'identification. Examinez chaque feuille et plusieurs caractères botaniques ; ne cueillez jamais par brassées. L'odeur peut se transmettre aux mains et aux autres feuilles. Ces photos ne permettent pas, seules, d'identifier une plante comestible. Au moindre doute, abstenez-vous. Le marron d'Inde (fruit rond dans une bogue à grosses pointes rares) est toxique : ne le confondez pas avec la châtaigne.
 
 | Toxique | Pourquoi c'est dangereux |
 |---|---|
@@ -476,6 +490,8 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 | **Belladone, morelle, douce-amère** | Baies noires ou rouges attirantes. **Règle :** ne mangez aucune baie que vous ne connaissez pas. |
 | **Sureau** | Les usages alimentaires concernent le sureau noir (*Sambucus nigra*) correctement identifié, pas tous les sureaux. Ne consommez ni feuilles, ni tiges, ni fruits verts ; ses fruits mûrs doivent être triés et suffisamment cuits. Le sureau yèble (*Sambucus ebulus*), herbacé et non ligneux, est à exclure. Sa hauteur seule ne permet pas de le reconnaître. |
 | **Champignons** | L'amanite phalloïde tue. Aucun test fiable sur le terrain : ne mangez pas de champignons sauvages en situation de survie. |
+
+> 📷 *Photo : Grande ciguë (Conium maculatum) — MORTELLE (Photo : Matt Lavin — CC BY-SA 2.0 (crédit n° 11)) ; If (Taxus baccata) — TRÈS TOXIQUE (Photo : Juhele_CZ — CC0 (crédit n° 12)).* Deux plantes mortelles. Au moindre doute, s'abstenir : ces photos ne permettent pas d'identifier une plante.
 
 > **Intoxication suspectée**
 > Après ingestion d'une plante toxique ou en cas de doute sur une plante consommée, contactez immédiatement un centre antipoison, même sans symptôme. En cas de détresse vitale, appelez le 15 ou le 112. Ne faites pas vomir. Conservez les restes et des photographies de la plante, sans retarder l'appel, et indiquez l'heure, la partie consommée et la quantité estimée.
@@ -572,7 +588,7 @@ L'aspect d'une personne ou d'un bâtiment ne permet pas d'en déduire une distan
 
 ## 12Trois nœuds utiles
 
-> 🖼 *Illustration : Nœud de chaise, nœud de cabestan, nœud de taquet coinceur.*
+> 📷 *Photo : Nœud de chaise en 4 étapes (Photo : Luis Dantas — CC BY-SA 3.0 (crédit n° 16)) ; Nœud tendeur en 4 étapes (Photo : David J. Fred — CC BY-SA 2.5 (crédit n° 17)) ; Nœud de cabestan (ici sur un mousqueton, démonstration) (Photo : Parkis at Czech Wikipedia — CC BY-SA 3.0 (crédit n° 18)).* Uniquement pour des installations sans enjeu de sécurité humaine (tendre une bâche, un abri). Vérifiez chaque nœud sous la traction prévue.
 
 ### Nœud de chaise
 
@@ -589,7 +605,7 @@ Deux tours croisés autour d'un poteau, le second tour passant sous le premier. 
 
 Passez la corde autour du piquet, revenez vers la corde tendue et faites deux tours à l'intérieur de la boucle, puis un tour à l'extérieur. Le nœud coulisse pour retendre ; sa tenue dépend du cordage et des conditions et n'est pas automatique. Vérifiez-le sous la traction prévue ; s'il glisse sur la cordelette, utilisez un dispositif de tension adapté.
 
-À compléter avant diffusion : schémas pas à pas numérotés (courant, dormant, croisements, sens de traction, aspect après serrage) pour le cabestan et le tendeur.
+À compléter avant diffusion : schéma pas à pas numéroté du nœud de cabestan (les étapes du nœud de chaise et du tendeur sont désormais illustrées).
 
 ---
 
@@ -609,7 +625,7 @@ Avec une bouteille, un sac plastique, un couteau et un peu d'astuce, on fabrique
 > **Conditions SODIS**
 > Utilisez des bouteilles PET propres, transparentes et incolores, de 2 litres maximum, sans étiquette, contenant une eau claire. Couchez-les au soleil pendant au moins **6 heures** si moins de la moitié du ciel est couvert ; si davantage de nuages sont présents, exposez-les pendant **deux jours consécutifs**. Une simple préfiltration ne suffit pas si l'eau reste trouble. N'utilisez pas cette méthode pendant une période de pluie prolongée. Conservez ensuite l'eau dans les bouteilles fermées pour éviter sa recontamination.
 
-> 🖼 *Illustration : Bouteilles transparentes posées au soleil sur une surface réfléchissante.* Bouteilles PET propres, transparentes et incolores, 2 L maximum, sans étiquette, couchées, eau claire. Conditions complètes dans l'encadré ci-dessus.
+> 📷 *Photo : Bouteilles d'eau en plastique alignées au soleil sur une tôle, des enfants autour (Photo : SODIS Eawag — CC BY 3.0 (crédit n° 19)).* Bouteilles PET transparentes exposées au soleil pour la désinfection solaire (SODIS), lors d'une démonstration en Indonésie. Conditions complètes dans l'encadré ci-dessus.
 
 ### 3. Récolter l'eau : alambic solaire et sac sur branche
 
@@ -708,6 +724,8 @@ Une zone blanche ou grise, dure et insensible après exposition au froid (doigts
 
 > 🖼 *Illustration : Coupe d'un abri creusé dans la neige avec entrée basse, banquette haute et trou d'aération.* Un abri creusé dans la neige exige un apprentissage pratique et une neige adaptée : ce schéma n'est pas un plan de construction complet. N'en faites pas votre première tentative seul en situation de détresse. Une congère épaisse ne garantit pas une structure stable : vérifiez la cohésion de la neige. Pendant le creusement, un compagnon reste dehors avec une pelle pour pouvoir intervenir. Renoncez si la neige ne tient pas ou si la structure se fragilise. Gardez votre pelle accessible, l'entrée dégagée et l'abri signalé. Un abri bien réalisé peut réduire fortement l'exposition au vent, mais sa température intérieure n'est pas garantie et peut rester nettement négative : isolez-vous de la neige avec un matelas adapté et gardez votre couchage sec. Si vous manquez de compétence, de temps ou d'énergie, privilégiez une protection plus simple et le matériel de secours emporté.
 
+> 📷 *Photo : Dôme de neige avec une entrée basse, dans un jardin enneigé (Photo : Urgeap — CC BY-SA 4.0 (crédit n° 25)).* Un quinzhee (abri creusé dans un tas de neige tassée), vu de l'extérieur. Technique à apprendre encadré : ne pas improviser.
+
 > **Danger**
 > N'utilisez aucun appareil à combustion dans une tente ou un abri de neige, même muni d'une aération. Une ouverture ne garantit pas l'absence de monoxyde de carbone. N'y introduisez jamais de braises. Ne creusez jamais dans une pente qui peut avalancher.
 
@@ -752,9 +770,13 @@ En mer, le premier ennemi est le **froid de l'eau**, bien avant la soif ou la fa
 - **Ne nagez pas** vers une côte lointaine : nager refroidit beaucoup plus vite. Restez près du bateau retourné ou d'un objet flottant, et hissez-vous le plus possible hors de l'eau.
 - Le gilet de sauvetage, porté **et attaché**, est l'équipement qui sauve le plus de vies.
 
+> 📷 *Photo : Gilets de sauvetage colorés suspendus à une station de prêt (Photo : Only in Oregon — CC BY 2.0 (crédit n° 27)).* Gilets de sauvetage en prêt au bord d'un lac (Oregon) : le gilet ne protège que s'il est porté et attaché.
+
 ### Le courant d'arrachement (baïne, courant de retour)
 
 > 🖼 *Illustration : Courant d'arrachement : nager parallèlement à la plage pour en sortir.* Le courant n'entraîne pas vers le fond, il éloigne du bord. Ne luttez pas contre lui : nagez parallèlement à la plage, ou laissez-vous porter en faisant la planche et en levant un bras pour appeler à l'aide.
+
+> 📷 *Photo : Panneaux de plage expliquant le courant d'arrachement (Photo : Invertzoo — CC BY-SA 4.0 (crédit n° 26)).* Panneaux d'information sur le courant d'arrachement (Californie) : « Don't fight the current. Swim out of the current, then to shore » — ne luttez pas, sortez du courant en nageant parallèlement, puis regagnez le bord.
 
 Repérez-le avant de vous baigner : bande d'eau plus sombre et plus calme entre les vagues qui déferlent, écume ou débris qui partent vers le large. Baignez-vous sur les plages surveillées, entre les drapeaux.
 
@@ -838,6 +860,8 @@ Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le v
 ### Passer à travers la glace
 
 > 🖼 *Illustration : Sortir de l'eau glacée : se tourner vers d'où l'on vient, battre des pieds à l'horizontale, ramper puis rouler.* Gardez votre calme pendant la première minute de choc respiratoire (règle 1-10-1, chapitre 16). Une fois dehors, ne vous levez pas : roulez puis rampez jusqu'à la rive.
+
+> 📷 *Photo : Sauveteur en combinaison étanche rampant sur la glace (Photo : Joint Base Elmendorf-Richardson — Domaine public (crédit n° 28)).* Exercice de sauvetage sur glace par des pompiers équipés de combinaisons étanches : on reste allongé sur la glace pour répartir le poids. Sans équipement ni formation, restez sur la rive et tendez ou lancez un objet.
 
 - **Prévention :** l'épaisseur seule ne garantit jamais la sécurité : consultez les conditions et autorisations locales et ne vous engagez pas seul. Glace blanche, grise, près des berges, des roseaux ou des courants : beaucoup plus fragile. En cas de doute, ne vous y aventurez pas.
 - **Pour aider quelqu'un :** si quelqu'un tombe à l'eau, appelez immédiatement le 112. Restez sur la rive ou sur un emplacement sûr et tendez ou lancez un objet de secours ; ne vous avancez pas sur la glace rompue pour tenter de l'atteindre.
@@ -926,7 +950,7 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 
 ### Séisme
 
-> 🖼 *Illustration : Se baisser, s'abriter sous une table solide, s'agripper au pied de la table.*
+> 📷 *Photo : Pictogrammes : se baisser, s'abriter sous une table, s'agripper (Photo : Jesús Franco Martínez — CC BY-SA 3.0 (crédit n° 20)).* À l'intérieur, pendant les secousses : 1. se baisser (« agacharse »), 2. s'abriter sous une table solide (« cubrirse »), 3. s'agripper à un pied de la table (« sujetarse »), loin des fenêtres, jusqu'à la fin des secousses.
 
 - **À l'intérieur, pendant les secousses :** abritez-vous sous une table solide, loin des fenêtres ; agrippez-vous à un pied et protégez votre tête et votre nuque. Restez protégé jusqu'à la fin des secousses. **Après les secousses** seulement : évacuez par les escaliers, jamais par l'ascenseur, et éloignez-vous de ce qui pourrait s'effondrer.
 - Dehors : éloignez-vous des bâtiments, murs, poteaux et câbles. En voiture : arrêtez-vous loin des ponts et des bâtiments, restez dedans.
@@ -1293,5 +1317,44 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 > Des cauchemars, souvenirs intrusifs, irritabilité, tristesse, peur ou difficultés de sommeil peuvent survenir. Ces signes ne suffisent pas à poser un diagnostic. Recherchez du soutien à votre rythme ; personne ne doit vous obliger à raconter l'événement en détail. Consultez si la souffrance est importante, si votre sommeil ou votre vie quotidienne sont perturbés, ou si les difficultés persistent, notamment au-delà d'un mois. N'attendez pas un mois pour demander de l'aide si vous allez mal.
 
 — Fin du livret — Bonne route et soyez prudents. —
+
+---
+
+## Crédits photographiques
+
+Les photographies proviennent de Flickr et de Wikimedia Commons (recherche via Openverse) et sont publiées sous licence libre : domaine public, CC0, CC BY ou CC BY-SA. Les licences CC BY et CC BY-SA imposent de citer l'auteur et la licence ; les photos sous CC BY-SA restent sous cette licence. Les photos ont seulement été redimensionnées. Elles illustrent une technique ou une espèce mais **ne suffisent jamais, seules, à identifier une plante** ni à apprendre un geste.
+
+Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ; CC BY 3.0 : https://creativecommons.org/licenses/by/3.0/ ; CC BY-SA 2.0 : https://creativecommons.org/licenses/by-sa/2.0/ ; CC BY-SA 2.5 : https://creativecommons.org/licenses/by-sa/2.5/ ; CC BY-SA 3.0 : https://creativecommons.org/licenses/by-sa/3.0/ ; CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/ ; CC0 : https://creativecommons.org/publicdomain/zero/1.0/ ; Domaine public : https://creativecommons.org/publicdomain/mark/1.0/.
+
+| N° | Sujet | Auteur | Licence | Source |
+|---|---|---|---|---|
+| 1 | Ortie | Matt Lavin | CC BY-SA 2.0 | https://www.flickr.com/photos/35478170@N08/52394266693 |
+| 2 | Pissenlit | mikkeldybdal.md | Domaine public | https://www.flickr.com/photos/203835554@N06/55397310090 |
+| 3 | Plantain | Starr Environmental | CC BY 2.0 | https://www.flickr.com/photos/97499887@N06/52694616747 |
+| 4 | Ronce | hedera.baltica | CC BY-SA 2.0 | https://www.flickr.com/photos/125741467@N05/51794042943 |
+| 5 | Massette | Tenesse85 | Domaine public | https://www.flickr.com/photos/194071409@N05/51724760209 |
+| 6 | Châtaigne | conskeptical | CC BY-SA 2.0 | https://www.flickr.com/photos/32751486@N00/15390833726 |
+| 7 | Ail des ours | blumenbiene | CC BY 2.0 | https://www.flickr.com/photos/47439717@N05/54544873469 |
+| 8 | Muguet | mikkeldybdal.md | Domaine public | https://www.flickr.com/photos/203835554@N06/55322223110 |
+| 9 | Colchique | Ronald van der Graaf | CC BY 2.0 | https://www.flickr.com/photos/91830216@N03/52337311165 |
+| 10 | Marron d'Inde | hedera.baltica | CC BY-SA 2.0 | https://www.flickr.com/photos/125741467@N05/54046721675 |
+| 11 | Grande ciguë | Matt Lavin | CC BY-SA 2.0 | https://www.flickr.com/photos/35478170@N08/52242762493 |
+| 12 | If | Juhele_CZ | CC0 | https://www.flickr.com/photos/96541566@N06/51516931515 |
+| 13 | PLS (illustration) | Laboratoires Servier | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=128273804 |
+| 14 | Garrot (formation) | NavyMedicine | Domaine public | https://www.flickr.com/photos/61270229@N05/52868232343 |
+| 15 | Tire-tique | Otom | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=6647041 |
+| 16 | Nœud de chaise (étapes) | Luis Dantas | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=1271352 |
+| 17 | Nœud tendeur (étapes) | David J. Fred | CC BY-SA 2.5 | https://commons.wikimedia.org/w/index.php?curid=1926003 |
+| 18 | Nœud de cabestan | Parkis at Czech Wikipedia | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=1893064 |
+| 19 | SODIS | SODIS Eawag | CC BY 3.0 | https://commons.wikimedia.org/w/index.php?curid=3857398 |
+| 20 | Séisme (pictogrammes) | Jesús Franco Martínez | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=32290650 |
+| 21 | Pierre à feu et couteau | Wtshymanski | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=60782900 |
+| 22 | Copeaux en plumes | lacides brochado sal… | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=60245405 |
+| 23 | Boussole et carte | Olgierd | CC BY 2.0 | https://commons.wikimedia.org/w/index.php?curid=132155294 |
+| 24 | Couverture de survie | Firetwister (auteur présumé, voir la source) | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=408815 |
+| 25 | Quinzhee | Urgeap | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=76374996 |
+| 26 | Courant d'arrachement (panneaux) | Invertzoo | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=35031316 |
+| 27 | Gilets de sauvetage | Only in Oregon | CC BY 2.0 | https://www.flickr.com/photos/46052415@N08/51929205803 |
+| 28 | Sauvetage sur glace (exercice) | Joint Base Elmendorf-Richardson | Domaine public | https://www.flickr.com/photos/47082109@N02/51805000280 |
 
 ---
