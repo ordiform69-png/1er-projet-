@@ -8,10 +8,10 @@
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 185 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
+| `guide-survie.pdf` | **Le livret complet, qui contient tout** : le guide illustré (dessins et 28 photos libres), puis les annexes A (note de version), B (journal des corrections) et C (contrôles). A5, lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 12 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
-| `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
-| `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
+| `guide-survie.html` | Le même livret complet en version web autonome (un seul fichier, hors ligne, mode sombre) |
+| `guide-survie-corrige.md` | Le même livret complet en Markdown, annexes comprises |
 | `JOURNAL-CORRECTIONS.md` | Chaque correction : chapitre, avant, après, source ; arbitrages ; illustrations à revoir |
 | `CONTROLE-PERSISTANCE.md` | Vérification des points 001 à 102 sur la version corrigée : 102 / 102 conformes |
 | `NOTE-DE-LIVRAISON.md` | Ce document |
@@ -68,10 +68,10 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-496425b47f537425c3f7bd6e4c1dc8818e08f3fcf46ac8d3e7d47b368ae903a1  guide-survie.pdf
-392d52e2798046f6b67ab3bc247bcd710dd1c93a2998d029a50e165c20e20b21  fiches-reflexes.pdf
-04e70106de46a9296f76958a0ea6dc8aef646df3915b07f74bb556073eae5cd2  guide-survie.html
-a63c753d1cf2396d4b66151a2a7431984b7f8ed5667b95a19bd7544d72b09432  guide-survie-corrige.md
-6e28f130d9eb8105811e5e867a7f0820d1a645520a48188122d7183997f9fca0  JOURNAL-CORRECTIONS.md
+99217c0586a0694686e1b7cb48b8bdab8b6614a69d2b8ce6d0e8e195539a1f7d  guide-survie.pdf
+5a752c5f7b2cd76370a15346dcab32b81ffb4bbc4c8fc7ca48806deca55335cb  fiches-reflexes.pdf
+26dbb8090c7d4bd84815de090011b614897270b8a380723c376327f4ca007128  guide-survie.html
+09b4b0a404aa7e9d5bec15b2a86a8d3f306860a0a34d5b9e4c29c349190e6c28  guide-survie-corrige.md
+9d11597fb82199d46191f719877fb90836af88649ff2001d34b7b1551a604b39  JOURNAL-CORRECTIONS.md
 ef06dbba16c42cb65bf509540b9ea1fef2b022e6a375eff182c4de493051f2fd  CONTROLE-PERSISTANCE.md
 ```

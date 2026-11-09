@@ -478,3 +478,9 @@ Verdict des neuf agents : **« publiable après corrections mineures »**, sous 
 | Pêche « hors urgence vitale » (ch. 14) ; « moteur 10 min par heure » (fiche 8) | Signalés hors domaine ; inchangés, à revoir lors de la relecture humaine. |
 
 **Relecture humaine avant publication** : ch. 8 et fiches 3, 3 bis et 3 ter par un formateur PSC ou un médecin (y compris le choix des deux référentiels) ; ch. 9, 10 et 19 par un botaniste.
+
+---
+
+## N. Un seul livret qui contient tout (v1.4)
+
+À la demande de l'éditeur, le livret (`guide-survie.html`, `guide-survie.pdf`, `guide-survie-corrige.md`) contient désormais tout : le guide, puis l'**annexe A** (note de version et points encore à faire vérifier), l'**annexe B** (ce journal) et l'**annexe C** (les contrôles). Le fichier séparé « livrable » n'existe plus. Le texte du guide est rédigé dans `source/livret-corps.html` ; `outils/construire-livret.py` et `outils/livret-pdf.js` assemblent le livret. Les contrôles portent sur le texte du guide seul, car ce journal cite volontairement les anciennes phrases.

@@ -2,8 +2,11 @@
 
 Livret de survie illustré, en français, utilisable **hors ligne**, pour acquérir des bases solides face à toutes les conditions :
 
-- `guide-survie/guide-survie.html` — version web autonome, illustrée de dessins et de 28 photos sous licence libre (crédits en fin de livret) (aucune connexion requise, mode sombre, imprimable).
-- `guide-survie/guide-survie.pdf` — version PDF au format A5 (185 pages), à garder sur le téléphone ou à imprimer.
+**Un seul livret contient tout** : le guide, puis les annexes A (note de version et points à faire vérifier), B (journal des corrections) et C (contrôles). Il existe en trois formats identiques :
+
+- `guide-survie/guide-survie.pdf` — PDF au format A5 (225 pages, pages numérotées), à garder sur le téléphone ou à imprimer.
+- `guide-survie/guide-survie.html` — version web autonome, illustrée de dessins et de 28 photos sous licence libre (aucune connexion requise, mode sombre, imprimable).
+- `guide-survie/guide-survie-corrige.md` — texte intégral en Markdown.
 
 **Avant-propos** puis 25 chapitres :
 
@@ -13,10 +16,9 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 ## Livrable
 
-- `livrable/guide-survie-v1.4-livrable.pdf` — **livrable en fichier unique, version 1.4** (note de livraison, livret complet, annexes : journal des corrections et contrôle de persistance).
 - `livrable/guide-survie-2026-11-09.zip` — paquet détaillé (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
 
 ## Corrections éditoriales
 
-- `guide-survie/guide-survie-corrige.md` — texte corrigé, autonome (toutes les consignes vitales sont dans le texte).
+- `guide-survie/source/livret-corps.html` — texte du guide (source) ; `guide-survie/outils/construire-livret.py` puis `node guide-survie/outils/livret-pdf.js` reconstruisent le livret complet.
 - `guide-survie/JOURNAL-CORRECTIONS.md` — avant / après / source pour chaque correction, points non appliqués et illustrations à revoir.
