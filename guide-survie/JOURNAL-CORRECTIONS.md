@@ -180,3 +180,7 @@ Le numéro **0 800 112 112** a été vérifié avant intégration : c'est bien l
 ## E. Techniques marquées « ne pas improviser » ou réservées à la formation
 
 Encordement, assurage et secours sur corde ; recherche au DVA ; garrot improvisé ; insufflations ; allumage par court-circuit ; bâtonnage ; prises de couteau dirigées vers soi ; taille de pierre ; abri creusé dans la neige ; brancard et relevage ; hachette ; névés raides ; gué.
+
+## F. Contrôle de persistance (rapport consolidé 001–102)
+
+Voir `CONTROLE-PERSISTANCE.md`. Résultat : 102 points sur 102 conformes, après correction de 10 reprises secondaires qui persistaient (fiche 2, entraînement, ch. 3, 13, 18, 21 et 22). Le script de contrôle est fourni (`controle-persistance.py`). Les divergences entre agents sont listées avec le texte actuellement en place, dont trois sont à trancher par l'éditeur : points 003, 019 et 022 (le point 022 crée une incohérence entre les ch. 5 et 19).

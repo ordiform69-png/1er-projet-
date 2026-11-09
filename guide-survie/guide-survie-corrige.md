@@ -142,7 +142,7 @@ Le corps perd sa chaleur de quatre façons : par le **vent**, l'**humidité**, l
 
 ### Les règles d'or
 
-1. **Isolez-vous du sol** : c'est la priorité. Une couche de 15 à 20 cm de feuilles sèches, d'aiguilles de pin ou de branches de sapin compressée sous vous. Le sol froid vole la chaleur bien plus vite que l'air.
+1. **Isolez-vous du sol** : c'est la priorité. Une épaisse couche de feuilles sèches, d'aiguilles de pin ou de branches de sapin sous vous (15 à 20 cm est un repère, sans garantie : vérifiez qu'elle garde son épaisseur sous votre poids). Le sol froid vole la chaleur bien plus vite que l'air.
 2. **Petit, c'est mieux** : un petit abri peut mieux limiter les pertes de chaleur, mais sa température et sa protection dépendent de sa construction et des conditions. Protégez le couchage du vent et de la pluie, puis isolez le sol avec un matériau sec conservant de l'épaisseur sous votre poids. Vérifiez le tassement, l'humidité et les infiltrations ; aucune épaisseur de feuilles ne garantit à elle seule une nuit suffisamment chaude.
 3. **Restez au sec** : mettez-vous d'abord à l'abri du vent et de la pluie. Remplacez les vêtements mouillés avec des couches sèches prêtes à enfiler, en limitant le temps d'exposition. Sans remplacement disponible, protégez-vous avant toute manipulation. Faites sécher les vêtements à l'écart des flammes et des projections, sous surveillance.
 4. **Commencez tôt** : installez une protection minimale dès que nécessaire, sans attendre une heure théorique. La construction peut dépasser plusieurs heures selon le terrain, les matériaux, les outils et votre état. Gardez une marge et une solution plus simple. Vérifiez la stabilité des appuis avant de charger la structure ou de vous y glisser. Si le travail vous épuise ou vous fait trop transpirer, réduisez le projet et privilégiez une protection immédiatement utilisable.
@@ -627,7 +627,7 @@ L'alambic permet aussi d'obtenir de l'eau douce à partir d'eau de mer ou d'eau 
 
 - **Coton + vaseline :** boules de coton imprégnées, gardées dans une boîte de pellicule ou un tube. Une boule brûle 2 à 3 minutes, même par temps humide. Le meilleur allume-feu fait maison.
 - **« Bougie de tranchée » :** bandes de carton enroulées serré dans une boîte de conserve, imprégnées de cire de bougie fondue. Chauffe, éclaire, allume.
-- **Copeaux en plumes :** sur un bâton sec, taillez de fins copeaux sans les détacher : le cœur du bois est sec même sous la pluie.
+- **Copeaux en plumes :** sur un bâton sec, taillez de fins copeaux sans les détacher : le cœur du bois peut être plus sec, sans garantie.
 
 ### 6. La boussole improvisée
 
@@ -832,8 +832,8 @@ Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le v
 
 - **Système des 3 couches :** une couche près du corps qui évacue la sueur (laine ou synthétique, **pas de coton**), une couche chaude (polaire, doudoune), une couche coupe-vent et imperméable.
 - Règle C.O.L.D. (chapitre 11) : propre, sans transpirer, couches amples, au sec.
-- Mangez gras et sucré, buvez chaud : le corps a besoin de carburant pour produire de la chaleur. Ne mangez pas de neige : faites-la fondre.
-- Avant de dormir : mangez, urinez (le corps ne chauffe plus la vessie), mettez des vêtements secs, et une gourde d'eau chaude dans le sac de couchage.
+- Mangez gras et sucré, buvez chaud : le corps a besoin de carburant pour produire de la chaleur. Ne mangez pas de neige : faites-la fondre puis traitez l'eau obtenue comme une eau naturelle (la fonte ne désinfecte pas).
+- Avant de dormir : mangez, urinez (le corps ne chauffe plus la vessie), mettez des vêtements secs. Bouillotte : seulement avec un récipient compatible avec l'eau chaude, une eau non brûlante, une fermeture étanche vérifiée, enveloppé sans contact direct avec la peau (voir chapitre 13).
 
 ### Passer à travers la glace
 
@@ -973,7 +973,7 @@ Comptez 2 à 3 heures de travail : commencez **bien avant la nuit**. Travaillez 
 
 ### 2. Isoler son corps : les vêtements bourrés
 
-> 🖼 *Illustration : Rembourrer ses vêtements avec des feuilles sèches pour créer une isolation.* C'est l'air immobile emprisonné qui isole. Faites de même sous vous : un matelas de 20 cm de feuilles vaut mieux que n'importe quel feu raté.
+> 🖼 *Illustration : Rembourrer ses vêtements avec des feuilles sèches pour créer une isolation.* C'est l'air immobile emprisonné qui isole. Faites de même sous vous avec un matériau sec qui garde son épaisseur sous votre poids ; aucune épaisseur de feuilles ne garantit à elle seule une nuit suffisamment chaude.
 
 - Si vos vêtements sont mouillés : essorez-les fort et remettez-les (la laine et le synthétique isolent encore un peu mouillés, le coton non).
 - Protégez **la tête, le cou, les mains** : chaussettes en guise de moufles, t-shirt en cagoule.
@@ -1051,7 +1051,7 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 
 ### Les techniques de base au couteau
 
-> 🖼 *Illustration : Copeaux en plumes, encoche, et fendage au bâton.* Fendre une bûche permet d'atteindre le bois sec du cœur, même après la pluie.
+> 🖼 *Illustration : Copeaux en plumes, encoche, et fendage au bâton.* Après fendage, le cœur peut être plus sec, sans garantie. Le bâtonnage s'apprend encadré, avec un couteau dont le fabricant autorise cet usage.
 
 - **Copeaux en plumes :** sur un bâton sec, lame presque à plat, longs copeaux fins qui restent attachés en bas. Dix à quinze plumes fines = un allume-feu par temps humide.
 - **Fendage au bâton (« batonnage ») :** s'apprend encadré, avec un couteau dont le fabricant autorise cet usage ; une lame fixe ou épaisse ne suffit pas à le garantir. Utilisez du petit bois droit, sans nœud, sur un support stable, avec une lame nettement plus longue que le diamètre du morceau. Ne tordez pas la lame et arrêtez si elle se bloque. Pour débuter, privilégiez du petit bois cassable à la main ou sciable. **Ne pas improviser.**
@@ -1073,7 +1073,7 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 | **Hachette** | Fendre et couper vite, mais blessures graves fréquentes. Faites-vous montrer le geste : support stable, zone dégagée, protection oculaire, chaussures adaptées et personne dans la zone de travail. Vérifiez où finirait un coup manqué ; écarter les jambes ne constitue pas à lui seul une protection. |
 | **Paracorde** (cordelette 550) | Tendre une bâche, faire un archet, fixer une attelle. Ses 7 brins intérieurs servent de fil de pêche, de fil à coudre ou de lien fin. N'utilisez pas la paracorde seule comme lien de garrot. Pour une hémorragie d'un membre que la compression ne permet pas de contrôler, privilégiez un garrot conçu à cet effet. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, notez l'heure et ne le desserrez pas. |
 | **Couverture de survie** | Se couvrir, tapisser l'abri, signal brillant, récupérer la pluie, ombre en été. C'est un appoint, pas un écran réfractaire : ne l'exposez pas à la chaleur d'un feu. |
-| **Sac poubelle épais** | Poncho (trou pour la tête), sac de bivouac bourré de feuilles, bâche d'abri, alambic solaire, sac étanche. |
+| **Sac poubelle épais** | Poncho (trou pour la tête), sac de bivouac garni de feuilles sèches (visage entièrement dégagé, sortie facile, jamais fermé autour de la tête), bâche d'abri, alambic solaire, sac étanche. |
 | **Ruban adhésif** (enroulé sur un briquet) | Prévenir les ampoules, réparer une veste ou une tente, fixer une attelle. Ne l'utilisez pas comme combustible. |
 | **Gourde métal simple paroi** | Privilégiez une popote prévue pour la cuisson. Ne chauffez directement une gourde simple paroi que si la notice de son modèle autorise cet usage, bouchon et accessoires incompatibles retirés, sortie de vapeur libre. Stabilisez le récipient et prévoyez un moyen sûr de le saisir. Ne chauffez jamais un contenant fermé ni une gourde isotherme double paroi. Laissez refroidir avant de boire ou de refermer. |
 | **Lampe frontale** | Mains libres pour travailler de nuit ; mode rouge pour garder la vision nocturne ; mode clignotant = signal. |
@@ -1103,9 +1103,9 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 
 #### 2 · Nuit imprévue dehors
 
-1. Je commence 2 h avant la nuit.
+1. Protection minimale dès que nécessaire, avec une large marge avant la nuit.
 2. Endroit abrité du vent, sec, sans branches mortes au-dessus.
-3. 20 cm de feuilles sous moi, abri petit.
+3. Sol isolé avec un matériau sec qui garde son épaisseur ; appuis vérifiés avant de m'installer.
 4. Vêtements secs, bourrés de feuilles, tête couverte.
 5. Feu seulement si l'abri est prêt.
 
@@ -1208,7 +1208,7 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Faire les 3 nœuds les yeux fermés (chapitre 12).
 - [ ] Allumer un feu dans un barbecue avec briquet, puis avec une pierre à feu et du coton-vaseline.
 - [ ] Fabriquer du coton-vaseline et du tissu charbonné.
-- [ ] Faire bouillir de l'eau dans une gourde métal ; essayer la méthode SODIS.
+- [ ] Faire bouillir de l'eau dans une popote prévue pour la cuisson (ou une gourde simple paroi seulement si sa notice l'autorise, bouchon retiré) ; essayer la méthode SODIS.
 - [ ] Mesurer son double pas sur 100 m (chapitre 11).
 - [ ] Suivre une formation aux premiers secours (PSC1, une journée).
 
@@ -1219,7 +1219,7 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 - [ ] Trouver le nord par la méthode du bâton et de la montre ; repérer l'étoile Polaire un soir.
 - [ ] Allumer un feu à la pierre à feu avec ce que l'on trouve (là où c'est autorisé).
 - [ ] Réussir un feu après la pluie : bois fendu, copeaux en plumes.
-- [ ] Construire un appentis en moins de 2 heures.
+- [ ] Construire un appentis stable, fixations montrées et vérifiées par une personne compétente, sans viser un chrono.
 - [ ] Reconnaître 5 plantes comestibles et leurs sosies, avec un guide ou une association.
 - [ ] Envoyer un signal au miroir à un ami situé à 500 m.
 
