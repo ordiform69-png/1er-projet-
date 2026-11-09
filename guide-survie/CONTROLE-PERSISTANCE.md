@@ -43,7 +43,7 @@ Le rapport conserve ces divergences **sans arbitrage**. Le livret, lui, ne peut 
 
 | Point | Divergence | Texte en place | À trancher par l'éditeur |
 |---|---|---|---|
-| 003 | Symptômes après apports massifs : avis médical rapide (Eau) / arrêt de l'effort et appel aux secours (Médecin) | Version Médecin, ch. 11 ; le ch. 17 y renvoie | Oui |
+| 003 | Symptômes après apports massifs : avis médical rapide (Eau) / arrêt de l'effort et appel aux secours (Médecin) | **Tranché v1.0** : fusion graduée (avis médical pour céphalées ou nausées ; secours pour vomissements, malaise, confusion) | Non |
 | 010 | Téléphone après alerte : quatre formulations compatibles | Fusion : rester joignable, pas de mode avion, 0 800 112 112, SMS au 114 ou à un proche, aucun intervalle fixe | Non (compatibles) |
 | 011 | Recherche de réseau : deux formulations compatibles | Fusion | Non |
 | 012 | Seuil SODIS : « moins de la moitié du ciel couvert » (Éditeur, Eawag) / « sous ciel couvert » (Eau, CDC) / « ensoleillé / nuageux » (Médecin) | Seuil Eawag (6 h si ciel couvert à moins de 50 %, sinon 2 jours) | Oui (formulation du seuil) |
@@ -53,13 +53,13 @@ Le rapport conserve ces divergences **sans arbitrage**. Le livret, lui, ne peut 
 | 016 | Foyer Dakota : extinction (Abri Feu) / signaux sans flamme (Militaire) | Fusion | Non |
 | 017 | Chauffe improvisée : quatre formulations | Fusion : récipient de cuisson adapté uniquement | Non |
 | 018 | Départ, aval, nuit : quatre formulations | Fusion, ch. 6, 17, 19 et 21 | Non |
-| 019 | Brancard : essai prudent au ras du sol (Bushcraft) / aucune personne pour tester, charge inerte (Médecin) | Version Médecin (charge inerte), avec les éléments Bushcraft (formation, relevage, porteurs coordonnés) | **Oui** |
-| 022 | Eau naturelle : « à traiter avant consommation » (Eau) / « lorsque possible » (Médecin) | **Les deux sont présentes** : ch. 5 « à traiter avant consommation » ; ch. 19 « traitez … lorsque possible » | **Oui : incohérence interne** |
+| 019 | Brancard : essai prudent au ras du sol (Bushcraft) / aucune personne pour tester, charge inerte (Médecin) | **Tranché v1.0** : version Médecin (charge inerte), avec les éléments Bushcraft | Non |
+| 022 | Eau naturelle : « à traiter avant consommation » (Eau) / « lorsque possible » (Médecin) | **Tranché v1.0** : « à traiter avant consommation » partout, exception de dernier recours renvoyée au ch. 21 | Non |
 | 025 / 026 | Stock d'eau : 3,8 L/pers./jour tous usages (CDC) / au moins 6 L/pers. pour 72 h (France) | Les deux, périmètres précisés, ch. 20 | Non (périmètres différents) |
 
 ## Ce qui reste hors périmètre ou à compléter
 
-- **Point 065** : le texte est conforme, mais les **schémas pas à pas des nœuds** ne sont pas dessinés (mention « à compléter avant diffusion », ch. 12).
+- **Point 065** : nœud de chaise et tendeur illustrés en étapes ; cabestan décrit en 5 étapes numérotées (v1.0).
 - **Procédure enfant** de l'arrêt cardiaque : toujours « à valider ».
 - **If, myrtilles, lianes** : abstention seulement (« formulation spécialisée non transmise »).
 - **Illustrations encore en tension** (voir le journal, partie D) : coches ✓/✗ sur les plantes, « Est » et « Sud » dans le dessin du bâton et de la montre, mention « …à faire bouillir ! » sous le filtre.

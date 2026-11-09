@@ -30,7 +30,7 @@ C = [
  ("019", ["charge inerte", "Fabrication et relevage s'apprennent en formation"], ["la personne la plus lourde"]),
  ("020", ["corymbes", "N'appliquez ni feuille mâchée"], ["Fleurs en ombelle", "Feuille mâchée en cataplasme", "Désinfectez chaque égratignure"]),
  ("021", ["dérivés salicylés"], ["infusion d'écorce interne contre la douleur et la fièvre"]),
- ("022", ["n'est pas nécessairement potable", "traitez l'eau contre les microbes lorsque possible"], ["C'est l'eau la plus sûre", "c'est le moindre risque", "la plus saine"]),
+ ("022", ["n'est pas nécessairement potable", "traitez-la avant consommation (sauf décision de dernier recours"], ["C'est l'eau la plus sûre", "c'est le moindre risque", "la plus saine"]),
  ("023", ["la fonte seule ne la désinfecte pas", "contre le corps d'une personne déjà refroidie"], ["purifiez-la si possible", "contre le corps, pas dans la bouche"]),
  ("024", ["usage antérieur connu", "ne mélangez pas eau traitée et eau brute"], ["on en trouve souvent près des chemins"]),
  ("025", ["3,8 litres", "1,5 L ne suffit pas", "ne transformez pas ce conseil en jeûne"], ["Eau (au moins 1,5 L)", "la digestion consomme de l'eau.", "2–3 L/pers"]),

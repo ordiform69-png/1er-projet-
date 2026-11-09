@@ -206,3 +206,22 @@ Voir `CONTROLE-PERSISTANCE.md`. Résultat : 102 points sur 102 conformes, après
 **Écartées après vérification** : couverture « thermique » de navette spatiale (pas une couverture de survie), garrot à boucle de prise de sang (pas un garrot d'hémorragie), garrot pneumatique (peu adapté au grand public), « nœud de chaise » cowboy (variante différente du texte), unité de purification lourde présentée comme filtre, « châtaigne ? » au titre incertain, « grottes de neige » naturelles.
 
 **Reste à compléter** : schéma pas à pas du nœud de cabestan.
+
+## H. Finalisation — version 1.0 (9 novembre 2026)
+
+Arbitrages appliqués selon la règle du brief éditeur : « en cas de contradiction, garder la version la plus sûre ».
+
+| Point | Décision | Texte final |
+|---|---|---|
+| 022 — eau naturelle | Version « à traiter avant consommation » étendue au ch. 19 | « traitez-la avant consommation (sauf décision de dernier recours face à une déshydratation menaçante, voir chapitre 21) » — cohérent avec les ch. 5 et 21 |
+| 019 — brancard | Version Médecin confirmée | Aucune personne pour tester ; charge inerte ; formation au relevage |
+| 003 — apports massifs d'eau | Fusion graduée des deux versions | Maux de tête ou nausées : arrêt de l'effort, plus de boisson, avis médical rapide. Vomissements, malaise ou confusion : secours (15 ou 112). Ni boisson forcée ni sel. |
+| 065 — cabestan | Étapes numérotées en texte (5 étapes) + photo du nœud terminé | Mention « à compléter » retirée |
+
+Mention « Version 1.0 — 9 novembre 2026 » ajoutée sur la couverture. Contrôle de persistance relancé : 102 / 102 (marqueur du point 022 adapté au texte tranché).
+
+**Restent volontairement signalés « à valider » dans le livret**, faute de source spécialisée transmise (le brief interdit d'inventer un protocole) :
+- procédure **enfant** de l'arrêt cardiaque ;
+- **if, myrtilles, lianes** : abstention, « formulation spécialisée non transmise ».
+
+Une demande précise a été préparée pour les agents (`partage-grok/DEMANDE-GROK-V1.1.md`) ; leurs réponses donneront une version 1.1.

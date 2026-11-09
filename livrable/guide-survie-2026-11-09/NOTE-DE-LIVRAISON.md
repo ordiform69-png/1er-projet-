@@ -1,14 +1,14 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : 9 novembre 2026, version corrigée après relecture éditoriale et rapports d'agents.
-**Statut** : **version de travail corrigée, non validée pour diffusion publique**. Trois arbitrages éditoriaux et quelques compléments restent ouverts (voir plus bas).
+**Version** : **1.0 — 9 novembre 2026**, version finalisée après relecture éditoriale, rapports d'agents et arbitrages.  
+**Statut** : **version 1.0 finalisée**. Deux contenus restent volontairement signalés « à valider » dans le livret, faute de source spécialisée (voir plus bas). Relecture par un formateur PSC recommandée avant diffusion large.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 142 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
+| `guide-survie.pdf` | Livret complet, A5, 143 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 10 fiches réflexes seules (A5, 4 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
@@ -29,27 +29,30 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Contrôle de persistance** : 10 reprises secondaires alignées ; résultat 102 / 102.
 - Le numéro de rappel des secours **0 800 112 112** a été vérifié sur des sources officielles avant intégration.
 
-## Points ouverts avant diffusion
+## Arbitrages de finalisation (règle du brief : la version la plus sûre)
 
-**À trancher par l'éditeur** (le texte en place est indiqué dans `CONTROLE-PERSISTANCE.md`) :
-1. **Point 022, eau naturelle** : le chapitre 5 dit « à traiter avant consommation », le chapitre 19 « lorsque possible ». C'est une incohérence interne.
-2. **Point 019, brancard** : essai avec une charge inerte (en place) ou essai prudent au ras du sol.
-3. **Point 003, symptômes après de grands apports d'eau** : appel aux secours (en place) ou avis médical rapide.
+- **Point 022, eau naturelle** : « à traiter avant consommation » partout, l'exception de dernier recours renvoyant au chapitre 21.
+- **Point 019, brancard** : jamais de personne pour tester ; contrôle avec une charge inerte.
+- **Point 003, apports massifs d'eau** : maux de tête ou nausées → arrêt de l'effort et avis médical rapide ; vomissements, malaise ou confusion → secours.
+- **Nœud de cabestan** : 5 étapes numérotées + photo ; nœud de chaise et tendeur illustrés en étapes.
+- **Illustrations** : 28 photos sous licence libre (crédits en fin de livret) ; coches ✓/✗ supprimées ; légendes alignées sur le texte.
 
-**À compléter** :
-- Procédure **enfant** de l'arrêt cardiaque (« à valider », ne pas extrapoler la procédure adulte).
-- **If, myrtilles, lianes** : abstention seulement, formulation spécialisée non transmise.
-- **Illustrations** : 28 photos sous licence libre ajoutées (crédits en fin de livret) ; coches ✓/✗ des plantes supprimées ; légendes « Est/Sud » et filtre alignées. Reste : schéma pas à pas du **nœud de cabestan**.
+## Restent « à valider » (signalés dans le livret)
+
+- Procédure **enfant** de l'arrêt cardiaque (ne pas extrapoler la procédure adulte).
+- **If, myrtilles, lianes** : abstention, formulation spécialisée non transmise.
+
+Une demande précise pour les agents est prête (`partage-grok/DEMANDE-GROK-V1.1.md`) ; leurs réponses permettront une version 1.1.
 
 **Recommandé** : une relecture finale par un formateur aux premiers secours (PSC) sur les chapitres 8, 16 et 23 avant toute diffusion.
 
 ## Empreintes SHA-256
 
 ```
-d94883869921eb071f5ae004956fde4fb0782ec336079f075a7ec048b46d16c5  guide-survie.pdf
-ffa3a5e2b7f77cf4d8b0ee5e094406256da6b58b991326c19a4f5eae85daf2d9  fiches-reflexes.pdf
-bd2ee0d3a93a5017f76d232797b67cc9274aac0f31698684e9394a3517e1cd67  guide-survie.html
-d271d8b1f5a7c2358c9ea3f28eb420d93da2bb2b70cfa82ca4356a52ddd67419  guide-survie-corrige.md
-4e3e8261c7b30116682a5680fdc69a34a1d80a6e16d5eeee525ef7ebf9d306f1  JOURNAL-CORRECTIONS.md
-e646ce6166871d65245cdcba2721cdc29c0f34cd1c4c7bb7812bda057bc7dd2c  CONTROLE-PERSISTANCE.md
+7d25a7fffe50c2806b2b79f1e90489af8fe2ca6fea18499aba0632747c0ee7d2  guide-survie.pdf
+5ee5787978f9c86818c34a1d90f78df7a15a9b6abac51fca8644fb50c4d435aa  fiches-reflexes.pdf
+6b1560aff4012a4f26fbe1d2cf8faaead87616dd5b4d71ed35586937068ce2c7  guide-survie.html
+baa01f2fa44614fdfff08b9956d47ad9b3ac3351d942cf24d1c794c4cac2cbb1  guide-survie-corrige.md
+f695414a2336ec738f5384b5925cbace04f30f41897d11f689ebfacb9c6d3a50  JOURNAL-CORRECTIONS.md
+76eb0a45df55ba4222b74317b3824ebddd1240e2b28954292dde51ea7a7aed51  CONTROLE-PERSISTANCE.md
 ```

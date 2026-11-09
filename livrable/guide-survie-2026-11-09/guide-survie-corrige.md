@@ -2,7 +2,7 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.0 — 9 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
@@ -564,7 +564,7 @@ Astuce militaire : faites un **nœud sur une cordelette** (ou glissez un caillou
 
 - **Pieds :** les soldats les inspectent chaque soir. Séchez-les, changez de chaussettes (gardez une paire sèche dans un sac étanche), traitez toute rougeur avant qu'elle devienne ampoule (ruban adhésif).
 - **Froid, la règle C.O.L.D. :** **C**lean (vêtements propres, ils isolent mieux), **O**verheating (évitez de transpirer : retirez une couche avant l'effort), **L**oose layers (couches amples superposées), **D**ry (restez au sec).
-- **Eau :** chez l'adulte sain à l'effort, buvez régulièrement selon la soif, l'effort et la chaleur, sans vous forcer à atteindre un volume fixe ni à obtenir des urines transparentes. Prévoyez suffisamment d'eau, mais réduisez aussi l'effort et l'exposition à la chaleur. Boire trop peut provoquer une **hyponatrémie** (baisse dangereuse du sodium sanguin), même avec des boissons sportives ; des aliments salés ne compensent pas un excès de boisson. Maux de tête, vomissements, malaise ou confusion après de grandes prises de liquide : arrêtez l'effort, appelez les secours et ne forcez pas la boisson ; ne tentez pas de corriger vous-même avec du sel. Les personnes âgées ou ayant une maladie chronique peuvent nécessiter une stratégie individualisée.
+- **Eau :** chez l'adulte sain à l'effort, buvez régulièrement selon la soif, l'effort et la chaleur, sans vous forcer à atteindre un volume fixe ni à obtenir des urines transparentes. Prévoyez suffisamment d'eau, mais réduisez aussi l'effort et l'exposition à la chaleur. Boire trop peut provoquer une **hyponatrémie** (baisse dangereuse du sodium sanguin), même avec des boissons sportives ; des aliments salés ne compensent pas un excès de boisson. Maux de tête ou nausées après de grandes prises de liquide : arrêtez l'effort, ne buvez plus davantage et demandez un avis médical rapide. Vomissements, malaise ou confusion : appelez les secours (15 ou 112). Dans les deux cas, ne forcez pas la boisson et ne tentez pas de corriger vous-même avec du sel. Les personnes âgées ou ayant une maladie chronique peuvent nécessiter une stratégie individualisée.
 - **Sommeil :** une fois la protection assurée, préservez des occasions régulières de repos et de sommeil. La plupart des adultes ont habituellement besoin de 7 à 9 heures par nuit : c'est un repère, pas un quota garanti en urgence. Si une veille est nécessaire, organisez des relais qui permettent réellement de dormir. Erreurs répétées, difficulté à suivre une consigne ou endormissements involontaires doivent conduire à une pause sûre ou à une relève avant une tâche risquée. Ne comptez pas uniquement sur votre impression de rester performant.
 
 ### Pourquoi on est vu (ou pas)
@@ -599,13 +599,19 @@ Faites une petite boucle dans la corde (« le puits »). Le bout libre (« le la
 
 ### Nœud de cabestan
 
-Deux tours croisés autour d'un poteau, le second tour passant sous le premier. Rapide à faire et à défaire ; idéal pour commencer à tendre une corde entre deux arbres. Ajoutez une demi-clé pour le sécuriser. Vérifiez le montage sous la traction prévue avant utilisation et contrôlez-le après détente ou changement des conditions.
+1. Passez le bout libre de la corde autour du poteau.
+2. Ramenez-le en le croisant **par-dessus** la partie longue de la corde : un X se forme sur le devant.
+3. Faites un second tour autour du poteau, à côté du premier, du même côté que le bout libre est parti.
+4. Glissez le bout libre **sous** ce second tour, entre le poteau et la corde.
+5. Serrez en tirant sur les deux brins : ils ressortent côte à côte, dans des directions opposées, de part et d'autre du X.
+
+Rapide à faire et à défaire ; idéal pour commencer à tendre une corde entre deux arbres. Ajoutez une demi-clé pour le sécuriser. Vérifiez le montage sous la traction prévue avant utilisation et contrôlez-le après détente ou changement des conditions.
 
 ### Nœud tendeur (de tente)
 
 Passez la corde autour du piquet, revenez vers la corde tendue et faites deux tours à l'intérieur de la boucle, puis un tour à l'extérieur. Le nœud coulisse pour retendre ; sa tenue dépend du cordage et des conditions et n'est pas automatique. Vérifiez-le sous la traction prévue ; s'il glisse sur la cordelette, utilisez un dispositif de tension adapté.
 
-À compléter avant diffusion : schéma pas à pas numéroté du nœud de cabestan (les étapes du nœud de chaise et du tendeur sont désormais illustrées).
+Les étapes du nœud de chaise et du nœud tendeur sont illustrées ci-dessus ; le cabestan est décrit pas à pas et photographié terminé.
 
 ---
 
@@ -897,7 +903,7 @@ Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau 
 
 ### Eau
 
-- L'eau de pluie recueillie sur un support propre peut être une ressource utile, sans être automatiquement potable. Évitez les supports souillés, utilisez un récipient propre, traitez l'eau contre les microbes lorsque possible et protégez-la de la recontamination pendant le stockage.
+- L'eau de pluie recueillie sur un support propre peut être une ressource utile, sans être automatiquement potable. Évitez les supports souillés, utilisez un récipient propre, traitez-la avant consommation (sauf décision de dernier recours face à une déshydratation menaçante, voir chapitre 21) et protégez-la de la recontamination pendant le stockage.
 - L'eau des rivières est presque toujours contaminée : faites-la bouillir ou traitez-la.
 - **Lianes à eau :** au moindre doute, s'abstenir. *(Formulation spécialisée non transmise.)*
 - Bambous : de l'eau s'accumule parfois dans les segments (secouez pour entendre).
