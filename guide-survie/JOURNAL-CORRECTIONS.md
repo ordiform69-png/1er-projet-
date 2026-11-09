@@ -2,7 +2,9 @@
 
 Corrections appliquées le 9 novembre 2026 d'après le brief de l'éditeur (rapport « Éditeur Survie »). Les rapports détaillés des 8 agents (Canvas Cursor) n'ont pas été transmis : leur contenu n'a pas été inventé.
 
-Fichiers alignés sur les mêmes phrases : `guide-survie.html` (source), `guide-survie.pdf` (A5, 98 pages), `guide-survie-corrige.md`.
+Fichiers alignés sur les mêmes phrases : `guide-survie.html` (source), `guide-survie.pdf` (A5, 125 pages), `guide-survie-corrige.md`.
+
+Deux lots : **lot 1** = les 11 corrections du brief de l'éditeur (parties A) ; **lot 2** = les points détaillés des rapports d'agents transmis ensuite (partie B).
 
 Aucune des 11 corrections de l'éditeur n'a été jugée dangereuse ou fausse : toutes ont été appliquées. Les numéros de page cités par le brief renvoient à l'ancien PDF (95 pages).
 
@@ -116,42 +118,65 @@ Aucune des 11 corrections de l'éditeur n'a été jugée dangereuse ou fausse : 
 
 ---
 
-## B. Non appliqué : texte des agents manquant
+## B. Lot 2 — points des rapports d'agents : appliqués
 
-Les rapports Canvas n'ont pas été transmis. Ces points restent **à valider** et n'ont pas été rédigés :
+Environ 120 points ont été transmis (niveaux « critique » et « reformulation »). Plusieurs agents visaient souvent la même phrase : dans ce cas, les versions ont été **fusionnées** en gardant la plus sûre et la plus complète, et la fiche réflexe correspondante a été alignée. Les textes de remplacement ont été repris tels quels, à l'adaptation grammaticale près. Les sources sont celles indiquées par chaque point (OMS, CDC, RCUK/ERC, DGSCGC, WMS, NPS, ANENA, Météo-France, IGN, NOAA, EMA, ANSES, Service Public, etc.).
 
-| Agent | Critiques | À reformuler | Traité ici |
+Le numéro **0 800 112 112** a été vérifié avant intégration : c'est bien le numéro officiel de rappel des services d'urgence en France depuis le 1er octobre 2024 (Service-Public, fiche A17758 ; Gendarmerie nationale).
+
+| Chapitre | Avant (résumé) | Après (résumé) | Source principale |
 |---|---|---|---|
-| Médecin | 16 | 24 | Arrêt cardiaque adulte, coup de chaleur, garrot. Reste : procédures enfant et noyade (encadré « à valider ») et les autres points non transmis. |
-| Botaniste | 4 | 15 | Ail des ours ; if, myrtilles, lianes (abstention). Reste : autres plantes. |
-| Eau | 7 | 8 | Ébullition et pollution chimique. Reste : conditions SODIS complètes (encadré « à valider »). |
-| Abri et feu | 10 | 25 | Monoxyde de carbone. |
-| Militaire | 10 | 11 | Avalanche. |
-| Navigateur | 5 | 20 | Jour blanc. |
-| Psychologue | 2 | 17 | Aucun texte transmis. |
-| Bushcraft | 11 | 15 | Encordement. |
+| Avant-propos | « la plupart des drames… » ; « ce qu'on a pratiqué au calme, on sait le refaire » | Préparer réduit certains risques sans tout contrôler ; la pratique améliore les chances sans les garantir | OMS PFA 2011 ; Shields 2016 |
+| 1 | « le plus grand danger est souvent la panique » ; S.T.O.P. « Asseyez-vous » | La peur est une réaction possible ; S.T.O.P. commence par vérifier que l'endroit permet une pause sans danger. Ajout : « Réactions au stress » et « À plusieurs » (plan court, répétition des consignes, droit de signaler un doute) | OMS PFA 2011 ; Mortimer 2023 ; AHRQ |
+| 2 | Pastilles « ou » filtre ; téléphone en mode avion | Filtres et pastilles non interchangeables (virus, *Cryptosporidium*) ; kit = complément, pas équipement thermique ; après l'alerte : téléphone joignable, pas de mode avion, rappels du 0 800 112 112 | CDC Yellow Book 2026 ; SAMN ; FR-Alert |
+| 3 | Petit abri « se réchauffe » ; « 1 à 3 h, commencer 2 h avant » ; sécher près du feu | Aucune épaisseur ne garantit la chaleur ; protection minimale sans attendre ; vêtements secs prêts avant de se déshabiller ; appuis et fixations vérifiés | NPS ; Scouts |
+| 4 et 4 bis | Feu « éloigne les animaux » ; briquet vide fiable ; feu inversé « sans entretien » ; « le cœur est sec » ; bâche « haut » | Pas de garantie contre les animaux ; encadré « Avant d'allumer » ; briquet vide = dépannage incertain ; surveillance continue ; fendage sans garantie ; pas de bâche au-dessus du feu. Pile : encadré « Ne pas improviser » | NPS Campfires ; Duracell |
+| 5 | Pluie « la plus saine » ; neige « purifiez si possible » | Pluie, rosée, sources : eaux naturelles à traiter ; la fonte ne désinfecte pas ; filtres et pastilles selon notice ; éviter la recontamination | CDC |
+| 6 | « imbattables » ; soleil, bâton, montre, Polaire approximatifs | Procédure carte et boussole, les trois nords ; limites tropicales ; montre à l'heure solaire ; Mérak→Dubhé ; ne pas suivre l'aval par défaut. **Dessin de la Polaire refait** (Mérak et Dubhé nommés, prolongement cohérent) | IGN ; NOAA ; NASA ; NPS ; Mountaineering Scotland |
+| 7 | « Montez sur un point haut » ; SMS sans destinataire ; mode avion ; GPS ; hélicoptère | 112 d'abord depuis un lieu sûr ; SMS au 114 ou à un proche ; rester joignable ; lecture des coordonnées ; une seule personne bras en Y, ne jamais approcher l'appareil | Service Public ; SAMN ; GPS.gov |
+| 8 | PLS systématique ; noyade à valider ; pas d'étouffement ni d'anaphylaxie ; hypothermie, brûlure, tique, plaies, diarrhée | PLS seulement si non traumatique ; ajout **étouffement**, **anaphylaxie**, **petites plaies**, **diarrhée et SRO** (recette OMS) ; hypothermie (alerte dès la confusion) ; brûlure 10–20 min et critères de gravité ; tique sans produit ; renvoi noyade → ch. 16 | DGSCGC RTN PSC ; RCUK/ERC 2025 ; WMS ; OMS ; CDC |
+| 9 | Insectes « couleurs vives » ; poisson « bien cuit » ; « ne mangez que si… » ; faînes | Abstention pour les insectes ; la cuisson ne détruit pas toutes les toxines ; pas de jeûne systématique ; faînes grillées, peu, jamais vertes | CDC ; EFSA ; WMS ; CAP Belgique |
+| 10 | Dégustation « test » ; plantain mâché ; saule, thym, menthe, achillée ; pourpier, massette, sureau, ortie, clématite ; intoxication | Pas de test de tolérance ; aucun végétal sur une plaie ; usages médicinaux limités à des préparations définies ; sosies du pourpier ; sureau noir seulement ; ortie cuite ; gants pour la clématite ; centre antipoison immédiatement, même sans symptôme | EMA ; ANSES ; NCSU ; MSU ; RHS ; Assurance Maladie |
+| 11 | « Domptez la peur » ; respiration carrée certaine ; boire avant la soif ; sommeil ; camouflage ; distances à l'œil ; doigts ; Dakota | Peur acceptée ; respiration douce, sans garantie ; **hyponatrémie** ; relais de sommeil réels ; menace humaine distinguée ; tableau des distances supprimé ; doigts = indication grossière ; extinction complète avant de reboucher | Fincham 2023 ; NHS ; NHLBI ; WMS ; NPS ; SIG |
+| 12 | Tendeur « bloque » | Vérification sous traction ; dispositif de tension si glissement ; schémas pas à pas signalés « à compléter » | Scout Association |
+| 13 | SODIS « à valider » ; bouteille plastique, pierres chaudes, canette ; boussole « laine, soie » ; lunettes ; brancard testé sur une personne ; bouillotte, pierres sous la couche ; corde, raquettes, anti-moustiques | **Conditions SODIS complètes** (6 h si ciel couvert < 50 %, sinon 2 jours) ; récipient de cuisson adapté uniquement ; aimantation par aimant + vérification ; lunettes UV ; charge inerte, pas de personne ; bouillotte enveloppée, pas de pierres ; limites des fabrications | Eawag/SODIS ; CDC ; Anses ; DGCCRF ; NPS ; FDA ; St John |
+| 14 | Rivière « sous les genoux » | Le seuil ne garantit rien ; ouvrir ceinture **et sangle pectorale** ; renoncer au moindre doute | NPS Safe River Crossings |
+| 15 | « qu'on n'a pas voulu voir » ; BERA l'hiver ; pente > 30° ; « seul vrai traitement » ; engelures ; abri de neige ; névés | BERA dès qu'il y a de la neige ; propagation sous 30° ; oxygène et plan médical en complément ; **gelures** ; surveillance extérieure pendant le creusement, température non garantie ; fiche d'itinéraire et estimation du temps | Météo-France ; ANENA ; CDC ; WMS ; NOLS ; Mountaineering Scotland |
+| 16 | 1-10-1 comme délais ; HELP ; mal de mer ; noyade absente | Repères variables, pas une réserve de temps ; HELP seulement si le gilet maintient les voies aériennes ; mal de mer avec conseil médical ; ajout **noyade : 5 insufflations initiales** | RNLI ; RCUK/ERC 2025 ; Assurance Maladie |
+| 17 | « Bougez la nuit » ; creuser 30–50 cm ; manger salé ; « multipliez » | Efforts réduits aux heures chaudes, pas de nuit en terrain inconnu ; creusement optionnel ; hyponatrémie ; pas de multiplicateur | NPS ; WMS |
+| 18 | Abri « visible et proche » ; veilles | Abri confirmé et trajet sûr ; relais de sommeil réels | NOAA/NWS |
+| 19 | Antidiarrhéique ; hamac 50 cm ; pluie « la plus sûre » ; aval ; égratignures ; moustiques | SRO ; hamac sans barrière garantie ; pluie à traiter ; pas d'aval par défaut ; nettoyage plutôt qu'antiseptique seul ; protection de jour comme de nuit | CDC ; NPS |
+| 20 | Kit seulement dans le dessin ; frigo ; séisme ; besoins particuliers | Liste du kit dans le texte (6 L/pers. pour 72 h en France, 3,8 L/pers./jour CDC) ; congélateur plein 48 h / à moitié plein 24 h ; « à l'intérieur pendant / après les secousses » ; adaptation aux enfants et aux besoins particuliers | Min. Transition écologique ; CDC ; Géorisques ; OMS PFA |
+| 21 | Mode avion, point dégagé ; canette abandonnée ; pierre taillée ; pile et papier alu ; départ « jours 2–3 » ; « 24 à 48 h » ; moral | Joignable après l'alerte ; récipient connu ; pas de taille de pierre sans formation ; pas de court-circuit ; aucun délai ne justifie de partir ; délai de secours non garanti ; rythme d'attente sans injonction | NPS ; Duracell ; OMS PFA ; Mortimer 2023 |
+| 22 | Prise vers soi ; branche pliée ; bâtonnage ; scie, hachette ; affûtage « 20°, pièces de monnaie » ; gourde dans les braises ; couverture « réflecteur » ; ruban qui brûle ; trio « facile » ; motif légitime « automatique » | Tranchant éloigné du corps ; pas de lame pliante frappée ; bâtonnage après formation ; consignes scie et hachette ; angle selon le biseau (Victorinox 15–20° par face) ; gourde seulement si la notice l'autorise, bouchon retiré ; pas d'exposition au feu ; trio ≠ facilité ; motif légitime apprécié au cas par cas | Victorinox ; Morakniv ; Fiskars ; Klean Kanteen ; Service Public |
+| 23 | Fiches 1, 5, 8 | Alignées : S.T.O.P. sûr, joignabilité, HELP conditionnel, relais de sommeil | — |
+| 24 | « toutes les cases cochées » ; défi 24 h avec le trio | Niveaux = repères, pas une qualification ; droit d'arrêter ; exercice minimaliste avec équipement complet de secours accessible | NPS ; OMS PFA |
+| 25 | Eau 1,5 L ; « garder le moral » ; mental des survivants | Eau adaptée et marge ; fiche d'itinéraire ; besoins de chacun ; « Le mental » réécrit ; ajout **Détresse majeure (3114)** et **Après le retour** ; numéros 3114 et 0 800 112 112 | OMS PFA ; NICE NG116 ; 3114.fr ; Service Public |
 
-Au total, environ 65 points critiques et 135 reformulations signalés par les agents n'ont pas pu être traités faute de texte.
+### Choix d'arbitrage
 
----
+- **Doublons** : téléphone et mode avion (4 points), SODIS (4), bouteille plastique et pierres chaudes (4), « trio idéal » (3), rivière (2), brancard (2), abri de neige (3), hyponatrémie (2), diarrhée (3), lunettes (2), moustiques (2), boussole improvisée (2), départ « jours 2–3 » et aval (4). Une seule version consolidée a été retenue à chaque fois.
+- **Brancard** : un point proposait un essai prudent « au ras du sol » avec une personne, un autre l'interdisait. La version la plus sûre (charge inerte, aucune personne) a été retenue.
+- **Eau du kit maison** : les deux repères transmis (6 L par personne pour 72 h selon les autorités françaises ; 3,8 L par personne et par jour selon le CDC, tous usages) sont cités ensemble avec leur périmètre, pour ne pas les opposer.
+- **Pile et paille de fer (ch. 4 bis)** : le point des agents visait le renvoi du ch. 21. Par cohérence, la technique du ch. 4 bis est conservée comme démonstration, sous un encadré « Ne pas improviser ».
 
-## C. Illustrations à revoir
+## C. Encore à valider ou à compléter
 
-Le Markdown contient toutes les consignes vitales en texte. Ces dessins restent toutefois en tension avec le nouveau texte :
+- **Procédure enfant (arrêt cardiaque)** : toujours « à valider, ne pas extrapoler la procédure adulte ». La noyade est désormais traitée (ch. 16).
+- **If, myrtilles, lianes** : abstention seulement, « formulation spécialisée non transmise ».
+- **Nœuds (ch. 12)** : schémas pas à pas numérotés à dessiner avant diffusion.
+- **Alambic solaire et filtre en bouteille (ch. 13)** : non visés par les rapports ; inchangés.
 
-1. **Ail des ours / muguet / colchique (ch. 10).** Les coches ✓ et ✗ suggèrent qu'on peut identifier une plante sur le dessin. Le sous-titre a été corrigé (« odeur : critère non suffisant ») et la légende dit que les dessins ne suffisent pas, mais il faudrait retirer les coches.
-2. **Filtre en bouteille (ch. 13).** La mention « …à faire bouillir ! » laisse penser que l'ébullition suffit. Le texte précise désormais qu'elle n'élimine pas les polluants chimiques.
-3. **SODIS (ch. 13).** Le dessin indique des conditions (6 h de plein soleil, 2 jours si nuageux, PET, surface réfléchissante) alors que les conditions SODIS sont marquées « à valider ». À aligner une fois le texte validé.
-4. **Abri dans la neige (ch. 15).** Le dessin montre un « trou d'aération ». Rien n'y suggère un réchaud, et l'encadré interdit tout appareil à combustion même avec aération. Pas de contradiction, mais à surveiller.
-5. **Ceinture (ch. 21).** « garrot » a été retiré du dessin (« sangle, attelle »). Corrigé.
+## D. Illustrations
 
----
+**Corrigées dans ce lot** : étoile Polaire (redessinée) ; feu inversé (« surveillance continue ») ; doigts (« repère grossier, non fiable ») ; SODIS (conditions) ; boussole improvisée (aimant, sans laine ni soie) ; affûtage (angle selon le biseau) ; kit maison (« voir texte ») ; abri du désert (« creusement optionnel ») ; lunettes (« dépannage, pas une protection UV certifiée ») ; fendage (« après formation ») ; hutte de débris (« aucune épaisseur ne garantit la chaleur »).
 
-## D. Techniques marquées « ne pas improviser »
+**Encore en tension** :
+1. **Ail des ours / muguet / colchique (ch. 10)** : les coches ✓/✗ suggèrent une identification par le dessin. Le texte dit le contraire ; retirer les coches est recommandé.
+2. **Méthode du bâton et de la montre (ch. 6)** : le dessin montre « Est » et « Sud » sans réserve ; la légende est désormais prudente.
+3. **Signaux au sol (ch. 7)** : le dessin du « NON — tout va bien » est conservé ; le texte précise les consignes d'approche de l'hélicoptère.
+4. **Filtre en bouteille (ch. 13)** : « …à faire bouillir ! » ne mentionne pas les polluants chimiques (le texte, si).
 
-- Encordement, assurage, secours sur corde (ch. 12, 15, 18).
-- Recherche de victime d'avalanche au DVA (ch. 15).
-- Garrot improvisé : uniquement avec un lien de 3 à 5 cm, non élastique, et un dispositif de serrage ; jamais une cordelette (ch. 8, 22, fiche 4).
-- Insufflations : « si vous savez les réaliser » (ch. 8).
+## E. Techniques marquées « ne pas improviser » ou réservées à la formation
 
-Les autres techniques qui demandent une formation n'ont pas été reclassées : le brief ne fournit pas de texte pour elles, et je n'en ai pas inventé.
+Encordement, assurage et secours sur corde ; recherche au DVA ; garrot improvisé ; insufflations ; allumage par court-circuit ; bâtonnage ; prises de couteau dirigées vers soi ; taille de pierre ; abri creusé dans la neige ; brancard et relevage ; hachette ; névés raides ; gué.
