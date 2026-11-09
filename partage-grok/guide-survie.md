@@ -5,7 +5,7 @@ Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 Version hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
-> Ce livret donne des repères généraux. Il ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112** (numéro d'urgence européen, joignable depuis n'importe quel réseau disponible).
+> Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
 
 ### Sommaire
 
@@ -244,6 +244,10 @@ Un adulte a besoin d'environ 2 à 3 litres d'eau par jour, bien plus par forte c
 
 > 🖼 *Illustration : Trois méthodes de purification : ébullition, pastilles, filtre.* L'ébullition est la méthode la plus fiable contre les micro-organismes.
 
+**Faire bouillir :** portez l'eau claire à gros bouillons pendant 1 minute, ou 3 minutes au-dessus d'environ 2 000 m. Laissez refroidir dans un récipient propre et fermé.
+
+Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques. Écartez les eaux suspectes de pollution. Une eau claire peut être contaminée.
+
 > **Préfiltrer une eau trouble**
 > Versez-la à travers un tissu propre (t-shirt, chaussette) ou laissez-la décanter, puis purifiez-la. Un filtre improvisé (sable, charbon) **clarifie** l'eau mais **ne la rend pas potable** : il faut ensuite la faire bouillir ou la traiter. Fabrication pas à pas, désinfection au soleil et alambic : voir le chapitre 13.
 
@@ -312,14 +316,17 @@ Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime
 
 1. **Appuyez fort** directement sur la plaie avec la main (protégée si possible) ou un tissu propre. Maintenez sans relâcher.
 2. Allongez la victime, alertez les secours.
-3. Si la compression est impossible ou inefficace sur un membre et que le saignement met la vie en danger : **garrot** 5–7 cm au-dessus de la plaie (bande large, pas une ficelle), serré jusqu'à l'arrêt du saignement. **Notez l'heure** et ne le desserrez plus.
+3. Hémorragie d'un membre que la compression ne permet pas de contrôler : privilégiez un **garrot conçu à cet effet**. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, **notez l'heure** et ne le desserrez pas. N'utilisez jamais une ficelle ou une cordelette seule.
 
-### Personne inconsciente qui respire : la PLS
+### Personne inconsciente qui respire normalement : la PLS
 
 > 🖼 *Illustration : Position latérale de sécurité.* Sur le côté, tête basculée en arrière, bouche ouverte vers le sol pour que les liquides s'écoulent. Vérifiez la respiration régulièrement.
 
-> **Ne respire pas ?**
-> Appelez le 112 et commencez le massage cardiaque : au centre de la poitrine, bras tendus, enfoncer de 5 à 6 cm, **100 à 120 compressions par minute**. Ne vous arrêtez pas avant l'arrivée des secours ou d'un défibrillateur.
+> **Ne respire pas normalement ? Arrêt cardiaque**
+> Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions.
+
+> **À valider**
+> Procédures enfant et noyade : à valider, ne pas extrapoler la procédure adulte.
 
 ### Hypothermie (froid)
 
@@ -331,9 +338,9 @@ Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime
 
 ### Coup de chaleur
 
-**Signes :** peau chaude, maux de tête, nausées, confusion, parfois arrêt de la transpiration. C'est une urgence.
+**Signes :** peau chaude, maux de tête, nausées, confusion, comportement inhabituel. C'est une urgence.
 
-- À l'ombre, allonger, déshabiller, mouiller la peau et éventer. Faire boire par petites gorgées si conscient.
+- Une confusion, un comportement inhabituel ou un malaise important après exposition à la chaleur impose d'appeler immédiatement le 15 ou le 112 et de refroidir sans attendre. Placez la personne au frais, retirez les vêtements superflus, mouillez largement la peau et éventez. Ne donnez rien à boire si elle est confuse, somnolente, vomit ou avale difficilement. Une transpiration abondante n'exclut pas un coup de chaleur.
 
 ### Entorse / fracture
 
@@ -367,7 +374,7 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 
 | Ressource | Conseils |
 |---|---|
-| Fruits bien connus | Mûres, framboises, myrtilles, noisettes, châtaignes, faînes (avec modération). En cas de doute, abstenez-vous. |
+| Fruits bien connus | Mûres, framboises, noisettes, châtaignes, faînes (avec modération). Myrtilles : au moindre doute, s'abstenir *(formulation spécialisée non transmise)*. En cas de doute, abstenez-vous. |
 | Plantes très reconnaissables | Ortie (cuite), pissenlit (feuilles et fleurs), plantain. Attention aux ombellifères (type carotte sauvage) : certaines sont mortelles, évitez toute la famille. |
 | Insectes | Sauterelles, grillons, larves : cuits. Évitez les insectes aux couleurs vives, poilus ou malodorants. |
 | Poissons | Toujours bien cuits. |
@@ -399,7 +406,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 | **Ortie** | Pique ; feuilles dentées opposées, tige carrée. | Jeunes feuilles **cuites** (soupe) ou écrasées : ne piquent plus. Très nourrissante. Fibres de la tige → cordelette. |
 | **Pissenlit** | Rosette au ras du sol, latex blanc, fleur jaune unique par tige creuse. | Feuilles crues (amères) ou cuites, fleurs, racine grillée. |
 | **Plantain** | Feuilles en rosette à nervures parallèles très marquées, épi brun. | Jeunes feuilles cuites. **Feuille mâchée** appliquée sur piqûre d'ortie, d'insecte, petite égratignure : apaise. |
-| **Ronce, framboisier, myrtille** | Bien connus ; baies en grappe de petites boules. | Fruits crus. Feuilles de ronce en infusion (astringentes, diarrhée légère). |
+| **Ronce, framboisier, myrtille** | Bien connus ; baies en grappe de petites boules. | Fruits crus. Feuilles de ronce en infusion (astringentes, diarrhée légère). Myrtilles : au moindre doute, s'abstenir *(formulation spécialisée non transmise)*. |
 | **Noisetier, châtaignier, hêtre** | Voir comparaison châtaigne / marron. | Noisettes crues, châtaignes cuites, faînes en petite quantité (grillées). |
 | **Trèfle, pâquerette, pourpier** | Faciles et sans sosie dangereux majeur. | Feuilles et fleurs, crues ou cuites, en complément. |
 | **Ail des ours** | Sous-bois humides au printemps, **forte odeur d'ail** quand on froisse la feuille, une feuille par tige. | Feuilles crues ou cuites. **Voir sosies mortels !** |
@@ -410,12 +417,12 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 
 ### Les sosies mortels à connaître
 
-> 🖼 *Illustration : Ail des ours comparé au muguet et au colchique ; châtaigne comparée au marron d'Inde.* Le test décisif pour l'ail des ours : froisser la feuille. Pas d'odeur d'ail nette = on jette. (Attention : après en avoir manipulé, l'odeur reste sur les mains.)
+> 🖼 *Illustration : Ail des ours comparé au muguet et au colchique ; châtaigne comparée au marron d'Inde.* L'odeur d'ail est un critère utile, mais elle ne suffit pas à garantir l'identification. Examinez chaque feuille et plusieurs caractères botaniques ; ne cueillez jamais par brassées. L'odeur peut se transmettre aux mains et aux autres feuilles. Ces dessins ne permettent pas, seuls, d'identifier une plante comestible. Au moindre doute, abstenez-vous.
 
 | Toxique | Pourquoi c'est dangereux |
 |---|---|
 | **Ciguë**, œnanthe (famille de la carotte : fleurs en ombrelles blanches) | Mortelles en petite quantité. Ressemblent à la carotte sauvage, au persil, au cerfeuil. **N'en mangez aucune** de cette famille si vous n'êtes pas expert. |
-| **If** | Tout est mortel sauf la chair rouge de la baie (la graine dedans l'est). Aiguilles plates, vert foncé. |
+| **If** | Plante très toxique. Au moindre doute, s'abstenir. *(Formulation spécialisée non transmise.)* |
 | **Muguet, colchique, arum** | Confondus avec l'ail des ours. Toxiques pour le cœur ou mortels. |
 | **Digitale** | Feuilles en rosette confondues avec la consoude ou la bourrache. Toxique pour le cœur. |
 | **Belladone, morelle, douce-amère** | Baies noires ou rouges attirantes. **Règle :** ne mangez aucune baie que vous ne connaissez pas. |
@@ -528,7 +535,10 @@ Les objets paraissent plus proches par temps clair, en hauteur ou au-dessus de l
 
 ### Nœud de chaise
 
-Faites une petite boucle dans la corde (« le puits »). Le bout libre (« le lapin ») **sort du puits**, **fait le tour de l'arbre** (la partie longue de la corde), puis **redescend dans le puits**. Serrez. La grande boucle ainsi formée ne se resserre pas : idéal pour s'encorder ou pour amarrer.
+Faites une petite boucle dans la corde (« le puits »). Le bout libre (« le lapin ») **sort du puits**, **fait le tour de l'arbre** (la partie longue de la corde), puis **redescend dans le puits**. Serrez. La grande boucle ainsi formée ne se resserre pas : utile pour amarrer une bâche ou une corde d'abri.
+
+> **Ne pas improviser**
+> Les nœuds présentés ici servent uniquement aux installations sans enjeu de sécurité humaine, comme tendre un abri. Ils ne constituent pas une formation à l'encordement, à l'assurage ou au secours sur corde. Ces usages nécessitent du matériel adapté, un apprentissage encadré et une vérification mutuelle.
 
 ### Nœud de cabestan
 
@@ -549,9 +559,12 @@ Avec une bouteille, un sac plastique, un couteau et un peu d'astuce, on fabrique
 > 🖼 *Illustration : Filtre à eau en bouteille coupée : tissu, charbon, sable fin, gravier.* Coupez le fond d'une bouteille, retournez-la, bouchon percé ou remplacé par un tissu. Remplissez de bas en haut : tissu, charbon (pas de cendres), sable fin, gravier.
 
 > **Important**
-> Ce filtre enlève la terre, les débris et une partie des goûts. Il **ne tue pas** les bactéries ni les virus. Faites toujours bouillir ou traitez l'eau ensuite. Jetez la première eau filtrée (elle rince le charbon et le sable).
+> Ce filtre enlève la terre, les débris et une partie des goûts. Il **ne tue pas** les bactéries ni les virus. Faites ensuite bouillir l'eau (gros bouillons 1 minute, 3 minutes au-dessus d'environ 2 000 m) ou traitez-la. Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques : écartez les eaux suspectes de pollution. Jetez la première eau filtrée (elle rince le charbon et le sable).
 
 ### 2. Désinfecter l'eau au soleil (méthode SODIS)
+
+> **À valider**
+> Conditions SODIS à reporter, non transmises. Les indications ci-dessous sont à valider avant usage ; au moindre doute, faites bouillir.
 
 > 🖼 *Illustration : Bouteilles transparentes posées au soleil sur une surface réfléchissante.* Bouteilles en plastique PET **transparentes**, 2 L maximum, sans étiquette, couchées. L'eau doit être **claire** (préfiltrée). Inefficace sous la pluie.
 
@@ -606,9 +619,9 @@ L'alambic permet aussi d'obtenir de l'eau douce à partir d'eau de mer ou d'eau 
 
 ### Orage
 
-- Comptez les secondes entre l'éclair et le tonnerre, divisez par 3 : distance en km. Moins de 30 secondes (10 km) : mettez-vous à l'abri.
-- Quittez sommets, crêtes, arbres isolés et plans d'eau. Éloignez-vous des objets métalliques.
-- Sans abri : accroupi, pieds joints, sur un sac, la tête baissée. Groupe : écartez-vous de quelques mètres les uns des autres.
+- Dès que le tonnerre est audible, rejoignez un bâtiment fermé ou un véhicule fermé à toit rigide si cela est possible sans danger. N'attendez pas un intervalle inférieur à 30 secondes.
+- Aucune posture ni aucun abri léger ne rend l'extérieur sûr. Évitez les crêtes, les arbres isolés, l'eau et les conducteurs.
+- Restez à l'abri 30 minutes après le dernier tonnerre.
 
 > 🖼 *Illustration : Signes de changement de temps.* Les nuages à fort développement vertical l'après-midi annoncent souvent un orage.
 
@@ -653,25 +666,25 @@ Doigts, orteils, nez, oreilles blancs ou gris, durs et insensibles.
 > 🖼 *Illustration : Coupe d'un abri creusé dans la neige avec entrée basse, banquette haute et trou d'aération.* Dans une congère épaisse : creusez un tunnel montant puis une cavité. Gardez la pelle à l'intérieur, débouchez régulièrement l'aération, signalez l'abri à l'extérieur (bâtons, sac). La température y reste proche de 0 °C même par grand froid.
 
 > **Danger**
-> Pas de réchaud ni de bougie dans un abri sans aération : risque mortel d'intoxication au monoxyde de carbone. Ne creusez jamais dans une pente qui peut avalancher.
+> N'utilisez aucun appareil à combustion dans une tente ou un abri de neige, même muni d'une aération. Une ouverture ne garantit pas l'absence de monoxyde de carbone. N'y introduisez jamais de braises. Ne creusez jamais dans une pente qui peut avalancher.
 
 ### Avalanche
 
 - **Prévention :** le bulletin, et le trio **DVA + pelle + sonde** pour chacun (et savoir s'en servir). Une pente de plus de 30° est propice aux avalanches.
 - **Si vous êtes emporté :** criez, essayez de sortir par le côté, débarrassez-vous des bâtons, « nagez » pour rester en surface.
 - **Quand ça ralentit :** mettez une main devant la bouche pour garder une poche d'air, tendez l'autre bras vers le haut.
-- **Témoin :** repérez le dernier point où la personne a été vue, alertez (112), puis cherchez **immédiatement** avec le DVA. Les chances de survie chutent fortement après 15 minutes : les secours arrivent souvent trop tard, ce sont les compagnons qui sauvent.
+- **Témoin :** évaluez rapidement le risque de suravalanche et repérez le dernier point de disparition. À plusieurs, confiez l'alerte à une personne pendant que les autres commencent immédiatement le sauvetage. Seul, adaptez l'ordre de l'alerte et de la recherche à la situation et à votre formation : l'appel ne doit pas retarder inutilement la localisation. Les chances de survie chutent fortement après 15 minutes. La recherche au DVA s'apprend en formation : **ne pas improviser**.
 
 ### Brouillard et « jour blanc »
 
 - Quand on ne distingue plus le relief : **arrêtez-vous**. Corniches et barres rocheuses deviennent invisibles.
-- Lancez une boule de neige devant vous pour juger de la pente. Avancez sur un azimut, en cordée ou en file serrée.
+- En jour blanc, arrêtez-vous dans une zone sûre et établissez votre position. Ne poursuivez que sur un itinéraire identifié et adapté, avec les compétences et le matériel nécessaires ; sinon, renoncez ou demandez assistance. N'improvisez pas un encordement. L'espacement du groupe doit être adapté au terrain et au risque avalancheux.
 
 ### Autres dangers
 
 - **Chutes de pierres :** casque ; criez « Pierre ! » ; ne stationnez pas au pied des couloirs, surtout l'après-midi (dégel).
 - **Névés en été :** une glissade sur neige dure est très rapide ; sans crampons ni piolet, contournez.
-- **Orage :** quittez arêtes et sommets, éloignez-vous du métal (câbles, piolets). Voir chapitre 14.
+- **Orage :** dès que le tonnerre est audible, rejoignez un bâtiment fermé si c'est possible sans danger. Aucune posture ni aucun abri léger ne rend l'extérieur sûr. Évitez arêtes, sommets et conducteurs (câbles, piolets). Voir chapitre 14.
 
 ---
 
@@ -758,7 +771,7 @@ Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais l
 - **Mirages et distances :** dans l'air sec et clair, tout paraît plus proche. Multipliez vos estimations.
 
 > **Coup de chaleur**
-> Maux de tête, confusion, peau très chaude, nausées : urgence vitale. Ombre, allonger, déshabiller, mouiller toute la peau et éventer, petites gorgées si conscient (voir chapitre 8).
+> Une confusion, un comportement inhabituel ou un malaise important après exposition à la chaleur impose d'appeler immédiatement le 15 ou le 112 et de refroidir sans attendre. Placez la personne au frais, retirez les vêtements superflus, mouillez largement la peau et éventez. Ne donnez rien à boire si elle est confuse, somnolente, vomit ou avale difficilement. Une transpiration abondante n'exclut pas un coup de chaleur (voir chapitre 8).
 
 ---
 
@@ -777,8 +790,8 @@ Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le v
 
 > 🖼 *Illustration : Sortir de l'eau glacée : se tourner vers d'où l'on vient, battre des pieds à l'horizontale, ramper puis rouler.* Gardez votre calme pendant la première minute de choc respiratoire (règle 1-10-1, chapitre 16). Une fois dehors, ne vous levez pas : roulez puis rampez jusqu'à la rive.
 
-- **Prévention :** il faut au moins **15 cm** de glace transparente et dure pour marcher seul. Glace blanche, grise, près des berges, des roseaux ou des courants : beaucoup plus fragile. En cas de doute, ne vous y aventurez pas.
-- **Pour aider quelqu'un :** ne courez jamais vers le trou. Allongez-vous pour répartir le poids, tendez une branche, une corde, une écharpe ; ou appelez le 112 et guidez la personne de la rive.
+- **Prévention :** l'épaisseur seule ne garantit jamais la sécurité : consultez les conditions et autorisations locales et ne vous engagez pas seul. Glace blanche, grise, près des berges, des roseaux ou des courants : beaucoup plus fragile. En cas de doute, ne vous y aventurez pas.
+- **Pour aider quelqu'un :** si quelqu'un tombe à l'eau, appelez immédiatement le 112. Restez sur la rive ou sur un emplacement sûr et tendez ou lancez un objet de secours ; ne vous avancez pas sur la glace rompue pour tenter de l'atteindre.
 
 ### Bloqué en voiture dans la neige
 
@@ -792,7 +805,7 @@ L'hiver, gardez dans le coffre : couverture, pelle, lampe, gants, eau, barres é
 
 ### Blizzard
 
-Quand la visibilité tombe à quelques mètres : **ne bougez plus**. Abritez-vous derrière un rocher, des arbres, dans la neige (trou à neige, chapitre 15). Encordez-vous ou tenez-vous par la main si vous êtes plusieurs. On se perd à 20 mètres d'un refuge dans le blizzard.
+Quand la visibilité tombe à quelques mètres : **ne bougez plus**. Abritez-vous derrière un rocher, des arbres, dans la neige (trou à neige, chapitre 15). Restez groupés à vue et n'improvisez pas un encordement. On se perd à 20 mètres d'un refuge dans le blizzard.
 
 ---
 
@@ -813,7 +826,7 @@ Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau 
 
 - La pluie est abondante : récupérez-la avec la bâche. C'est l'eau la plus sûre.
 - L'eau des rivières est presque toujours contaminée : faites-la bouillir ou traitez-la.
-- **Lianes à eau :** certaines grosses lianes contiennent de l'eau potable. Coupez d'abord en haut, puis en bas, laissez couler dans la bouche sans toucher l'écorce. Buvez seulement si le liquide est **clair, sans goût amer ni odeur**. Liquide laiteux, coloré ou amer : jetez.
+- **Lianes à eau :** au moindre doute, s'abstenir. *(Formulation spécialisée non transmise.)*
 - Bambous : de l'eau s'accumule parfois dans les segments (secouez pour entendre).
 
 ### Se déplacer et s'orienter
@@ -930,7 +943,7 @@ Comptez 2 à 3 heures de travail : commencez **bien avant la nuit**. Travaillez 
 - Rosée à l'aube : épongez-la avec un t-shirt ou une chaussette et essorez.
 
 > **Eau douteuse ou déshydratation ?**
-> Si vous ne pouvez pas purifier l'eau et que vous commencez à être déshydraté (urines rares et foncées, vertiges), **buvez l'eau la plus propre disponible**. Une éventuelle diarrhée apparaît en général après plusieurs jours et se soigne ; une déshydratation grave peut tuer avant. Dès que possible, faites bouillir (canette, bouteille : voir chapitre 13).
+> Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques. Écartez les eaux suspectes de pollution. Une eau claire peut être contaminée. Boire une eau non traitée reste une décision de dernier recours face à une déshydratation menaçante, sans garantie sur les conséquences. Dès que possible, faites bouillir : gros bouillons 1 minute, 3 minutes au-dessus d'environ 2 000 m (canette, bouteille : voir chapitre 13).
 
 ### 5. Des outils avec ce que la nature offre
 
@@ -1005,7 +1018,7 @@ Un simple couteau multiplie vos possibilités : abri plus rapide, feu plus facil
 | **Pince multifonction** | Saisir une gamelle brûlante, tordre du fil de fer (crochets, hameçons, crémaillère), retirer un hameçon planté, réparer chaussure ou sac. |
 | **Scie pliante** | Le meilleur outil pour un abri solide et une réserve de bois : plus rapide et bien moins dangereuse qu'une hachette. |
 | **Hachette** | Fendre et couper vite, mais blessures graves fréquentes : toujours sur un billot, jambes écartées, en dehors de l'arc de frappe. |
-| **Paracorde** (cordelette 550) | Tendre une bâche, faire un archet, un garrot de fortune, une attelle. Ses 7 brins intérieurs servent de fil de pêche, de fil à coudre ou de lien fin. |
+| **Paracorde** (cordelette 550) | Tendre une bâche, faire un archet, fixer une attelle. Ses 7 brins intérieurs servent de fil de pêche, de fil à coudre ou de lien fin. N'utilisez pas la paracorde seule comme lien de garrot. Pour une hémorragie d'un membre que la compression ne permet pas de contrôler, privilégiez un garrot conçu à cet effet. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, notez l'heure et ne le desserrez pas. |
 | **Couverture de survie** | Se couvrir, tapisser l'abri, réflecteur derrière le feu, signal brillant, récupérer la pluie, ombre en été. |
 | **Sac poubelle épais** | Poncho (trou pour la tête), sac de bivouac bourré de feuilles, bâche d'abri, alambic solaire, sac étanche. |
 | **Ruban adhésif** (enroulé sur un briquet) | Prévenir les ampoules, réparer une veste ou une tente, fixer une attelle ; il brûle et aide à allumer le feu. |
@@ -1048,9 +1061,9 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 #### 3 · Quelqu'un est inconscient
 
 1. Je me protège et je le protège du danger.
-2. Il respire ? Je regarde, j'écoute 10 s.
+2. Respire-t-il normalement ? Halètements espacés = non.
 3. Oui : position latérale de sécurité (PLS).
-4. Non : 112 et massage cardiaque, 100–120/min.
+4. Non : 112 en haut-parleur, défibrillateur, compressions 100–120/min, 5–6 cm ; défibrillateur dès qu'il arrive.
 5. Je le couvre et je surveille sans arrêt.
 
 → chapitre 8
@@ -1060,7 +1073,7 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 1. J'appuie fort sur la plaie, sans relâcher.
 2. J'allonge la victime.
 3. J'appelle le 112.
-4. Membre, compression impossible : garrot large au-dessus.
+4. Membre, compression inefficace : garrot conçu à cet effet (ou lien large 3–5 cm non élastique + serrage), entre la plaie et la racine du membre, jamais sur une articulation.
 5. Je note l'heure du garrot, je ne le desserre pas.
 
 → chapitre 8
@@ -1087,11 +1100,11 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 
 #### 7 · Orage en pleine nature
 
-1. Éclair-tonnerre < 30 s : je m'abrite.
-2. Je quitte sommets, crêtes, arbres isolés, eau.
-3. Je m'éloigne du métal.
-4. Accroupi, pieds joints, sur mon sac.
-5. Groupe : quelques mètres entre chacun.
+1. Tonnerre audible : je rejoins tout de suite un bâtiment fermé ou un véhicule fermé à toit rigide, si c'est possible sans danger.
+2. Je n'attends pas d'intervalle < 30 s.
+3. J'évite crêtes, arbres isolés, eau et conducteurs.
+4. Aucune posture ni abri léger ne rend l'extérieur sûr.
+5. J'attends 30 min après le dernier tonnerre.
 
 → chapitre 14
 
@@ -1107,11 +1120,11 @@ Dix situations, cinq gestes chacune, dans l'ordre. À imprimer et glisser dans l
 
 #### 9 · Coup de chaleur
 
-1. Je mets la personne à l'ombre, allongée.
-2. J'appelle le 112.
-3. Je la déshabille, je mouille toute la peau.
+1. Confusion ou malaise : j'appelle le 15 ou le 112 immédiatement.
+2. Je la mets au frais et je refroidis sans attendre.
+3. Je retire les vêtements superflus, je mouille largement la peau.
 4. J'évente sans arrêt.
-5. Petites gorgées seulement si elle est consciente.
+5. Rien à boire si elle est confuse, somnolente, vomit ou avale mal.
 
 → chapitres 8, 17
 
