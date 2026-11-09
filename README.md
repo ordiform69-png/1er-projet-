@@ -11,6 +11,10 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 > Ce livret ne remplace pas une formation aux premiers secours ni un stage encadré. En cas d'urgence : **112**.
 
+## Livrable
+
+- `livrable/guide-survie-2026-11-09.zip` — paquet de livraison (PDF complet, fiches réflexes à imprimer, HTML, Markdown, journal, contrôle, note de livraison).
+
 ## Corrections éditoriales
 
 - `guide-survie/guide-survie-corrige.md` — texte corrigé, autonome (toutes les consignes vitales sont dans le texte).
