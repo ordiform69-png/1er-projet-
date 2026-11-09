@@ -63,3 +63,15 @@ Le rapport conserve ces divergences **sans arbitrage**. Le livret, lui, ne peut 
 - **Procédure enfant** de l'arrêt cardiaque : toujours « à valider ».
 - **If, myrtilles, lianes** : abstention seulement (« formulation spécialisée non transmise »).
 - **Illustrations encore en tension** (voir le journal, partie D) : coches ✓/✗ sur les plantes, « Est » et « Sud » dans le dessin du bâton et de la montre, mention « …à faire bouillir ! » sous le filtre.
+
+## Version 1.1 — contrôle des 45 points du rapport consolidé
+
+Les 45 points ont été appliqués, sous la forme de 56 remplacements (voir le journal, partie J, pour les arbitrages). Le script `controle-v11.py` vérifie pour chacun que le nouveau texte est présent et que l'ancien a disparu.
+
+| Contrôle | Résultat |
+|---|---|
+| Remplacements v1.1 sur la version 1.1 | **56 / 56** conformes |
+| Témoin : mêmes remplacements sur la version précédente | 0 / 56 (le contrôle détecte bien les anciennes phrases) |
+| Points 001 à 102 (rapport précédent) | 102 / 102 toujours conformes |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
+| Mentions « formulation spécialisée non transmise » | 0 |

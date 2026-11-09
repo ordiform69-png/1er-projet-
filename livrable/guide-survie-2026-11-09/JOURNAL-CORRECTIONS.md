@@ -225,3 +225,84 @@ Mention « Version 1.0 — 9 novembre 2026 » ajoutée sur la couverture. Contr�
 - **if, myrtilles, lianes** : abstention, « formulation spécialisée non transmise ».
 
 Une demande précise a été préparée pour les agents (`partage-grok/DEMANDE-GROK-V1.1.md`) ; leurs réponses donneront une version 1.1.
+
+## I. Version 1.1 (en cours) — réanimation de l'enfant et du nourrisson
+
+**Points reçus** : POINT 2 (fiche courte, 5 lignes) et POINT 3 (liste d'arbitrage) de l'agent Médecin. **Le POINT 1 (texte complet du chapitre 8) n'a pas été reçu.**
+
+**Arbitrage de l'éditeur** : le livret suit le **référentiel technique national PSC (France)**, celui qu'enseigne la formation PSC1 recommandée par le livret.
+
+| Emplacement | Avant | Après | Source |
+|---|---|---|---|
+| Ch. 8 | Encadré « À valider : procédure enfant… » | Encadré « Arrêt cardiaque de l'enfant et du nourrisson » : les 5 gestes du POINT 2, option RTN (15:2, sans insufflations initiales), plus deux précisions RTN du POINT 3 (environ 4 cm chez le nourrisson et 5 cm chez l'enfant ; seul sans téléphone, alerter puis revenir) et la mention « ne pas improviser » | DGSCGC, RTN PSC (édition juillet 2026 citée par l'agent), fiches 02PR03, 02FT07, 02FT08, 02FT09 |
+| Fiches réflexes | Fiche 3 « Quelqu'un est inconscient » | Fiche 3 « Un adulte est inconscient » + nouvelle **fiche 3 bis** « Enfant ou nourrisson qui ne respire pas » (5 lignes du POINT 2, option RTN) | Idem |
+| Ch. 16, Noyade | Procédure générale (5 insufflations initiales, ERC) | Ajout : « Enfant ou nourrisson : conduite après noyade selon le référentiel français à valider ; 15 ou 112 en haut-parleur et consignes du régulateur » | Prudence : le texte noyade actuel suit l'ERC et diverge du RTN chez l'enfant |
+
+**Réserves** :
+- L'édition « RTN PSC juillet 2026 » citée par l'agent n'a pas pu être confirmée par une recherche en ligne. À faire confirmer par l'agent (lien ou référence de publication).
+- La consigne « compressions seules si vous ne savez pas insuffler » vient de l'ERC ; selon l'agent, le RTN ne la mentionne explicitement que pour l'adulte. Elle est conservée, car elle figure sans option dans le texte proposé par l'agent.
+- La conduite après noyade de l'enfant selon le RTN reste à fournir.
+
+**En attente** : réponses de l'agent Botaniste (if, myrtilles, lianes).
+
+### I bis. Agent Botaniste — myrtille et lianes (v1.1 en cours)
+
+Points reçus : POINT 6 (myrtille) et POINT 7 (lianes). Les textes de remplacement sont repris tels quels. **Le point sur l'if n'a pas encore été reçu.**
+
+| Emplacement | Avant | Après | Source |
+|---|---|---|---|
+| Ch. 10, tableau des comestibles | Ligne « Ronce, framboisier, myrtille » ; myrtille « au moindre doute, s'abstenir (formulation spécialisée non transmise) » | Ligne « Ronce, framboisier » inchangée ; nouvelle ligne **Myrtille** (description) ; nouvel encadré **« Myrtille : les sosies toxiques »** (belladone, parisette, chèvrefeuille à baies noires, morelle noire, troène, nerprun, bourdaine), avec les limites de l'identification et la conduite en cas d'ingestion (centre antipoison sans attendre, 15/112/114, ne pas faire vomir) | Anses ; CAP de Lille (tableau des plantes à baies, fiche parisette, dépliant) ; La Revue du Praticien |
+| Ch. 9, fruits | « Myrtilles : au moindre doute, s'abstenir (formulation…) » | « Myrtilles : seulement après identification certaine ; sosies toxiques (dont la belladone) au chapitre 10 » | Renvoi |
+| Ch. 19, lianes à eau | « au moindre doute, s'abstenir (formulation…) » | **Abstention définitive** : ne pas boire le liquide d'une liane sauf espèce identifiée avec certitude comme sûre ; aucune méthode de test ; chercher une autre source d'eau et la traiter (chapitre 5) | ATP 3-50.21 (2018), FM 3-05.70, FM 21-76 (manuels militaires, pas des validations sanitaires) ; Anses ; CAP de Lille ; MedlinePlus |
+
+Le conseil de l'ATP 3-50.21 de faire vomir n'a pas été repris (il contredit le CAP de Lille et MedlinePlus). « Chapitre consacré à l'eau (numéro à valider) » a été remplacé par « chapitre 5 ». L'airelle des marais n'est pas mentionnée, faute de source (le Botaniste la laisse « à valider » si l'éditeur souhaite l'ajouter).
+
+## J. Version 1.1 — rapport consolidé des neuf agents (45 points)
+
+Bilan des agents sur la v1.0 : fiable dans l'ensemble, mais pas publiable en l'état ; 6 corrections partielles, aucune manquante. Après regroupement : 45 points, dont 5 critiques, 2 de niveau discuté et 12 avec des textes de remplacement concurrents.
+
+**Règle d'arbitrage** (inchangée depuis la v1.0, règle du brief éditeur) : en cas de divergence, la version la plus sûre ; quand les textes sont compatibles, fusion de leurs éléments les plus protecteurs. Contrôle : 56 remplacements vérifiés présents, anciennes phrases absentes (`controle-v11.py`) ; contrôle 001–102 toujours à 102 / 102 ; HTML valide ; aucun lien interne cassé.
+
+### Critiques
+
+| Point | Emplacement | Décision |
+|---|---|---|
+| 1 | Ch. 8, enfant et nourrisson | Déjà traité en v1.1 (référentiel français, choix de l'éditeur). Le texte complet du POINT 1 du Médecin (sections « Qui est nourrisson ou enfant ? » et 1 à 7) **n'a jamais été reçu** ; l'encadré actuel repose sur la fiche courte (POINT 2) et deux précisions RTN. |
+| 2 | Fiche 3 | **Fusion** Éditeur + Médecin : PLS seulement sans traumatisme (sinon sur le dos) ; « défibrillateur » non répété ; valeurs adulte explicites ; renvoi à la fiche 3 bis pour l'enfant. |
+| 3 | Ch. 21, ébullition | **Conflit** (5 textes) → texte de l'**Éditeur**, le plus explicite : « Ne chauffez ni bouteille plastique ni canette ». |
+| 4 | Ch. 10, pin, sapin, épicéa | Appliqué : aucun caractère simple n'écarte l'if ; plus d'infusion d'aiguilles ni d'écorce pour un conifère non identifié avec certitude. Vitamine C et écorce interne retirées (aucune source). |
+| 5 | Ch. 10, myrtille | Déjà traité en v1.1 ; texte du Botaniste aligné (« Ces indices ne suffisent pas à l'identifier », « Uniquement si vous la connaissez déjà avec certitude », « La belladone a, elle aussi, des baies isolées »). |
+| 6 | Ch. 13, alambic | Appliqué : jamais d'eau suspecte de pollution chimique ; la distillation n'élimine pas certains composés volatils. |
+| 7 | Ch. 13, bougie de tranchée ; ch. 24, tissu charbonné | **Conflit** → **fusion** Abri Feu + Bushcraft : allume-feu d'appoint, dehors, surveillé, éteint avant de dormir ; ni chauffage ni éclairage ; jamais en espace clos, même aéré. Ch. 24 : texte Bushcraft. |
+
+### Reformulations
+
+| Point | Décision |
+|---|---|
+| 8 Noyade | Ajout de la mention du Médecin : les 5 insufflations initiales suivent l'ERC 2025, le référentiel français n'en prévoit pas (la note « enfant » de la v1.1 est conservée). |
+| 9 Sphaigne | **Fusion** Médecin + Botaniste : jamais sur une plaie ; gants si coupures aux mains. |
+| 10 If | Texte du Botaniste (parties toxiques, symptômes, conduite, confusion avec le sapin). Dernière mention « non transmise » supprimée. |
+| 11, 12 | Myrtilles (ch. 9) et lianes (ch. 19) : textes du Botaniste. |
+| 13, 14, 15 | Sac sur branche (plante connue), pluie (pas d'eau de ruissellement, traiter), bambous (traiter) : appliqués. |
+| 16 Rationnement | Appliqué au ch. 5 (réduire les pertes, ne pas se priver d'eau sûre ; mer : ch. 16). L'Expert Eau recommande un avis du Médecin sur le rationnement en mer. |
+| 17 Encadré Danger ch. 4 | Appliqué : ni feu, ni braises, ni appareil à combustion dans un abri couvert, même aéré. |
+| 18 Étoile | **Conflit** → texte **Bushcraft** (surveillance, extinction avant de dormir), le plus complet ; ch. 24 aligné. |
+| 19 Réflecteur | **Conflit** → **fusion** Abri Feu + Bushcraft ; **flamme supprimée du dessin de l'appentis** (ch. 3). |
+| 20 Encoches | **Conflit** → texte **Bushcraft** (popote ; gourde seulement si la notice l'autorise ; suspension vérifiée). |
+| 21 Hutte de débris | **Conflit** → **fusion** : protection minimale d'abord, large marge, perche calée, stabilité vérifiée, sortie facile. |
+| 22 Blizzard | **Conflit** → texte **Abri Feu** (le plus complet). |
+| 23 Check-list « perdu » | **Conflit** → texte **Bushcraft** : signaux, eau, puis feu sous conditions. |
+| 24 Couteau à lame fixe | Appliqué (bâtonnage seulement si le fabricant l'autorise ; ni levier ni pelle). |
+| 25 Schéma sécurité | « aucune personne à portée de la lame ». |
+| 26 Fiche 1 et check-list | **Conflit** → texte **Militaire** (114 si on ne peut pas parler ou entendre ; proche qui confirme l'alerte). |
+| 27 à 29 | Signaux (3 = réponse, 6 = appel), menace (silencieux, 17/112, 114), chaleur au ch. 21 : appliqués. |
+| 30 Sortie hivernale | **Conflit** → **fusion** : première sortie avec un encadrant compétent (Militaire), ensuite à plusieurs sur itinéraire maîtrisé (Navigateur). |
+| 31 à 35 | « Rester ou partir », pentes, figure du contournement (« distance d »), canopée, première heure : appliqués. |
+| 36 Mer | Appliqué : « Le deuxième est la panique » et « Ne paniquez pas » remplacés par des actions. |
+| 37 à 45 | Sommaire, renvois (tipi, sosies), « bien boire », doublon séisme, SMS aux proches, fiches 6 et 8, ligne « Centre antipoison » : appliqués. |
+
+Couverture : « Version 1.1 ».
+
+**Remarques non transformées en correction** : le Médecin juge que « bien boire » (traité au point 40) et la phrase sur la vessie (ch. 18, « urinez avant de dormir ») restent à justifier ; aucune source n'a été transmise pour la seconde, elle est conservée. 15 crédits photo Flickr n'ont pas été revérifiés par l'Éditeur.
+
+**Recommandation des agents** : faire relire les parties enfant (ch. 8, fiche 3 bis) et plantes (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.

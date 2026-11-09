@@ -1,14 +1,14 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.0 — 9 novembre 2026**, version finalisée après relecture éditoriale, rapports d'agents et arbitrages.  
-**Statut** : **version 1.0 finalisée**. Deux contenus restent volontairement signalés « à valider » dans le livret, faute de source spécialisée (voir plus bas). Relecture par un formateur PSC recommandée avant diffusion large.  
+**Version** : **1.1 — 9 novembre 2026**, après le rapport consolidé des neuf agents (45 points appliqués).  
+**Statut** : **version 1.1**. Tous les points transmis sont appliqués et contrôlés. Les agents recommandent une relecture des parties enfant (ch. 8, fiche 3 bis) et plantes (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | Livret complet, A5, 143 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
+| `guide-survie.pdf` | Livret complet, A5, 155 pages, illustré (dessins et 28 photos libres), lisible hors ligne et imprimable |
 | `fiches-reflexes.pdf` | Les 10 fiches réflexes seules (A5, 4 pages), à imprimer et glisser dans le kit |
 | `guide-survie.html` | Version web autonome (un seul fichier, hors ligne, mode sombre) ; source des deux PDF |
 | `guide-survie-corrige.md` | Texte intégral en Markdown, autonome : toutes les consignes vitales y sont en texte |
@@ -37,22 +37,24 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Nœud de cabestan** : 5 étapes numérotées + photo ; nœud de chaise et tendeur illustrés en étapes.
 - **Illustrations** : 28 photos sous licence libre (crédits en fin de livret) ; coches ✓/✗ supprimées ; légendes alignées sur le texte.
 
-## Restent « à valider » (signalés dans le livret)
+## Version 1.1
 
-- Procédure **enfant** de l'arrêt cardiaque (ne pas extrapoler la procédure adulte).
-- **If, myrtilles, lianes** : abstention, formulation spécialisée non transmise.
+- **Enfant et nourrisson** : réanimation selon le référentiel français (choix de l'éditeur), encadré au ch. 8 et fiche réflexe 3 bis.
+- **If, myrtille, lianes** : textes sourcés du Botaniste (sosies toxiques de la myrtille, toxicité de l'if, abstention définitive sur les lianes).
+- **45 points du rapport consolidé** appliqués ; 12 conflits tranchés par la règle « version la plus sûre » (détail : journal, partie J).
 
-Une demande précise pour les agents est prête (`partage-grok/DEMANDE-GROK-V1.1.md`) ; leurs réponses permettront une version 1.1.
+## Reste « à valider »
 
-**Recommandé** : une relecture finale par un formateur aux premiers secours (PSC) sur les chapitres 8, 16 et 23 avant toute diffusion.
+- Conduite après **noyade chez l'enfant** selon le référentiel français (le livret renvoie au régulateur du 15).
+
 
 ## Empreintes SHA-256
 
 ```
-7d25a7fffe50c2806b2b79f1e90489af8fe2ca6fea18499aba0632747c0ee7d2  guide-survie.pdf
-5ee5787978f9c86818c34a1d90f78df7a15a9b6abac51fca8644fb50c4d435aa  fiches-reflexes.pdf
-6b1560aff4012a4f26fbe1d2cf8faaead87616dd5b4d71ed35586937068ce2c7  guide-survie.html
-baa01f2fa44614fdfff08b9956d47ad9b3ac3351d942cf24d1c794c4cac2cbb1  guide-survie-corrige.md
-f695414a2336ec738f5384b5925cbace04f30f41897d11f689ebfacb9c6d3a50  JOURNAL-CORRECTIONS.md
-76eb0a45df55ba4222b74317b3824ebddd1240e2b28954292dde51ea7a7aed51  CONTROLE-PERSISTANCE.md
+f32a21024df9046ef11b80ecd35262af054e3cbfa9d38ca22ca7d2eede5d26c0  guide-survie.pdf
+b23ef4da724b275c77961e1a6addeddc7809d8312703cd921cff12aca0c8da2a  fiches-reflexes.pdf
+b9c8ef2105ddc5b4e1bec44c27ceeadbc7b8dd1d95b52ca34f6fa826db54e6cf  guide-survie.html
+92433f24a0a87a9b4c4bcb23ea8e7c9168f7793a19693ca27b54c897b84c189c  guide-survie-corrige.md
+edabfa494c30714cf7a6172713acd9cbd80090a1d59b0a736dc2aad26f5b6a0a  JOURNAL-CORRECTIONS.md
+c643708b679264b725f23a96fac1a2e2f4a2a22553e2077186de2190387f2073  CONTROLE-PERSISTANCE.md
 ```
