@@ -2,42 +2,69 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version 1.4 — 9 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.5 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
 
-### Sommaire
+---
 
-Avant-propos : à quoi sert ce livret
+## À propos de cette édition
 
-1. Les priorités
-2. Le kit de survie
-3. S'abriter
-4. Faire du feu (et 4 bis — Les techniques d'allumage)
-5. Trouver et purifier l'eau
-6. S'orienter
-7. Se faire repérer
-8. Premiers secours
-9. Se nourrir
-10. Plantes utiles
-11. Techniques issues de l'armée
-12. Nœuds utiles
-13. Fabrications simples et efficaces
-14. Météo et dangers
-15. Survie en montagne
-16. Survie en mer et dans l'eau
-17. Désert et chaleur extrême
-18. Grand froid, neige et glace
-19. Forêt tropicale et jungle
-20. En ville et en cas de catastrophe
-21. Avec rien sur soi
-22. Avec un couteau ou un outil
-23. Fiches réflexes
-24. Programme d'entraînement
-25. Check-lists
+**Petit guide de survie** — version 1.5, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
 
-Petit glossaire · Crédits photographiques
+**Informations vérifiées au 10 novembre 2026** : numéros d'urgence, règles françaises (feu en forêt, couteaux, balises de détresse), recommandations de secourisme et de santé. Les règles et les recommandations évoluent : vérifiez-les avant de partir.
+
+**Responsabilité.** Ce livret donne des repères généraux. Il ne remplace ni une formation aux premiers secours, ni un stage encadré, ni les consignes des secours et des autorités. En cas d'urgence : **112** ou **15**.
+
+**Relecture.** Chaque consigne a fait l'objet d'une vérification documentaire à partir de sources officielles (voir « Sources et limites »). Une relecture des premiers secours par un formateur PSC ou un médecin, et des plantes par un botaniste, est prévue avant toute diffusion.
+
+**Illustrations.** Dessins et pictogrammes réalisés pour ce livret. Photographies sous licences libres ; auteurs et licences dans les « Crédits photographiques ».
+
+---
+
+## Sommaire
+
+**Urgence ?** Appelez le **112** (ou le 15), puis ouvrez les fiches réflexes.
+
+- Avant-propos : à quoi sert ce livret
+- Partie I · Les fondamentaux
+- 1Les priorités
+- 2Le kit de survie
+- 3S'abriter
+- 4Faire du feu
+- 4 bisLes techniques d'allumage
+- 5Trouver et purifier l'eau
+- 6S'orienter
+- 7Se faire repérer
+- Partie II · Soigner et se nourrir
+- 8Premiers secours
+- 9Se nourrir
+- 10Plantes utiles
+- Partie III · Savoir-faire
+- 11Techniques issues de l'armée
+- 12Nœuds utiles
+- 13Fabrications simples et efficaces
+- Partie IV · Milieux et dangers
+- 14Météo et dangers
+- 15Survie en montagne
+- 16Survie en mer et dans l'eau
+- 17Désert et chaleur extrême
+- 18Grand froid, neige et glace
+- 19Forêt tropicale et jungle
+- 20En ville et en cas de catastrophe
+- Partie V · Selon ce que vous avez sur vous
+- 21Avec rien sur soi
+- 22Avec un couteau ou un outil
+- Partie VI · Aide-mémoire
+- 23Fiches réflexes
+- 24Programme d'entraînement
+- 25Check-lists
+- Pour aller plus loin
+- Petit glossaire
+- Index
+- Sources et limites
+- Crédits photographiques
 
 ---
 
@@ -65,6 +92,8 @@ Ce livret est fait pour quelqu'un qui part de zéro et veut acquérir des **base
 Une formation aux premiers secours (PSC1), un stage de survie encadré, l'apprentissage des plantes avec un connaisseur, une formation avalanche ou mer. Il vous donne les bases et les bons réflexes ; la pratique fait le reste.
 
 ---
+
+Partie I · Les fondamentaux
 
 ## 1Les priorités
 
@@ -403,6 +432,8 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 
 ---
 
+Partie II · Soigner et se nourrir
+
 ## 8Premiers secours
 
 Retenez la séquence : **Protéger** (se mettre en sécurité, soi et la victime) → **Alerter** (112) → **Secourir**.
@@ -654,6 +685,8 @@ Ces usages sont traditionnels et d'efficacité limitée : ils dépannent, ils ne
 
 ---
 
+Partie III · Savoir-faire
+
 ## 11Techniques issues de l'armée
 
 Les manuels de survie militaires (par exemple le manuel FM 21-76 de l'armée américaine) sont une mine de méthodes simples et éprouvées. Voici celles qui servent aussi aux civils.
@@ -826,6 +859,8 @@ L'alambic peut aussi servir avec de l'eau de mer ou une eau boueuse versée dans
 | Hameçon | Épingle de sûreté pliée, épine de ronce ou d'aubépine attachée à un fil (pêche soumise à la réglementation hors urgence vitale). |
 
 ---
+
+Partie IV · Milieux et dangers
 
 ## 14Météo et dangers
 
@@ -1161,6 +1196,8 @@ Fermez volets et fenêtres côté soleil pendant la journée, et ouvrez en grand
 
 ---
 
+Partie V · Selon ce que vous avez sur vous
+
 ## 21Avec rien sur soi
 
 Égaré après une simple promenade, en tenue légère, sans sac : c'est la situation la plus fréquente… et la plus difficile. Disons-le franchement : sans matériel, **votre meilleur atout est d'éviter de perdre de la chaleur et de l'énergie**, et d'être retrouvé vite. Le feu par friction ou la chasse, sans entraînement, sont presque toujours des pertes de temps.
@@ -1321,6 +1358,8 @@ Couteau pliant fermé ; couteau à lame fixe toujours dans son étui, dans une p
 
 ---
 
+Partie VI · Aide-mémoire
+
 ## 23Fiches réflexes
 
 Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et glisser dans le kit. Pour les détails, suivez le renvoi au chapitre.
@@ -1328,7 +1367,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 #### 1 · Je suis perdu
 
 1. Stop : je cesse d'agir dans la précipitation ; je vérifie que l'endroit est sûr (S.T.O.P.).
-2. J'appelle le 112 depuis ma position sûre. Si je ne peux pas parler ou entendre : 114 (SMS ou appli). Si l'appel ne passe pas : SMS à un proche qui alerte les secours et me le confirme. Après l'alerte, je reste joignable (pas de mode avion).
+2. J'appelle le 112. Je ne peux pas parler ou entendre : 114 (SMS, appli). L'appel ne passe pas : SMS à un proche qui alerte et me le confirme. Puis je reste joignable (pas de mode avion).
 3. Je reste sur place si quelqu'un connaît mon itinéraire, sauf danger immédiat.
 4. Abri et isolation du sol avant la nuit.
 5. Signaux : couleur, SOS au sol, sifflet 6 coups/min.
@@ -1349,7 +1388,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 1. Je me protège et je le protège du danger.
 2. Respire-t-il normalement ? Halètements espacés = non.
-3. Oui : PLS si aucun traumatisme ; après une chute, un choc ou si la cause est inconnue, je le laisse sur le dos, voies aériennes libres. J'alerte (112).
+3. Oui : PLS. Après une chute, un choc ou si la cause est inconnue : sur le dos, voies aériennes libres. J'alerte (112).
 4. Non : 112 en haut-parleur, je fais apporter un défibrillateur ; adulte : compressions 100–120/min, 5–6 cm ; j'utilise le défibrillateur dès qu'il arrive. Enfant ou nourrisson : fiche 3 bis.
 5. Je le couvre et je surveille sans arrêt.
 
@@ -1357,11 +1396,11 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 #### 3 bis · Enfant ou nourrisson qui ne respire pas
 
-1. Il ne répond pas et ne respire pas, ou respire anormalement (vérifiez pendant 10 s au plus, après avoir libéré les voies aériennes) : c'est un arrêt, commencez.
-2. Appelez le 15 ou le 112 en haut-parleur (ou faites appeler et apporter un DAE), puis suivez les consignes du régulateur.
-3. Insufflations par bouche-à-bouche (bouche-à-bouche-et-nez pour le nourrisson) : cycles de 15 compressions et 2 insufflations.
-4. Faites 100 à 120 compressions par minute en enfonçant d'un tiers de l'épaisseur du thorax (environ 5 cm chez l'enfant, environ 4 cm chez le nourrisson) : une main pour l'enfant (deux si nécessaire), les deux pouces pour le nourrisson. Chez l'enfant, les insufflations sont importantes : faites-les si vous le pouvez. Si vous ne pouvez pas ou ne savez pas insuffler, faites au moins les compressions, en continu (recommandations européennes ERC 2025 ; le référentiel français ne le précise que pour l'adulte).
-5. Utilisez le DAE dès que possible, avec les électrodes ou le mode enfant. À défaut, utilisez les électrodes adultes, l'une devant au milieu de la poitrine et l'autre dans le dos.
+1. Ne répond pas, ne respire pas ou respire anormalement (10 s au plus, voies aériennes libérées) : c'est un arrêt, je commence.
+2. 15 ou 112 en haut-parleur, DAE demandé ; je suis les consignes du régulateur.
+3. Cycles de 15 compressions et 2 insufflations (bouche-à-bouche ; bouche-à-bouche-et-nez chez le nourrisson).
+4. 100 à 120 compressions/min, un tiers du thorax (environ 5 cm enfant, 4 cm nourrisson) ; une main (deux si besoin), deux pouces chez le nourrisson. Je ne peux pas insuffler : compressions seules, en continu.
+5. DAE dès que possible : électrodes ou mode enfant ; sinon électrodes adultes, une devant au milieu de la poitrine, une dans le dos.
 
 → chapitre 8
 
@@ -1371,7 +1410,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 2. Douleur dans la poitrine qui serre ou dure plus de 5 minutes, essoufflement, sueurs, pâleur : 15 ou 112 tout de suite.
 3. VITE : visage paralysé, impossible de bouger un membre, trouble de la parole : 15 ou 112, même si ça passe. Je note l'heure.
 4. Aucun médicament de ma propre initiative. Signe d'AVC : ni à boire, ni à manger, ni médicament.
-5. Je la protège du froid et je la surveille sans arrêt. Ne répond plus et respire normalement : PLS. Ne respire pas normalement : fiche 3.
+5. Je la protège du froid, je la surveille. Ne répond plus mais respire : PLS. Ne respire pas normalement : fiche 3.
 
 → chapitre 8
 
@@ -1380,7 +1419,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 1. J'appuie fort sur la plaie, sans relâcher.
 2. J'allonge la victime.
 3. J'appelle le 112.
-4. Membre, compression inefficace : garrot conçu à cet effet (ou lien large 3–5 cm non élastique + serrage), entre la plaie et la racine du membre, jamais sur une articulation.
+4. Membre, compression inefficace : garrot (ou lien large 3–5 cm non élastique, serré) entre la plaie et la racine du membre, jamais sur une articulation.
 5. Je note l'heure du garrot, je ne le desserre pas.
 
 → chapitre 8
@@ -1397,7 +1436,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 #### 6 · Passé à travers la glace
 
-1. Je garde la tête hors de l'eau et je laisse ma respiration se calmer (le choc passe en général en moins d'une minute).
+1. Tête hors de l'eau, je laisse ma respiration se calmer (moins d'une minute en général).
 2. Je me tourne vers d'où je viens.
 3. Pieds à l'horizontale, je bats des jambes et je tire.
 4. Je roule, je ne me lève pas.
@@ -1407,7 +1446,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 #### 7 · Orage en pleine nature
 
-1. Tonnerre audible : je rejoins tout de suite un bâtiment fermé ou un véhicule fermé à toit rigide, si c'est possible sans danger.
+1. Tonnerre audible : je rejoins un bâtiment ou un véhicule fermé à toit rigide, si c'est sans danger.
 2. Je n'attends pas d'intervalle < 30 s.
 3. J'évite crêtes, arbres isolés, eau et conducteurs.
 4. Aucune posture ni abri léger ne rend l'extérieur sûr.
@@ -1594,6 +1633,25 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 
 ---
 
+## Sources et limites
+
+Les consignes de ce livret s'appuient d'abord sur des sources officielles françaises, complétées par des références européennes ou internationales quand aucune source française n'existe. Principales références :
+
+- **Premiers secours** : Références techniques nationales – Premiers secours citoyen (DGSCGC, juillet 2026) ; recommandations européennes de réanimation (ERC 2025) ; Assurance maladie (ameli.fr) pour le malaise, l'AVC et la douleur thoracique.
+- **Eau et alimentation** : ministère de la Santé (guide ORSEC eau potable), Anses (eau, douve, échinococcose, biberons), CDC (eau en situation d'urgence), Eawag (désinfection solaire SODIS), centres antipoison.
+- **Alerte et secours** : service-public.fr (112, 114), Urgence 114, ministère de la Mer (balises de détresse, fausses alertes, 196), Cospas-Sarsat, sécurité civile (signal national d'alerte, FR-Alert).
+- **Météo et milieux** : Météo-France (vigilance, météo des forêts), Vigicrues, bulletins d'avalanche (BERA), EDF (lâchers d'eau), RNLI (eau froide, courants).
+- **Règles françaises** : Code forestier (art. L131-1, feu en forêt), réglementation sur le port et le transport des couteaux, FFRandonnée (balisage).
+
+### Limites
+
+- Ce livret ne remplace ni une formation pratique (PSC1, stage de survie, alpinisme, mer), ni les consignes des secours et des autorités, qui priment toujours.
+- Aucune photo ni description ne suffit à identifier une plante ou un champignon : en cas de doute, ne mangez pas.
+- Les règles citées sont celles de la France au 10 novembre 2026 ; à l'étranger, renseignez-vous sur les règles et les numéros locaux.
+- Quand les sources ne s'accordent pas, ce livret retient la consigne la plus prudente. Le détail des corrections et des sources figure dans le dossier éditorial qui accompagne cette édition.
+
+---
+
 ## Crédits photographiques
 
 Les photographies proviennent de Flickr, de Wikimedia Commons et de Rawpixel (recherche via Openverse) et sont publiées sous licence libre : domaine public, CC0, CC BY ou CC BY-SA. Les licences CC BY et CC BY-SA imposent de citer l'auteur et la licence ; les photos sous CC BY-SA restent sous cette licence. Les photos ont seulement été redimensionnées. Elles illustrent une technique ou une espèce mais **ne suffisent jamais, seules, à identifier une plante** ni à apprendre un geste.
@@ -1665,13 +1723,13 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 
 # Annexe A — Note de version
 
-**Version** : **1.4 — 9 novembre 2026**, après la relecture finale de la v1.3 par les neuf agents (17 points ; verdict : publiable après corrections mineures).  
-**Statut** : **version 1.4, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.5 — 10 novembre 2026** : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.5, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
-### Ce livret contient tout
+### Contenu
 
-1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
-2. **Annexe A — Note de version** (cette page) : historique des versions et points encore à faire vérifier.
+1. **Le guide** (édition publique) : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
+2. **Annexe A — Note de version** (cette page, dossier éditorial seulement) : historique des versions et points encore à faire vérifier.
 3. **Annexe B — Journal des corrections** : chaque correction avec son chapitre, l'avant, l'après, la source et les arbitrages.
 4. **Annexe C — Contrôles** : vérification automatique que chaque correction est en place, version par version.
 
@@ -1719,6 +1777,15 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 - **28 nouvelles photos libres** (56 au total), choisies une à une : groupe en randonnée, abri sous bâche, ébullition et filtre, miroir, sifflet et hélicoptère, défibrillateur, mûres et noisettes, myrtille et belladone, orage, matériel d'avalanche et crampons, désert, glace fissurée et bivouac d'hiver, forêt tropicale et hamac, inondation, radio à manivelle et détecteur de CO, couteau et hachette, carte et boussole, matériel étalé.
 - **14 pictogrammes** sur les fiches réflexes et les check-lists.
 - **Mise en page imprimée** corrigée : plus de pages vides ni de pages de deux ou trois lignes ; en-têtes de tableau répétés.
+
+### Version 1.5 — édition publique
+
+- **Deux éditions** : l'**édition publique** (le guide seul, avec glossaire, index, sources et limites, crédits) et le **dossier éditorial** (la même chose, plus ces annexes A, B et C).
+- **Sommaire** sur une page à part, en six parties, avec les **numéros de page** et un encadré « Urgence ? » qui renvoie aux fiches réflexes.
+- **Index** de 65 entrées avec numéros de page ; page **« À propos de cette édition »** (date de vérification, responsabilité, relecture, illustrations) ; page **« Sources et limites »**.
+- **Bandeaux de parties** en tête des chapitres 1, 8, 11, 14, 21 et 23.
+- **Fiches réflexes resserrées** (fiches 1, 3, 3 bis, 3 ter, 4, 6, 7) : une ligne par geste, même contenu, détails au chapitre indiqué.
+- **Typographie française** (espaces insécables avant ; : ! ? et dans les guillemets, entre un nombre et son unité) et pied de page lisible avec le numéro de page.
 
 ### Points encore à faire vérifier
 
@@ -2231,6 +2298,22 @@ Signalement de l'éditeur : « ça manque d'illustration visuelle et d'image ».
 
 ---
 
+## O. Version 1.5 — édition publique (avis éditorial)
+
+Avis demandé à l'auteur en tant que professionnel de l'édition, puis appliqué avec l'accord de l'éditeur (« Je te fais confiance, vas-y »). Constats : annexes de travail mêlées au livre public, texte alourdi par les précautions, fiches réflexes trop longues, sommaire sans numéros de page, pas d'index ni de page de mentions, typographie et pied de page à reprendre.
+
+- **Deux éditions** construites par `outils/construire-livret.py` : `guide-survie.*` (édition publique, sans annexes) et `dossier-editorial.*` (édition publique + annexes A, B, C). Cela remplace la règle « tout dans le livret » de la partie N : tout reste disponible, mais dans le dossier éditorial.
+- **Sommaire** déplacé sur sa propre page, organisé en six parties (I. Les fondamentaux ; II. Soigner et se nourrir ; III. Savoir-faire ; IV. Milieux et dangers ; V. Selon ce que vous avez sur vous ; VI. Aide-mémoire), avec points de conduite et **numéros de page calculés** : le livret est produit, chaque titre est retrouvé dans le PDF (seul sur sa ligne), puis les numéros sont injectés ; l'opération est répétée jusqu'à stabilité (3 passes). Contrôle : les 31 numéros correspondent à la page réelle du titre.
+- **Index** généré à partir de `outils/index-termes.txt` (65 entrées) : pour chaque terme, les 5 pages où il revient le plus.
+- **Pages ajoutées** : « À propos de cette édition » (date de vérification des informations, responsabilité, relecture, illustrations) et « Sources et limites » (principales références, limites du livret).
+- **Fiches réflexes** 1, 3, 3 bis, 3 ter, 4, 6 et 7 resserrées à une ligne par geste, **sans changer les consignes** (les détails restent au chapitre). Fiche 3 bis, geste 4 : 508 → 205 caractères ; la mention des deux référentiels reste au chapitre 8. **À faire valider par le formateur PSC** avec le reste des fiches.
+- **Typographie** (appliquée à la construction, pas au texte source) : espaces insécables fines avant ; ! ?, insécables avant : et dans les guillemets, entre un nombre et son unité. Pied de page agrandi (titre à gauche, numéro de page à droite).
+- **Couverture** tenue sur une page (illustration réduite à l'impression).
+- Non fait, à prévoir : **regroupement réel des chapitres** (les bandeaux de parties suivent l'ordre actuel, qui s'y prête) ; **passe de style humaine** sur l'ensemble du texte ; **dessins des gestes** dans un style unique par un illustrateur ; nom de l'auteur, ISBN et mentions de l'éditeur.
+- Contrôles : `controle-v15.py` 23 / 23 (témoin v1.4 : 0 / 20) ; 914 / 914 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; mise en page : aucune page à moins de 30 % sauf la dernière.
+
+---
+
 # Annexe C — Contrôles
 
 Contrôle réalisé le 9 novembre 2026 sur la version corrigée (`guide-survie.html`, PDF A5 de 125 pages, `guide-survie-corrige.md`), à partir du rapport consolidé des agents (points 001 à 102). Les 11 corrections du brief éditeur sont hors périmètre, comme demandé.
@@ -2349,3 +2432,16 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Exhaustivité du Markdown | **836 / 836** ; plus d'espace parasite entre le gras et la ponctuation |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
 | Mentions « à valider » dans le corps du livret | **0** (celles des annexes : journal, partie M) |
+
+## Version 1.5 — édition publique
+
+| Contrôle | Résultat |
+|---|---|
+| Opérations v1.5 (`controle-v15.py`) | **23 / 23** ; témoin v1.4 : 0 / 20 |
+| Numéros de page du sommaire | **31 / 31** égaux à la page réelle du titre |
+| Points 001 à 102 | 102 / 102 |
+| Manques v1.2 | 72 / 72 |
+| Remplacements v1.3 et v1.4 | les écarts correspondent aux passages réécrits ensuite (v1.4 : balise, bâche, Croix du Sud, Javel, plantes ; v1.5 : fiches 1, 3 bis, 6, sommaire ; pictogrammes) |
+| Exhaustivité du Markdown | **914 / 914** |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (édition publique et dossier) |
+| Mise en page | aucune page remplie à moins de 30 %, sauf la dernière |

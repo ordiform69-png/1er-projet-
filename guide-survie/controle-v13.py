@@ -1,4 +1,4 @@
-"""Contrôle v1.3 : chaque remplacement de corrections-v13.py est présent et l'ancien texte a disparu.
+"""Contrôle v1.3 (sert aussi pour v1.4 et v1.5) : chaque remplacement de corrections-v13.py est présent et l'ancien texte a disparu.
 
 Usage : python3 controle-v13.py corrections-v13.py guide-survie.html
 Les remplacements dont le texte est calculé (encadré Javel, paragraphe Nourrisson, fiche 3 ter) sont contrôlés
@@ -12,7 +12,10 @@ html = open(sys.argv[2], encoding="utf-8").read()
 ok = bad = 0
 for node in ast.walk(ast.parse(src)):
     if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "rep":
-        pt = ast.literal_eval(node.args[0])
+        try:
+            pt = ast.literal_eval(node.args[0])
+        except ValueError:
+            pt = "(calculé)"
         try:
             old = ast.literal_eval(node.args[1])
         except ValueError:

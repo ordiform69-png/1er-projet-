@@ -116,3 +116,16 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Exhaustivité du Markdown | **836 / 836** ; plus d'espace parasite entre le gras et la ponctuation |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline |
 | Mentions « à valider » dans le corps du livret | **0** (celles des annexes : journal, partie M) |
+
+## Version 1.5 — édition publique
+
+| Contrôle | Résultat |
+|---|---|
+| Opérations v1.5 (`controle-v15.py`) | **23 / 23** ; témoin v1.4 : 0 / 20 |
+| Numéros de page du sommaire | **31 / 31** égaux à la page réelle du titre |
+| Points 001 à 102 | 102 / 102 |
+| Manques v1.2 | 72 / 72 |
+| Remplacements v1.3 et v1.4 | les écarts correspondent aux passages réécrits ensuite (v1.4 : balise, bâche, Croix du Sud, Javel, plantes ; v1.5 : fiches 1, 3 bis, 6, sommaire ; pictogrammes) |
+| Exhaustivité du Markdown | **914 / 914** |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (édition publique et dossier) |
+| Mise en page | aucune page remplie à moins de 30 %, sauf la dernière |

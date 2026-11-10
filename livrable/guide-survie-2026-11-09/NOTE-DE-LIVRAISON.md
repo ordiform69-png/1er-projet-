@@ -1,17 +1,18 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.4 — 9 novembre 2026**, après la relecture finale de la v1.3 par les neuf agents (17 points ; verdict : publiable après corrections mineures).  
-**Statut** : **version 1.4, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.5 — 10 novembre 2026** : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.5, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
 
 | Fichier | Rôle |
 |---|---|
-| `guide-survie.pdf` | **Le livret complet, qui contient tout** : le guide illustré (dessins, pictogrammes et 56 photos libres), puis les annexes A (note de version), B (journal des corrections) et C (contrôles). A5, lisible hors ligne et imprimable |
+| `guide-survie.pdf` | **Édition publique** : le guide illustré (dessins, pictogrammes, 56 photos libres), avec sommaire par parties et numéros de page, index, sources et limites, crédits. A5, lisible hors ligne et imprimable |
+| `dossier-editorial.pdf` | **Dossier éditorial** : l'édition publique suivie des annexes A (note de version), B (journal des corrections) et C (contrôles), pour les relecteurs |
 | `fiches-reflexes.pdf` | Les 12 fiches réflexes seules (A5, 5 pages), à imprimer et glisser dans le kit |
-| `guide-survie.html` | Le même livret complet en version web autonome (un seul fichier, hors ligne, mode sombre) |
-| `guide-survie-corrige.md` | Le même livret complet en Markdown, annexes comprises |
+| `guide-survie.html` | L'édition publique en version web autonome (un seul fichier, hors ligne, mode sombre) |
+| `guide-survie-corrige.md` | Le texte de l'édition publique en Markdown |
 | `JOURNAL-CORRECTIONS.md` | Chaque correction : chapitre, avant, après, source ; arbitrages ; illustrations à revoir |
 | `CONTROLE-PERSISTANCE.md` | Vérification des points 001 à 102 sur la version corrigée : 102 / 102 conformes |
 | `NOTE-DE-LIVRAISON.md` | Ce document |
@@ -59,6 +60,15 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Verdict des neuf agents sur la v1.3** : « publiable après corrections mineures », sous réserve de la relecture humaine ; aucun point critique.
 - **17 points appliqués** : un témoin non formé réanime quand même, guidé par le régulateur ; aucun appareil à combustion dans une tente ; fausse alerte de balise : 196 par téléphone, VHF 16 en mer ; cuisson des fruits **et des feuilles** sauvages dans les régions de la règle 3 (ail des ours compris) ; 114 harmonisé partout ; sirènes, barrages, réserve d'eau, glossaire (ARS, DGSCGC, ERC) ; détail dans le journal, partie M.
 
+## Version 1.5 — édition publique
+
+- **Deux éditions** : l'**édition publique** (le guide seul, avec glossaire, index, sources et limites, crédits) et le **dossier éditorial** (la même chose, plus ces annexes A, B et C).
+- **Sommaire** sur une page à part, en six parties, avec les **numéros de page** et un encadré « Urgence ? » qui renvoie aux fiches réflexes.
+- **Index** de 65 entrées avec numéros de page ; page **« À propos de cette édition »** (date de vérification, responsabilité, relecture, illustrations) ; page **« Sources et limites »**.
+- **Bandeaux de parties** en tête des chapitres 1, 8, 11, 14, 21 et 23.
+- **Fiches réflexes resserrées** (fiches 1, 3, 3 bis, 3 ter, 4, 6, 7) : une ligne par geste, même contenu, détails au chapitre indiqué.
+- **Typographie française** (espaces insécables avant ; : ! ? et dans les guillemets, entre un nombre et son unité) et pied de page lisible avec le numéro de page.
+
 ## Reste à faire avant publication
 
 - Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
@@ -68,10 +78,11 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-6072d061760a7285b35ed6507bdc869f28c39c6cbc5233fe17f0d787ba5039ed  guide-survie.pdf
-4813ce0609c706bc6423bf392cd54087b878ef03eb5b87823525166e68423a07  fiches-reflexes.pdf
-fd75bbc706188a0fa7988e76450fb9b5c27b59d7c7e9bd5b922a9034377d8e08  guide-survie.html
-c94cabb52e0f5edb0121ac5533cbfc194360edfd7bb04e96cf65de15276541a3  guide-survie-corrige.md
-bc771f1c7fdd17d4bb9fd0f53ec39a7f9ee09c6aef00141ec07b49ead268aa93  JOURNAL-CORRECTIONS.md
-ef06dbba16c42cb65bf509540b9ea1fef2b022e6a375eff182c4de493051f2fd  CONTROLE-PERSISTANCE.md
+285b1a044662356e4920c887483b6dba4b4878d2bf3400ff45e5a804d778d5a8  guide-survie.pdf
+5d13fd9e6edc4d8714fa3912cb2fac38d369b49188763e5a676e89a19409aa22  dossier-editorial.pdf
+e484a1ec2e5c7fefa65e3d4bba1058f690f0be2d1bac7f83dc34371877dc2ae4  fiches-reflexes.pdf
+a683fa7385f5f24c36286fd03e9f3f884f2d7274fe2915375cba5e0798cca70e  guide-survie.html
+0b485bb13797113a759e09b23d22841c70f2f8b84f6fbb2cb97c4a69b15b98c6  guide-survie-corrige.md
+8d56dc0a5acf92efad3957aae2ea8dd940f46c7415b328a2e473c02d007c8551  JOURNAL-CORRECTIONS.md
+2914f09f10e26a367849987af63ecd536094b8a5ccd5bf46935318b8044722f1  CONTROLE-PERSISTANCE.md
 ```

@@ -499,3 +499,19 @@ Signalement de l'éditeur : « ça manque d'illustration visuelle et d'image ».
 - Mise en page : blocs de 3 photos ou plus sur 3 colonnes à l'impression ; en-têtes des tableaux en `thead`, donc répétés en haut de page et jamais seuls en bas de page ; plus de saut de page forcé avant les fiches réflexes.
 - Outils : `outils/ajout-photos.py` (sélection dans `source/photos-ajout-v14.json`), `outils/pictos.py`, `outils/ajout-pictos.py`.
 - Contrôles : 887 / 887 éléments retrouvés dans le Markdown ; 102 / 102 ; 72 / 72 ; 26 / 26 ; liens et balises valides ; mise en page : aucune page remplie à moins de 30 %.
+
+---
+
+## O. Version 1.5 — édition publique (avis éditorial)
+
+Avis demandé à l'auteur en tant que professionnel de l'édition, puis appliqué avec l'accord de l'éditeur (« Je te fais confiance, vas-y »). Constats : annexes de travail mêlées au livre public, texte alourdi par les précautions, fiches réflexes trop longues, sommaire sans numéros de page, pas d'index ni de page de mentions, typographie et pied de page à reprendre.
+
+- **Deux éditions** construites par `outils/construire-livret.py` : `guide-survie.*` (édition publique, sans annexes) et `dossier-editorial.*` (édition publique + annexes A, B, C). Cela remplace la règle « tout dans le livret » de la partie N : tout reste disponible, mais dans le dossier éditorial.
+- **Sommaire** déplacé sur sa propre page, organisé en six parties (I. Les fondamentaux ; II. Soigner et se nourrir ; III. Savoir-faire ; IV. Milieux et dangers ; V. Selon ce que vous avez sur vous ; VI. Aide-mémoire), avec points de conduite et **numéros de page calculés** : le livret est produit, chaque titre est retrouvé dans le PDF (seul sur sa ligne), puis les numéros sont injectés ; l'opération est répétée jusqu'à stabilité (3 passes). Contrôle : les 31 numéros correspondent à la page réelle du titre.
+- **Index** généré à partir de `outils/index-termes.txt` (65 entrées) : pour chaque terme, les 5 pages où il revient le plus.
+- **Pages ajoutées** : « À propos de cette édition » (date de vérification des informations, responsabilité, relecture, illustrations) et « Sources et limites » (principales références, limites du livret).
+- **Fiches réflexes** 1, 3, 3 bis, 3 ter, 4, 6 et 7 resserrées à une ligne par geste, **sans changer les consignes** (les détails restent au chapitre). Fiche 3 bis, geste 4 : 508 → 205 caractères ; la mention des deux référentiels reste au chapitre 8. **À faire valider par le formateur PSC** avec le reste des fiches.
+- **Typographie** (appliquée à la construction, pas au texte source) : espaces insécables fines avant ; ! ?, insécables avant : et dans les guillemets, entre un nombre et son unité. Pied de page agrandi (titre à gauche, numéro de page à droite).
+- **Couverture** tenue sur une page (illustration réduite à l'impression).
+- Non fait, à prévoir : **regroupement réel des chapitres** (les bandeaux de parties suivent l'ordre actuel, qui s'y prête) ; **passe de style humaine** sur l'ensemble du texte ; **dessins des gestes** dans un style unique par un illustrateur ; nom de l'auteur, ISBN et mentions de l'éditeur.
+- Contrôles : `controle-v15.py` 23 / 23 (témoin v1.4 : 0 / 20) ; 914 / 914 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; mise en page : aucune page à moins de 30 % sauf la dernière.

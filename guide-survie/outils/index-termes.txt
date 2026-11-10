@@ -1,0 +1,66 @@
+# Terme de l'index | formes recherchées dans le texte (séparées par ;)
+112 (numéro d'urgence) | 112
+114 (alerte écrite) | 114
+196 (secours en mer) | 196
+Abri de neige | abri de neige;quinzhee;igloo
+Ail des ours | ail des ours
+Arrêt cardiaque | arrêt cardiaque;compressions
+Avalanche | avalanche
+AVC | AVC
+Bâche | bâche
+Balisage | balisage;balise vue;balisés
+Balise de détresse (PLB) | PLB;balise personnelle
+Belladone | belladone
+Boussole | boussole
+Brûlure | brûlure
+Cabestan (nœud) | cabestan
+Canicule | canicule
+Carte | carte topographique;1:25 000;IGN
+Champignons | champignon
+Ciguë | ciguë
+Coup de chaleur | coup de chaleur
+Couteau | couteau
+Couverture de survie | couverture de survie
+Croix du Sud | Croix du Sud
+Défibrillateur (DAE) | défibrillateur;DAE
+Déshydratation | déshydratation
+Eau de Javel | Javel
+Eau de mer | eau de mer
+Ébullition | bouillir;ébullition
+Enfant perdu | serre un arbre;enfant perdu;manque à l'appel
+Étoile Polaire | Polaire
+Feu (allumage) | allumer;ferrocérium;pierre à feu;archet
+Filtre à eau | filtre
+Foudre, orage | foudre;orage
+FR-Alert | FR-Alert
+Garrot | garrot
+Glace (lac gelé) | glace
+Hélicoptère | hélicoptère
+Hypothermie | hypothermie
+If | If
+Inondation | inondation;inondé
+Intoxication | antipoison;intoxication
+Kit de survie | kit
+Malaise | malaise
+Marées | marée
+Monoxyde de carbone | monoxyde de carbone
+Morsure, piqûre | piqûre;morsure;hyménoptère
+Muguet | muguet
+Myrtille | myrtille
+Noyade | noyade
+Nœud de chaise | nœud de chaise
+Nœud plat | nœud plat
+Nourrisson | nourrisson
+Ortie | ortie
+Pissenlit | pissenlit
+PLS (position latérale de sécurité) | PLS
+Rester ou partir | Rester ou partir;reste sur place;restez sur place
+Saignement | saignement;plaie
+Séisme | séisme
+Sifflet | sifflet
+Signal de détresse | SOS;signaux
+SODIS (eau au soleil) | SODIS
+S.T.O.P. | S.T.O.P.
+Tique | tique
+Traumatisme crânien | traumatisme crânien;tête
+Vigilance météo | vigilance

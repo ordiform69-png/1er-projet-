@@ -1,12 +1,12 @@
 # Note de version
 
-**Version** : **1.4 — 9 novembre 2026**, après la relecture finale de la v1.3 par les neuf agents (17 points ; verdict : publiable après corrections mineures).  
-**Statut** : **version 1.4, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.5 — 10 novembre 2026** : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.5, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
-### Ce livret contient tout
+### Contenu
 
-1. **Le guide** : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
-2. **Annexe A — Note de version** (cette page) : historique des versions et points encore à faire vérifier.
+1. **Le guide** (édition publique) : avant-propos et 25 chapitres, illustré de dessins et de 56 photos libres et de pictogrammes, avec les **fiches réflexes** (chapitre 23), les **check-lists** (chapitre 25), le petit glossaire et les crédits photographiques.
+2. **Annexe A — Note de version** (cette page, dossier éditorial seulement) : historique des versions et points encore à faire vérifier.
 3. **Annexe B — Journal des corrections** : chaque correction avec son chapitre, l'avant, l'après, la source et les arbitrages.
 4. **Annexe C — Contrôles** : vérification automatique que chaque correction est en place, version par version.
 
@@ -54,6 +54,15 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 - **28 nouvelles photos libres** (56 au total), choisies une à une : groupe en randonnée, abri sous bâche, ébullition et filtre, miroir, sifflet et hélicoptère, défibrillateur, mûres et noisettes, myrtille et belladone, orage, matériel d'avalanche et crampons, désert, glace fissurée et bivouac d'hiver, forêt tropicale et hamac, inondation, radio à manivelle et détecteur de CO, couteau et hachette, carte et boussole, matériel étalé.
 - **14 pictogrammes** sur les fiches réflexes et les check-lists.
 - **Mise en page imprimée** corrigée : plus de pages vides ni de pages de deux ou trois lignes ; en-têtes de tableau répétés.
+
+### Version 1.5 — édition publique
+
+- **Deux éditions** : l'**édition publique** (le guide seul, avec glossaire, index, sources et limites, crédits) et le **dossier éditorial** (la même chose, plus ces annexes A, B et C).
+- **Sommaire** sur une page à part, en six parties, avec les **numéros de page** et un encadré « Urgence ? » qui renvoie aux fiches réflexes.
+- **Index** de 65 entrées avec numéros de page ; page **« À propos de cette édition »** (date de vérification, responsabilité, relecture, illustrations) ; page **« Sources et limites »**.
+- **Bandeaux de parties** en tête des chapitres 1, 8, 11, 14, 21 et 23.
+- **Fiches réflexes resserrées** (fiches 1, 3, 3 bis, 3 ter, 4, 6, 7) : une ligne par geste, même contenu, détails au chapitre indiqué.
+- **Typographie française** (espaces insécables avant ; : ! ? et dans les guillemets, entre un nombre et son unité) et pied de page lisible avec le numéro de page.
 
 ### Points encore à faire vérifier
 
