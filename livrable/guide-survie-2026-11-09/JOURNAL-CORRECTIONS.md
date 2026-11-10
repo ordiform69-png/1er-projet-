@@ -617,3 +617,23 @@ Constat général : chapitres prudents (aucune consommation sans certitude, sosi
 Les deux domaines sont **cohérents avec les références officielles** après correction. **La relecture humaine reste nécessaire** : un formateur PSC ou un médecin pour valider les gestes (en particulier les fiches resserrées, le choix des deux référentiels pour l'enfant et la nouvelle conduite après convulsions), un botaniste pour les critères d'identification et les sosies.
 
 Contrôles v1.7 : `controle-v13.py corrections-v17.py` 14 / 14 (témoin v1.6 : 0 / 14) ; 916 / 916 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; sommaire exact ; aucune page à moins de 30 % sauf la dernière.
+
+---
+
+## R. Version 1.8 — page « Apprendre en vidéo »
+
+Question de l'éditeur : « T'as vérifié les meilleurs tutos sur YouTube ? » Réponse : non. Le contenu du livret repose sur des sources écrites officielles, plus fiables que les vidéos de survie, souvent spectaculaires et parfois dangereuses. En revanche, la vidéo aide à comprendre un geste : une page « Apprendre en vidéo » est ajoutée, avec des **sources vérifiées une à une** :
+
+| Chaîne ou vidéo | Vérification |
+|---|---|
+| Croix-Rouge française — youtube.com/@CroixRougeFR | Lien présent sur croix-rouge.fr ; chaîne citée par l'annonce de YouTube (Google, 2 juillet 2025) sur les « étagères » de vidéos de premiers secours ; nom de la chaîne contrôlé |
+| Protection Civile (FNPC) — youtube.com/@ProtectionCivileFR | Lien présent sur protection-civile.org ; description « Chaîne officielle de la Fédération Nationale de Protection Civile » |
+| AP-HP — youtube.com/@APHPhopitauxdeParis | Chaîne citée par l'annonce de YouTube ; nom contrôlé |
+| FFME — vidéo « Constat sur le terrain et test DVA » (youtu.be/h0dGRfWVg8A), série de 4 | Liens donnés par le kit de formation « Neige et avalanche » de la FFME (ffme.fr) ; titres et auteur (FFME) contrôlés |
+| Sauveteurs en Mer (SNSM) — youtube.com/@SauveteursenMer-SNSM | Lien présent sur snsm.org ; nom contrôlé |
+
+**Écartés** : les adresses « @snsm », « @anena » et « @ProtectionCivile », qui existent mais appartiennent à des particuliers ou à des chaînes non confirmées ; la vidéo « arrêter un saignement » citée en exemple par Google, qui est américaine (Mass General Brigham). L'ANENA n'a pas de chaîne indiquée sur son site : le livret renvoie à anena.org.
+
+La page ajoute une méthode pour choisir un tutoriel : les vidéos mises en avant par YouTube pour les urgences, l'origine de la vidéo, sa date, et les signaux d'alarme (gestes contraires au livret). **QR codes** pour l'édition imprimée : les 5 codes ont été décodés depuis le rendu et renvoient à la bonne adresse. Le sommaire compte une entrée de plus (32) ; l'index suit désormais directement le glossaire.
+
+Contrôles : 932 / 932 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; sommaire exact (`outils/controle-sommaire.py` : 32 / 32 et 35 / 35) ; **aucune page remplie à moins de 30 %**.

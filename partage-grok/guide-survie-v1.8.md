@@ -2,7 +2,7 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version 1.7 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.8 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
@@ -11,7 +11,7 @@ Version 1.7 — 10 novembre 2026 · hors ligne — à enregistrer sur votre tél
 
 ## À propos de cette édition
 
-**Petit guide de survie** — version 1.7, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
+**Petit guide de survie** — version 1.8, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
 
 **Informations vérifiées au 10 novembre 2026** : numéros d'urgence, règles françaises (feu en forêt, couteaux, balises de détresse), recommandations de secourisme et de santé. Les règles et les recommandations évoluent : vérifiez-les avant de partir.
 
@@ -63,6 +63,7 @@ Version 1.7 — 10 novembre 2026 · hors ligne — à enregistrer sur votre tél
 - Pour aller plus loin
 - Petit glossaire
 - Index
+- Apprendre en vidéo
 - Sources et limites
 - Crédits photographiques
 
@@ -1634,6 +1635,51 @@ Les niveaux sont des repères de progression, pas une qualification. Avant de pa
 
 ---
 
+## Apprendre en vidéo
+
+Voir un geste aide à le comprendre ; seul l'entraînement encadré permet de le maîtriser. Les chaînes ci-dessous appartiennent à des organismes officiels ou reconnus : leurs liens ont été relevés sur les sites officiels de ces organismes et vérifiés le 10 novembre 2026. Les adresses peuvent changer : en cas de doute, passez par le site officiel. Scannez le QR code avec l'appareil photo de votre téléphone (connexion nécessaire).
+
+Croix-Rouge française
+
+Premiers secours et gestes qui sauvent ; inscriptions aux formations PSC1.
+
+youtube.com/@CroixRougeFR · site : croix-rouge.fr
+
+Protection Civile (FNPC)
+
+Premiers secours, défibrillateur, formations près de chez vous.
+
+youtube.com/@ProtectionCivileFR · site : protection-civile.org
+
+AP-HP (hôpitaux de Paris)
+
+Santé et urgences, expliquées par des soignants.
+
+youtube.com/@APHPhopitauxdeParis · site : aphp.fr
+
+FFME — test du DVA
+
+Ski de randonnée et avalanche : contrôle des DVA au départ (série de 4 vidéos : préparation, test DVA, pendant la sortie, alerte).
+
+youtu.be/h0dGRfWVg8A · site : ffme.fr
+
+Sauveteurs en Mer (SNSM)
+
+Sécurité en mer et sur le littoral : préparer sa sortie, réagir en cas de problème.
+
+youtube.com/@SauveteursenMer-SNSM · site : snsm.org
+
+Avalanches : l'ANENA (anena.org) publie conseils et vidéos sur son site. Arrêt cardiaque : les applications Staying Alive ou SAUV Life (chapitre 8).
+
+### Choisir un bon tutoriel
+
+- Pour les urgences (étouffement, saignement, arrêt cardiaque, AVC, crise d'épilepsie), YouTube affiche en France, en tête des résultats, une sélection de vidéos de sources de santé reconnues, dont la Croix-Rouge française : commencez par celles-là.
+- Vérifiez qui parle : organisme de secours, hôpital, fédération sportive. Le nombre de vues ne garantit rien.
+- Préférez les vidéos françaises récentes : les gestes évoluent (recommandations européennes de 2021 et 2025, référentiel français de 2026) et les numéros d'urgence changent d'un pays à l'autre.
+- Méfiez-vous d'une vidéo qui contredit ce livret. Signaux d'alarme : sucer ou inciser une morsure, garrot fait d'une ficelle, « test de comestibilité » d'une plante inconnue, boire l'eau d'une liane, frotter une gelure, feu ou réchaud dans une tente, traverser une eau en mouvement.
+
+---
+
 ## Sources et limites
 
 Les consignes de ce livret s'appuient d'abord sur des sources officielles françaises, complétées par des références européennes ou internationales quand aucune source française n'existe. Principales références :
@@ -1724,8 +1770,8 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 
 # Annexe A — Note de version
 
-**Version** : **1.7 — 10 novembre 2026** (relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.7, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.8 — 10 novembre 2026** (page « Apprendre en vidéo », journal partie R ; v1.7 : relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.8, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
 ### Contenu
 
@@ -1798,6 +1844,10 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 - Relecture faite par l'auteur, phrase par phrase contre le référentiel français de secourisme (RTN PSC, juillet 2026) et les sources botaniques : voir le journal, partie Q. Elle ne remplace pas la relecture humaine.
 - **Premiers secours** : après des convulsions, vérifier la respiration (un arrêt cardiaque peut commencer par des secousses) ; saignement (couvrir, surveiller, pansement serré, précautions) ; critère de gravité des brûlures ; fracture sans attelle d'emblée ; partie arrachée ; arrêt cardiaque (sur le dos, aide du régulateur, applications citoyennes).
 - **Plantes** : marron d'Inde rappelé au ch. 9 ; muguet, colchique, arum précisés ; ail des ours feuille par feuille ; laurier-rose ajouté aux toxiques.
+
+### Version 1.8 — apprendre en vidéo
+
+- Nouvelle page **« Apprendre en vidéo »** : chaînes de la Croix-Rouge française, de la Protection Civile, de l'AP-HP, de la SNSM et vidéos de la FFME (avalanche), chacune vérifiée sur le site officiel de l'organisme, avec un **QR code** testé ; conseils pour choisir un bon tutoriel et signaux d'alarme (journal, partie R).
 
 ### Points encore à faire vérifier
 
@@ -2428,6 +2478,26 @@ Contrôles v1.7 : `controle-v13.py corrections-v17.py` 14 / 14 (témoin v1.6 : 0
 
 ---
 
+## R. Version 1.8 — page « Apprendre en vidéo »
+
+Question de l'éditeur : « T'as vérifié les meilleurs tutos sur YouTube ? » Réponse : non. Le contenu du livret repose sur des sources écrites officielles, plus fiables que les vidéos de survie, souvent spectaculaires et parfois dangereuses. En revanche, la vidéo aide à comprendre un geste : une page « Apprendre en vidéo » est ajoutée, avec des **sources vérifiées une à une** :
+
+| Chaîne ou vidéo | Vérification |
+|---|---|
+| Croix-Rouge française — youtube.com/@CroixRougeFR | Lien présent sur croix-rouge.fr ; chaîne citée par l'annonce de YouTube (Google, 2 juillet 2025) sur les « étagères » de vidéos de premiers secours ; nom de la chaîne contrôlé |
+| Protection Civile (FNPC) — youtube.com/@ProtectionCivileFR | Lien présent sur protection-civile.org ; description « Chaîne officielle de la Fédération Nationale de Protection Civile » |
+| AP-HP — youtube.com/@APHPhopitauxdeParis | Chaîne citée par l'annonce de YouTube ; nom contrôlé |
+| FFME — vidéo « Constat sur le terrain et test DVA » (youtu.be/h0dGRfWVg8A), série de 4 | Liens donnés par le kit de formation « Neige et avalanche » de la FFME (ffme.fr) ; titres et auteur (FFME) contrôlés |
+| Sauveteurs en Mer (SNSM) — youtube.com/@SauveteursenMer-SNSM | Lien présent sur snsm.org ; nom contrôlé |
+
+**Écartés** : les adresses « @snsm », « @anena » et « @ProtectionCivile », qui existent mais appartiennent à des particuliers ou à des chaînes non confirmées ; la vidéo « arrêter un saignement » citée en exemple par Google, qui est américaine (Mass General Brigham). L'ANENA n'a pas de chaîne indiquée sur son site : le livret renvoie à anena.org.
+
+La page ajoute une méthode pour choisir un tutoriel : les vidéos mises en avant par YouTube pour les urgences, l'origine de la vidéo, sa date, et les signaux d'alarme (gestes contraires au livret). **QR codes** pour l'édition imprimée : les 5 codes ont été décodés depuis le rendu et renvoient à la bonne adresse. Le sommaire compte une entrée de plus (32) ; l'index suit désormais directement le glossaire.
+
+Contrôles : 932 / 932 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; sommaire exact (`outils/controle-sommaire.py` : 32 / 32 et 35 / 35) ; **aucune page remplie à moins de 30 %**.
+
+---
+
 # Annexe C — Contrôles
 
 Contrôle réalisé le 9 novembre 2026 sur la version corrigée (`guide-survie.html`, PDF A5 de 125 pages, `guide-survie-corrige.md`), à partir du rapport consolidé des agents (points 001 à 102). Les 11 corrections du brief éditeur sont hors périmètre, comme demandé.
@@ -2582,3 +2652,13 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Exhaustivité du Markdown | 916 / 916 |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
 | Sommaire ; mise en page | numéros exacts ; aucune page à moins de 30 %, sauf la dernière |
+
+## Version 1.8 — apprendre en vidéo
+
+| Contrôle | Résultat |
+|---|---|
+| Liens des chaînes | relevés sur les sites officiels ; noms de chaînes contrôlés ; 3 adresses trompeuses écartées |
+| QR codes | **5 / 5** décodés depuis le rendu et conformes |
+| Sommaire (`outils/controle-sommaire.py`) | 32 / 32 (édition publique), 35 / 35 (dossier) |
+| Points 001 à 102 ; manques v1.2 ; Markdown | 102 / 102 ; 72 / 72 ; 932 / 932 |
+| Liens internes / validité du HTML ; mise en page | aucun lien cassé ; aucune page à moins de 30 % |

@@ -1,7 +1,7 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.7 — 10 novembre 2026** (relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.7, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.8 — 10 novembre 2026** (page « Apprendre en vidéo », journal partie R ; v1.7 : relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.8, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
@@ -80,6 +80,10 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Premiers secours** : après des convulsions, vérifier la respiration (un arrêt cardiaque peut commencer par des secousses) ; saignement (couvrir, surveiller, pansement serré, précautions) ; critère de gravité des brûlures ; fracture sans attelle d'emblée ; partie arrachée ; arrêt cardiaque (sur le dos, aide du régulateur, applications citoyennes).
 - **Plantes** : marron d'Inde rappelé au ch. 9 ; muguet, colchique, arum précisés ; ail des ours feuille par feuille ; laurier-rose ajouté aux toxiques.
 
+## Version 1.8 — apprendre en vidéo
+
+- Nouvelle page **« Apprendre en vidéo »** : chaînes de la Croix-Rouge française, de la Protection Civile, de l'AP-HP, de la SNSM et vidéos de la FFME (avalanche), chacune vérifiée sur le site officiel de l'organisme, avec un **QR code** testé ; conseils pour choisir un bon tutoriel et signaux d'alarme (journal, partie R).
+
 ## Reste à faire avant publication
 
 - Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
@@ -89,11 +93,11 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-a27a5e9b433534f75508842a3d8bc01bdca8b1f72abe352aa66cf861998bd6c0  guide-survie.pdf
-b448d9dbb72ff2ed0ad2cd196d65cf9d8305e50bf51e27a86578baf55c01ae16  dossier-editorial.pdf
-0c862fcd7441b7bf09aa77ccda1ffa30e01b9f618155debe557ab30e6c7b3963  fiches-reflexes.pdf
-9ff33f13783e6fccf9358cdaab0d1b422d8db563a3469343206be89f9f9a800b  guide-survie.html
-9b42e01be0b1d3263fd9227461d39703a83adf08f39ec0305e1c1a35d8b0552a  guide-survie-corrige.md
-61c6dbe51f227ee82d830f78f98c1636258fb4dce494b8da6358d1ee33755b31  JOURNAL-CORRECTIONS.md
-1bd9788e1155c422ed50cfec927cd9f80a565387ada3631a52ad8b1b50d53090  CONTROLE-PERSISTANCE.md
+d263d805b0a8bbe215d8c8f373facd1624ad916fac3937ee6b3431c76c98a585  guide-survie.pdf
+412f11694317b74fc0f96c7cba379df4afbb94da341f15984b07987656c20554  dossier-editorial.pdf
+fe8b484d7dc62dd7800e56f817f530e1b236c1cb5e83f10511d505eeefbe8c7b  fiches-reflexes.pdf
+2ca3b271a7b8ffdab9d638fc3896fa9f24c523c68c8282ea0d408923afc0f79e  guide-survie.html
+219c5d5428db21d3f6f242ff5e5f63d686676414e19c9696118232e890c21dac  guide-survie-corrige.md
+fb02e2ce3abbf000311ddcf9190a386297179c7811e40fda88b8821a950ddd3b  JOURNAL-CORRECTIONS.md
+b1cff5b6c692875aad9ea6e06b92b1a04c72bde5d9efb8d26927cc0073f44a87  CONTROLE-PERSISTANCE.md
 ```

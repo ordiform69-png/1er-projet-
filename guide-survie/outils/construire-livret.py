@@ -145,7 +145,10 @@ def remplir_numeros(html, pos):
 # ---------- édition publique ----------
 corps = read("source/livret-corps.html")
 assert '<section class="page credits" id="credits">' in corps
-base = corps.replace('<section class="page" id="sources">', "<!--INDEX-->" + '<section class="page" id="sources">', 1)
+# l'index suit le glossaire
+_g = corps.index('<section class="page" id="glossaire">')
+_f = corps.index("</section>", _g) + len("</section>")
+base = corps[:_f] + "\n\n<!--INDEX-->" + corps[_f:]
 assert "<!--INDEX-->" in base
 
 tmp = tempfile.mkdtemp()

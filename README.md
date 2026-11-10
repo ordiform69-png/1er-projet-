@@ -4,10 +4,10 @@ Livret de survie illustré, en français, utilisable **hors ligne**, pour acqué
 
 **Deux éditions**, construites à partir du même texte :
 
-- `guide-survie/guide-survie.pdf` — **édition publique**, A5 (181 pages numérotées) : le guide, avec sommaire par parties et numéros de page, index, sources et limites, crédits. Aussi en `guide-survie.html` (version web autonome, hors ligne, mode sombre) et `guide-survie-corrige.md` (texte).
+- `guide-survie/guide-survie.pdf` — **édition publique**, A5 (184 pages numérotées) : le guide, avec sommaire par parties et numéros de page, index, sources et limites, crédits. Aussi en `guide-survie.html` (version web autonome, hors ligne, mode sombre) et `guide-survie-corrige.md` (texte).
 - `guide-survie/dossier-editorial.pdf` — **dossier éditorial** : l'édition publique suivie du journal des corrections et des contrôles (aussi en `.html` et `.md`).
 
-Le livret est illustré de dessins, de pictogrammes et de 56 photos sous licence libre.
+Le livret est illustré de dessins, de pictogrammes et de 56 photos sous licence libre, et renvoie, par QR codes, vers des vidéos d'organismes officiels (« Apprendre en vidéo »).
 
 **Avant-propos** puis 25 chapitres :
 

@@ -153,3 +153,13 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
 | Sommaire ; mise en page | numéros exacts ; aucune page à moins de 30 %, sauf la dernière |
 
+## Version 1.8 — apprendre en vidéo
+
+| Contrôle | Résultat |
+|---|---|
+| Liens des chaînes | relevés sur les sites officiels ; noms de chaînes contrôlés ; 3 adresses trompeuses écartées |
+| QR codes | **5 / 5** décodés depuis le rendu et conformes |
+| Sommaire (`outils/controle-sommaire.py`) | 32 / 32 (édition publique), 35 / 35 (dossier) |
+| Points 001 à 102 ; manques v1.2 ; Markdown | 102 / 102 ; 72 / 72 ; 932 / 932 |
+| Liens internes / validité du HTML ; mise en page | aucun lien cassé ; aucune page à moins de 30 % |
+
