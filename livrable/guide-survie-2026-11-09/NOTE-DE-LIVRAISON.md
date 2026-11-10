@@ -1,7 +1,7 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.6 — 10 novembre 2026** (relecture de la v1.5, journal partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.6, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.7 — 10 novembre 2026** (relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.7, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
@@ -74,6 +74,12 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - Relecture faite par l'auteur à partir de la demande préparée pour les agents (qui n'ont pas pu la faire) : voir le journal, partie P.
 - **Corrigé** : 8 légendes de photos alignées sur le texte du livret ; fiche 7 (« bâtiment fermé ») ; 196 précisé « en France » ; pêche sans exception « urgence vitale » ; 5 entrées d'index ; crédit de la planche de myrtille (Redouté).
 
+## Version 1.7 — relecture des premiers secours et des plantes
+
+- Relecture faite par l'auteur, phrase par phrase contre le référentiel français de secourisme (RTN PSC, juillet 2026) et les sources botaniques : voir le journal, partie Q. Elle ne remplace pas la relecture humaine.
+- **Premiers secours** : après des convulsions, vérifier la respiration (un arrêt cardiaque peut commencer par des secousses) ; saignement (couvrir, surveiller, pansement serré, précautions) ; critère de gravité des brûlures ; fracture sans attelle d'emblée ; partie arrachée ; arrêt cardiaque (sur le dos, aide du régulateur, applications citoyennes).
+- **Plantes** : marron d'Inde rappelé au ch. 9 ; muguet, colchique, arum précisés ; ail des ours feuille par feuille ; laurier-rose ajouté aux toxiques.
+
 ## Reste à faire avant publication
 
 - Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
@@ -83,11 +89,11 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-f3988977ff0413f197d46cbb155fde79e102fe0ce8c3515f7f41a2cb0b305e08  guide-survie.pdf
-d566e142c5831812d3babd022d2503113992867462ff087b98f9e77b1211c928  dossier-editorial.pdf
-937949d7b77ad3fbbf47bcc4fad4594aa1bb7d167541c8eeff03fc4f881ec5c3  fiches-reflexes.pdf
-96b71912e50cde7e292b0b3619500ca611d19dc7d0ac16e650a6fe5dc090fd86  guide-survie.html
-e4800523609a1b87e56e33d440eb325fb1432aba8de5ef05b8ecbe5845403446  guide-survie-corrige.md
-0f0d9c5392654922481264b63296191da0d06aebabce0e989d43f1db4e2b73fb  JOURNAL-CORRECTIONS.md
-35482c1e00abba896bc5429c5c90cb1e09d654f0a830266b3ac4e6794e682beb  CONTROLE-PERSISTANCE.md
+a27a5e9b433534f75508842a3d8bc01bdca8b1f72abe352aa66cf861998bd6c0  guide-survie.pdf
+b448d9dbb72ff2ed0ad2cd196d65cf9d8305e50bf51e27a86578baf55c01ae16  dossier-editorial.pdf
+0c862fcd7441b7bf09aa77ccda1ffa30e01b9f618155debe557ab30e6c7b3963  fiches-reflexes.pdf
+9ff33f13783e6fccf9358cdaab0d1b422d8db563a3469343206be89f9f9a800b  guide-survie.html
+9b42e01be0b1d3263fd9227461d39703a83adf08f39ec0305e1c1a35d8b0552a  guide-survie-corrige.md
+61c6dbe51f227ee82d830f78f98c1636258fb4dce494b8da6358d1ee33755b31  JOURNAL-CORRECTIONS.md
+1bd9788e1155c422ed50cfec927cd9f80a565387ada3631a52ad8b1b50d53090  CONTROLE-PERSISTANCE.md
 ```

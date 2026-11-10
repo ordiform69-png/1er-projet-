@@ -571,3 +571,49 @@ Espèces vérifiées : la planche de myrtille est bien *Vaccinium myrtillus* («
 **Publiable après la relecture humaine** (formateur PSC ou médecin pour le ch. 8 et les fiches ; botaniste pour les ch. 9, 10 et 19), et après ajout du nom de l'auteur et, si le livre est vendu, d'un ISBN.
 
 Contrôles v1.6 : `controle-v13.py corrections-v16.py` 16 / 16 (témoin v1.5 : 0 / 16) ; 914 / 914 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides dans les deux éditions ; sommaire exact ; aucune page à moins de 30 % sauf la dernière.
+
+---
+
+## Q. Version 1.7 — relecture spécialisée des premiers secours et des plantes (faite par l'auteur)
+
+À la demande de l'éditeur, l'auteur a fait lui-même les deux relectures spécialisées prévues, faute de relecteurs humains disponibles pour l'instant. **Limite essentielle** : l'auteur n'est ni formateur PSC, ni médecin, ni botaniste, et relit son propre texte. Cette relecture documentaire **ne remplace pas** la relecture humaine, qui reste requise avant diffusion. Elle a l'avantage d'être faite phrase par phrase contre le texte officiel.
+
+### Premiers secours (ch. 8 et fiches) — comparaison avec le RTN PSC de juillet 2026
+
+Méthode : chaque rubrique du chapitre 8 a été comparée à la fiche correspondante du référentiel (texte intégral extrait du PDF de la DGSCGC).
+
+| Rubrique | Constat | Suite |
+|---|---|---|
+| Saignement abondant | Conforme pour la compression, l'allongement, le garrot. **Manquaient** : couvrir la victime, surveiller les signes d'aggravation, pansement compressif pour libérer les mains, précautions vis-à-vis du sang | **Ajoutés** (et « je la couvre » à la fiche 4) |
+| Saignement de nez | Conforme mot pour mot | — |
+| Perte de connaissance, PLS | Conforme (PLS si non traumatique ; sur le dos sinon, mise sur le côté si vomissements) | — |
+| Arrêt cardiaque adulte | Conforme (30/2, compressions seules si l'on ne peut pas insuffler, DAE). **Manquaient** : allonger sur le dos ; aide téléphonique du régulateur ; applications citoyennes citées par le RTN | **Ajoutés** |
+| Arrêt cardiaque enfant | Conforme (15/2, cm, électrodes), complété par l'ERC 2025 (partie L) | — |
+| **Convulsions** | **Écart important** : « dès que les secousses s'arrêtent, mettez-la en PLS » sans vérifier la respiration. Le RTN précise que de brefs mouvements saccadés peuvent survenir **au début d'un arrêt cardiaque** | **Corrigé** : vérifier la respiration ; si elle est absente ou anormale, arrêt cardiaque (fiche 3) |
+| Étouffement | Conforme (1 à 5 claques, 1 à 5 compressions, alternance, réanimation si perte de connaissance) | — |
+| Malaise, AVC | Conforme (positions, questions, traitement à sa demande ou sur consigne) ; l'exception AVC (rien par la bouche) est plus prudente | — |
+| Brûlure | Conforme (eau tempérée, 10 à 20 min, alerte dès le début). **Manquait** le critère de gravité du RTN | **Ajouté** : cloque plus grande que la moitié de la paume, aspect blanchâtre ou noirâtre, orifices, rougeur étendue chez l'enfant |
+| Plaies graves | Conforme (positions poitrine, ventre, œil). **Manquait** : pansement compressif sur une partie arrachée, même sans saignement | **Ajouté** |
+| **Entorse, fracture** | **Écart** : le livret proposait d'emblée une attelle improvisée ; le RTN demande de **ne pas mobiliser** | **Corrigé** : ne pas bouger, alerter ; attelle seulement si aucun secours ne peut venir et qu'un déplacement est inévitable |
+| Chute, tête, cou, dos | Conforme (signes d'aggravation du RTN repris) | — |
+| Hypothermie, coup de chaleur, hypoglycémie, anaphylaxie, piqûres, tiques, vipère, diarrhée | Hors RTN ou partiellement ; conformes aux sources déjà citées (ameli, Anses, ERC) | — |
+
+Fiches 3, 3 bis, 3 ter, 4 : cohérentes avec le chapitre corrigé.
+
+### Plantes (ch. 9, 10 et 19)
+
+Constat général : chapitres prudents (aucune consommation sans certitude, sosies, règle 3, champignons exclus, aucun test de comestibilité). Améliorations :
+
+| Point | Suite |
+|---|---|
+| Ch. 9 : « châtaignes » sans rappel du marron d'Inde (toxique), alors que la comparaison existe au ch. 10 | **Ajouté** : « à ne pas confondre avec le marron d'Inde, toxique » |
+| Ch. 10 : « Muguet, colchique, arum : toxiques pour le cœur ou mortels » mélangeait les risques | **Précisé** : muguet toxique pour le cœur, colchique potentiellement mortel, arum brûlant pour la bouche et la gorge |
+| Ail des ours : une feuille d'un sosie peut se glisser dans une poignée et l'odeur reste sur les mains | **Ajouté** : cueillir feuille par feuille en vérifiant l'odeur de chacune |
+| **Laurier-rose** absent des toxiques, alors que des intoxications par brochettes taillées dans ses tiges sont décrites | **Ajouté** au tableau des sosies mortels : ni brochette, ni ustensile ; seulement un bois connu avec certitude |
+| Ch. 19 (jungle) : lianes, bambous, sangsues, aucune plante inconnue | Conforme, rien à changer |
+
+### Verdict
+
+Les deux domaines sont **cohérents avec les références officielles** après correction. **La relecture humaine reste nécessaire** : un formateur PSC ou un médecin pour valider les gestes (en particulier les fiches resserrées, le choix des deux référentiels pour l'enfant et la nouvelle conduite après convulsions), un botaniste pour les critères d'identification et les sosies.
+
+Contrôles v1.7 : `controle-v13.py corrections-v17.py` 14 / 14 (témoin v1.6 : 0 / 14) ; 916 / 916 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; sommaire exact ; aucune page à moins de 30 % sauf la dernière.

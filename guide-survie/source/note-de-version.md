@@ -1,7 +1,7 @@
 # Note de version
 
-**Version** : **1.6 — 10 novembre 2026** (relecture de la v1.5, journal partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.6, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.7 — 10 novembre 2026** (relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.7, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
 ### Contenu
 
@@ -68,6 +68,12 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 
 - Relecture faite par l'auteur à partir de la demande préparée pour les agents (qui n'ont pas pu la faire) : voir le journal, partie P.
 - **Corrigé** : 8 légendes de photos alignées sur le texte du livret ; fiche 7 (« bâtiment fermé ») ; 196 précisé « en France » ; pêche sans exception « urgence vitale » ; 5 entrées d'index ; crédit de la planche de myrtille (Redouté).
+
+### Version 1.7 — relecture des premiers secours et des plantes
+
+- Relecture faite par l'auteur, phrase par phrase contre le référentiel français de secourisme (RTN PSC, juillet 2026) et les sources botaniques : voir le journal, partie Q. Elle ne remplace pas la relecture humaine.
+- **Premiers secours** : après des convulsions, vérifier la respiration (un arrêt cardiaque peut commencer par des secousses) ; saignement (couvrir, surveiller, pansement serré, précautions) ; critère de gravité des brûlures ; fracture sans attelle d'emblée ; partie arrachée ; arrêt cardiaque (sur le dos, aide du régulateur, applications citoyennes).
+- **Plantes** : marron d'Inde rappelé au ch. 9 ; muguet, colchique, arum précisés ; ail des ours feuille par feuille ; laurier-rose ajouté aux toxiques.
 
 ### Points encore à faire vérifier
 

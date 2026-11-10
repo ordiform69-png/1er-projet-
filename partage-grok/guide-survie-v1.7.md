@@ -2,7 +2,7 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version 1.6 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.7 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
@@ -11,7 +11,7 @@ Version 1.6 — 10 novembre 2026 · hors ligne — à enregistrer sur votre tél
 
 ## À propos de cette édition
 
-**Petit guide de survie** — version 1.6, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
+**Petit guide de survie** — version 1.7, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
 
 **Informations vérifiées au 10 novembre 2026** : numéros d'urgence, règles françaises (feu en forêt, couteaux, balises de détresse), recommandations de secourisme et de santé. Les règles et les recommandations évoluent : vérifiez-les avant de partir.
 
@@ -446,7 +446,7 @@ Pour l'alerte, voir « Que dire au téléphone », chapitre 7.
 ### Saignement abondant
 
 1. **Appuyez fort** directement sur la plaie avec la main (protégée si possible) ou un tissu propre. Maintenez sans relâcher.
-2. Allongez la victime, alertez les secours.
+2. Allongez la victime, alertez les secours. Couvrez-la (le froid aggrave son état), parlez-lui et surveillez l'apparition de sueurs, d'une pâleur, d'une sensation de froid ou d'une perte de connaissance : alertez de nouveau si son état s'aggrave. Si le saignement est arrêté et que vous avez besoin de vos mains, remplacez la main par un pansement serré (tissu propre plié, maintenu par un bandage). Protégez votre main si possible (gants, sac plastique), sans retarder la compression ; après coup, lavez-vous les mains et ne portez rien à la bouche, au nez ou aux yeux.
 3. Hémorragie d'un membre que la compression ne permet pas de contrôler : privilégiez un **garrot conçu à cet effet**. Un garrot improvisé nécessite un lien solide, non élastique, large de 3 à 5 cm et un dispositif de serrage adapté. Placez-le entre la plaie et la racine du membre, jamais sur une articulation ; serrez jusqu'à l'arrêt du saignement, **notez l'heure** et ne le desserrez pas. N'utilisez jamais une ficelle ou une cordelette seule.
 
 > 📷 *Photo : Formation à la pose d'un garrot sur un bras de mannequin (Photo : NavyMedicine — Domaine public (crédit n° 14)).* Formation à la pose d'un garrot tourniquet conçu à cet effet, sur mannequin. Ce geste s'apprend en formation pratique.
@@ -462,7 +462,7 @@ Asseyez la personne, tête penchée en avant ; ne l'allongez pas. Demandez-lui d
 Si la personne ne répond pas mais respire normalement après un événement **non traumatique**, placez-la en PLS, alertez et surveillez sa respiration en permanence. **Après un traumatisme ou si la cause est inconnue**, laissez-la sur le dos, maintenez ses voies aériennes libres et suivez les instructions des secours. Si elle vomit ou régurgite, tournez-la sur le côté en préservant autant que possible l'axe tête-cou-tronc, avec de l'aide si disponible.
 
 > **Ne respire pas normalement ? Arrêt cardiaque**
-> Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions.
+> Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Allongez-la sur le dos, sur un sol dur, et commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions. Le régulateur peut vous guider au téléphone. Une application de « bon Samaritain » (par exemple Staying Alive ou SAUV Life) permet d'être alerté quand quelqu'un fait un arrêt cardiaque près de vous.
 
 > 📷 *Photo : Armoire murale verte contenant un défibrillateur automatisé externe (© Leonard Bentley — CC BY-SA 2.0 (crédit n° 36)).* Défibrillateur automatisé externe (DAE) en accès public : repérez-les sur vos trajets habituels. Faites-le apporter dès qu'une personne ne respire pas normalement.
 
@@ -477,7 +477,7 @@ Si la personne ne répond pas mais respire normalement après un événement **n
 
 ### Convulsions
 
-Ne retenez pas les mouvements et ne mettez rien dans la bouche. Écartez ce qui peut blesser, protégez la tête avec un vêtement plié, desserrez col et ceinture, retirez les lunettes. Ne déplacez la personne qu'en cas de danger immédiat. Notez l'heure de début. Dès que les secousses s'arrêtent, mettez-la sur le côté (PLS), restez avec elle et surveillez sa respiration. Ne lui donnez rien à boire. Appelez le 15 ou le 112 si la crise dure plus de cinq minutes, si elle se répète sans retour à la normale, si la personne reste inconsciente ou ne reprend pas vite une respiration normale, si elle est blessée, si la crise est survenue dans l'eau, ou s'il s'agit d'une première crise.
+Ne retenez pas les mouvements et ne mettez rien dans la bouche. Écartez ce qui peut blesser, protégez la tête avec un vêtement plié, desserrez col et ceinture, retirez les lunettes. Ne déplacez la personne qu'en cas de danger immédiat. Notez l'heure de début. Dès que les secousses s'arrêtent, vérifiez qu'elle respire normalement : si oui, mettez-la sur le côté (PLS), restez avec elle et surveillez sa respiration ; si elle ne respire pas ou respire anormalement, c'est un arrêt cardiaque (encadré ci-dessus, fiche 3). De brefs mouvements saccadés peuvent en effet survenir au début d'un arrêt cardiaque. Ne lui donnez rien à boire. Appelez le 15 ou le 112 si la crise dure plus de cinq minutes, si elle se répète sans retour à la normale, si la personne reste inconsciente ou ne reprend pas vite une respiration normale, si elle est blessée, si la crise est survenue dans l'eau, ou s'il s'agit d'une première crise.
 
 ### Étouffement (adulte)
 
@@ -521,8 +521,8 @@ L'hypothermie ne survient pas seulement dans la neige : être mouillé par la pl
 
 ### Entorse / fracture
 
-- Ne pas bouger la zone. Immobiliser dans la position trouvée avec une attelle improvisée (bâtons, carton, sac de couchage roulé) attachée au-dessus et en dessous de la blessure.
-- Vérifier que les doigts / orteils restent chauds et colorés : ne pas serrer trop.
+- Demandez fermement à la personne de ne pas bouger la partie blessée ; ne la déplacez pas. Membre déformé : ne tentez jamais de le remettre droit. Couvrez-la, alertez le 15 ou le 112 et surveillez-la.
+- Seulement si aucun secours ne peut venir et qu'un déplacement est inévitable : immobilisez dans la position trouvée avec une attelle improvisée (bâtons, carton, sac de couchage roulé) attachée au-dessus et en dessous de la blessure, sans serrer ; vérifiez que les doigts ou orteils restent chauds et colorés.
 
 ### Chute ou choc violent : tête, cou, dos
 
@@ -530,7 +530,7 @@ Après une chute de hauteur, un choc violent ou en cas de douleur du cou ou du d
 
 ### Brûlure
 
-- Refroidissez immédiatement une brûlure thermique à l'eau courante tempérée, à faible pression, au moins **10 minutes, idéalement 20**. Gardez le reste du corps au chaud. Retirez bijoux et vêtements proches s'ils n'adhèrent pas à la peau. Pour une brûlure profonde, étendue, circulaire, située au visage, au cou, aux mains ou sur une articulation, ou pour une brûlure chimique, électrique ou par inhalation : appelez les secours dès le début et suivez leurs consignes. Ne mettez ni glace ni corps gras et ne percez pas les cloques.
+- Refroidissez immédiatement une brûlure thermique à l'eau courante tempérée, à faible pression, au moins **10 minutes, idéalement 20**. Gardez le reste du corps au chaud. Retirez bijoux et vêtements proches s'ils n'adhèrent pas à la peau. Pour une brûlure grave — cloque plus grande que la moitié de la paume de la main de la victime, brûlure profonde (blanchâtre ou noirâtre), circulaire, située au visage, au cou, aux mains, sur une articulation ou près des orifices naturels, rougeur étendue chez un enfant — ou pour une brûlure chimique, électrique ou par inhalation : appelez les secours dès le début et suivez leurs consignes. Ne mettez ni glace ni corps gras et ne percez pas les cloques.
 
 ### Morsure de serpent (vipère en France)
 
@@ -554,7 +554,7 @@ Le plus souvent : douleur, rougeur et gonflement au point de piqûre. Piqûre à
 
 ### Plaie grave
 
-**Objet planté** (bâton, éclat, couteau) : ne le retirez jamais. **Plaie de la poitrine** : laissez la personne assise, sans couvrir la plaie avec un pansement étanche. **Plaie du ventre** : allongez-la, jambes pliées. **Plaie de l'œil** : allongée, yeux fermés, en lui demandant de ne pas bouger la tête. Dans tous les cas : en cas de saignement abondant, appliquez la rubrique « Saignement abondant » sans retirer l'objet ; protégez la personne du froid, appelez le 15 ou le 112 et surveillez-la. **Doigt ou autre partie du corps arrachée** : arrêtez d'abord le saignement. Enveloppez la partie dans un tissu propre humidifié, mettez-la dans un sac fermé et étanche, puis posez ce sac dans un autre sac contenant de la glace ou de l'eau glacée, sans contact direct avec la glace. Notez le nom et l'heure, et remettez-la aux secours.
+**Objet planté** (bâton, éclat, couteau) : ne le retirez jamais. **Plaie de la poitrine** : laissez la personne assise, sans couvrir la plaie avec un pansement étanche. **Plaie du ventre** : allongez-la, jambes pliées. **Plaie de l'œil** : allongée, yeux fermés, en lui demandant de ne pas bouger la tête. Dans tous les cas : en cas de saignement abondant, appliquez la rubrique « Saignement abondant » sans retirer l'objet ; protégez la personne du froid, appelez le 15 ou le 112 et surveillez-la. **Doigt ou autre partie du corps arrachée** : arrêtez d'abord le saignement, puis posez un pansement serré sur la plaie, même si elle ne saigne plus. Enveloppez la partie dans un tissu propre humidifié, mettez-la dans un sac fermé et étanche, puis posez ce sac dans un autre sac contenant de la glace ou de l'eau glacée, sans contact direct avec la glace. Notez le nom et l'heure, et remettez-la aux secours.
 
 ### Diarrhée : réhydrater d'abord
 
@@ -579,7 +579,7 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 
 | Ressource | Conseils |
 |---|---|
-| Fruits bien connus | Mûres, framboises, noisettes, châtaignes. Faînes : uniquement après identification certaine du hêtre, grillées et en petite quantité ; ne pas consommer de faînes vertes (voir chapitre 10). Myrtilles : uniquement si vous les connaissez déjà avec certitude ; plusieurs baies noires ou bleu-noir toxiques poussent dans les mêmes milieux (voir chapitre 10, ligne « Myrtille »). Dans certaines régions, les fruits sauvages cueillis près du sol doivent être cuits (chapitre 10, règle 3). En cas de doute, abstenez-vous. |
+| Fruits bien connus | Mûres, framboises, noisettes, châtaignes (à ne pas confondre avec le marron d'Inde, toxique : voir chapitre 10). Faînes : uniquement après identification certaine du hêtre, grillées et en petite quantité ; ne pas consommer de faînes vertes (voir chapitre 10). Myrtilles : uniquement si vous les connaissez déjà avec certitude ; plusieurs baies noires ou bleu-noir toxiques poussent dans les mêmes milieux (voir chapitre 10, ligne « Myrtille »). Dans certaines régions, les fruits sauvages cueillis près du sol doivent être cuits (chapitre 10, règle 3). En cas de doute, abstenez-vous. |
 | Plantes très reconnaissables | Ortie (cuite), pissenlit (feuilles cuites et fleurs : voir chapitre 10, règle 3), plantain (jeunes feuilles cuites). Attention aux ombellifères (type carotte sauvage) : certaines sont mortelles, évitez toute la famille. |
 | Insectes | Couleur, pilosité et odeur ne constituent pas une clé de comestibilité : un débutant doit s'abstenir d'en consommer sans identification fiable. Des allergies croisées sont possibles, notamment chez les personnes allergiques aux crustacés ou aux acariens. |
 | Poissons | La cuisson réduit de nombreux risques infectieux, mais ne rend pas comestible une espèce inconnue et ne détruit pas toutes les toxines. Évitez les poissons non identifiés, les poissons récifaux à risque et les aliments mal conservés. |
@@ -619,7 +619,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 | **Noisetier, châtaignier, hêtre** | Voir comparaison châtaigne / marron. | Noisettes crues, châtaignes cuites, faînes en petite quantité (grillées). |
 | **Glands (chêne)** | Fruits du chêne. | Ne les mangez pas : leurs tanins provoquent des troubles digestifs (constipation, douleurs, parfois diarrhée sanglante). |
 | **Trèfle, pâquerette, pourpier** | Chacun nécessite une identification précise. Le pourpier (*Portulaca oleracea*) peut être confondu avec des euphorbes prostrées irritantes. Un latex blanc impose le rejet, sans goûter ; son absence ne suffit pas à établir la comestibilité. | Feuilles et fleurs, en complément, après identification certaine. |
-| **Ail des ours** | Sous-bois humides au printemps, **forte odeur d'ail** quand on froisse la feuille, une feuille par tige. | Feuilles cuites : il pousse en milieu humide (règle 3). **Voir sosies mortels !** |
+| **Ail des ours** | Sous-bois humides au printemps, **forte odeur d'ail** quand on froisse la feuille, une feuille par tige. | Feuilles cuites : il pousse en milieu humide (règle 3). Cueillez feuille par feuille en vérifiant l'odeur de chacune (l'odeur reste sur les mains). **Voir sosies mortels !** |
 | **Pin, sapin, épicéa** | Aiguilles. Attention : le sapin a, comme l'if, des aiguilles plates et souples, et l'if ne porte ses « baies » rouges que sur certains arbres et à certaines saisons. Aucun de ces caractères ne permet d'écarter l'**if**, mortel (voir « Les sosies mortels à connaître »). | Ne faites pas d'infusion d'aiguilles et ne consommez ni pousses ni écorce d'un conifère que vous n'avez pas identifié avec certitude, de préférence appris sur le terrain avec un connaisseur. Au moindre doute, abstenez-vous. |
 | **Massette (typha)** | Bord des étangs, épi brun en « saucisse ». L'épi est un repère sur les plantes qui le portent ; il ne permet pas d'identifier à lui seul des jeunes pousses sans épi. | Usages alimentaires : identification certaine de l'espèce exigée ; ne récoltez pas de pousses ou de rhizomes pour les manger sur la seule base de cette fiche. Duvet de l'épi = excellent amadou. |
 
@@ -645,10 +645,11 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 |---|---|
 | **Ciguë**, œnanthe (famille de la carotte : fleurs en ombrelles blanches) | Mortelles en petite quantité. Ressemblent à la carotte sauvage, au persil, au cerfeuil. **N'en mangez aucune** de cette famille si vous n'êtes pas expert. |
 | **If** | Très toxique. Le feuillage (aiguilles, rameaux) et la graine contenue dans la « baie » rouge sont toxiques ; les aiguilles sont les plus chargées en poison, et le séchage ou la cuisson ne le détruisent pas. Seule la chair rouge qui entoure la graine est décrite comme non toxique, mais ne la mangez pas : la graine peut être avalée ou croquée avec. Symptômes, en général dans les premières heures : vomissements, diarrhée, douleurs au ventre, vertiges ; dans les cas graves : pouls irrégulier, troubles du rythme cardiaque, chute de tension, convulsions, jusqu'à l'arrêt cardiaque. Après ingestion d'aiguilles, de graines ou d'une tisane d'aiguilles : centre antipoison immédiatement, même sans symptôme ; 15 ou 112 (114 pour les personnes sourdes, malentendantes ou aphasiques) en cas de détresse ; ne faites pas vomir. Des rameaux d'if peuvent être pris pour des pousses de sapin : ne consommez aucune partie et ne faites aucune infusion d'un conifère non identifié avec certitude. |
-| **Muguet, colchique, arum** | Confondus avec l'ail des ours. Toxiques pour le cœur ou mortels. |
+| **Muguet, colchique, arum** | Confondus avec l'ail des ours. Le muguet est toxique pour le cœur, le colchique peut être mortel, l'arum brûle la bouche et la gorge. |
 | **Digitale** | Feuilles en rosette confondues avec la consoude ou la bourrache. Toxique pour le cœur. |
 | **Belladone, morelle, douce-amère** | Baies noires ou rouges attirantes. **Règle :** ne mangez aucune baie que vous ne connaissez pas. |
 | **Sureau** | Les usages alimentaires concernent le sureau noir (*Sambucus nigra*) correctement identifié, pas tous les sureaux. Ne consommez ni feuilles, ni tiges, ni fruits verts ; ses fruits mûrs doivent être triés et suffisamment cuits. Le sureau yèble (*Sambucus ebulus*), herbacé et non ligneux, est à exclure. Sa hauteur seule ne permet pas de le reconnaître. |
+| **Laurier-rose** | Arbuste de jardin très courant dans le Midi, toxique pour le cœur dans toutes ses parties. N'en taillez jamais de brochette ni d'ustensile : pour cuire, utilisez seulement un bois que vous connaissez avec certitude. |
 | **Champignons** | L'amanite phalloïde tue. Aucun test fiable sur le terrain : ne mangez pas de champignons sauvages en situation de survie. |
 
 > 📷 *Photo : Grande ciguë (Conium maculatum) — MORTELLE (Photo : Matt Lavin — CC BY-SA 2.0 (crédit n° 11)) ; If (Taxus baccata) — TRÈS TOXIQUE (Photo : Juhele_CZ — CC0 (crédit n° 12)).* Deux plantes mortelles. Au moindre doute, s'abstenir : ces photos ne permettent pas d'identifier une plante.
@@ -1417,7 +1418,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 #### 4 · Saignement abondant
 
 1. J'appuie fort sur la plaie, sans relâcher.
-2. J'allonge la victime.
+2. J'allonge la victime et je la couvre.
 3. J'appelle le 112.
 4. Membre, compression inefficace : garrot (ou lien large 3–5 cm non élastique, serré) entre la plaie et la racine du membre, jamais sur une articulation.
 5. Je note l'heure du garrot, je ne le desserre pas.
@@ -1723,8 +1724,8 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 
 # Annexe A — Note de version
 
-**Version** : **1.6 — 10 novembre 2026** (relecture de la v1.5, journal partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.6, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.7 — 10 novembre 2026** (relecture des premiers secours et des plantes, journal partie Q ; v1.6 : relecture de la v1.5, partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.7, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
 ### Contenu
 
@@ -1791,6 +1792,12 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 
 - Relecture faite par l'auteur à partir de la demande préparée pour les agents (qui n'ont pas pu la faire) : voir le journal, partie P.
 - **Corrigé** : 8 légendes de photos alignées sur le texte du livret ; fiche 7 (« bâtiment fermé ») ; 196 précisé « en France » ; pêche sans exception « urgence vitale » ; 5 entrées d'index ; crédit de la planche de myrtille (Redouté).
+
+### Version 1.7 — relecture des premiers secours et des plantes
+
+- Relecture faite par l'auteur, phrase par phrase contre le référentiel français de secourisme (RTN PSC, juillet 2026) et les sources botaniques : voir le journal, partie Q. Elle ne remplace pas la relecture humaine.
+- **Premiers secours** : après des convulsions, vérifier la respiration (un arrêt cardiaque peut commencer par des secousses) ; saignement (couvrir, surveiller, pansement serré, précautions) ; critère de gravité des brûlures ; fracture sans attelle d'emblée ; partie arrachée ; arrêt cardiaque (sur le dos, aide du régulateur, applications citoyennes).
+- **Plantes** : marron d'Inde rappelé au ch. 9 ; muguet, colchique, arum précisés ; ail des ours feuille par feuille ; laurier-rose ajouté aux toxiques.
 
 ### Points encore à faire vérifier
 
@@ -2375,6 +2382,52 @@ Contrôles v1.6 : `controle-v13.py corrections-v16.py` 16 / 16 (témoin v1.5 : 0
 
 ---
 
+## Q. Version 1.7 — relecture spécialisée des premiers secours et des plantes (faite par l'auteur)
+
+À la demande de l'éditeur, l'auteur a fait lui-même les deux relectures spécialisées prévues, faute de relecteurs humains disponibles pour l'instant. **Limite essentielle** : l'auteur n'est ni formateur PSC, ni médecin, ni botaniste, et relit son propre texte. Cette relecture documentaire **ne remplace pas** la relecture humaine, qui reste requise avant diffusion. Elle a l'avantage d'être faite phrase par phrase contre le texte officiel.
+
+### Premiers secours (ch. 8 et fiches) — comparaison avec le RTN PSC de juillet 2026
+
+Méthode : chaque rubrique du chapitre 8 a été comparée à la fiche correspondante du référentiel (texte intégral extrait du PDF de la DGSCGC).
+
+| Rubrique | Constat | Suite |
+|---|---|---|
+| Saignement abondant | Conforme pour la compression, l'allongement, le garrot. **Manquaient** : couvrir la victime, surveiller les signes d'aggravation, pansement compressif pour libérer les mains, précautions vis-à-vis du sang | **Ajoutés** (et « je la couvre » à la fiche 4) |
+| Saignement de nez | Conforme mot pour mot | — |
+| Perte de connaissance, PLS | Conforme (PLS si non traumatique ; sur le dos sinon, mise sur le côté si vomissements) | — |
+| Arrêt cardiaque adulte | Conforme (30/2, compressions seules si l'on ne peut pas insuffler, DAE). **Manquaient** : allonger sur le dos ; aide téléphonique du régulateur ; applications citoyennes citées par le RTN | **Ajoutés** |
+| Arrêt cardiaque enfant | Conforme (15/2, cm, électrodes), complété par l'ERC 2025 (partie L) | — |
+| **Convulsions** | **Écart important** : « dès que les secousses s'arrêtent, mettez-la en PLS » sans vérifier la respiration. Le RTN précise que de brefs mouvements saccadés peuvent survenir **au début d'un arrêt cardiaque** | **Corrigé** : vérifier la respiration ; si elle est absente ou anormale, arrêt cardiaque (fiche 3) |
+| Étouffement | Conforme (1 à 5 claques, 1 à 5 compressions, alternance, réanimation si perte de connaissance) | — |
+| Malaise, AVC | Conforme (positions, questions, traitement à sa demande ou sur consigne) ; l'exception AVC (rien par la bouche) est plus prudente | — |
+| Brûlure | Conforme (eau tempérée, 10 à 20 min, alerte dès le début). **Manquait** le critère de gravité du RTN | **Ajouté** : cloque plus grande que la moitié de la paume, aspect blanchâtre ou noirâtre, orifices, rougeur étendue chez l'enfant |
+| Plaies graves | Conforme (positions poitrine, ventre, œil). **Manquait** : pansement compressif sur une partie arrachée, même sans saignement | **Ajouté** |
+| **Entorse, fracture** | **Écart** : le livret proposait d'emblée une attelle improvisée ; le RTN demande de **ne pas mobiliser** | **Corrigé** : ne pas bouger, alerter ; attelle seulement si aucun secours ne peut venir et qu'un déplacement est inévitable |
+| Chute, tête, cou, dos | Conforme (signes d'aggravation du RTN repris) | — |
+| Hypothermie, coup de chaleur, hypoglycémie, anaphylaxie, piqûres, tiques, vipère, diarrhée | Hors RTN ou partiellement ; conformes aux sources déjà citées (ameli, Anses, ERC) | — |
+
+Fiches 3, 3 bis, 3 ter, 4 : cohérentes avec le chapitre corrigé.
+
+### Plantes (ch. 9, 10 et 19)
+
+Constat général : chapitres prudents (aucune consommation sans certitude, sosies, règle 3, champignons exclus, aucun test de comestibilité). Améliorations :
+
+| Point | Suite |
+|---|---|
+| Ch. 9 : « châtaignes » sans rappel du marron d'Inde (toxique), alors que la comparaison existe au ch. 10 | **Ajouté** : « à ne pas confondre avec le marron d'Inde, toxique » |
+| Ch. 10 : « Muguet, colchique, arum : toxiques pour le cœur ou mortels » mélangeait les risques | **Précisé** : muguet toxique pour le cœur, colchique potentiellement mortel, arum brûlant pour la bouche et la gorge |
+| Ail des ours : une feuille d'un sosie peut se glisser dans une poignée et l'odeur reste sur les mains | **Ajouté** : cueillir feuille par feuille en vérifiant l'odeur de chacune |
+| **Laurier-rose** absent des toxiques, alors que des intoxications par brochettes taillées dans ses tiges sont décrites | **Ajouté** au tableau des sosies mortels : ni brochette, ni ustensile ; seulement un bois connu avec certitude |
+| Ch. 19 (jungle) : lianes, bambous, sangsues, aucune plante inconnue | Conforme, rien à changer |
+
+### Verdict
+
+Les deux domaines sont **cohérents avec les références officielles** après correction. **La relecture humaine reste nécessaire** : un formateur PSC ou un médecin pour valider les gestes (en particulier les fiches resserrées, le choix des deux référentiels pour l'enfant et la nouvelle conduite après convulsions), un botaniste pour les critères d'identification et les sosies.
+
+Contrôles v1.7 : `controle-v13.py corrections-v17.py` 14 / 14 (témoin v1.6 : 0 / 14) ; 916 / 916 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; sommaire exact ; aucune page à moins de 30 % sauf la dernière.
+
+---
+
 # Annexe C — Contrôles
 
 Contrôle réalisé le 9 novembre 2026 sur la version corrigée (`guide-survie.html`, PDF A5 de 125 pages, `guide-survie-corrige.md`), à partir du rapport consolidé des agents (points 001 à 102). Les 11 corrections du brief éditeur sont hors périmètre, comme demandé.
@@ -2518,3 +2571,14 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Sommaire | 31 / 31 numéros exacts (édition publique), 34 / 34 (dossier) |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
 | Mise en page | aucune page à moins de 30 %, sauf la dernière |
+
+## Version 1.7 — relecture des premiers secours et des plantes
+
+| Contrôle | Résultat |
+|---|---|
+| Opérations v1.7 (`controle-v13.py corrections-v17.py`) | **14 / 14** ; témoin v1.6 : 0 / 14 |
+| Versions précédentes | écarts limités aux passages réécrits ensuite (balise v1.6, ail des ours v1.7, fiche 1 v1.5, numéros de version) |
+| Points 001 à 102 ; manques v1.2 | 102 / 102 ; 72 / 72 |
+| Exhaustivité du Markdown | 916 / 916 |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
+| Sommaire ; mise en page | numéros exacts ; aucune page à moins de 30 %, sauf la dernière |

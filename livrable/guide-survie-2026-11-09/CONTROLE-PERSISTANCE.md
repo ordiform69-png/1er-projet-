@@ -141,3 +141,15 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Sommaire | 31 / 31 numéros exacts (édition publique), 34 / 34 (dossier) |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
 | Mise en page | aucune page à moins de 30 %, sauf la dernière |
+
+## Version 1.7 — relecture des premiers secours et des plantes
+
+| Contrôle | Résultat |
+|---|---|
+| Opérations v1.7 (`controle-v13.py corrections-v17.py`) | **14 / 14** ; témoin v1.6 : 0 / 14 |
+| Versions précédentes | écarts limités aux passages réécrits ensuite (balise v1.6, ail des ours v1.7, fiche 1 v1.5, numéros de version) |
+| Points 001 à 102 ; manques v1.2 | 102 / 102 ; 72 / 72 |
+| Exhaustivité du Markdown | 916 / 916 |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
+| Sommaire ; mise en page | numéros exacts ; aucune page à moins de 30 %, sauf la dernière |
+
