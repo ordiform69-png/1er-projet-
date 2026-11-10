@@ -1,7 +1,7 @@
 # Note de livraison — Petit guide de survie
 
-**Version** : **1.5 — 10 novembre 2026** : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.5, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.6 — 10 novembre 2026** (relecture de la v1.5, journal partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.6, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 **Source** : dépôt `ordiform69-png/1er-projet-`, branche `ccr-3a2da90d-9th5tm`.
 
 ## Contenu du livrable
@@ -69,6 +69,11 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 - **Fiches réflexes resserrées** (fiches 1, 3, 3 bis, 3 ter, 4, 6, 7) : une ligne par geste, même contenu, détails au chapitre indiqué.
 - **Typographie française** (espaces insécables avant ; : ! ? et dans les guillemets, entre un nombre et son unité) et pied de page lisible avec le numéro de page.
 
+## Version 1.6 — relecture de la v1.5
+
+- Relecture faite par l'auteur à partir de la demande préparée pour les agents (qui n'ont pas pu la faire) : voir le journal, partie P.
+- **Corrigé** : 8 légendes de photos alignées sur le texte du livret ; fiche 7 (« bâtiment fermé ») ; 196 précisé « en France » ; pêche sans exception « urgence vitale » ; 5 entrées d'index ; crédit de la planche de myrtille (Redouté).
+
 ## Reste à faire avant publication
 
 - Relecture humaine des parties médicales par un formateur PSC ou un médecin, et des parties botaniques par un botaniste.
@@ -78,11 +83,11 @@ Avant-propos puis 25 chapitres : priorités, kit, abri, feu et techniques d'allu
 ## Empreintes SHA-256
 
 ```
-285b1a044662356e4920c887483b6dba4b4878d2bf3400ff45e5a804d778d5a8  guide-survie.pdf
-5d13fd9e6edc4d8714fa3912cb2fac38d369b49188763e5a676e89a19409aa22  dossier-editorial.pdf
-e484a1ec2e5c7fefa65e3d4bba1058f690f0be2d1bac7f83dc34371877dc2ae4  fiches-reflexes.pdf
-a683fa7385f5f24c36286fd03e9f3f884f2d7274fe2915375cba5e0798cca70e  guide-survie.html
-0b485bb13797113a759e09b23d22841c70f2f8b84f6fbb2cb97c4a69b15b98c6  guide-survie-corrige.md
-8d56dc0a5acf92efad3957aae2ea8dd940f46c7415b328a2e473c02d007c8551  JOURNAL-CORRECTIONS.md
-2914f09f10e26a367849987af63ecd536094b8a5ccd5bf46935318b8044722f1  CONTROLE-PERSISTANCE.md
+f3988977ff0413f197d46cbb155fde79e102fe0ce8c3515f7f41a2cb0b305e08  guide-survie.pdf
+d566e142c5831812d3babd022d2503113992867462ff087b98f9e77b1211c928  dossier-editorial.pdf
+937949d7b77ad3fbbf47bcc4fad4594aa1bb7d167541c8eeff03fc4f881ec5c3  fiches-reflexes.pdf
+96b71912e50cde7e292b0b3619500ca611d19dc7d0ac16e650a6fe5dc090fd86  guide-survie.html
+e4800523609a1b87e56e33d440eb325fb1432aba8de5ef05b8ecbe5845403446  guide-survie-corrige.md
+0f0d9c5392654922481264b63296191da0d06aebabce0e989d43f1db4e2b73fb  JOURNAL-CORRECTIONS.md
+35482c1e00abba896bc5429c5c90cb1e09d654f0a830266b3ac4e6794e682beb  CONTROLE-PERSISTANCE.md
 ```

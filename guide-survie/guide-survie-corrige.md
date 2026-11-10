@@ -2,7 +2,7 @@
 
 Conseils pratiques pour rester en vie, se faire trouver et rentrer chez soi.
 
-Version 1.5 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
+Version 1.6 — 10 novembre 2026 · hors ligne — à enregistrer sur votre téléphone ou à imprimer (format A5).
 
 > **Avertissement**
 > Ce livret **n'est pas une formation de secourisme**. Il donne des repères généraux et ne remplace ni une formation aux premiers secours (PSC1 en France), ni l'avis des secours. **En cas d'urgence : appelez le 112 ou le 15** (112 : numéro d'urgence européen, joignable depuis n'importe quel réseau disponible ; 15 : SAMU en France). Les techniques marquées **« ne pas improviser »** exigent une formation encadrée.
@@ -11,7 +11,7 @@ Version 1.5 — 10 novembre 2026 · hors ligne — à enregistrer sur votre tél
 
 ## À propos de cette édition
 
-**Petit guide de survie** — version 1.5, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
+**Petit guide de survie** — version 1.6, 10 novembre 2026. Édition grand public, lisible hors ligne et imprimable (A5).
 
 **Informations vérifiées au 10 novembre 2026** : numéros d'urgence, règles françaises (feu en forêt, couteaux, balises de détresse), recommandations de secourisme et de santé. Les règles et les recommandations évoluent : vérifiez-les avant de partir.
 
@@ -327,7 +327,7 @@ Une eau claire, courante ou sortant du sol n'est pas nécessairement potable. Co
 
 **Faire bouillir :** portez l'eau claire à gros bouillons pendant au moins 1 minute, ou 3 minutes au-dessus d'environ 2 000 m. Si l'ARS ou la mairie donne une autre durée (en France, souvent 5 minutes pour l'eau du robinet), suivez-la. Laissez refroidir dans un récipient propre et fermé, et consommez cette eau dans les 72 heures, de préférence gardée au frais.
 
-> 📷 *Photo : Eau portée à ébullition sur un réchaud (© eggrole — CC BY 2.0 (crédit n° 31)) ; Filtrage de l'eau d'un ruisseau (© Chris Hunkeler — CC BY-SA 2.0 (crédit n° 32)).* Les deux moyens les plus sûrs pour une eau claire : l'ébullition à gros bouillons, ou un filtre dont la notice précise ce qu'il retient (bactéries, protozoaires, virus).
+> 📷 *Photo : Eau portée à ébullition sur un réchaud (© eggrole — CC BY 2.0 (crédit n° 31)) ; Filtrage de l'eau d'un ruisseau (© Chris Hunkeler — CC BY-SA 2.0 (crédit n° 32)).* Faire bouillir à gros bouillons reste la méthode de référence. Un filtre ne retient que ce que précise sa notice : vérifiez s'il arrête les bactéries, les protozoaires et les virus.
 
 Faire bouillir l'eau détruit les micro-organismes sensibles à ce traitement, mais n'élimine pas les carburants, les métaux ni de nombreux produits chimiques. Écartez les eaux suspectes de pollution. Une eau claire peut être contaminée.
 
@@ -413,7 +413,7 @@ Dans l'hémisphère nord, de préférence hors des tropiques, cette méthode fou
 - **Que dire au téléphone (112, 15 ou 18) :** restez calme. Donnez votre nom et le numéro d'où vous appelez, puis le lieu le plus précis possible : massif, commune, lieu-dit, nom du sommet ou du sentier, altitude, repères, coordonnées GPS (voir ci-dessous). Dites ce qui s'est passé et à quelle heure, combien de personnes sont concernées et dans quel état, les gestes déjà faits, la météo et les dangers sur place. Répondez aux questions, appliquez les consignes et ne raccrochez qu'avec l'accord de l'opérateur. Si vous chargez quelqu'un d'alerter, vérifiez avant qu'il a toutes les informations, puis qu'il a bien appelé. Si possible, envoyez une personne accueillir et guider les secours. Si l'état de la victime s'aggrave, rappelez.
 - **Localisation automatique :** en France, lors d'un appel au 112 depuis un smartphone, votre position est en général transmise automatiquement aux secours (système AML), sans application ni action de votre part, parfois même avec une faible couverture. Laissez la localisation activée. Cette transmission n'est pas garantie : donnez quand même votre position à voix haute et décrivez le lieu.
 - **SMS :** en France, n'envoyez pas par défaut un SMS au 112. Le **114** permet une alerte écrite, notamment aux personnes sourdes, malentendantes ou aphasiques, ainsi qu'aux victimes de violences intrafamiliales qui ne peuvent pas parler. Une faible couverture peut parfois permettre un SMS sans garantir sa transmission. Indiquez votre identité, votre position précise, le danger, le nombre et l'état des personnes, puis recherchez une confirmation de prise en charge. Si vous écrivez à un proche, demandez-lui explicitement d'alerter les secours et de confirmer l'avoir fait.
-- **Balise personnelle de détresse (PLB, 406 MHz) :** en zone isolée sans réseau fiable, elle envoie une alerte et votre position par satellite. Enregistrez-la avant le départ ; en France, auprès du registre des balises 406 MHz (registre406.cnes.fr), et tenez à jour vos coordonnées et vos contacts d'urgence. Apprenez à l'utiliser, gardez-la sur vous, pas au fond du sac, et ne la déclenchez qu'en détresse réelle. Une fois déclenchée, suivez sa notice : antenne déployée vers le haut, vue dégagée sur le ciel. Si vous la déclenchez par erreur, éteignez-la et prévenez aussitôt les secours pour faire annuler l'alerte : par téléphone, le 196, même à terre ; en mer, VHF canal 16. Signaler l'erreur tout de suite évite de lancer des recherches inutiles. Elle complète le téléphone et le plan laissé à un proche ; elle ne les remplace pas.
+- **Balise personnelle de détresse (PLB, 406 MHz) :** en zone isolée sans réseau fiable, elle envoie une alerte et votre position par satellite. Enregistrez-la avant le départ ; en France, auprès du registre des balises 406 MHz (registre406.cnes.fr), et tenez à jour vos coordonnées et vos contacts d'urgence. Apprenez à l'utiliser, gardez-la sur vous, pas au fond du sac, et ne la déclenchez qu'en détresse réelle. Une fois déclenchée, suivez sa notice : antenne déployée vers le haut, vue dégagée sur le ciel. Si vous la déclenchez par erreur, éteignez-la et prévenez aussitôt les secours pour faire annuler l'alerte : par téléphone, le 196 en France, même à terre (à l'étranger : le numéro d'urgence local) ; en mer, VHF canal 16. Signaler l'erreur tout de suite évite de lancer des recherches inutiles. Elle complète le téléphone et le plan laissé à un proche ; elle ne les remplace pas.
 - **Coordonnées GPS :** vérifiez que votre position vient d'être acquise et observez son incertitude : arbres, falaises et bâtiments peuvent dégrader la précision. Aux secours, lisez latitude puis longitude avec le format affiché, les signes ou indications N/S et E/O, puis faites répéter. Ajoutez le lieu nommé, votre dernier point certain et une description du terrain ; une capture lisible peut compléter ces renseignements. Ne considérez jamais le point affiché comme une garantie de position exacte.
 - **Après avoir joint les secours**, gardez au moins un téléphone allumé, connecté au réseau, accessible et au chaud, et suivez leurs consignes concernant les rappels et la localisation. Économisez la batterie en réduisant la luminosité et les usages inutiles, pas avec le mode avion. Répondez aux rappels du **0 800 112 112** (numéro officiel de rappel des services d'urgence en France). Si aucune liaison n'est possible et que la batterie devient critique, espacez les tentatives selon la situation, sans intervalle fixe.
 
@@ -464,7 +464,7 @@ Si la personne ne répond pas mais respire normalement après un événement **n
 > **Ne respire pas normalement ? Arrêt cardiaque**
 > Chez l'adulte, une personne inconsciente qui ne respire pas normalement, notamment si elle présente des halètements espacés, doit être considérée en arrêt cardiaque. Appelez le 112 en haut-parleur et faites apporter un défibrillateur. Commencez les compressions au centre du thorax : **100 à 120 par minute**, profondeur de **5 à 6 cm**, avec relâchement complet. Si vous savez les réaliser, alternez 30 compressions et 2 insufflations ; sinon, poursuivez les compressions. Dès que le défibrillateur est disponible, allumez-le et suivez ses instructions, en limitant les interruptions.
 
-> 📷 *Photo : Armoire murale verte contenant un défibrillateur automatisé externe (© Leonard Bentley — CC BY-SA 2.0 (crédit n° 36)).* Défibrillateur automatisé externe (DAE) en accès public, avec son logo vert : repérez-les sur vos trajets habituels. Il guide l'utilisateur à la voix.
+> 📷 *Photo : Armoire murale verte contenant un défibrillateur automatisé externe (© Leonard Bentley — CC BY-SA 2.0 (crédit n° 36)).* Défibrillateur automatisé externe (DAE) en accès public : repérez-les sur vos trajets habituels. Faites-le apporter dès qu'une personne ne respire pas normalement.
 
 > **Arrêt cardiaque de l'enfant et du nourrisson**
 > Référence suivie : Références techniques nationales – Premiers secours citoyen (RTN PSC, DGSCGC, France), celles qu'enseigne la formation PSC1.
@@ -584,7 +584,7 @@ Identification, sosies toxiques et autres usages : voir le chapitre 10, « Plant
 | Insectes | Couleur, pilosité et odeur ne constituent pas une clé de comestibilité : un débutant doit s'abstenir d'en consommer sans identification fiable. Des allergies croisées sont possibles, notamment chez les personnes allergiques aux crustacés ou aux acariens. |
 | Poissons | La cuisson réduit de nombreux risques infectieux, mais ne rend pas comestible une espèce inconnue et ne détruit pas toutes les toxines. Évitez les poissons non identifiés, les poissons récifaux à risque et les aliments mal conservés. |
 
-> 📷 *Photo : Mûres : seules les noires sont mûres (© Andrew_Writer — CC BY 2.0 (crédit n° 37)) ; Noisettes (Corylus avellana) (© Ivar Leidus — CC BY-SA 4.0 (crédit n° 38)).* Fruits sauvages faciles à reconnaître : la mûre (fruit fait de petites boules serrées, sur une ronce épineuse) et la noisette. Dans les régions citées au chapitre 10 (règle 3), cuisez les fruits cueillis près du sol.
+> 📷 *Photo : Mûres (ronce) (© Andrew_Writer — CC BY 2.0 (crédit n° 37)) ; Noisettes (Corylus avellana) (© Ivar Leidus — CC BY-SA 4.0 (crédit n° 38)).* Fruits sauvages faciles à reconnaître : la mûre (fruit fait de petites boules serrées, sur une ronce épineuse) et la noisette. Dans les régions citées au chapitre 10 (règle 3), cuisez les fruits cueillis près du sol.
 
 **La cuisson ne rend pas comestible une plante ou un champignon toxique :** elle tue des parasites, mais le poison de l'if ou de l'amanite phalloïde résiste à la cuisson et au séchage. On ne cuit que ce qui est déjà identifié avec certitude comme comestible.
 
@@ -633,7 +633,7 @@ Les plantes peuvent nourrir, soigner les petits bobos, allumer un feu ou fabriqu
 > Attention : la belladone a, elle aussi, des baies isolées. Ces indices aident à repérer une erreur, mais ils ne suffisent pas à identifier une myrtille ; une application de reconnaissance ne suffit pas non plus. Au moindre doute, ne mangez pas. Si une baie a un goût inhabituel ou désagréable, recrachez-la et arrêtez.
 > Si quelqu'un a avalé une baie douteuse, appelez un centre antipoison sans attendre les symptômes. Appelez le 15 ou le 112 (114 pour les personnes sourdes, malentendantes ou aphasiques) en cas de troubles graves : difficulté à respirer, perte de connaissance, trouble cardiaque. Ne faites pas vomir. Gardez la cueillette ou prenez-la en photo.
 
-> 📷 *Photo : Myrtille (Vaccinium myrtillus), planche botanique (© Free Public Domain Illustrations by rawpixel — CC BY 2.0 (crédit n° 39)) ; Belladone (Atropa belladonna) : mortelle (© wlcutler — CC BY 2.0 (crédit n° 40)).* Ne confondez jamais myrtille et belladone : la belladone porte de grosses baies noires luisantes, isolées elles aussi, parmi de grandes feuilles. Ces images ne suffisent pas à identifier une plante.
+> 📷 *Photo : Myrtille (Vaccinium myrtillus), planche botanique (© Pierre-Joseph Redouté, numérisation rawpixel — CC BY 2.0 (crédit n° 39)) ; Belladone (Atropa belladonna) : mortelle (© wlcutler — CC BY 2.0 (crédit n° 40)).* Ne confondez jamais myrtille et belladone : la belladone porte des baies noires luisantes, comme de petites cerises, isolées elles aussi. Ces images ne suffisent pas à identifier une plante.
 
 ---
 
@@ -856,7 +856,7 @@ L'alambic peut aussi servir avec de l'eau de mer ou une eau boueuse versée dans
 | Raquettes à neige | Des raquettes improvisées constituent au mieux un dépannage de portance sur terrain facile et connu. Elles n'assurent pas l'adhérence et ne remplacent pas l'équipement ni les compétences nécessaires aux pentes enneigées. |
 | Écharpe pour le bras | Un t-shirt, ou le bas de votre veste remonté et épinglé : le poignet un peu plus haut que le coude. |
 | Anti-moustiques | Privilégiez vêtements couvrants et moustiquaire, puis, si nécessaire, un répulsif autorisé et adapté à la personne et à la zone, utilisé selon son étiquette. Ne comptez pas sur la boue ou un feu fumant ; n'allumez pas un feu pour cette seule raison et restez hors du panache. |
-| Hameçon | Épingle de sûreté pliée, épine de ronce ou d'aubépine attachée à un fil (pêche soumise à la réglementation hors urgence vitale). |
+| Hameçon | Épingle de sûreté pliée, épine de ronce ou d'aubépine attachée à un fil (la pêche reste soumise à la réglementation : permis, périodes, tailles). |
 
 ---
 
@@ -870,7 +870,7 @@ Partie IV · Milieux et dangers
 - Aucune posture ni aucun abri léger ne rend l'extérieur sûr. Évitez les crêtes, les arbres isolés, l'eau et les conducteurs.
 - Restez à l'abri 30 minutes après le dernier tonnerre.
 
-> 📷 *Photo : Cumulonimbus en formation (© Tatters ✾ — CC BY-SA 2.0 (crédit n° 41)) ; Orage et éclairs (© Matt Biddulph — CC BY-SA 2.0 (crédit n° 42)).* Un nuage qui monte très haut en forme de chou-fleur ou d'enclume (cumulonimbus) annonce l'orage : quittez crêtes, sommets et eau avant que la foudre ne tombe.
+> 📷 *Photo : Cumulonimbus en formation (© Tatters ✾ — CC BY-SA 2.0 (crédit n° 41)) ; Orage et éclairs (© Matt Biddulph — CC BY-SA 2.0 (crédit n° 42)).* Les nuages à fort développement vertical (cumulonimbus) annoncent souvent l'orage. Dès que le tonnerre est audible, rejoignez un bâtiment fermé ou un véhicule fermé à toit rigide, si c'est possible sans danger.
 
 > 🖼 *Illustration : Signes de changement de temps.* Les nuages à fort développement vertical l'après-midi annoncent souvent un orage.
 
@@ -1058,7 +1058,7 @@ Dans le désert, la chaleur et le manque d'eau tuent en un ou deux jours. Mais l
 
 Le froid épuise lentement : on ne le sent plus quand il devient dangereux. Le vent et l'humidité multiplient ses effets : par −5 °C avec un vent de 40 km/h, le corps ressent environ −15 °C.
 
-> 📷 *Photo : Fissure dans une glace mince (© Horia Varlan — CC BY 2.0 (crédit n° 46)) ; Bivouac d'hiver encadré (© GlacierNPS — Domaine public (crédit n° 47)).* La glace d'un lac peut être fine même par grand froid : une fissure, de la neige qui cache l'eau ou un courant suffisent. Pour la nuit, une tente adaptée, un bon couchage et un sol isolé.
+> 📷 *Photo : Fissure dans une glace mince (© Horia Varlan — CC BY 2.0 (crédit n° 46)) ; Bivouac d'hiver (© GlacierNPS — Domaine public (crédit n° 47)).* L'épaisseur seule ne garantit jamais la sécurité de la glace : glace blanche ou grise, près des berges, des roseaux ou des courants, elle est beaucoup plus fragile. Pour la nuit dans la neige : un couchage adapté et un sol isolé.
 
 ### Rester au chaud
 
@@ -1102,7 +1102,7 @@ Chaleur humide, pluie, insectes, végétation qui cache tout : en jungle, l'eau 
 - Consultez un médecin ou un centre de vaccinations internationales : **vaccins** (fièvre jaune, etc.) et **traitement préventif du paludisme** selon la région.
 - Emportez une moustiquaire imprégnée, un répulsif efficace, une trousse renforcée (pansements, sachets de solution de réhydratation orale, médicaments personnels préparés avec un professionnel ; voir chapitre 8), des vêtements longs à séchage rapide.
 
-> 📷 *Photo : Rivière en forêt tropicale (© mripp — CC BY 2.0 (crédit n° 48)) ; Hamac avec moustiquaire (© oft-quoted Mandrake Silvertongue — CC BY 2.0 (crédit n° 49)).* En forêt tropicale : rivières en crue rapide, humidité permanente et moustiques. Dormir surélevé sous une moustiquaire limite les piqûres et le contact avec le sol.
+> 📷 *Photo : Rivière en forêt tropicale (© mripp — CC BY 2.0 (crédit n° 48)) ; Hamac avec moustiquaire (© oft-quoted Mandrake Silvertongue — CC BY 2.0 (crédit n° 49)).* En forêt tropicale : crues soudaines, humidité permanente et moustiques. Un hamac sous une moustiquaire limite le contact avec le sol et les piqûres, sans protéger de tout.
 
 ### Dormir au-dessus du sol
 
@@ -1174,7 +1174,7 @@ Pour 72 heures, prévoyez de l'**eau potable** — au moins 6 litres par personn
 - **Eau du robinet :** après une inondation, ne la buvez pas tant que la mairie ou le distributeur d'eau n'a pas confirmé qu'elle est potable. En attendant, buvez de l'eau en bouteille dont le bouchon est resté scellé, aussi pour préparer les repas et vous brosser les dents. Ne consommez pas une bouteille ou une conserve restée dans l'eau de crue. L'eau d'un puits inondé n'est pas potable : demandez conseil à la mairie avant de la réutiliser. Lavez-vous les mains au savon après tout contact avec l'eau de crue.
 - Ne descendez pas dans les sous-sols ni les parkings souterrains inondés. Faites vérifier l'électricité et le chauffage par un professionnel avant de les remettre en marche. N'utilisez pas de nettoyeur ou de pompe à moteur thermique dans la maison, le garage ou la cave, même ouverts (monoxyde de carbone).
 
-> 📷 *Photo : Rue inondée avec des voitures, photo d'archives en noir et blanc (© Seattle Municipal Archives — CC BY 2.0 (crédit n° 50)).* Ne traversez jamais une rue inondée, à pied ou en voiture : l'eau cache le courant, les trous et les plaques d'égout soulevées.
+> 📷 *Photo : Rue inondée avec des voitures, photo d'archives en noir et blanc (© Seattle Municipal Archives — CC BY 2.0 (crédit n° 50)).* Ne marchez et ne roulez jamais dans l'eau en mouvement : 15 cm d'eau courante peuvent faire tomber un adulte, 30 cm emporter une voiture.
 
 ### Canicule
 
@@ -1446,7 +1446,7 @@ Douze fiches de cinq gestes (six pour la fiche 10), dans l'ordre. À imprimer et
 
 #### 7 · Orage en pleine nature
 
-1. Tonnerre audible : je rejoins un bâtiment ou un véhicule fermé à toit rigide, si c'est sans danger.
+1. Tonnerre audible : je rejoins un bâtiment fermé ou un véhicule fermé à toit rigide, si c'est sans danger.
 2. Je n'attends pas d'intervalle < 30 s.
 3. J'évite crêtes, arbres isolés, eau et conducteurs.
 4. Aucune posture ni abri léger ne rend l'extérieur sûr.
@@ -1698,7 +1698,7 @@ Textes des licences : CC BY 2.0 : https://creativecommons.org/licenses/by/2.0/ ;
 | 36 | Défibrillateur en accès public | Leonard Bentley | CC BY-SA 2.0 | https://www.flickr.com/photos/31363949@N02/16852876539 |
 | 37 | Mûres | Andrew_Writer | CC BY 2.0 | https://www.flickr.com/photos/78135748@N00/5039711815 |
 | 38 | Noisettes | Ivar Leidus | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=98707662 |
-| 39 | Myrtille (planche) | Free Public Domain Illustrations by rawpixel | CC BY 2.0 | https://www.flickr.com/photos/153584064@N07/47224763171 |
+| 39 | Myrtille (planche) | Pierre-Joseph Redouté (planche), numérisation rawpixel | CC BY 2.0 | https://www.flickr.com/photos/153584064@N07/47224763171 |
 | 40 | Belladone | wlcutler | CC BY 2.0 | https://www.flickr.com/photos/20664893@N00/7960747492 |
 | 41 | Cumulonimbus | Tatters ✾ | CC BY-SA 2.0 | https://www.flickr.com/photos/62938898@N00/11048322775 |
 | 42 | Éclairs | Matt Biddulph | CC BY-SA 2.0 | https://www.flickr.com/photos/51035707449@N01/4787447725 |

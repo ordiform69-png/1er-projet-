@@ -108,7 +108,7 @@ def index_html(pages, deb, fin):
             txt = pages[k].replace(NBSP, " ").replace(NNBSP, " ")
             c = 0
             for f in formes:
-                motif = re.escape(f)
+                motif = re.escape(f).replace("\\ ", r"\s+")  # un terme peut être coupé en fin de ligne
                 flags = 0 if (f.isupper() or f[:1].isdigit() or f in ("If",)) else re.I
                 c += len(re.findall(r"(?<![\w])" + motif + r"(?![\w])", txt, flags))
             if c:

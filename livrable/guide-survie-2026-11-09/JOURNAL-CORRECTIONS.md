@@ -515,3 +515,59 @@ Avis demandé à l'auteur en tant que professionnel de l'édition, puis appliqu�
 - **Couverture** tenue sur une page (illustration réduite à l'impression).
 - Non fait, à prévoir : **regroupement réel des chapitres** (les bandeaux de parties suivent l'ordre actuel, qui s'y prête) ; **passe de style humaine** sur l'ensemble du texte ; **dessins des gestes** dans un style unique par un illustrateur ; nom de l'auteur, ISBN et mentions de l'éditeur.
 - Contrôles : `controle-v15.py` 23 / 23 (témoin v1.4 : 0 / 20) ; 914 / 914 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides ; mise en page : aucune page à moins de 30 % sauf la dernière.
+
+---
+
+## P. Version 1.6 — relecture de la v1.5 (faite par l'auteur)
+
+Les agents n'ont pas pu relire la v1.5 (plus de crédit côté Grok). À la demande de l'éditeur, l'auteur a repris lui-même la demande préparée pour eux (`partage-grok/DEMANDE-GROK-V1.6.md`), point par point. **Limite** : c'est une relecture par l'auteur de son propre travail, pas un regard extérieur ; elle ne remplace ni les agents, ni la relecture humaine prévue.
+
+### 1. Arbitrages de la v1.4
+
+| Point | Constat | Suite |
+|---|---|---|
+| 1 RCP enfant, témoin non formé | Conforme au RTN PSC et à l'ERC (RCP guidée par le régulateur) | Confirmé |
+| 2 Tente | Cohérent avec ch. 4 et 15 | Confirmé |
+| 3 Fausse alerte PLB | Le 196 est un numéro **français** : un lecteur à l'étranger n'aurait pas de consigne | **Corrigé** : « le 196 en France, même à terre (à l'étranger : le numéro d'urgence local) ; en mer, VHF canal 16 » |
+| 4 Règle 3 | Cohérent dans le tableau, la règle et le ch. 9 | Confirmé |
+| 6 114 | Formulations alignées partout | Confirmé |
+| 7 Croix du Sud | Ordre logique, sans répétition | Confirmé |
+| 9 Bâche | Plus d'ambiguïté | Confirmé |
+
+### 2. Fiches réflexes resserrées
+
+Comparaison geste par geste avec le chapitre : aucune consigne perdue ni modifiée, **sauf fiche 7** : « je rejoins un bâtiment ou un véhicule fermé à toit rigide » laissait penser qu'un bâtiment ouvert (abri, préau) suffit. **Corrigé** : « un bâtiment fermé ou un véhicule fermé à toit rigide ». Fiche 3 bis : contenu identique au chapitre 8 (cycles 15/2, profondeur en cm, compressions seules si l'on ne peut pas insuffler) ; **validation par le formateur PSC toujours requise**. Les fiches imprimables sont produites à partir du même fichier que le livret : identiques.
+
+### 3. Nouvelles pages
+
+- « Sources et limites » : références et intitulés exacts ; pas de source majeure manquante pour les consignes du livret.
+- Sommaire en six parties : clair. Numéros de page : 31 / 31 exacts.
+- **Index** : cinq entrées renvoyaient à des pages sans rapport (« Glace » vers la brûlure, « Kit » vers toutes les occurrences du mot, « Traumatisme crânien » vide car le livret dit « Chute ou choc violent »…). **Corrigé** : formes de recherche resserrées, termes coupés en fin de ligne reconnus ; entrée renommée « Chute ou choc à la tête, au dos ».
+
+### 4. Photos et légendes
+
+Règle : une légende ne dit rien qui ne soit déjà dans le livret. Écarts trouvés et **corrigés** :
+
+| Photo | Écart | Nouvelle légende (reprise du livret) |
+|---|---|---|
+| Orage | « chou-fleur ou enclume », absent du livret | Nuages à fort développement vertical ; dès que le tonnerre est audible, bâtiment ou véhicule fermé |
+| Rue inondée | « plaques d'égout soulevées », absent | 15 cm d'eau courante font tomber un adulte, 30 cm emportent une voiture |
+| Glace et bivouac | « neige qui cache l'eau », « bivouac encadré » : non vérifiés | Signes de glace fragile du ch. 18 ; « Bivouac d'hiver » |
+| DAE | « logo vert » : ajout | Faites-le apporter dès qu'une personne ne respire pas normalement |
+| Eau | « les deux moyens les plus sûrs » mettait le filtre au niveau de l'ébullition | L'ébullition reste la référence ; un filtre ne retient que ce que dit sa notice |
+| Jungle | « crue rapide », « limite les piqûres » sans réserve | « crues soudaines » ; hamac et moustiquaire « sans protéger de tout » |
+| Belladone | « grandes feuilles » : absent | « baies noires luisantes, comme de petites cerises » (texte du ch. 10) |
+| Mûres | « seules les noires sont mûres » : ajout | « Mûres (ronce) » |
+
+Espèces vérifiées : la planche de myrtille est bien *Vaccinium myrtillus* (« Airelle mirtille », planche de Pierre-Joseph Redouté) ; son crédit nomme désormais l'illustrateur. Belladone : jardin botanique de l'université de Colombie-Britannique, *Atropa belladonna*.
+
+### 5. Points hors domaine signalés en v1.3
+
+- Pêche « hors urgence vitale » (ch. 13) : aucune exception de ce type dans la réglementation. **Corrigé** : « la pêche reste soumise à la réglementation : permis, périodes, tailles ».
+- « Moteur 10 min par heure » (fiche 8) : consigne courante des services météo nord-américains, reprise au ch. 18 avec échappement dégagé et vitre entrouverte. Conservé.
+
+### Verdict de l'auteur sur l'édition publique
+
+**Publiable après la relecture humaine** (formateur PSC ou médecin pour le ch. 8 et les fiches ; botaniste pour les ch. 9, 10 et 19), et après ajout du nom de l'auteur et, si le livre est vendu, d'un ISBN.
+
+Contrôles v1.6 : `controle-v13.py corrections-v16.py` 16 / 16 (témoin v1.5 : 0 / 16) ; 914 / 914 éléments dans le Markdown ; 102 / 102 ; 72 / 72 ; liens et balises valides dans les deux éditions ; sommaire exact ; aucune page à moins de 30 % sauf la dernière.

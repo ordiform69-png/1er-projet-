@@ -129,3 +129,15 @@ Les 42 points sont appliqués sous la forme de 56 remplacements (`corrections-v1
 | Exhaustivité du Markdown | **914 / 914** |
 | Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (édition publique et dossier) |
 | Mise en page | aucune page remplie à moins de 30 %, sauf la dernière |
+
+## Version 1.6 — relecture de la v1.5
+
+| Contrôle | Résultat |
+|---|---|
+| Opérations v1.6 (`controle-v13.py corrections-v16.py`) | **16 / 16** ; témoin v1.5 : 0 / 16 |
+| Opérations v1.5 | 21 / 23 ; les 2 écarts sont voulus (fiche 7 et couverture réécrites en v1.6) |
+| Points 001 à 102 ; manques v1.2 | 102 / 102 ; 72 / 72 |
+| Exhaustivité du Markdown | 914 / 914 |
+| Sommaire | 31 / 31 numéros exacts (édition publique), 34 / 34 (dossier) |
+| Liens internes / validité du HTML | aucun lien cassé, aucune balise orpheline (deux éditions) |
+| Mise en page | aucune page à moins de 30 %, sauf la dernière |

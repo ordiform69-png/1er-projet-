@@ -1,7 +1,7 @@
 # Note de version
 
-**Version** : **1.5 — 10 novembre 2026** : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
-**Statut** : **version 1.5, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
+**Version** : **1.6 — 10 novembre 2026** (relecture de la v1.5, journal partie P) ; v1.5 : édition publique mise en forme (sommaire par parties avec numéros de page, index, fiches resserrées, sources et limites), après la relecture finale de la v1.3 par les neuf agents (verdict : publiable après corrections mineures).  
+**Statut** : **version 1.6, candidate à la publication**. Tous les points transmis sont intégrés et contrôlés ; le corps du livret ne contient aucune mention « à valider ». Les agents recommandent une relecture des parties médicales (ch. 8, fiches 3, 3 bis et 3 ter) et botaniques (ch. 9, 10, 19) par un formateur PSC ou un médecin avant publication.  
 
 ### Contenu
 
@@ -63,6 +63,11 @@ Règle du brief éditeur : en cas de contradiction, la version la plus sûre.
 - **Bandeaux de parties** en tête des chapitres 1, 8, 11, 14, 21 et 23.
 - **Fiches réflexes resserrées** (fiches 1, 3, 3 bis, 3 ter, 4, 6, 7) : une ligne par geste, même contenu, détails au chapitre indiqué.
 - **Typographie française** (espaces insécables avant ; : ! ? et dans les guillemets, entre un nombre et son unité) et pied de page lisible avec le numéro de page.
+
+### Version 1.6 — relecture de la v1.5
+
+- Relecture faite par l'auteur à partir de la demande préparée pour les agents (qui n'ont pas pu la faire) : voir le journal, partie P.
+- **Corrigé** : 8 légendes de photos alignées sur le texte du livret ; fiche 7 (« bâtiment fermé ») ; 196 précisé « en France » ; pêche sans exception « urgence vitale » ; 5 entrées d'index ; crédit de la planche de myrtille (Redouté).
 
 ### Points encore à faire vérifier
 

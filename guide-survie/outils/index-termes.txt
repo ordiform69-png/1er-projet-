@@ -15,7 +15,7 @@ Boussole | boussole
 Brûlure | brûlure
 Cabestan (nœud) | cabestan
 Canicule | canicule
-Carte | carte topographique;1:25 000;IGN
+Carte | carte topographique;1:25 000;IGN;carte papier;carte et une boussole
 Champignons | champignon
 Ciguë | ciguë
 Coup de chaleur | coup de chaleur
@@ -34,13 +34,13 @@ Filtre à eau | filtre
 Foudre, orage | foudre;orage
 FR-Alert | FR-Alert
 Garrot | garrot
-Glace (lac gelé) | glace
+Glace (lac gelé) | à travers la glace;sur la glace;glace blanche;glace rompue;glace fissurée
 Hélicoptère | hélicoptère
 Hypothermie | hypothermie
 If | If
 Inondation | inondation;inondé
 Intoxication | antipoison;intoxication
-Kit de survie | kit
+Kit de survie | kit de survie;kit 72;trio idéal;Le kit
 Malaise | malaise
 Marées | marée
 Monoxyde de carbone | monoxyde de carbone
@@ -55,12 +55,12 @@ Ortie | ortie
 Pissenlit | pissenlit
 PLS (position latérale de sécurité) | PLS
 Rester ou partir | Rester ou partir;reste sur place;restez sur place
-Saignement | saignement;plaie
+Saignement | saignement;saigne;garrot
 Séisme | séisme
 Sifflet | sifflet
 Signal de détresse | SOS;signaux
 SODIS (eau au soleil) | SODIS
 S.T.O.P. | S.T.O.P.
 Tique | tique
-Traumatisme crânien | traumatisme crânien;tête
+Chute ou choc à la tête, au dos | Chute ou choc violent;choc à la tête
 Vigilance météo | vigilance
