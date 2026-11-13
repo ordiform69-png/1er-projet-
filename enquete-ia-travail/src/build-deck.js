@@ -132,7 +132,7 @@ sec("Ouverture");
   const items = [
     ["1", "Les capacités des IA progressent plus vite que toute technologie récente", "Autonomie mesurée sur tâches logicielles : doublement tous les ~4 à 7 mois (METR). Coût d'usage ÷ 280 en 18 mois (Stanford AI Index).", "fait"],
     ["2", "En France, le premier effet visible est un gel des embauches de jeunes, pas des licenciements massifs", "Embauches en CDI des 21-29 ans : −28 % dans les métiers les plus exposés vs −8 % dans les moins exposés (nov. 2022 → mars 2026, Banque de France).", "mesure"],
-    ["3", "La robotique physique avance beaucoup plus lentement que le logiciel", "Humanoïdes : quelques milliers à dizaines de milliers d'unités par an ; robots industriels classiques : 4,66 millions en service (IFR).", "fait"],
+    ["3", "La robotique physique avance beaucoup plus lentement que le logiciel", "Humanoïdes : quelques milliers à dizaines de milliers d'unités par an ; robots industriels classiques : 5 millions en service fin 2025 (IFR).", "fait"],
     ["4", "L'impact macroéconomique reste profondément incertain", "Les estimations vont de +0,66 % de productivité en 10 ans (Acemoglu) à un doublement de la croissance (Commission IA) : aucun consensus.", "incertain"],
     ["5", "Le débat de 2027 aborde l'IA, mais presque pas le financement de la protection sociale", "Propositions sur l'investissement, la formation et l'administration ; aucune proposition chiffrée trouvée sur l'assiette des cotisations face à l'automatisation.", "mesure"],
   ];
@@ -179,25 +179,24 @@ sec("Technologie");
     "METR, « Measuring AI Ability to Complete Long Tasks » (19/03/2025) et « Time Horizon 1.1 » (29/01/2026), metr.org ; Stanford HAI, AI Index 2025, chap. Économie (prix par million de jetons pour un modèle atteignant 64,8 % au MMLU).");
   txt(s, "Durée des tâches logicielles qu'un agent réussit une fois sur deux (« horizon temporel », METR)", { x: M, y: 1.55, w: 7.2, h: 0.5, fontSize: 14, bold: true });
   const pts = [
-    ["2019", "GPT-2", "quelques secondes"],
-    ["2023", "GPT-4", "quelques minutes"],
+    ["2023", "GPT-4", "≈ 3,5 minutes"],
     ["début 2025", "Claude 3.7 Sonnet", "≈ 1 heure"],
     ["mars 2026", "Claude Mythos Preview", "≥ 16 heures*"],
   ];
-  const tx = M + 1.0, tw = 5.2, ty = 3.05;
+  const tx = M + 1.2, tw = 4.8, ty = 3.05;
   s.addShape(pres.ShapeType.line, { x: tx, y: ty, w: tw, h: 0, line: { color: C.text2, width: 2 } });
   pts.forEach((p, i) => {
-    const x = tx + i * (tw / 3);
-    s.addShape(pres.ShapeType.ellipse, { x: x - 0.11, y: ty - 0.11, w: 0.22, h: 0.22, fill: { color: i === 3 ? C.accent1 : C.text2 }, line: { color: C.background1, width: 1 } });
+    const x = tx + i * (tw / 2);
+    s.addShape(pres.ShapeType.ellipse, { x: x - 0.11, y: ty - 0.11, w: 0.22, h: 0.22, fill: { color: i === 2 ? C.accent1 : C.text2 }, line: { color: C.background1, width: 1 } });
     const bx = Math.min(Math.max(x - 0.85, M), M + 7.2 - 1.7);
     txt(s, p[0], { x: bx, y: ty - 0.75, w: 1.7, h: 0.3, fontSize: 12, color: C.accent4, align: "center" });
-    txt(s, p[2], { x: bx, y: ty + 0.25, w: 1.7, h: 0.4, fontSize: 15, bold: true, align: "center", color: i === 3 ? C.accent1 : C.text1 });
+    txt(s, p[2], { x: bx, y: ty + 0.25, w: 1.7, h: 0.4, fontSize: 15, bold: true, align: "center", color: i === 2 ? C.accent1 : C.text1 });
     txt(s, p[1], { x: bx, y: ty + 0.62, w: 1.7, h: 0.45, fontSize: 11, align: "center", color: C.text2 });
   });
   card(s, M, 4.4, 7.2, 2.2);
   txt(s, bullets([
     "Doublement tous les ~7 mois sur 2019-2025 ; ~4 mois depuis 2023 (révision TH 1.1).",
-    "* Mesure à la limite de la suite de tests (IC 95 % : 8,5 à 55 h) ; METR juge peu fiables les valeurs > 16 h.",
+    "* Estimation METR rapportée par la presse (IC 95 % : 8,5 à 55 h) ; METR juge peu fiables les mesures au-delà de 16 h.",
     "Un horizon de 16 h ne signifie pas 16 h de travail autonome, ni l'automatisation de 16 h d'un emploi.",
   ]), { x: M + 0.2, y: 4.55, w: 6.8, h: 1.95, fontSize: 13 });
   badge(s, "mesure", M + 5.65, 6.25);
@@ -210,7 +209,7 @@ sec("Technologie");
   badge(s, "fait", 8.35, 5.1);
   txt(s, "÷ 280 en 18 mois", { x: 8.15, y: 5.6, w: 4.6, h: 0.5, fontSize: 22, bold: true, color: C.accent1, fontFace: "Cambria", align: "center" });
   txt(s, "Selon les tâches, la baisse annuelle varie de ×9 à ×900 (AI Index).", { x: 8.15, y: 6.1, w: 4.6, h: 0.5, fontSize: 12, color: C.text2, align: "center" });
-  s.addNotes("Points de la frise : valeurs arrondies lues sur les publications METR (ordres de grandeur, pas des chiffres précis). Claude Mythos Preview : évaluation d'un instantané pré-déploiement en mars 2026 publiée le 8 mai 2026 ; ≥16 h, IC 95 % 8,5-55 h. Mises en garde METR (note du 22/01/2026) : tâches logicielles bien spécifiées, notées automatiquement ; ne mesure pas la fiabilité en conditions réelles. Prix : Stanford HAI AI Index 2025 (avril 2025), 20 $ (nov. 2022) → 0,07 $ (oct. 2024, Gemini-1.5-Flash-8B). Distinction : progrès démontrés (benchmarks publics), annonces commerciales (communiqués), performances hypothétiques (extrapolations) — seuls les premiers figurent ici.");
+  s.addNotes("Points de la frise vérifiés le 13/11/2026 : GPT-4 (2023) 3,5 min [IC 1,6-6,9] et Claude 3.7 Sonnet 59 min [27-114] selon le tableau du billet TH1.1 de METR (29/01/2026). Mythos Preview : ajouté à la page de suivi METR le 08/05/2026 ; la valeur (≥16 h) figure dans un graphique, et le chiffre texte provient de comptes rendus de presse citant METR. Claude Mythos Preview : évaluation d'un instantané pré-déploiement en mars 2026 publiée le 8 mai 2026 ; ≥16 h, IC 95 % 8,5-55 h. Mises en garde METR (note du 22/01/2026) : tâches logicielles bien spécifiées, notées automatiquement ; ne mesure pas la fiabilité en conditions réelles. Prix : Stanford HAI AI Index 2025 (avril 2025), 20 $ (nov. 2022) → 0,07 $ (oct. 2024, Gemini-1.5-Flash-8B). Distinction : progrès démontrés (benchmarks publics), annonces commerciales (communiqués), performances hypothétiques (extrapolations) — seuls les premiers figurent ici.");
 }
 
 // 5. LIMITES
@@ -241,21 +240,21 @@ sec("Technologie");
 // 6. ROBOTIQUE
 {
   const s = slide("Robotique : les robots industriels classiques comptent davantage aujourd'hui que les humanoïdes",
-    "IFR, World Robotics 2025 (25/09/2025) et communiqué UE-27 (14/09/2026) ; Omdia via presse spécialisée (2026) ; Figure AI, « F.02 contributed to the production of 30,000 cars at BMW » ; BMW Group (25/06/2026) ; GXO/Agility (2025-2026) ; Tesla, appel résultats T3 2026 (22/10/2026).");
-  bigStat(s, M, 1.5, 3.1, "4,66 M", "robots industriels en service dans le monde fin 2024 (+8,9 %) ; 542 000 installés en 2024", C.text1, 36, "fait");
-  bigStat(s, M, 3.2, 3.1, "4 500", "robots industriels installés en France en 2025 (4 900 en 2024, −24 % sur un an)", C.text1, 36, "fait");
+    "IFR, World Robotics 2025 (25/09/2025) et World Robotics 2026 (24/09/2026) ; Omdia via presse spécialisée (2026) ; Figure AI, « F.02 contributed to the production of 30,000 cars at BMW » ; BMW Group (25/06/2026) ; GXO/Agility (2025-2026) ; Tesla, appel résultats T3 2026 (22/10/2026).");
+  bigStat(s, M, 1.5, 3.1, "5 M", "robots industriels en service dans le monde fin 2025 (+9 %) ; plus de 600 000 installés en 2025", C.text1, 36, "fait");
+  bigStat(s, M, 3.2, 3.1, "4 500", "robots industriels installés en France en 2025 (−8 % ; 4 900 en 2024)", C.text1, 36, "fait");
   bigStat(s, M, 4.9, 3.1, "≈ 13 000", "humanoïdes livrés dans le monde en 2025, surtout par des fabricants chinois (estimation Omdia)", C.accent3, 36, "proj");
   const rows = [
     [{ text: "Acteur", options: { bold: true, color: "FFFFFF", fill: { color: HEX.dk2 } } }, { text: "Démontré / déployé", options: { bold: true, color: "FFFFFF", fill: { color: HEX.dk2 } } }, { text: "Annoncé (non réalisé)", options: { bold: true, color: "FFFFFF", fill: { color: HEX.dk2 } } }],
     ["Figure AI (États-Unis)", "Figure 02 : 11 mois chez BMW Spartanburg, 90 000 pièces chargées (chiffres de l'entreprise) ; Figure 03 en logistique depuis l'été 2026", "Nombre de robots, cadence et contrats non publiés"],
     ["Agility Robotics", "Digit chez GXO (Géorgie) : 100 000 bacs manipulés (nov. 2025, selon l'entreprise)", "Extension à 2 sites en 2027 ; ≈ 150 unités livrées en 2025"],
     ["Unitree (Chine)", "> 5 500 humanoïdes livrés en 2025 (presse, non audité) ; introduction en bourse à Shanghai", "Usage surtout recherche, éducation, démonstration"],
-    ["Tesla Optimus", "Production « initiale » à Fremont annoncée en oct. 2026 ; aucun volume publié", "20 000 / semaine « dans au moins un an » ; livraisons externes fin 2027"],
+    ["Tesla Optimus", "« Production initiale » à Fremont annoncée en oct. 2026 ; nombre de robots produits non communiqué", "20 000 / semaine « dans au moins un an » ; livraisons externes fin 2027"],
     ["Boston Dynamics", "Atlas électrique en essais chez Hyundai", "Pas de volumes commerciaux publiés"],
   ];
   s.addTable(rows, { x: 4.0, y: 1.55, w: 8.73, colW: [1.9, 3.85, 2.98], fontSize: 11.5, color: HEX.dk1, fontFace: "Calibri", border: { type: "solid", pt: 0.5, color: "D9DEE3" }, fill: { color: "FFFFFF" }, valign: "middle", margin: 0.06, rowH: [0.38, 0.85, 0.7, 0.7, 0.7, 0.55] });
   txt(s, "Lecture : un bras robotisé ou un convoyeur spécialisé est souvent plus rentable qu'un humanoïde polyvalent. Les volumes d'humanoïdes restent inférieurs de plusieurs ordres de grandeur au parc industriel.", { x: 4.0, y: 5.75, w: 8.73, h: 0.8, fontSize: 13, italic: true, color: C.text2 });
-  s.addNotes("Vérification : IFR World Robotics 2025 (communiqué du 25/09/2025) : 542 076 installations en 2024, stock opérationnel 4 663 773 (+8,9 %). France : 4 900 installations en 2024 (−24 %), 4 500 en 2025 (communiqué IFR UE-27 du 14/09/2026). Humanoïdes : estimation Omdia (≈13 318 unités en 2025) reprise par la presse spécialisée, non vérifiée à la source ; Unitree > 5 500 (presse). Figure : chiffres auto-déclarés (1 250 h de fonctionnement, 90 000 pièces, 30 000 X3) ; BMW présente l'usage comme un allègement ergonomique, sans réduction d'effectifs annoncée. Boston Dynamics : déploiement commercial non documenté à grande échelle — formulation prudente. Productivité et coût comparés au travail humain : aucune donnée indépendante publiée ; aucun prix de marché d'humanoïde n'a été vérifié.");
+  s.addNotes("Vérifié le 13/11/2026 sur les communiqués IFR : 2024 : 542 000 installations, 4 664 000 en service (+9 %), France 4 900 (−24 %) ; 2025 (World Robotics 2026, 24/09/2026) : plus de 600 000 installations (+11 %), 5 millions en service (+9 %), France près de 4 500 (−8 %), UE-27 : 712 000 en service. Humanoïdes : estimation Omdia (≈13 318 unités en 2025) reprise par la presse spécialisée, non vérifiée à la source ; Unitree > 5 500 (presse). Figure : chiffres auto-déclarés (1 250 h de fonctionnement, 90 000 pièces, 30 000 X3) ; BMW présente l'usage comme un allègement ergonomique, sans réduction d'effectifs annoncée. Boston Dynamics : déploiement commercial non documenté à grande échelle — formulation prudente. Productivité et coût comparés au travail humain : aucune donnée indépendante publiée ; aucun prix de marché d'humanoïde n'a été vérifié.");
 }
 
 // 7. MUSK
@@ -266,7 +265,7 @@ sec("Technologie");
     { k: "IA (Grok, xAI → SpaceX)", d: "xAI absorbée par SpaceX (fusion, fév. 2026)", b: "fait", x: 0.9, y: 1.65 },
     { k: "Agents « Macrohard »", d: "« Stade très précoce », sans engagement ferme (S-1)", b: "annonce", x: 4.95, y: 1.65 },
     { k: "Puces « Terafab »", d: "Annoncé le 21/03/2026 ; 20-25 Md$ estimés ; pas de calendrier de construction", b: "annonce", x: 9.0, y: 1.65 },
-    { k: "Robots Optimus", d: "Production initiale à Fremont ; volume non publié", b: "annonce", x: 9.0, y: 4.25 },
+    { k: "Robots Optimus", d: "Production initiale à Fremont ; 20 000/semaine visés « dans au moins un an »", b: "annonce", x: 9.0, y: 4.25 },
     { k: "Productivité, revenus", d: "Aucun gain mesurable publié à ce stade", b: "incertain", x: 4.95, y: 4.25 },
     { k: "Capital, valorisations", d: "Plan de rémunération : objectif 1 million d'Optimus déployés", b: "fait", x: 0.9, y: 4.25 },
   ];
@@ -281,33 +280,33 @@ sec("Technologie");
   arrow(s, 4.9, 5.1, 4.4, 5.1); arrow(s, 2.6, 4.2, 2.6, 3.45);
   txt(s, [{ text: "Accélérateurs : ", options: { bold: true, color: C.accent2 } }, { text: "capital abondant, intégration verticale, données de flotte.  " }, { text: "Freins : ", options: { bold: true, color: C.accent1 } }, { text: "fabrication de puces (années), fiabilité des robots, conception encore changeante, historique de délais non tenus (ex. conduite autonome)." }],
     { x: M, y: 6.15, w: CW, h: 0.6, fontSize: 13 });
-  s.addNotes("Ne pas présenter les objectifs comme acquis. Statut vérifié au 13/11/2026 : (1) xAI absorbée par SpaceX en février 2026 (fusion en actions, montants divergents selon les sources). (2) Macrohard et Terafab décrits par le S-1 de SpaceX comme 'very early stages', sans termes financiers ni engagement contraignant (Electrek, 20/05/2026). (3) Terafab annoncé le 21/03/2026 comme coentreprise Tesla-SpaceX-xAI ; partenariat Intel annoncé le 07/04/2026 selon la presse. (4) Optimus : Tesla déclare une production initiale sur une ligne conçue pour ~1 million d'unités/an ; Musk : 'au moins un an' pour atteindre 20 000/semaine ; puce AI5 vers avril 2027 ; livraisons externes vers fin 2027. Aucun décompte de robots produits. (5) Plan de rémunération de Musk approuvé par ~75 % des voix exprimées le 06/11/2025, avec parmi les objectifs 1 million d'Optimus déployés. Une affirmation de location de Terafab à un tiers, issue d'un seul message sur X, a été écartée faute de confirmation.");
+  s.addNotes("Ne pas présenter les objectifs comme acquis. Statut vérifié au 13/11/2026 : (1) xAI absorbée par SpaceX en février 2026 (fusion en actions, montants divergents selon les sources). (2) Macrohard et Terafab décrits par le S-1 de SpaceX comme 'very early stages', sans termes financiers ni engagement contraignant (Electrek, 20/05/2026). (3) Terafab annoncé le 21/03/2026 comme coentreprise Tesla-SpaceX-xAI ; partenariat Intel annoncé le 07/04/2026 selon la presse. (4) Optimus : Tesla déclare une production initiale sur une ligne conçue pour ~1 million d'unités/an ; Musk : 'au moins un an' pour atteindre 20 000/semaine ; puce AI5 vers avril 2027 ; livraisons externes vers fin 2027. Aucun total de robots produits n'est donné dans les passages consultés de la transcription (appel du 21/10/2026). Un article d'Electrek du 12/11/2026 évoque un possible projet de fusion Tesla-SpaceX annoncé en décembre : rapport de presse non vérifié. (5) Plan de rémunération de Musk approuvé par ~75 % des voix exprimées le 06/11/2025, avec parmi les objectifs 1 million d'Optimus déployés. Une affirmation de location de Terafab à un tiers, issue d'un seul message sur X, a été écartée faute de confirmation.");
 }
 
 // 8. AMAZON
 sec("Études de cas");
 {
   const s = slide("Amazon : l'automatisation permet de croître en recrutant moins, sans licenciements massifs en entrepôt",
-    "Amazon (01/07/2025) ; WSJ via TechSpot (2025) ; New York Times (21/10/2025) et réponse d'Amazon ; AP/Reuters (28/01/2026) ; Amazon France (avr. 2025, mai-juin 2026) ; Amazon (2018-2019) et Phonandroid sur Brétigny-sur-Orge.");
+    "Amazon (30/06/2025) ; New York Times (21/10/2025) et réponse d'Amazon ; AP/Reuters (28/01/2026) ; Amazon France (avr. 2025, mai-juin 2026) ; Amazon (2018-2019) et Phonandroid sur Brétigny-sur-Orge.");
   bigStat(s, M, 1.5, 3.5, "> 1 million", "robots dans les entrepôts Amazon (juil. 2025), pour ≈ 1,5 million de salariés dans le monde", C.text1, 36, "fait");
-  bigStat(s, M, 3.2, 3.5, "670", "salariés en moyenne par entrepôt : le plus bas niveau en 16 ans (WSJ, source unique)", C.text1, 36, "incertain");
+  bigStat(s, M, 3.2, 3.5, "≈ 30 000", "postes de bureau supprimés (oct. 2025 et janv. 2026)", C.text1, 36, "fait");
   bigStat(s, M, 4.9, 3.5, "600 000", "embauches américaines « évitées » d'ici 2033 selon des documents internes (NYT) ; Amazon conteste", C.accent5, 36, "interne");
   // France box
   card(s, 4.4, 1.55, 8.33, 2.55, C.background2);
   txt(s, "En France", { x: 4.6, y: 1.65, w: 4, h: 0.4, fontSize: 16, bold: true, fontFace: "Cambria" });
   txt(s, bullets([
-    "Brétigny-sur-Orge (2019) : 1er site français Amazon Robotics, ≈ 4 000 robots ; ≈ 1 000 CDI annoncés en 2018 dans les 3 ans, 670 CDI à l'ouverture.",
-    "Effectifs : > 25 000 CDI en France (avril 2025) ; plan de 15 Md€ sur 2026-2028 et nouveaux sites annoncés à Choose France 2026.",
+    "Brétigny-sur-Orge (oct. 2019, 152 000 m²) : 1er site français équipé d'Amazon Robotics ; « plus de 1 000 » CDI annoncés sur trois ans.",
+    "Effectifs : plus de 25 000 CDI en France selon Amazon (avril 2025) ; plan de 15 Md€ sur 2026-2028 annoncé en mai 2026.",
     "Aides publiques : aucune subvention spécifique documentée dans les sources consultées — point à instruire, pas à affirmer.",
   ]), { x: 4.6, y: 2.05, w: 7.9, h: 2.0, fontSize: 13 });
   card(s, 4.4, 4.3, 8.33, 2.3, "FBE9E4");
   txt(s, "Ce que montre le cas — et ce qu'il ne montre pas", { x: 4.6, y: 4.4, w: 7.9, h: 0.4, fontSize: 16, bold: true, fontFace: "Cambria", color: C.accent1 });
   txt(s, bullets([
     "Le mécanisme principal est la baisse des besoins d'embauche par unité vendue, pas le licenciement des salariés d'entrepôt.",
-    "Les 30 000 suppressions de postes de bureau (oct. 2025 + janv. 2026) ont été justifiées par la « bureaucratie », non par l'IA, selon Amazon.",
+    "Amazon a pourtant déclaré vouloir utiliser l'IA générative pour réduire ses effectifs de bureau (A. Jassy, juin 2025), tout en justifiant les 30 000 suppressions par la « bureaucratie ».",
     "Les 600 000 embauches évitées sont une projection d'équipe interne, non un plan officiel ni une observation.",
   ]), { x: 4.6, y: 4.8, w: 7.9, h: 1.75, fontSize: 13 });
-  s.addNotes("Robots : communiqué Amazon du 01/07/2025 (1 millionième robot, modèle DeepFleet annoncé +10 % de vitesse de déplacement). 670 salariés par site : chiffre du Wall Street Journal (2025) repris par TechSpot, non vérifié dans un document Amazon. NYT (21/10/2025) : documents internes évoquant 160 000 embauches évitées d'ici 2027 et plus de 600 000 d'ici 2033, avec un objectif d'automatiser 75 % des opérations ; Amazon répond que ces documents reflètent le point de vue d'une seule équipe. Suppressions : ≈14 000 postes de bureau (oct. 2025) + ≈16 000 (janv. 2026) ; Andy Jassy avait déclaré en juin 2025 que l'IA générative réduirait les effectifs de bureau 'dans les prochaines années'. France : Brétigny (Essonne), inauguré en octobre 2019, 152 000 m². La promesse de 1 000 CDI a été dépassée selon Amazon (le site a compté ensuite plusieurs milliers de salariés selon la presse). 15 Md€ : critiqué par Le Journal des Entreprises comme incluant des dépenses de fonctionnement. Nous n'avons trouvé aucune preuve de détournement d'aides publiques et n'en affirmons aucun.");
+  s.addNotes("Robots : communiqué Amazon du 30/06/2025 (vérifié) (1 millionième robot, modèle DeepFleet annoncé comme réduisant de 10 % le temps de trajet de la flotte). Chiffre écarté après vérification : '670 salariés par entrepôt' (WSJ via TechSpot), source inaccessible. NYT (21/10/2025) : documents internes évoquant 160 000 embauches évitées d'ici 2027 et plus de 600 000 d'ici 2033, avec un objectif d'automatiser 75 % des opérations ; Amazon répond que ces documents reflètent le point de vue d'une seule équipe. Suppressions : ≈14 000 postes de bureau (oct. 2025) + ≈16 000 (janv. 2026) ; Andy Jassy avait déclaré en juin 2025 que l'IA générative réduirait les effectifs de bureau 'dans les prochaines années'. France : communiqué Amazon du 22/10/2019 vérifié (152 000 m², « plus de 1 000 » CDI sur trois ans). Le nombre de robots (≈4 000) et l'effectif à l'ouverture, cités par la presse, ne figurent pas dans le communiqué et ont été retirés. 15 Md€ : critiqué par Le Journal des Entreprises comme incluant des dépenses de fonctionnement. Nous n'avons trouvé aucune preuve de détournement d'aides publiques et n'en affirmons aucun.");
 }
 
 // 9. COMPARAISONS
@@ -315,7 +314,7 @@ sec("Études de cas");
   const s = slide("Trois autres terrains confirment le schéma : moins d'embauches, plus de productivité, des reculs possibles",
     "Insee, Note de conjoncture, éclairage du 24/03/2026 ; Brynjolfsson, Li & Raymond, « Generative AI at Work » (NBER w31161 ; QJE 2025) ; Klarna (2024-2025) ; BMW Group / Figure AI (2025-2026).");
   const cases = [
-    ["Services informatiques en France", "L'emploi des activités informatiques et services d'information recule d'environ 3 % entre fin 2023 et fin 2025 alors que la valeur ajoutée continue de croître. L'ajustement porte sur les jeunes entrants.", "Insee, mars 2026", "mesure"],
+    ["Services informatiques en France", "L'emploi de l'information-communication recule de 3,0 % entre fin 2023 et fin 2025, baisse « entièrement portée » par les 15-29 ans, tandis que la valeur ajoutée reste orientée à la hausse.", "Insee, mars 2026", "mesure"],
     ["Service client (États-Unis)", "5 179 téléconseillers : l'assistant IA augmente de 14 % les dossiers résolus par heure, surtout pour les débutants. Klarna, qui avait remplacé 700 agents, a partiellement fait machine arrière.", "NBER / Klarna", "fait"],
     ["Industrie automobile", "Chez BMW (États-Unis), l'humanoïde Figure est présenté comme un allègement des tâches pénibles, sans réduction d'effectifs annoncée. Les données de productivité restent celles du fabricant.", "BMW / Figure", "annonce"],
   ];
@@ -363,13 +362,13 @@ sec("Travail et économie");
 // 11. FRANCE
 {
   const s = slide("En France, le premier signal mesuré est un recul des embauches de jeunes dans les métiers exposés",
-    "Banque de France, Bloc-notes Éco n° 463 (08/10/2026), Palladino, Bergeaud, Bertheau, Bunel, Degos, données DSN, indice d'exposition fondé sur le ROME ; Insee Première n° 2120 (juil. 2026), enquête TIC, entreprises ≥ 10 salariés ; Eurostat (déc. 2025).");
+    "Banque de France, Bloc-notes Éco n° 463 (08/10/2026), Palladino, Bergeaud, Bertheau, Bunel, Degos, données DMMO (Dares), indice d'exposition fondé sur le ROME ; Insee Première n° 2120 (juil. 2026), enquête TIC, entreprises ≥ 10 salariés ; Eurostat (déc. 2025).");
   s.addChart(pres.ChartType.bar, [{ name: "Évolution", labels: ["Métiers les plus exposés (Q5)", "Métiers les moins exposés (Q1)"], values: [-28, -8] }], chartBase({
     x: M, y: 1.5, w: 6.0, h: 4.2, barDir: "col", chartColors: ["D9482B", "5B6B7F"], varyColors: true,
     title: "Embauches en CDI des 21-29 ans, mars 2026 vs nov. 2022 (%)", showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0"%"', valAxisMinVal: -35, valAxisMaxVal: 0, valAxisLabelFormatCode: '0"%"',
   }));
   badge(s, "mesure", M, 6.45);
-  txt(s, "Corrélation, pas causalité établie : les auteurs citent aussi le télétravail et le cycle économique. Aucune vague de licenciements observée.", { x: M, y: 5.75, w: 6.0, h: 0.7, fontSize: 13, italic: true, color: C.text2 });
+  txt(s, "Causalité non établie (télétravail, cycle, taux d'intérêt). Résultats contrastés ailleurs : pas de recul en Norvège, pas d'effet moyen au Danemark.", { x: M, y: 5.75, w: 6.0, h: 0.7, fontSize: 13, italic: true, color: C.text2 });
   s.addChart(pres.ChartType.bar, [{ name: "Part", labels: ["France 2024", "France 2025", "UE 2025"], values: [10, 18, 20] }], chartBase({
     x: 7.0, y: 1.5, w: 5.73, h: 3.2, barDir: "col", chartColors: ["9AA5B1", "1F7A72", "2B3440"], varyColors: true,
     title: "Entreprises de 10 salariés ou plus utilisant l'IA (%)", showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0"%"', valAxisMinVal: 0, valAxisMaxVal: 25, valAxisLabelFormatCode: '0"%"',
@@ -380,7 +379,7 @@ sec("Travail et économie");
     "Écart de 43 points entre PME (< 50 salariés) et grandes entreprises.",
     "Le gros de la diffusion — et de ses effets — est donc devant nous.",
   ]), { x: 7.2, y: 4.97, w: 5.35, h: 1.55, fontSize: 13 });
-  s.addNotes("Banque de France : embauches en CDI des 21-29 ans, quintile le plus exposé ≈ −28 % entre novembre 2022 et mars 2026 contre ≈ −8 % pour le quintile le moins exposé ; les fins de contrat baissent aussi (≈ −23 %), ce qui suggère moins de mobilité plutôt que des licenciements. Les auteurs écrivent que leurs résultats ne permettent pas encore d'établir la causalité. Un chiffre de « 75 000 CDI en moins par an » et un « −42 % pour les jeunes développeurs » circulent dans la presse ; nous ne les avons pas retrouvés dans le billet et ne les reprenons pas. Insee : 18 % des entreprises (≥10 salariés) utilisent au moins une technologie d'IA en 2025 contre 10 % en 2024 ; UE 20 % (Eurostat, 19,95 %). OCDE (Perspectives de l'emploi 2026, juillet 2026) : les données disponibles ne permettent pas d'affirmer que l'IA est la cause de la dégradation de la situation des jeunes, tendance antérieure aux grands modèles de langage — désaccord à signaler.");
+  s.addNotes("Banque de France : embauches en CDI des 21-29 ans, quintile le plus exposé ≈ −28 % entre novembre 2022 et mars 2026 contre ≈ −8 % pour le quintile le moins exposé ; Texte vérifié dans le PDF le 13/11/2026 : « environ 28 % sous leur niveau de novembre 2022, contre 8 % dans le quintile le moins exposé » (séries de tendance filtrées, DMMO). Les fins de contrat baissent aussi (≈ −23 % contre −6 %) : moindre rotation, pas de vague de licenciements. Le billet cite des résultats contrastés : Hernæs et Kostøl (Norvège, 2026) ne trouvent pas de recul relatif ; Humlum et Vestergaard (Danemark, 2026) n'observent pas d'effet moyen sur les heures ou les revenus. Les auteurs écrivent que leurs résultats ne permettent pas encore d'établir la causalité. Un chiffre de « 75 000 CDI en moins par an » et un « −42 % pour les jeunes développeurs » circulent dans la presse ; nous ne les avons pas retrouvés dans le billet et ne les reprenons pas. Insee : 18 % des entreprises (≥10 salariés) utilisent au moins une technologie d'IA en 2025 contre 10 % en 2024 ; UE 20 % (Eurostat, 19,95 %). OCDE (Perspectives de l'emploi 2026, juillet 2026) : les données disponibles ne permettent pas d'affirmer que l'IA est la cause de la dégradation de la situation des jeunes, tendance antérieure aux grands modèles de langage — désaccord à signaler.");
 }
 
 // 12. CASCADE
@@ -414,7 +413,7 @@ sec("Services publics");
   const s = slide("Justice : l'IA peut réduire les tâches documentaires, à condition de ne jamais décider à la place du juge",
     "Cour de cassation, « Cour de cassation et intelligence artificielle : préparer la Cour de demain » (28/04/2025) ; ministère de la Justice, rapport « L'IA au service de la justice » (juin 2025) ; Règlement (UE) 2024/1689, annexe III (administration de la justice = haut risque).");
   const cols = [
-    ["Déjà déployé", ["Pseudonymisation des décisions par apprentissage automatique (open data judiciaire, Cour de cassation)", "Outils d'orientation des pourvois et de détection de liens entre affaires à la Cour de cassation"], C.accent2, "fait"],
+    ["Existant", ["Pseudonymisation de décisions de justice par IA (projet cité par la Cour des comptes, nov. 2025)", "Inventaire des usages et méthode d'évaluation par la Cour de cassation (avril 2025)"], C.accent2, "fait"],
     ["En test, recommandé", ["Exploitation des écritures des parties (résumés, repérage des moyens)", "Recherche dans les bases jurisprudentielles", "Aide à la rédaction — l'aide à la décision n'est pas demandée par les magistrats"], C.accent3, "proj"],
     ["Gains mesurés", ["Aucune évaluation publique chiffrée des gains de délais ou de coûts n'a été trouvée", "Économies : non chiffrables sans évaluation préalable"], C.accent4, "incertain"],
   ];
@@ -429,7 +428,7 @@ sec("Services publics");
   txt(s, bullets(["Données judiciaires sensibles et hétérogènes ; systèmes informatiques anciens.", "Classement « haut risque » par l'AI Act : exigences de documentation et de supervision.", "Risque de biais, d'automatisation de fait des décisions, d'atteinte au droit au procès équitable."]), { x: M + 0.25, y: 5.05, w: 6.3, h: 1.5, fontSize: 13 });
   txt(s, "Supervision humaine", { x: 7.3, y: 4.65, w: 5, h: 0.35, fontSize: 15, bold: true, color: C.accent2 });
   txt(s, "Ce qui peut être fait sans attendre une IA générale : outils de recherche et de synthèse pour toutes les juridictions, avec évaluation indépendante des délais avant/après et traçabilité de chaque usage.", { x: 7.3, y: 5.05, w: 5.2, h: 1.5, fontSize: 13 });
-  s.addNotes("Rapport de la Cour de cassation (groupe présidé par Sandrine Zientara, remis le 28/04/2025) : trois familles d'usages (exploitation des écritures, recherche documentaire, aide à la rédaction) ; l'aide à la décision ne figure pas parmi les besoins recensés ; recommandation d'étendre certains outils à toutes les juridictions ; méthode d'évaluation des cas d'usage. Rapport du ministère remis à Gérald Darmanin en juin 2025. Les outils déjà en service cités (pseudonymisation, orientation des pourvois) sont documentés par la Cour de cassation de longue date ; nous n'avons pas trouvé d'évaluation publique chiffrée de leurs gains, d'où l'absence de chiffres d'économies. Accès au droit : pistes d'assistants pour les justiciables, mais risque d'informations juridiques erronées — supervision nécessaire.");
+  s.addNotes("Rapport de la Cour de cassation (groupe présidé par Sandrine Zientara, remis le 28/04/2025) : trois familles d'usages (exploitation des écritures, recherche documentaire, aide à la rédaction) ; l'aide à la décision ne figure pas parmi les besoins recensés ; recommandation d'étendre certains outils à toutes les juridictions ; méthode d'évaluation des cas d'usage. Rapport du ministère remis à Gérald Darmanin en juin 2025. Après vérification, seul le projet de pseudonymisation est confirmé par une source consultée (Cour des comptes, via Localtis 21/11/2025) ; les autres outils internes n'ont pas pu être vérifiés et ont été retirés. Aucune évaluation publique chiffrée des gains n'a été trouvée. Accès au droit : pistes d'assistants pour les justiciables, mais risque d'informations juridiques erronées — supervision nécessaire.");
 }
 
 // 14. SANTÉ
@@ -482,7 +481,7 @@ sec("Services publics");
 sec("Politique");
 {
   const s = slide("Les institutions agissent, mais à un rythme de plusieurs années quand les capacités doublent en quelques mois",
-    "Règlement (UE) 2024/1689 (AI Act) ; accord provisoire « Omnibus numérique » (07/05/2026) ; Commission de l'IA (13/03/2024) ; Élysée (09/02/2025) ; Cour des comptes (nov. 2025) ; METR (2025-2026) ; Insee (2026).");
+    "Règlement (UE) 2024/1689 (AI Act) ; Règlement (UE) 2026/1744 « Omnibus numérique IA » (8/07/2026, JOUE 24/07/2026) ; Commission de l'IA (13/03/2024) ; Élysée (09/02/2025) ; Cour des comptes (nov. 2025) ; METR (2025-2026) ; Insee (2026).");
   const ev = [
     ["Nov. 2022", "ChatGPT", 0, "tech"],
     ["Mars 2024", "Rapport Commission IA", 1, "pol"],
@@ -491,7 +490,7 @@ sec("Politique");
     ["2025", "Agents de ~1 h d'autonomie", 0, "tech"],
     ["Nov. 2025", "Cour des comptes : « changer d'échelle »", 1, "pol"],
     ["Mars 2026", "Agents ≥ 16 h (METR)", 0, "tech"],
-    ["Mai 2026", "Report des règles « haut risque » de l'AI Act", 1, "pol"],
+    ["Juil. 2026", "Règlement 2026/1744 : report des règles « haut risque »", 1, "pol"],
     ["Déc. 2027", "Règles haut risque (annexe III)", 1, "fut"],
   ];
   const x0 = M + 0.75, x1 = 12.0, ly = 3.55;
@@ -508,21 +507,21 @@ sec("Politique");
     txt(s, e[1], { x: bx, y: up ? 2.32 : 4.12, w: 1.44, h: up ? 1.0 : 1.4, fontSize: 11.5, align: "center" });
   });
   txt(s, "Risque double : légiférer trop tard (effets déjà installés) ou trop vite (règles inapplicables, à reporter — comme l'AI Act en 2026). Ne pas confondre inaction et action insuffisante ou mal ciblée.", { x: M, y: 6.0, w: CW, h: 0.7, fontSize: 13, italic: true, color: C.text2 });
-  s.addNotes("Lecture : les gouvernements ne sont pas inactifs (stratégie nationale depuis 2018, France 2030, AI Act, Commission IA, Albert, Sommet de Paris). Mais l'essentiel de l'effort porte sur l'offre (calcul, champions, régulation des risques) ; l'anticipation des effets sur l'emploi et les finances sociales est quasi absente des documents publics consultés. AI Act : entré en vigueur le 01/08/2024 ; obligations des modèles d'IA à usage général depuis le 02/08/2025 ; accord provisoire du 07/05/2026 reportant le régime haut risque annexe III au 02/12/2027 et annexe I au 02/08/2028 (adoption formelle à confirmer au JOUE). 109 Md€ : investissements privés annoncés, pas un budget public.");
+  s.addNotes("Lecture : les gouvernements ne sont pas inactifs (stratégie nationale depuis 2018, France 2030, AI Act, Commission IA, Albert, Sommet de Paris). Mais l'essentiel de l'effort porte sur l'offre (calcul, champions, régulation des risques) ; l'anticipation des effets sur l'emploi et les finances sociales est quasi absente des documents publics consultés. AI Act : entré en vigueur le 01/08/2024 ; obligations des modèles d'IA à usage général depuis le 02/08/2025 ; accord politique début mai 2026, puis Règlement (UE) 2026/1744 du 8 juillet 2026, publié au JOUE le 24/07/2026, en vigueur le 27/07/2026 : régime haut risque annexe III reporté au 02/12/2027 et annexe I au 02/08/2028 (vérifié sur EUR-Lex et Gibson Dunn). 109 Md€ : investissements privés annoncés, pas un budget public.");
 }
 
 // 17. PRÉSIDENTIELLE
 {
   const s = slide("Présidentielle 2027 : l'IA est dans les programmes, la question du financement social presque absente",
-    "État au 13/11/2026, programmes non définitifs. Maddyness (05/10/2026) ; Next.ink (02/10/2026, débat de Marseille du 25/09/2026) ; comparateur IFRAP ; franceinfo, Acteurs publics (juil. 2026). « — » = aucune proposition trouvée dans les sources consultées.");
+    "État au 13/11/2026, programmes non définitifs. Maddyness (05/10/2026, vérifié) ; Next.ink (02/10/2026, débat de Marseille du 25/09/2026) ; Europe 1 ; franceinfo, Acteurs publics (juil. 2026). « — » = aucune proposition trouvée dans les sources consultées.");
   const H = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: HEX.dk2 } } });
   const rows = [
     [H("Candidat / formation"), H("IA, souveraineté, investissement"), H("Emploi, formation, temps de travail"), H("Protection sociale, fiscalité"), H("Services publics")],
-    ["G. Attal (Renaissance)", "Plan « France 2040 » 200 Md€ public-privé", "IA à l'école ; former 20 M de salariés en 5 ans (IFRAP)", "« Crédit d'impôt productivité » pour l'adoption de l'IA", "—"],
-    ["É. Philippe (Horizons)", "Doubler les capacités de calcul en 5 ans", "« Droit à la reconversion » ; 100 000 ingénieurs/an", "—", "—"],
+    ["G. Attal (Renaissance)", "Plan « France 2040 » 200 Md€ public-privé", "IA dans les savoirs fondamentaux à l'école", "« Crédit d'impôt productivité » pour l'adoption de l'IA", "—"],
+    ["É. Philippe (Horizons)", "Doubler les capacités de calcul en 5 ans", "« Droit à la reconversion » ; de 40 000 à 100 000 ingénieurs/an", "—", "—"],
     ["B. Retailleau (LR)", "25 Md€ sur 5 ans ; avantages fiscaux", "—", "—", "≈ 250 000 ETP libérés d'ici 2032"],
     ["Rassemblement national", "L'IA pour « faire des économies » (M. Le Pen, VivaTech)", "—", "—", "—"],
-    ["LFI (J.-L. Mélenchon)", "Petits modèles ; maîtrise publique des infrastructures", "Salariés associés aux déploiements ; RTT sans perte de salaire (IFRAP)", "—", "—"],
+    ["LFI (J.-L. Mélenchon)", "Petits modèles ; maîtrise publique des infrastructures", "Salariés associés aux choix de déploiement de l'IA", "—", "—"],
     ["Les Écologistes", "Puce européenne ; sobriété des modèles ; étiquetage", "—", "—", "—"],
     ["R. Glucksmann (Place publique)", "Agence industrielle du numérique et de l'IA ; traité international", "—", "—", "—"],
     ["É. Zemmour (Reconquête)", "Financement privé ; allègement réglementaire", "Robotique pour remplacer une partie de la main-d'œuvre immigrée", "—", "—"],
@@ -530,7 +529,7 @@ sec("Politique");
   ];
   s.addTable(rows, { x: M, y: 1.5, w: CW, colW: [2.35, 2.85, 2.9, 2.0, 2.03], fontSize: 10.5, color: HEX.dk1, fontFace: "Calibri", border: { type: "solid", pt: 0.5, color: "D9DEE3" }, valign: "middle", margin: 0.05, rowH: [0.42, 0.5, 0.45, 0.45, 0.45, 0.5, 0.45, 0.45, 0.45, 0.4] });
   txt(s, "Non abordés dans les sources consultées : assiette des cotisations face à l'automatisation, dividende de productivité, transparence des entreprises sur les effets emploi de l'IA.", { x: M, y: 6.15, w: CW, h: 0.6, fontSize: 13, bold: true, color: C.accent1 });
-  s.addNotes("Méthode : propositions relevées dans la presse et les comparateurs, sans accès systématique aux programmes officiels, encore non définitifs. Nature : Retailleau (programme présenté le 07/07/2026 à Station F selon Maddyness ; chiffres variables selon les interventions : 300 000, 250 000, 125 000+125 000). Attal : IA parmi ses 'quatre chantiers capitaux' ; Crédit impôt productivité jusqu'à 30 % des projets selon La Tribune citée par Maddyness ; formation de 20 millions de salariés selon le comparateur IFRAP. Philippe : propositions rapportées par Maddyness ; L. Marcangeli au débat du 25/09/2026 : la France n'a 'pas vocation à rivaliser avec OpenAI sur les grands modèles'. RN : aucune proposition programmatique trouvée ; déclaration de Marine Le Pen à VivaTech rapportée par Europe 1 ; Alexandre Loubet (conseiller de J. Bardella) : 'Soit nous la maîtrisons, soit nous la subirons'. LFI : propositions selon Maddyness ; RTT selon IFRAP (à vérifier dans le programme). PS : position non accessible (article payant). Dates des scrutins : avril-mai 2027, à confirmer par décret. Ce tableau doit être mis à jour à la publication des programmes définitifs.");
+  s.addNotes("Méthode : propositions relevées dans la presse et les comparateurs, sans accès systématique aux programmes officiels, encore non définitifs. Nature : Retailleau (programme présenté le 07/07/2026 à Station F selon Maddyness ; chiffres variables selon les interventions : 300 000, 250 000, 125 000+125 000). Attal : IA parmi ses 'quatre chantiers capitaux' ; Crédit impôt productivité jusqu'à 30 % des projets selon La Tribune citée par Maddyness. Corrections du 13/11/2026 : la formation de '20 millions de salariés' (IFRAP) n'a pas été retrouvée et a été retirée ; la réduction du temps de travail 'sans licenciement ni baisse de salaire' figure chez N. Arthaud (LO) dans le comparateur IFRAP, et non chez LFI : attribution corrigée. Philippe : propositions rapportées par Maddyness ; L. Marcangeli au débat du 25/09/2026 : la France n'a 'pas vocation à rivaliser avec OpenAI sur les grands modèles'. RN : aucune proposition programmatique trouvée ; déclaration de Marine Le Pen à VivaTech rapportée par Europe 1 ; Alexandre Loubet (conseiller de J. Bardella) : 'Soit nous la maîtrisons, soit nous la subirons'. LFI : propositions selon Maddyness. PS : position non accessible (article payant). Dates des scrutins : avril-mai 2027, à confirmer par décret. Ce tableau doit être mis à jour à la publication des programmes définitifs.");
 }
 
 // 18. SCÉNARIOS
@@ -648,7 +647,7 @@ sec("Annexes");
   const b = [["fait", "Source primaire consultée, chiffre publié"], ["mesure", "Étude statistique ; corrélation, causalité non établie"], ["proj", "Estimation ou projection d'institution / chercheurs"], ["annonce", "Objectif d'entreprise ou de responsable politique"], ["interne", "Document interne rapporté par la presse"], ["incertain", "Source unique, données partielles ou divergentes"], ["illus", "Construction analytique des auteurs"]];
   b.forEach((x, i) => { badge(s, x[0], 6.95, 1.95 + i * 0.5); txt(s, x[1], { x: 8.45, y: 1.93 + i * 0.5, w: 4.3, h: 0.35, fontSize: 13 }); });
   card(s, M, 5.3, CW, 1.3, "FBE9E4");
-  txt(s, [{ text: "Limites principales : ", options: { bold: true, color: C.accent1 } }, { text: "pages Banque de France et Insee lues en partie (chiffres à confirmer sur les PDF) ; programmes 2027 non définitifs, connus par la presse ; données d'humanoïdes et d'Amazon en partie auto-déclarées ; aucune évaluation publique chiffrée des gains de l'IA dans la justice et la santé." }], { x: M + 0.2, y: 5.4, w: CW - 0.4, h: 1.15, fontSize: 13 });
+  txt(s, [{ text: "Limites principales : ", options: { bold: true, color: C.accent1 } }, { text: "chiffres clés revérifiés à la source le 13/11/2026 (PDF Banque de France et Insee, IFR, METR, OIT, NBER, Amazon, Tesla, EUR-Lex) ; AIE non accessible (chiffres via presse concordante) ; programmes 2027 non définitifs ; données d'humanoïdes auto-déclarées ; aucune évaluation chiffrée des gains de l'IA en justice et santé." }], { x: M + 0.2, y: 5.4, w: CW - 0.4, h: 1.15, fontSize: 13 });
 }
 function registre(title, rows) {
   const s = slide(title, "Registre complet avec URL : fichier « registre-des-preuves.md » joint au dossier.");
@@ -657,26 +656,26 @@ function registre(title, rows) {
   s.addTable(data, { x: M, y: 1.5, w: CW, colW: [6.2, 4.4, 1.53], fontSize: 11, color: HEX.dk1, fontFace: "Calibri", border: { type: "solid", pt: 0.5, color: "D9DEE3" }, valign: "middle", margin: 0.05, rowH: 0.45 });
 }
 registre("Annexe A2 — Registre des preuves (1/2) : technologie et entreprises", [
-  ["Horizon METR ≥ 16 h (IC 8,5-55 h) pour Claude Mythos Preview", "METR, mise à jour du 08/05/2026", "Élevée (mesure limite)"],
+  ["Horizon METR ≥ 16 h (IC 8,5-55 h) pour Claude Mythos Preview", "METR (08/05/2026) via presse", "Moyenne"],
   ["Doublement de l'horizon ~7 mois (2019-25), ~4,3 mois post-2023", "METR, Time Horizon 1.1 (29/01/2026)", "Élevée"],
   ["Prix niveau GPT-3.5 : 20 $ → 0,07 $ / M jetons", "Stanford HAI, AI Index 2025 (avr. 2025)", "Élevée"],
   ["Centres de données : 415 TWh (2024), ≈ 945 TWh (2030)", "AIE, Energy and AI (avr. 2025)", "Projection"],
-  ["4,66 M robots industriels en service ; France 4 900 (2024), 4 500 (2025)", "IFR (25/09/2025 ; 14/09/2026)", "Élevée"],
+  ["5 M robots industriels en service fin 2025 ; France 4 900 (2024), ≈ 4 500 (2025)", "IFR (25/09/2025 ; 24/09/2026)", "Élevée"],
   ["≈ 13 300 humanoïdes livrés en 2025", "Omdia via presse spécialisée (2026)", "Moyenne"],
   ["Optimus : production initiale, 20 000/sem. « dans au moins un an »", "Tesla, appel T3 2026 (22/10/2026)", "Annonce"],
   ["Macrohard et Terafab « very early stages »", "SpaceX S-1 via Electrek (20/05/2026)", "Moyenne"],
-  ["Amazon > 1 M robots", "Amazon (01/07/2025)", "Élevée"],
+  ["Amazon > 1 M robots", "Amazon (30/06/2025)", "Élevée"],
   ["600 000 embauches évitées d'ici 2033 (documents internes)", "New York Times (21/10/2025) ; démenti partiel Amazon", "Doc. interne"],
 ]);
 registre("Annexe A3 — Registre des preuves (2/2) : emploi, économie, politique", [
-  ["Embauches CDI 21-29 ans : −28 % (Q5) vs −8 % (Q1)", "Banque de France, billet 463 (08/10/2026)", "Mesure, à confirmer PDF"],
-  ["Emploi activités informatiques ≈ −3 % fin 2023-fin 2025", "Insee, Note de conjoncture (24/03/2026)", "Mesure"],
+  ["Embauches CDI 21-29 ans : −28 % (Q5) vs −8 % (Q1)", "Banque de France, billet 463 (08/10/2026)", "Élevée (PDF lu)"],
+  ["Emploi information-communication −3,0 % fin 2023-fin 2025", "Insee, Note de conjoncture (24/03/2026)", "Élevée (PDF lu)"],
   ["18 % des entreprises ≥ 10 salariés utilisent l'IA (2025)", "Insee Première n° 2120 (juil. 2026)", "Élevée"],
   ["−13 % d'emploi relatif des 22-25 ans exposés (États-Unis)", "Brynjolfsson, Chandar, Chen (26/08/2025)", "Mesure"],
   ["1 emploi sur 4 exposé à l'IA générative ; 3,3 % très exposés", "OIT, WP 140 (20/05/2025)", "Élevée"],
   ["≤ +0,66 % de PGF en 10 ans", "Acemoglu, Economic Policy (2025)", "Projection"],
   ["+14 % de productivité en service client", "Brynjolfsson, Li, Raymond (NBER/QJE)", "Élevée"],
-  ["Report haut risque AI Act : 02/12/2027 et 02/08/2028", "Accord provisoire (07/05/2026)", "Élevée, adoption à confirmer"],
+  ["Report haut risque AI Act : 02/12/2027 et 02/08/2028", "Règlement (UE) 2026/1744 (JOUE 24/07/2026)", "Élevée"],
   ["Retailleau : ≈ 250 000 ETP administratifs d'ici 2032", "Maddyness (05/10/2026)", "Annonce, chiffres variables"],
   ["OCDE : pas de preuve que l'IA cause la dégradation de l'emploi des jeunes", "OCDE, blog et Perspectives de l'emploi 2026", "Élevée (désaccord)"],
 ]);
@@ -690,8 +689,10 @@ registre("Annexe A3 — Registre des preuves (2/2) : emploi, économie, politiqu
     "Bilans DGFiP 2023-2025 des piscines détectées (120 000 à 140 000 ; 40 M€) : chiffres non concordants.",
     "Chiffres de productivité et de coût horaire des humanoïdes comparés au travail humain : aucune donnée indépendante publiée.",
     "Positions détaillées du PS et du RN sur l'IA et l'emploi : non accessibles dans les sources consultées.",
+    "« 670 salariés par entrepôt Amazon » (WSJ via TechSpot) ; « 4 000 robots » et « 670 CDI » à Brétigny : absents du communiqué Amazon.",
+    "« Former 20 millions de salariés » (Attal) : non retrouvé dans le comparateur IFRAP.",
     "Résultats GDPval 2026 des derniers modèles (chiffre de 74 % non attribuable).",
-  ]), { x: M, y: 1.55, w: CW, h: 5.0, fontSize: 14, paraSpaceAfter: 8 });
+  ]), { x: M, y: 1.55, w: CW, h: 5.1, fontSize: 13, paraSpaceAfter: 5 });
 }
 
 (async () => {

@@ -18,14 +18,31 @@ Question posée : un journaliste économique, un économiste ou un député crit
 | Bilans DGFiP « piscines » contradictoires | Seuls les chiffres officiels de 2022 sont conservés |
 | Prix annoncé de l'humanoïde Optimus | Retiré : aucun prix de marché vérifié |
 
+## Contre-vérification à la source (13 novembre 2026)
+
+Tous les chiffres clés ont été revérifiés sur les documents originaux. Résultats :
+
+**Confirmés mot pour mot** : Banque de France (−28 % contre −8 %, PDF lu en entier) ; Insee (−3,0 % dans l'information-communication, 18 % d'entreprises utilisatrices) ; METR (doublement en 196 jours et en 130,8 jours) ; Stanford (20 $ → 0,07 $) ; OIT (1 sur 4, 34 %, 3,3 %) ; Acemoglu (0,66 %) ; Brynjolfsson et al. (14 %, 5 179 agents) ; IFR (France 4 900 en 2024) ; Amazon (un million de robots, 14 000 + 16 000 suppressions, communiqué de Brétigny) ; Tesla (appel du 21/10/2026) ; Figure ; Electrek/S-1 ; Cour des comptes ; DGFiP ; citations Maddyness.
+
+**Erreurs trouvées et corrigées** :
+1. **Erreur d'attribution politique.** La réduction du temps de travail « sans licenciement ni baisse de salaire » avait été attribuée à LFI. Dans le comparateur IFRAP, c'est une proposition de Nathalie Arthaud (LO). Corrigé.
+2. **« Former 20 millions de salariés » (Attal)** : non retrouvé dans la source. Retiré.
+3. **Amazon** : « 670 salariés par entrepôt », « 4 000 robots » et « 670 CDI » à Brétigny ne figurent pas dans les sources primaires accessibles. Retirés. Le nombre de 670 apparaissait dans deux contextes différents, ce qui suggère une confusion dans les sources secondaires.
+4. **AI Act** : il était présenté comme un « accord provisoire, adoption à confirmer ». Il a en réalité été adopté : Règlement (UE) 2026/1744 du 8 juillet 2026, publié au JOUE le 24/07/2026. Mis à jour.
+5. **IFR** : remplacement par les chiffres 2025 plus récents (World Robotics 2026 : 5 millions en service, France près de 4 500 soit −8 %) ; les chiffres 2024 sont arrondis comme dans le communiqué.
+6. **METR** : retrait du point « GPT-2 : quelques secondes », non vérifié. Les valeurs de GPT-4 (3,5 min) et de Claude 3.7 Sonnet (59 min) sont désormais chiffrées d'après le tableau METR.
+7. **Justice** : retrait de l'« outil d'orientation des pourvois », non vérifiable. Seule la pseudonymisation, citée par la Cour des comptes, est conservée.
+8. **Insee** : le périmètre a été précisé (« information-communication », et non « activités informatiques ») et la citation exacte ajoutée.
+9. **Banque de France** : ajout des résultats contraires cités par les auteurs eux-mêmes (Norvège, Danemark).
+
 ## Faiblesses résiduelles à connaître
 
-1. **Lecture partielle de deux sources clés.** Les pages de la Banque de France et de l'Insee n'ont été lues qu'en partie, et leurs PDF n'ont pas été consultés. Les ordres de grandeur (−28 %, −8 %, −3 %) concordent avec plusieurs comptes rendus de presse, mais ils doivent être confirmés sur les PDF avant une audition.
-2. **Recherche documentaire.** La plupart des chiffres ont été vérifiés par des recherches en ligne qui renvoient vers les sources primaires, sans téléchargement systématique des documents originaux (IFR, AIE, OIT, FMI, METR).
+1. **AIE (énergie)** : le site renvoie une erreur 403. Les chiffres (415 TWh, 945 TWh) viennent de plusieurs médias concordants qui citent le rapport, mais n'ont pas été lus à la source.
+2. **Sources encore secondaires** : FMI (40 %), humanoïdes (Omdia, Unitree, Agility), Klarna, GDPval, plan Amazon de 15 Md€, 25 000 CDI Amazon (déclaration de l'entreprise), valeur ≥ 16 h de Mythos (graphique METR non extractible, chiffre repris par la presse).
 3. **Programmes 2027.** Ils ne sont pas définitifs. Le PS et le RN n'ont pas pu être documentés (article payant, absence de programme publié). Le tableau doit être mis à jour.
-4. **Justice.** Les outils déjà en service à la Cour de cassation (pseudonymisation, orientation des pourvois) sont décrits d'après des publications connues de la Cour, sans nouvelle vérification dans cette session.
+4. **Justice et santé.** Les déploiements locaux (CHU de Poitiers, Hôpital Foch, Montpellier) sont connus par la presse spécialisée.
 5. **Humanoïdes.** Les volumes viennent d'Omdia via la presse, et les performances sont déclarées par les fabricants. Aucune donnée indépendante n'existe sur la productivité ou le coût comparé au travail humain.
-6. **AI Act.** Le report du régime haut risque repose sur un accord provisoire du 7 mai 2026. Son adoption formelle au Journal officiel de l'UE est à confirmer.
+6. **Date du premier tour de 2027** : non confirmée par une source officielle. Le dossier indique « avril-mai 2027 ».
 7. **Causalité générale.** Le schéma « boucle de risque / boucle de compensation » est une grille d'analyse. Il ne démontre aucun lien de cause à effet.
 
 ## Ce qu'un contradicteur pourrait objecter, et ce que le dossier répond
