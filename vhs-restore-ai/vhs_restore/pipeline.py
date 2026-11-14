@@ -45,7 +45,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Callable
 
-from .probe import MediaInfo
+from .probe import MediaInfo, analyze
 from .profiles import Profile
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run, run_capture,
                     terminate)
@@ -491,6 +491,57 @@ def _tail(p: Path, n: int = 8) -> str:
         return "\n".join(p.read_text(encoding="utf-8", errors="replace").splitlines()[-n:])
     except OSError:
         return ""
+
+
+# ---------------------------------------------------------------- dossier entier
+VIDEO_EXTS = {".avi", ".mp4", ".mkv", ".mov", ".mpg", ".mpeg", ".m2t", ".mts", ".ts", ".dv",
+              ".vob", ".wmv", ".m4v"}
+BATCH_DIR = "Films restaurés"
+
+
+@dataclass
+class BatchResult:
+    out_dir: Path
+    done: list[Path]
+    errors: list[tuple[str, str]]
+
+
+def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaInfo], Settings], *,
+                   cancel: threading.Event | None = None,
+                   progress: Progress | None = None) -> BatchResult:
+    """Restaure toutes les vidéos d'un dossier (sans sous-dossiers) dans
+    « Films restaurés ». Un fichier en erreur n'arrête pas les suivants ;
+    une annulation arrête tout (les films déjà terminés restent)."""
+    folder = Path(folder)
+    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in VIDEO_EXTS
+                   and "_restaure_" not in p.stem and not p.stem.endswith(".partiel"))
+    if not files:
+        raise ToolError(f"Aucune vidéo trouvée dans ce dossier :\n{folder}")
+    out_dir = folder / BATCH_DIR
+    out_dir.mkdir(exist_ok=True)
+    res = BatchResult(out_dir, [], [])
+    n = len(files)
+    for k, f in enumerate(files):
+        if cancel is not None and cancel.is_set():
+            raise Cancelled()
+
+        def sub(frac: float, msg: str, k=k, name=f.name) -> None:
+            if progress:
+                progress((k + frac) / n, f"Film {k + 1}/{n} ({name}) : {msg}")
+        try:
+            sub(0.0, "analyse…")
+            info = analyze(f, tools)
+            s = settings_for(info)
+            res.done.append(export(info, s, unique_output_path(info, s, out_dir), tools,
+                                   cancel=cancel, progress=sub))
+        except Cancelled:
+            raise
+        except ToolError as exc:
+            log.warning("Dossier : %s ignoré : %s", f.name, exc)
+            res.errors.append((f.name, str(exc).splitlines()[0]))
+    if progress:
+        progress(1.0, "Terminé")
+    return res
 
 
 # ---------------------------------------------------------------- aperçu

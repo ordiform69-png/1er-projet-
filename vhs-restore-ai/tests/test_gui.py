@@ -73,6 +73,7 @@ def test_bad_file_shows_error(app, tools, samples, monkeypatch):
 
 def test_source_selector(app, tools, samples):
     win = MainWindow(tools)
+    win.set_advanced(True)
     win.load_file(str(samples["film18"]))
     wait(app, win)
     assert win.source_combo.currentData() is None and win.source() == "film"   # suggestion
@@ -86,4 +87,33 @@ def test_source_selector(app, tools, samples):
     s = win.settings()
     assert s.source == "video" and s.playback_fps is None and not s.deflicker
     assert not win.cadence_combo.isVisibleTo(win) and not win.flicker_check.isVisibleTo(win)
+    win.close()
+
+
+def test_simple_mode(app, tools, samples, tmp_path, monkeypatch):
+    import shutil
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    win = MainWindow(tools)
+    assert win.pages.currentIndex() == 0                           # démarre en mode simple
+    assert win.s_choose.isEnabled() and not win.s_run.isEnabled() and not win.s_cancel.isEnabled()
+    src = tmp_path / "films"
+    src.mkdir()
+    shutil.copy(samples["film18"], src)
+    win.load_file(str(src / samples["film18"].name))
+    wait(app, win)
+    assert "pellicule" in win.s_info.text() and "muet" in win.s_info.text()
+    assert win.s_run.isEnabled() and win.s_preview.isEnabled()
+    win.s_preview.click()
+    wait(app, win)
+    assert win.s_compare.before is not None and win.compare.before is not None
+    win.s_run.click()
+    wait(app, win)
+    assert win.s_status.text().startswith("Terminé") and len(list(src.glob("*_film.mp4"))) == 1
+    win.restore_folder(src)
+    wait(app, win)
+    assert win.s_status.text().startswith("Terminé : 1 film")
+    assert len(list((src / "Films restaurés").glob("*.mp4"))) == 1
+    win.set_advanced(True)
+    assert win.pages.currentIndex() == 1
     win.close()

@@ -2,6 +2,7 @@
 reste réactive, et rien ne tourne en arrière-plan quand l'application est inactive."""
 from __future__ import annotations
 
+import dataclasses
 import logging
 import shutil
 import tempfile
@@ -12,11 +13,11 @@ from pathlib import Path
 from typing import Any, Callable
 
 from PySide6.QtCore import QObject, QPoint, QRect, Qt, QThread, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QPainter, QPen, QPixmap
+from PySide6.QtGui import QDesktopServices, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
-                               QRadioButton, QSizePolicy, QVBoxLayout, QWidget)
+                               QRadioButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
 from . import pipeline
 from .probe import MediaInfo, analyze
@@ -124,6 +125,29 @@ class DropZone(QLabel):
             self.dropped.emit(urls[0].toLocalFile())
 
 
+class _Mirror:
+    """Relaie les appels à plusieurs widgets identiques (page simple + page avancée) ;
+    les lectures (text(), maximum(), attributs) viennent du premier."""
+
+    def __init__(self, *widgets: QWidget) -> None:
+        self._w = widgets
+
+    def __getattr__(self, name: str) -> Any:
+        first = getattr(self._w[0], name)
+        if not callable(first):
+            return first
+
+        def call(*a: Any, **k: Any) -> Any:
+            out = first(*a, **k)
+            for w in self._w[1:]:
+                getattr(w, name)(*a, **k)
+            return out
+        return call
+
+
+BIG = "QPushButton{font-size:15pt;padding:12px;min-height:44px}"
+
+
 class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
@@ -139,14 +163,77 @@ class MainWindow(QMainWindow):
         self._update_state()
 
     # ------------------------------------------------------------ construction
+    def _build_simple(self) -> QWidget:
+        """Page d'accueil : trois étapes, gros boutons, aucun réglage technique."""
+        page = QWidget()
+        v = QVBoxLayout(page)
+        v.setContentsMargins(24, 16, 24, 12)
+        title = QLabel("Restaurer un film de famille")
+        title.setStyleSheet("font-size:20pt;font-weight:bold")
+        v.addWidget(title)
+        self.s_info = QLabel("Commencez par choisir le film à restaurer.")
+        self.s_info.setWordWrap(True)
+        self.s_info.setStyleSheet("font-size:13pt;color:#333")
+        v.addWidget(self.s_info)
+        h = QHBoxLayout()
+        self.s_choose = QPushButton("1. Choisir le film")
+        self.s_choose.clicked.connect(self._choose_file)
+        self.s_preview = QPushButton("2. Voir l'avant / après")
+        self.s_preview.clicked.connect(self.start_preview)
+        self.s_run = QPushButton("3. Restaurer le film")
+        self.s_run.clicked.connect(self.start_export)
+        for b in (self.s_choose, self.s_preview, self.s_run):
+            b.setStyleSheet(BIG)
+            h.addWidget(b)
+        v.addLayout(h)
+        self.s_compare = CompareView()
+        v.addWidget(self.s_compare, 1)
+        self.s_progress = QProgressBar()
+        self.s_progress.setRange(0, 1000)
+        self.s_progress.setTextVisible(False)
+        self.s_progress.setMinimumHeight(22)
+        self.s_status = QLabel("Prêt.")
+        self.s_status.setWordWrap(True)
+        self.s_status.setStyleSheet("font-size:13pt")
+        v.addWidget(self.s_progress)
+        v.addWidget(self.s_status)
+        h = QHBoxLayout()
+        self.s_cancel = QPushButton("Arrêter")
+        self.s_cancel.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+        self.s_cancel.clicked.connect(self.cancel)
+        self.s_folder = QPushButton("Restaurer tous les films d'un dossier…")
+        self.s_folder.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+        self.s_folder.clicked.connect(self.start_folder)
+        adv = QPushButton("Options avancées ▸")
+        adv.setFlat(True)
+        adv.clicked.connect(lambda: self.set_advanced(True))
+        h.addWidget(self.s_cancel)
+        h.addWidget(self.s_folder)
+        h.addStretch(1)
+        h.addWidget(adv)
+        v.addLayout(h)
+        return page
+
+    def set_advanced(self, on: bool) -> None:
+        self.pages.setCurrentIndex(1 if on else 0)
+
     def _build(self) -> None:
         central = QWidget()
-        root = QHBoxLayout(central)
+        outer = QVBoxLayout(central)
+        back = QPushButton("◂ Retour au mode simple")
+        back.setFlat(True)
+        back.clicked.connect(lambda: self.set_advanced(False))
+        outer.addWidget(back, 0, Qt.AlignLeft)
+        root = QHBoxLayout()
+        outer.addLayout(root, 1)
         left = QVBoxLayout()
         right = QVBoxLayout()
         root.addLayout(left, 2)
         root.addLayout(right, 3)
-        self.setCentralWidget(central)
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self._build_simple())
+        self.pages.addWidget(central)
+        self.setCentralWidget(self.pages)
 
         # Import
         g = QGroupBox("1. Vidéo numérisée")
@@ -309,6 +396,10 @@ class MainWindow(QMainWindow):
         v.addWidget(self.status)
         right.addWidget(g)
 
+        # les deux pages affichent la même progression, le même état, le même aperçu
+        self.status = _Mirror(self.status, self.s_status)
+        self.progress = _Mirror(self.progress, self.s_progress)
+        self.compare = _Mirror(self.compare, self.s_compare)
         self.tools_label = QLabel()
         self.statusBar().addPermanentWidget(self.tools_label)
         self.profile_buttons["equilibre"].setChecked(True)
@@ -344,6 +435,9 @@ class MainWindow(QMainWindow):
         self.preview_btn.setEnabled(loaded and not busy)
         self.run_btn.setEnabled(loaded and not busy)
         self.cancel_btn.setEnabled(busy)
+        for b, ok in ((self.s_choose, not busy), (self.s_preview, loaded and not busy),
+                      (self.s_run, loaded and not busy), (self.s_folder, not busy), (self.s_cancel, busy)):
+            b.setEnabled(ok)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
         self.deint_combo.setEnabled(not busy)
         self.hq_check.setEnabled(not busy)
@@ -459,6 +553,12 @@ class MainWindow(QMainWindow):
         if not self.out_edit.text():
             self.out_edit.setText(str(info.path.parent))
         self.drop.setText(info.path.name)
+        src_txt = {"video": "vidéo de caméscope ou de magnétoscope", "film": "pellicule (Super 8, 8 mm…)",
+                   "transfer": "pellicule copiée sur vidéo"}[info.suggested_source]
+        extra = (" Noir et blanc." if info.black_and_white else "") + \
+                ("" if info.has_audio else " Film muet : il restera muet.")
+        self.s_info.setText(f"<b>{info.path.name}</b> — {info.summary()['Durée']} — "
+                            f"semble être une {src_txt}.{extra}")
         self.status.setText("Vidéo analysée. Choisissez un profil puis générez un aperçu.")
 
     def start_preview(self) -> None:
@@ -508,13 +608,47 @@ class MainWindow(QMainWindow):
 
     def _export_done(self, out: Path) -> None:
         self.status.setText(f"Terminé : {out}")
-        box = QMessageBox(QMessageBox.Information, "Restauration terminée",
-                          f"Fichier créé :\n{out}\n\nL'original n'a pas été modifié.", parent=self)
+        self._done_box("Votre film restauré est prêt",
+                       f"Votre film restauré est prêt :\n{out.name}\n\nIl se trouve dans le dossier :\n"
+                       f"{out.parent}\n\nLe film d'origine n'a pas été modifié.", out.parent)
+
+    def _done_box(self, title: str, text: str, folder: Path) -> None:
+        box = QMessageBox(QMessageBox.Information, title, text, parent=self)
         open_btn = box.addButton("Ouvrir le dossier", QMessageBox.ActionRole)
         box.addButton(QMessageBox.Ok)
         box.exec()
         if box.clickedButton() is open_btn:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(out.parent)))
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def settings_for(self, info: MediaInfo) -> pipeline.Settings:
+        """Réglages d'un film du dossier : options choisies, origine propre à chaque film
+        (choix manuel s'il y en a un, sinon suggestion de l'analyse)."""
+        base = self.settings()
+        src = self.source_combo.currentData() or info.suggested_source
+        return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
+                                   scan=None, dar=None, playback_fps=None,
+                                   deflicker=self.flicker_check.isChecked() and src != "video")
+
+    def start_folder(self) -> None:
+        if self._busy():
+            return
+        d = QFileDialog.getExistingDirectory(self, "Dossier contenant les films à restaurer")
+        if d:
+            self.restore_folder(Path(d))
+
+    def restore_folder(self, folder: Path) -> None:
+        self.status.setText("Restauration du dossier…")
+        self._launch(lambda c, p: pipeline.restore_folder(folder, self.tools, self.settings_for,
+                                                          cancel=c, progress=p), self._folder_done)
+
+    def _folder_done(self, res: pipeline.BatchResult) -> None:
+        self.status.setText(f"Terminé : {len(res.done)} film(s) restauré(s) dans {res.out_dir}")
+        txt = f"{len(res.done)} film(s) restauré(s) dans le dossier :\n{res.out_dir}"
+        if res.errors:
+            txt += "\n\nCes fichiers n'ont pas pu être restaurés :\n" + "\n".join(
+                f"• {name} : {msg}" for name, msg in res.errors)
+        self._done_box("Dossier terminé", txt + "\n\nLes films d'origine n'ont pas été modifiés.",
+                       res.out_dir)
 
     def cancel(self) -> None:
         if self._busy():
@@ -569,6 +703,9 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
     app.setStyle("Fusion")
+    font = QFont(app.font())
+    font.setPointSizeF(max(font.pointSizeF(), 10.5))   # lisible sans lunettes de lecture
+    app.setFont(font)
     win = MainWindow()
     win.show()
     if not (win.tools.ffmpeg.path and win.tools.ffprobe.path):

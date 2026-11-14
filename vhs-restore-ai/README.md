@@ -23,6 +23,14 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 
 ## Utilisation
 
+**Mode simple** (écran d'accueil) : « 1. Choisir le film » → « 2. Voir l'avant / après » →
+« 3. Restaurer le film ». Les réglages sont automatiques : origine suggérée par l'analyse et profil
+Équilibré. Le film restauré est enregistré à côté de l'original. « Restaurer tous les films d'un
+dossier… » traite d'un coup toutes les vidéos d'un dossier et les range dans un sous-dossier
+« Films restaurés ». Un fichier illisible est signalé sans interrompre les autres.
+
+**Options avancées** (lien en bas à droite) : tous les réglages ci-dessous.
+
 1. **Choisir une vidéo** (ou la glisser dans la fenêtre). L'analyse affiche la résolution, la
    cadence, le format 4:3, l'entrelacement mesuré, la norme probable, le son, le noir et blanc et
    une **origine suggérée** (vidéo, pellicule, pellicule transférée), avec sa raison. Corrigez
@@ -84,8 +92,8 @@ le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun �
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
 **Prévu ensuite** : rayures et poussières image par image (aucun outil simple et maintenu
-retenu pour l'instant), suppression optionnelle des images répétées d'un transfert, masquage du bruit de tête en bas d'image,
-encodage GPU, traitement par lots.
+retenu pour l'instant), suppression optionnelle des images répétées d'un transfert, masquage du
+bruit de tête en bas d'image, encodage GPU.
 
 ## Préparer les fichiers (numérisation)
 
