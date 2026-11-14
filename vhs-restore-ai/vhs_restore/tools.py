@@ -19,7 +19,9 @@ from typing import Callable, Iterable
 
 log = logging.getLogger("vhs_restore")
 
-APP_DIR = Path(__file__).resolve().parent.parent
+# Application empaquetée (PyInstaller) : tools\ est à côté de l'exécutable.
+APP_DIR = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
+           else Path(__file__).resolve().parent.parent)
 TOOLS_DIR = APP_DIR / "tools"
 IS_WIN = os.name == "nt"
 EXE = ".exe" if IS_WIN else ""

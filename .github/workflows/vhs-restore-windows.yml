@@ -1,0 +1,67 @@
+# VHS Restore AI : tests et fabrication de l'application sur une vraie machine Windows.
+# Ne concerne que le dossier vhs-restore-ai/ (le reste du dépôt n'est pas touché).
+# Résultat téléchargeable dans l'onglet « Actions » du dépôt : artefact « VHSRestoreAI-Windows ».
+name: VHS Restore AI (Windows)
+
+on:
+  push:
+    paths:
+      - "vhs-restore-ai/**"
+      - ".github/workflows/vhs-restore-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: vhs-restore-ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances Python
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt pyinstaller==6.11.1
+
+      - name: FFmpeg (même script que l'installation utilisateur)
+        run: ./scripts/installer_outils.ps1
+
+      - name: Tests automatiques
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PYTHONUTF8: "1"
+        run: |
+          $env:PATH = "$PWD\tools\ffmpeg\bin;$env:PATH"
+          python -m pytest -q tests -o faulthandler_timeout=900
+
+      - name: Fabrication de l'application
+        run: pyinstaller --noconfirm VHSRestoreAI.spec
+
+      - name: Ajout de FFmpeg et du mode d'emploi
+        run: |
+          New-Item -ItemType Directory -Force dist/VHSRestoreAI/tools/ffmpeg/bin | Out-Null
+          Copy-Item tools/ffmpeg/bin/ffmpeg.exe, tools/ffmpeg/bin/ffprobe.exe dist/VHSRestoreAI/tools/ffmpeg/bin/
+          Copy-Item tools/ffmpeg/LICENSE* dist/VHSRestoreAI/tools/ffmpeg/ -ErrorAction SilentlyContinue
+          Copy-Item LISEZMOI.txt dist/VHSRestoreAI/
+
+      - name: Autotest de l'application fabriquée (sans Python ni FFmpeg du système)
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "autotest été"
+          $env:PATH = "C:\Windows\System32;C:\Windows"
+          $p = Start-Process -FilePath dist/VHSRestoreAI/VHSRestoreAI.exe -ArgumentList "--autotest", "`"$dir`"" -Wait -PassThru
+          Get-Content (Join-Path $dir "autotest.txt") -Encoding utf8
+          if ($p.ExitCode -ne 0) { throw "Autotest en échec (code $($p.ExitCode))" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VHSRestoreAI-Windows
+          path: vhs-restore-ai/dist/VHSRestoreAI
+          retention-days: 90

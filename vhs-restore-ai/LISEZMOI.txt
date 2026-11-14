@@ -1,0 +1,33 @@
+VHS Restore AI — mode d'emploi
+==============================
+
+Démarrer
+--------
+Double-cliquez sur VHSRestoreAI.exe.
+
+La première fois, Windows peut afficher « Windows a protégé votre ordinateur »
+(le logiciel est gratuit et n'est pas signé par un éditeur). Cliquez sur
+« Informations complémentaires », puis sur « Exécuter quand même ».
+
+Restaurer un film
+-----------------
+1. Cliquez sur « 1. Choisir le film » et sélectionnez le fichier vidéo.
+2. Cliquez sur « 2. Voir l'avant / après ». Passez la souris sur l'image :
+   à gauche l'original, à droite le film restauré.
+3. Cliquez sur « 3. Restaurer le film ». Une barre indique l'avancement.
+   Cela peut prendre longtemps : vous pouvez laisser l'ordinateur travailler.
+
+Le film restauré est enregistré à côté de l'original, avec « _restaure » dans
+son nom. Le film d'origine n'est jamais modifié.
+
+Plusieurs films d'un coup : « Restaurer tous les films d'un dossier… ».
+Ils sont rangés dans un sous-dossier « Films restaurés ».
+
+Regarder les films
+------------------
+Les fichiers .mp4 se lisent sur l'ordinateur, la télévision (clé USB),
+le téléphone et la tablette.
+
+En cas de problème
+------------------
+Le journal se trouve dans : %LOCALAPPDATA%\VHSRestoreAI\logs

@@ -1,4 +1,8 @@
-"""Point d'entrée : python -m vhs_restore"""
+"""Point d'entrée : python -m vhs_restore (ou VHSRestoreAI.exe une fois empaqueté).
+
+Option --autotest DOSSIER : vérifie l'installation sans ouvrir de fenêtre (FFmpeg trouvé,
+analyse puis restauration d'une courte vidéo générée), écrit autotest.txt dans DOSSIER
+et renvoie 0 si tout va bien. Utilisé par l'intégration continue Windows."""
 import logging
 import os
 import sys
@@ -23,8 +27,58 @@ def setup_logging() -> Path:
     return path
 
 
-if __name__ == "__main__":
+def autotest(folder: str) -> int:
+    from vhs_restore import pipeline
+    from vhs_restore.probe import analyze
+    from vhs_restore.profiles import profile_for
+    from vhs_restore.tools import detect_tools, run_capture
+    out = Path(folder)
+    out.mkdir(parents=True, exist_ok=True)
+    report, code = [f"VHS Restore AI — autotest ({sys.executable})"], 1
+    try:
+        import PySide6.QtWidgets  # noqa: F401  (bibliothèques Qt présentes et chargeables)
+        report.append("Qt : OK")
+        ts = detect_tools()
+        ts.require_ffmpeg()
+        report.append(f"FFmpeg {ts.ffmpeg.version} : {ts.ffmpeg.path}")
+        report.append(f"Stabilisation : {'oui' if ts.stab_available else 'non'} ; "
+                      f"QTGMC : {'oui' if ts.qtgmc_available else 'non'} ; "
+                      f"IA : {'oui' if ts.ai_available else 'non'}")
+        sample = out / "échantillon été 1975.avi"
+        r = run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                         "testsrc2=size=720x576:rate=50,tinterlace=mode=interleave_top,setfield=tff,"
+                         "setsar=16/15", "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "2",
+                         "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-top", "1", "-b:v", "8M",
+                         "-c:a", "pcm_s16le", str(sample)], timeout=120)
+        if r.returncode:
+            raise RuntimeError("génération de l'échantillon : " + r.stderr[-300:])
+        info = analyze(sample, ts)
+        report.append(f"Analyse : {info.width}x{info.height}, {float(info.fps):g} i/s, balayage {info.scan}, "
+                      f"origine suggérée {info.suggested_source}, son {'oui' if info.has_audio else 'non'}")
+        s = pipeline.Settings(profile_for("equilibre", info.suggested_source), source=info.suggested_source,
+                              resolution="1080", stabilize=ts.stab_available)
+        res = pipeline.export(info, s, out / "résultat restauré.mp4", ts)
+        after = analyze(res, ts)
+        report.append(f"Export : {res.name}, {after.width}x{after.height}, {float(after.fps):g} i/s, "
+                      f"{after.dar.numerator}:{after.dar.denominator}, son {'oui' if after.has_audio else 'non'}")
+        ok = (after.width, after.height, after.has_audio) == (1440, 1080, True) and after.fps == 50
+        report.append("RÉSULTAT : OK" if ok else "RÉSULTAT : ÉCHEC (sortie inattendue)")
+        code = 0 if ok else 1
+    except Exception as exc:  # le rapport doit toujours être écrit
+        import traceback
+        report.append("RÉSULTAT : ÉCHEC\n" + "".join(traceback.format_exception(exc)))
+    (out / "autotest.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
+    return code
+
+
+def run() -> int:
     p = setup_logging()
     logging.getLogger("vhs_restore").info("Démarrage, journal : %s", p)
+    if len(sys.argv) >= 3 and sys.argv[1] == "--autotest":
+        return autotest(sys.argv[2])
     from vhs_restore.gui import main
-    sys.exit(main())
+    return main()
+
+
+if __name__ == "__main__":
+    sys.exit(run())
