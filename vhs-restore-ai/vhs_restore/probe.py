@@ -43,6 +43,7 @@ class MediaInfo:
     has_audio: bool = False
     audio_desc: str = ""
     color_space: str = ""
+    video_offset: float = 0.0        # début vidéo - début du fichier (s)
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -164,6 +165,10 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
     info.color_space = v.get("color_space", "")
     info.fps = _frac(v.get("avg_frame_rate")) or _frac(v.get("r_frame_rate")) or Fraction(0)
     info.field_order_meta = v.get("field_order", "unknown")
+    try:
+        info.video_offset = max(0.0, float(v.get("start_time", 0)) - float(fmt.get("start_time", 0)))
+    except (TypeError, ValueError):
+        info.video_offset = 0.0
     if not info.width or not info.height or not info.fps:
         raise ToolError("Caractéristiques vidéo illisibles (taille ou cadence inconnue).")
     if info.duration <= 0:

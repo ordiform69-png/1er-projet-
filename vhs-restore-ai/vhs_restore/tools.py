@@ -11,6 +11,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +26,7 @@ EXE = ".exe" if IS_WIN else ""
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 # Filtres FFmpeg indispensables à la chaîne de restauration.
+QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
 REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack")
 
 
@@ -54,10 +56,15 @@ class Toolset:
     ffprobe: Tool
     realesrgan: Tool
     missing_filters: list[str] = field(default_factory=list)
+    vspipe: Tool = field(default_factory=lambda: Tool("QTGMC"))
 
     @property
     def ai_available(self) -> bool:
         return self.realesrgan.ok
+
+    @property
+    def qtgmc_available(self) -> bool:
+        return self.vspipe.ok
 
     def require_ffmpeg(self) -> None:
         for t in (self.ffmpeg, self.ffprobe):
@@ -70,21 +77,24 @@ class Toolset:
                             + ", ".join(self.missing_filters) + "). Version 5.0 ou plus requise.")
 
 
-def _find(env: str, names: Iterable[str], subdirs: Iterable[str]) -> str | None:
+def _find(env: str, names: Iterable[str], subdirs: Iterable[str],
+          exts: Iterable[str] = (EXE,)) -> str | None:
     """Ordre de recherche : variable d'environnement, dossier tools/ de l'appli, PATH."""
     value = os.environ.get(env)
     if value and Path(value).is_file():
         return value
     for sub in subdirs:
         for n in names:
-            p = TOOLS_DIR / sub / (n + EXE)
-            if p.is_file():
-                return str(p)
+            for ext in exts:
+                p = (Path(sys.executable).parent if sub == "@python" else TOOLS_DIR / sub) / (n + ext)
+                if p.is_file():
+                    return str(p)
     for n in names:
         p = shutil.which(n)
         if p:
             return p
     return None
+
 
 
 def run_capture(cmd: list[str], timeout: float = 60) -> subprocess.CompletedProcess:
@@ -126,10 +136,40 @@ def detect_tools() -> Toolset:
         if not (models / "realesrgan-x4plus.param").is_file():
             re_.problem = f"modèle realesrgan-x4plus absent de {models}"
         re_.version = "ncnn-vulkan"
-    ts = Toolset(ff, fp, re_, missing)
-    log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s filtres manquants=%s",
-             ff.path, ff.version, fp.path, re_.path, re_.problem, missing)
+    ts = Toolset(ff, fp, re_, missing, detect_qtgmc())
+    log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s filtres manquants=%s",
+             ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem, missing)
     return ts
+
+
+def explain_vs_error(text: str) -> str:
+    """Traduit les erreurs VapourSynth les plus courantes en message clair."""
+    m = re.search(r"No attribute with the name (\w+)", text)
+    if m:
+        return f"plugin VapourSynth manquant : « {m.group(1)} » (relancez installer.bat -AvecQTGMC)"
+    m = re.search(r"No module named '([\w.]+)'", text)
+    if m:
+        return f"module Python manquant : « {m.group(1)} » (relancez installer.bat -AvecQTGMC)"
+    lines = [l for l in text.strip().splitlines() if l.strip()]
+    return lines[-1][:300] if lines else "erreur inconnue"
+
+
+def detect_qtgmc() -> Tool:
+    """vspipe (VapourSynth) + vs-jetpack + plugins, vérifiés par un essai à blanc de qtgmc.vpy."""
+    t = Tool("QTGMC", _find("VHSRA_VSPIPE", ["vspipe"], ["@python", "vapoursynth"],
+                            (EXE,)))
+    if not t.path:
+        return t
+    try:
+        v = run_capture([t.path, "--version"], timeout=30)
+        m = re.search(r"Core (R\d+)", v.stdout + v.stderr)
+        t.version = m.group(1) if m else ""
+        chk = run_capture([t.path, "-a", "check=1", "-e", "1", str(QTGMC_SCRIPT), "."], timeout=120)
+        if chk.returncode != 0:
+            t.problem = explain_vs_error(chk.stderr + chk.stdout)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        t.problem = f"vspipe ne répond pas : {exc}"
+    return t
 
 
 ProgressFn = Callable[[float, str], None]
@@ -138,19 +178,38 @@ ProgressFn = Callable[[float, str], None]
 def run(cmd: list[str], *, cancel: threading.Event | None = None,
         on_line: Callable[[str], None] | None = None,
         poll: Callable[[], None] | None = None,
-        what: str = "commande") -> list[str]:
+        what: str = "commande", feeder: list[str] | None = None) -> list[str]:
     """Exécute une commande longue, annulable. Lève ToolError si échec.
 
     stdout et stderr sont fusionnés et lus ligne par ligne dans un thread,
     ce qui évite tout blocage de tampon. Renvoie les dernières lignes.
+    feeder : commande dont la sortie standard alimente l'entrée de cmd (tube
+    sans shell, ex. vspipe → ffmpeg) ; elle est arrêtée avec cmd en cas d'annulation.
     """
-    log.info("exec: %s", subprocess.list2cmdline(cmd))
+    log.info("exec: %s%s", subprocess.list2cmdline(feeder) + " | " if feeder else "",
+             subprocess.list2cmdline(cmd))
     tail: collections.deque[str] = collections.deque(maxlen=40)
+    feed_proc: subprocess.Popen | None = None
+    feed_err: list[str] = []
     try:
+        if feeder:
+            feed_proc = subprocess.Popen(feeder, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                         stdin=subprocess.DEVNULL, creationflags=_NO_WINDOW)
+
+            def drain() -> None:  # stderr du fournisseur : gardé pour le diagnostic
+                for raw in feed_proc.stderr:
+                    feed_err.append(raw.decode("utf-8", "replace").rstrip())
+                    del feed_err[:-60]
+
+            threading.Thread(target=drain, daemon=True).start()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                stdin=subprocess.DEVNULL, text=True, encoding="utf-8",
-                                errors="replace", creationflags=_NO_WINDOW)
+                                stdin=feed_proc.stdout if feed_proc else subprocess.DEVNULL,
+                                text=True, encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
+        if feed_proc:
+            feed_proc.stdout.close()  # seul ffmpeg garde le tube ouvert
     except OSError as exc:
+        if feed_proc:
+            terminate(feed_proc)
         raise ToolError(f"Impossible de lancer {what} : {exc}") from exc
 
     def reader() -> None:
@@ -174,12 +233,23 @@ def run(cmd: list[str], *, cancel: threading.Event | None = None,
             pass
         if cancel is not None and cancel.is_set():
             terminate(proc)
+            if feed_proc:
+                terminate(feed_proc)
             th.join(timeout=2)
             raise Cancelled()
         if poll:
             poll()
     th.join(timeout=5)
     lines = list(tail)
+    if feed_proc:
+        try:
+            feed_proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            terminate(feed_proc)
+        if feed_proc.returncode != 0:
+            log.error("fournisseur %s a échoué (code %s):\n%s", feeder[0], feed_proc.returncode,
+                      "\n".join(feed_err))
+            raise ToolError(f"QTGMC (VapourSynth) a échoué : {explain_vs_error(chr(10).join(feed_err))}")
     if proc.returncode != 0:
         log.error("%s a échoué (code %s):\n%s", what, proc.returncode, "\n".join(lines))
         detail = "\n".join(l for l in lines[-6:] if "=" not in l or " " in l)

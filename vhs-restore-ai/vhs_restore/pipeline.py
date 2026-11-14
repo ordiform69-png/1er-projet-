@@ -2,8 +2,9 @@
 
 Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   1. recadrage à des dimensions paires (si nécessaire, 1 pixel au plus)
-  2. désentrelacement bwdif, une image par trame (50p / 59,94p) : conserve la
-     fluidité de mouvement d'origine ; ordre des trames explicite
+  2. désentrelacement, une image par trame (50p / 59,94p) : conserve la
+     fluidité de mouvement d'origine ; ordre des trames explicite.
+     bwdif (FFmpeg) ou QTGMC (VapourSynth, vspipe → FFmpeg par un tube)
   3. suppression des parasites ponctuels (removegrain)
   4. réduction du bruit spatio-temporelle (hqdn3d) sur des images progressives
   5. correction modérée contraste / saturation (eq)
@@ -32,7 +33,8 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
-from .tools import _NO_WINDOW, Cancelled, ToolError, Toolset, run, run_capture, terminate
+from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run, run_capture,
+                    terminate)
 from .upscaler import RealEsrganUpscaler
 
 log = logging.getLogger("vhs_restore")
@@ -47,6 +49,7 @@ class Settings:
     scan: str | None = None               # forçage manuel : progressive | tff | bff
     dar: Fraction | None = None           # forçage manuel du format d'affichage
     use_ai: bool = False
+    deinterlacer: str = "bwdif"           # bwdif | qtgmc
     crf: int = 18
     preset: str = "medium"
 
@@ -58,6 +61,10 @@ def _even(x: float) -> int:
 def effective_scan(info: MediaInfo, s: Settings) -> str:
     """'unknown' n'est jamais traité comme entrelacé (pas de supposition)."""
     return s.scan or info.scan
+
+
+def uses_qtgmc(info: MediaInfo, s: Settings) -> bool:
+    return s.deinterlacer == "qtgmc" and effective_scan(info, s) in ("tff", "bff")
 
 
 def effective_dar(info: MediaInfo, s: Settings) -> Fraction:
@@ -98,7 +105,7 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     if info.width % 2 or info.height % 2:
         f.append(f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0")
     scan = effective_scan(info, s)
-    if scan in ("tff", "bff"):
+    if scan in ("tff", "bff") and not uses_qtgmc(info, s):
         f.append(f"bwdif=mode=send_field:parity={scan}:deint=all")
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
@@ -166,6 +173,30 @@ class _FFProgress:
             self.cb(self.lo + (self.hi - self.lo) * min(1.0, max(0.0, t / self.total)), self.label)
 
 
+def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | None,
+                  duration: float | None) -> tuple[list[str], list[str] | None, str, str]:
+    """Entrées FFmpeg : (arguments, commande vspipe éventuelle, map vidéo, map audio).
+
+    Avec QTGMC, la vidéo arrive désentrelacée par un tube (y4m) et le son est lu
+    dans la source ; -itsoffset recale la vidéo sur le son (début vidéo décalé,
+    première image de l'extrait arrondie)."""
+    if not uses_qtgmc(info, s):
+        return _seek(start, duration) + ["-i", str(info.path)], None, "0:v:0", "0:a:0?"
+    if not tools.qtgmc_available:
+        raise ToolError("QTGMC n'est pas disponible : " + (tools.vspipe.problem or
+                        "VapourSynth (vspipe) introuvable. Relancez installer.bat -AvecQTGMC "
+                        "ou choisissez le désentrelaceur bwdif."))
+    first = round((start or 0) * info.fps)
+    count = round(duration * info.fps) if duration else 0
+    offset = info.video_offset + float(first / info.fps) - (start or 0)
+    vs = [tools.vspipe.path, "-c", "y4m", "-a", f"src={info.path}",
+          "-a", f"tff={1 if effective_scan(info, s) == 'tff' else 0}",
+          "-a", f"first={first}", "-a", f"count={count}", str(QTGMC_SCRIPT), "-"]
+    args = (["-itsoffset", f"{offset:.6f}", "-f", "yuv4mpegpipe", "-i", "-"]
+            + _seek(start, duration) + ["-i", str(info.path)])
+    return args, vs, "0:v:0", "1:a:0?"
+
+
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     res = effective_resolution(s)
     tag = {"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_ia" if s.use_ai else "")
@@ -194,10 +225,12 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         if s.use_ai:
             _export_ai(info, s, part, tools, cancel, progress, start, duration, total)
         else:
-            cmd = (_ff_base(tools) + _seek(start, duration) + ["-i", str(info.path),
-                   "-map", "0:v:0", "-map", "0:a:0?", "-vf", filter_chain(info, s),
+            args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
+            if vs and progress:
+                progress(0.0, "QTGMC : préparation (indexation de la vidéo)…")
+            cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
                    *encode_args(info, s), "-f", "mp4", str(part)])
-            run(cmd, cancel=cancel, what="FFmpeg (restauration)",
+            run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs,
                 on_line=_FFProgress(total, progress, 0, 1, "Restauration…"))
         os.replace(part, out_path)
     except BaseException:
@@ -232,10 +265,11 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
         # 1. pré-traitement sans perte (vidéo FFV1 tout-intra + audio FLAC)
         inter = tmp / "inter.mkv"
         pre = ",".join(pre_filters(info, s)) or "null"
-        run(_ff_base(tools) + _seek(start, duration) + [
-            "-i", str(info.path), "-map", "0:v:0", "-map", "0:a:0?", "-vf", pre,
+        args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
+        run(_ff_base(tools) + args + [
+            "-map", vmap, "-map", amap, "-vf", pre,
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
-            cancel=cancel, what="FFmpeg (pré-traitement)",
+            cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs,
             on_line=_FFProgress(total, progress, 0, 0.1, "Nettoyage avant IA…"))
         meta = run_capture([tools.ffprobe.path, "-v", "error", "-count_packets",
                             "-show_entries", "stream=codec_type,start_time,nb_read_packets:format=start_time",

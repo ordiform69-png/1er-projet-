@@ -13,6 +13,7 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
 | Couleurs / netteté | `eq`, `cas` (FFmpeg ≥ 5.0) | idem | obligatoire |
 | Mise à l'échelle classique | `scale` lanczos, matrice BT.601 → BT.709 | idem | obligatoire |
 | Encodage | libx264 CRF 18 + AAC 192k, MP4 `faststart` | idem | obligatoire |
+| Désentrelacement HQ (facultatif) | QTGMC = `QTempGaussMC` de vs-jetpack 3.0, VapourSynth R82 (pip) | VapourSynth LGPL-2.1+, vs-jetpack MIT, plugins MIT/LGPL/GPL-2.0 (mvutensils, znedi3) | optionnel |
 | IA (facultatif) | Real-ESRGAN ncnn-vulkan v0.2.5.0, modèle `realesrgan-x4plus` | BSD-3 | optionnel |
 
 **Une seule dépendance Python : PySide6.** Tout le reste est invoqué comme exécutable externe
@@ -20,10 +21,8 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
 
 ## Pourquoi pas les autres (pour l'instant)
 
-- **VapourSynth + QTGMC** : meilleur désentrelaceur connu, mais il faut VapourSynth, havsfunc,
-  mvtools, nnedi3, fmtconv… et des versions compatibles entre elles : trop fragile pour une
-  installation par des non-techniciens. `bwdif` est intégré à FFmpeg et donne un résultat correct.
-  QTGMC reste le premier module à ajouter (adaptateur : remplacer l'étape 2 de `pipeline.py`).
+- **QTGMC de havsfunc** : abandonné par ses mainteneurs au profit de vs-jetpack. Nous utilisons
+  `QTempGaussMC`, sa réécriture maintenue.
 - **Video2X 6.x** : orchestre Real-ESRGAN/Real-CUGAN/RIFE, mais licence AGPLv3, installateur Qt
   et chaîne d'encodage propre à lui. Nous n'utilisons qu'un seul modèle : appeler directement
   Real-ESRGAN est plus simple et laisse l'encodage (synchro son, 4:3, couleurs) sous notre contrôle.
@@ -54,6 +53,29 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
   `*.partiel.mp4` puis renommée à la fin ; elle est supprimée en cas d'erreur ou d'annulation. Un nom
   existant n'est jamais écrasé.
 
+## QTGMC (phase 3)
+
+- **Installation** : depuis VapourSynth R74, tout passe par pip, plugins compris
+  (`vapoursynth-mvutensils`, `-znedi3`, `-bestsource`, `-resize2`). On n'a plus besoin de vsrepo
+  ni de l'installateur Windows. Versions figées dans `requirements-qtgmc.txt`, dans le `.venv` de
+  l'application, avec Python 3.12 ou plus. L'extra pip `vsjetpack[deinterlace]` n'a pas été retenu :
+  il exige `vapoursynth-ffms2>=5.3`, introuvable sur PyPI pour Linux, et il installe beaucoup plus
+  que nécessaire.
+- **Intégration** : un script fixe, `vhs_restore/qtgmc.vpy`, reçoit uniquement des arguments
+  (`vspipe -a`) ; aucun code n'est généré. vspipe envoie du y4m à FFmpeg par un tube, sans shell.
+  FFmpeg lit le son dans la source et applique le reste de la chaîne. Une annulation arrête les deux
+  processus.
+- **Détection** : au démarrage, un essai à blanc sur une image vide (environ 1 s) vérifie vspipe,
+  vs-jetpack et les plugins. Un plugin manquant est nommé dans le message d'erreur.
+- **Choix par défaut** : QTGMC pour Équilibré et Maximum s'il est installé, bwdif pour Fidèle.
+  Les réglages QTGMC par défaut lissent un peu le bruit et le scintillement, ce qui s'éloigne du
+  rendu d'origine. Le choix reste modifiable dans l'interface.
+- **Source** : BestSource lit la vidéo à l'image près, mais doit d'abord indexer tout le fichier
+  (cache réutilisé ensuite). Sur un long film, cette première étape peut prendre plusieurs minutes
+  sans progression visible.
+- **Mesuré ici** (Linux, 4 cœurs, 720×576) : environ 31 images/s pour QTGMC seul. Rien n'a été
+  mesuré sous Windows.
+
 ## IA : limites assumées
 
 Real-ESRGAN est entraîné sur des dégradations synthétiques (flou, bruit, JPEG), pas sur des
@@ -70,7 +92,10 @@ n'a été vérifiée sur une vraie cassette.
    sans GPU, le processeur est trop lent pour un film entier.
 3. La gestion des chemins avec accents par realesrgan-ncnn-vulkan sous Windows n'a pas été vérifiée.
    Si elle pose problème, définir `VHSRA_TMP=C:\vhs_tmp` pour un dossier de travail ASCII.
-4. Les captures à timestamps irréguliers (VFR, images perdues) sont ramenées à une cadence constante
+4. QTGMC sous Windows : le paquet pip de VapourSynth fournit `vspipe.exe` dans `.venv\Scripts`
+   (supposé, non vérifié ici). Une installation « portable » (vspipe.bat) n'est pas prise en charge :
+   les .bat sont exclus volontairement, car l'échappement des arguments par cmd n'est pas sûr.
+5. Les captures à timestamps irréguliers (VFR, images perdues) sont ramenées à une cadence constante
    par FFmpeg. C'est en général correct, mais ce n'est pas vérifié sur de vraies captures.
 
 ## Sources consultées
@@ -79,3 +104,6 @@ n'a été vérifiée sur une vraie cassette.
 - Builds Windows : https://www.gyan.dev/ffmpeg/builds/
 - Real-ESRGAN : https://github.com/xinntao/Real-ESRGAN (releases v0.2.5.0, exécutables ncnn-vulkan)
 - Video2X : https://github.com/k4yt3x/video2x (6.x, AGPLv3)
+- VapourSynth R74 (pip) : https://www.vapoursynth.com/2026/03/26/new-packaging-and-install-methods-in-r74/
+- QTempGaussMC : https://forum.doom9.org/showthread.php?p=2050828 ; havsfunc :
+  https://github.com/HomeOfVapourSynthEvolution/havsfunc/releases

@@ -36,6 +36,9 @@ def test_window_flow(app, tools, samples, tmp_path, monkeypatch):
     assert win.settings().profile.key == "equilibre"
     win.profile_buttons["maximum"].setChecked(True)
     assert win.settings().resolution == "1080" and not win.settings().use_ai
+    expected = "qtgmc" if t.qtgmc_available else "bwdif"
+    assert win.settings().deinterlacer == expected
+    assert win.deint_combo.model().item(1).isEnabled() == t.qtgmc_available
     win.profile_buttons["fidele"].setChecked(True)
     win.start_spin.setValue(0)
     win.start_preview()

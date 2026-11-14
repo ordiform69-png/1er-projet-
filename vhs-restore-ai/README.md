@@ -12,10 +12,13 @@ Real-ESRGAN intervient si vous l'installez. Aucun cloud, aucun abonnement.
    PySide6 et télécharge FFmpeg (somme SHA-256 vérifiée) dans `tools\ffmpeg`.
    - Option IA : lancez `installer.bat -AvecIA` dans une invite de commandes. Le script ajoute
      Real-ESRGAN dans `tools\realesrgan` (il faut une carte graphique compatible Vulkan).
+   - Option QTGMC (meilleur désentrelacement) : lancez `installer.bat -AvecQTGMC`. Il faut
+     **Python 3.12 ou plus**. Le script installe VapourSynth et les plugins par pip dans `.venv`.
+     Les deux options se combinent : `installer.bat -AvecIA -AvecQTGMC`.
 3. Double-cliquez sur **`lancer.bat`**.
 
 Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variables `VHSRA_FFMPEG`,
-`VHSRA_FFPROBE` et `VHSRA_REALESRGAN`. Les journaux se trouvent dans `%LOCALAPPDATA%\VHSRestoreAI\logs`.
+`VHSRA_FFPROBE`, `VHSRA_REALESRGAN` et `VHSRA_VSPIPE`. Les journaux se trouvent dans `%LOCALAPPDATA%\VHSRestoreAI\logs`.
 
 ## Utilisation
 
@@ -34,7 +37,7 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 
 | | Fidèle | Équilibré | Maximum |
 |---|---|---|---|
-| Désentrelacement (si mesuré) | bwdif 50p | bwdif 50p | bwdif 50p |
+| Désentrelacement (si mesuré) | bwdif 50p | QTGMC 50p (bwdif si absent) | QTGMC 50p (bwdif si absent) |
 | Parasites ponctuels | – | removegrain 1 | removegrain 1 |
 | Bruit hqdn3d | 1.5:3:2:4 | 3:5:4.5:7 | 4:7:6:10 |
 | Contraste / saturation | inchangés | ×1,04 / ×1,08 | ×1,06 / ×1,12 |
@@ -49,15 +52,17 @@ les visages. La 4K n'est proposée qu'avec l'IA, et elle n'apporte aucun détail
 **Opérationnel et testé automatiquement** (Linux, FFmpeg 6.1, PySide6 hors écran, vidéos de synthèse) :
 analyse (accents et espaces dans les noms), détection TFF/progressif, 4:3 et pixels 16:15,
 PAL/NTSC, les trois profils, l'export (taille, 50 i/s, son présent et synchronisé, durée, original
-intact, pas d'écrasement), l'annulation avec nettoyage, les erreurs (fichier corrompu, dossier absent,
+intact, pas d'écrasement), l'annulation avec nettoyage, QTGMC réel (VapourSynth R82 et vs-jetpack 3.0 :
+export, extrait, aperçu, annulation, combinaison avec l'IA, plugin manquant signalé), les erreurs (fichier corrompu, dossier absent,
 moteur IA manquant), l'aperçu avant/après et le parcours complet dans l'interface. La chaîne IA a
 été testée avec un **faux** moteur qui agrandit sans IA.
 
-**Non testé** : exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell) ;
+**Non testé** : exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell,
+QTGMC) ; l'indexation BestSource sur un long film ;
 le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun échantillon fourni,
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
-**Prévu ensuite** : QTGMC via VapourSynth (désentrelacement supérieur), stabilisation (vid.stab),
+**Prévu ensuite** : stabilisation (vid.stab),
 débruitage lent haute qualité (nlmeans/bm3d), masquage du bruit de tête en bas d'image,
 encodage GPU, traitement par lots.
 
@@ -66,13 +71,16 @@ encodage GPU, traitement par lots.
 ```
 pip install -r requirements-dev.txt
 python -m pytest tests          # nécessite ffmpeg/ffprobe dans le PATH
+                                # tests QTGMC réels : pip install -r requirements-qtgmc.txt, vapoursynth config
 python -m vhs_restore           # lance l'interface
 ```
 
 Architecture : `tools.py` (détection et exécution des outils) · `probe.py` (analyse) ·
-`profiles.py` · `pipeline.py` (filtres, aperçu, export) · `upscaler.py` (adaptateur IA) · `gui.py`.
+`profiles.py` · `pipeline.py` (filtres, aperçu, export) · `qtgmc.vpy` (script VapourSynth) ·
+`upscaler.py` (adaptateur IA) · `gui.py`.
 Les choix techniques sont expliqués dans [`DECISIONS.md`](DECISIONS.md).
 
-Licences des outils : FFmpeg (build gyan.dev, GPLv3), PySide6 (LGPLv3), Real-ESRGAN (BSD-3).
+Licences des outils : FFmpeg (build gyan.dev, GPLv3), PySide6 (LGPLv3), Real-ESRGAN (BSD-3),
+VapourSynth (LGPL-2.1), vs-jetpack (MIT) ; chaque plugin a sa propre licence (voir PyPI).
 Les outils sont téléchargés sur votre poste ; si vous **redistribuez** un paquet qui les contient,
 les obligations de la GPL s'appliquent (fournir les sources ou un lien vers celles-ci).

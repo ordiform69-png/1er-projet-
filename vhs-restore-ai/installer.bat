@@ -1,5 +1,6 @@
 @echo off
-rem Installation de VHS Restore AI. Option : installer.bat -AvecIA  (ajoute Real-ESRGAN)
+rem Installation de VHS Restore AI.
+rem Options : -AvecIA (ajoute Real-ESRGAN)  -AvecQTGMC (ajoute VapourSynth + QTGMC, Python 3.12+)
 chcp 65001 >nul
 cd /d "%~dp0"
 set "PY=python"
@@ -13,6 +14,17 @@ if errorlevel 1 (
 )
 if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erreur
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt || goto erreur
+set "QTGMC="
+for %%a in (%*) do if /i "%%~a"=="-AvecQTGMC" set "QTGMC=1"
+if defined QTGMC (
+  ".venv\Scripts\python.exe" -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"
+  if errorlevel 1 (
+    echo QTGMC demande Python 3.12 ou plus : supprimez le dossier .venv, installez Python 3.12+ et relancez.
+    goto erreur
+  )
+  ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements-qtgmc.txt || goto erreur
+  ".venv\Scripts\vapoursynth.exe" config || goto erreur
+)
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\installer_outils.ps1" %* || goto erreur
 echo.
 echo Installation terminee. Double-cliquez sur lancer.bat pour demarrer.

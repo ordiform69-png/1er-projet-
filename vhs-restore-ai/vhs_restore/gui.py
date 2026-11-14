@@ -210,6 +210,13 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("Sortie :"))
         h.addWidget(self.res_combo, 1)
         v.addLayout(h)
+        h = QHBoxLayout()
+        self.deint_combo = QComboBox()
+        self.deint_combo.addItem("bwdif (rapide)", "bwdif")
+        self.deint_combo.addItem("QTGMC (meilleure qualité, plus lent)", "qtgmc")
+        h.addWidget(QLabel("Désentrelaceur :"))
+        h.addWidget(self.deint_combo, 1)
+        v.addLayout(h)
         v.addWidget(self.ai_check)
         left.addWidget(g)
         left.addStretch(1)
@@ -280,7 +287,14 @@ class MainWindow(QMainWindow):
         ff = f"FFmpeg {t.ffmpeg.version} ✔" if t.ffmpeg.path and t.ffprobe.path and not t.missing_filters \
             else "FFmpeg ✖ (requis)"
         ai = "Real-ESRGAN ✔" if t.ai_available else "Real-ESRGAN non installé (facultatif)"
-        self.tools_label.setText(f"{ff}   ·   {ai}")
+        qt = f"QTGMC ✔ ({t.vspipe.version})" if t.qtgmc_available else "QTGMC non installé (facultatif)"
+        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}")
+        self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
+        self.deint_combo.setToolTip(
+            "Utilisé seulement si la vidéo est entrelacée. QTGMC : désentrelaceur de référence "
+            "(VapourSynth), plus stable sur les détails fins, mais plusieurs fois plus lent."
+            if t.qtgmc_available else "QTGMC indisponible : " + (t.vspipe.problem or
+                                      "relancez installer.bat -AvecQTGMC (Python 3.12+)."))
         self.ai_check.setToolTip("Agrandissement par IA sur carte graphique (Vulkan). "
                                  "Peut inventer des détails : vérifiez l'aperçu." if t.ai_available else
                                  "Installez Real-ESRGAN : relancez installer.bat -AvecIA "
@@ -295,6 +309,7 @@ class MainWindow(QMainWindow):
         self.run_btn.setEnabled(loaded and not busy)
         self.cancel_btn.setEnabled(busy)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
+        self.deint_combo.setEnabled(not busy)
         if not self.tools.ai_available:
             self.ai_check.setChecked(False)
         idx_4k = self.res_combo.findData("2160")
@@ -309,6 +324,8 @@ class MainWindow(QMainWindow):
         p = PROFILES[key]
         self.ai_check.setChecked(p.ai_default and self.tools.ai_available)
         self.res_combo.setCurrentIndex(self.res_combo.findData(p.default_resolution))
+        want = p.deinterlacer if (p.deinterlacer != "qtgmc" or self.tools.qtgmc_available) else "bwdif"
+        self.deint_combo.setCurrentIndex(self.deint_combo.findData(want))
         self._update_state()
 
     def _ai_toggled(self, on: bool) -> None:
@@ -320,7 +337,8 @@ class MainWindow(QMainWindow):
         key = next(k for k, b in self.profile_buttons.items() if b.isChecked())
         return pipeline.Settings(profile=PROFILES[key], resolution=self.res_combo.currentData(),
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
-                                 use_ai=self.ai_check.isChecked())
+                                 use_ai=self.ai_check.isChecked(),
+                                 deinterlacer=self.deint_combo.currentData())
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:

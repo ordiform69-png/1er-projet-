@@ -11,6 +11,9 @@ réglages universels : l'aperçu sert à juger sur VOTRE vidéo.
 - despeckle : removegrain mode 1 = ramène un pixel isolé dans l'intervalle de ses
   8 voisins ; enlève points et petits parasites sans flouter.
 - contrast / saturation : filtre eq (1.0 = inchangé).
+- deinterlacer : désentrelaceur préféré. « qtgmc » (QTGMC, VapourSynth) est utilisé
+  s'il est installé, sinon « bwdif » (FFmpeg). Fidèle garde bwdif : QTGMC lisse
+  aussi un peu le bruit et le scintillement, ce qui s'éloigne du rendu d'origine.
 - sharpen : filtre cas (Contrast Adaptive Sharpening, 0 = désactivé), appliqué
   après l'agrandissement. Désactivé quand l'IA est utilisée (elle renforce déjà
   les contours ; un double renforcement crée des halos).
@@ -32,6 +35,7 @@ class Profile:
     sharpen: float
     default_resolution: str       # "source" | "1080" | "2160"
     ai_default: bool
+    deinterlacer: str = "qtgmc"   # "qtgmc" | "bwdif"
 
 
 PROFILES: dict[str, Profile] = {p.key: p for p in (
@@ -39,7 +43,7 @@ PROFILES: dict[str, Profile] = {p.key: p for p in (
             "Nettoyage léger du bruit, couleurs et cadrage d'origine, pas d'agrandissement.",
             denoise=(1.5, 3.0, 2.0, 4.0), despeckle=False,
             contrast=1.0, saturation=1.0, sharpen=0.0,
-            default_resolution="source", ai_default=False),
+            default_resolution="source", ai_default=False, deinterlacer="bwdif"),
     Profile("equilibre", "Équilibré",
             "Réduction du bruit et des parasites, couleurs ravivées modérément, "
             "netteté prudente. Export Full HD possible.",
