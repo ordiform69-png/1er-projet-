@@ -4,6 +4,10 @@ mesurer l'entrelacement sur le contenu réel.
 Règle : on n'affirme jamais qu'une vidéo est entrelacée sans preuve. Si ni le
 contenu ni les métadonnées ne permettent de conclure, scan = "unknown" et
 l'interface demande un choix manuel.
+
+Origine (vidéo / pellicule / pellicule transférée) : seulement une SUGGESTION à
+partir d'indices (cadence, champs ou images répétés), toujours modifiable. Le
+codec ou le conteneur ne disent rien du support physique d'origine.
 """
 from __future__ import annotations
 
@@ -18,6 +22,11 @@ from .tools import ToolError, Toolset, run_capture
 
 SD_SIZES = {(720, 576), (704, 576), (720, 480), (704, 480), (720, 486), (352, 288), (352, 240)}
 IDET_FRAMES = 600
+# Cadences de numérisation image par image typiques d'une pellicule (i/s).
+FILM_RATES = (Fraction(12), Fraction(16), Fraction(18), Fraction(20), Fraction(22),
+              Fraction(24), Fraction(24000, 1001))
+SOURCE_LABELS = {"video": "Vidéo analogique", "film": "Pellicule cinéma",
+                 "transfer": "Pellicule transférée sur vidéo"}
 
 
 @dataclass
@@ -44,11 +53,20 @@ class MediaInfo:
     audio_desc: str = ""
     color_space: str = ""
     video_offset: float = 0.0        # début vidéo - début du fichier (s)
+    repeated_fields: float | None = None   # part de champs répétés (idet)
+    repeated_frames: float | None = None   # part d'images quasi identiques à la précédente
+    saturation: float | None = None        # saturation moyenne (signalstats, 0 = gris)
+    suggested_source: str = "video"        # video | film | transfer
+    source_reason: str = ""
     warnings: list[str] = field(default_factory=list)
 
     @property
     def interlaced(self) -> bool:
         return self.scan in ("tff", "bff")
+
+    @property
+    def black_and_white(self) -> bool:
+        return self.saturation is not None and self.saturation < 15
 
     def summary(self) -> dict[str, str]:
         scan_txt = {"progressive": "Progressive", "tff": "Entrelacée, trame haute en premier (TFF)",
@@ -67,7 +85,10 @@ class MediaInfo:
             "Format d'affichage": f"{self.dar.numerator}:{self.dar.denominator} ({self.dar_source})",
             "Balayage": f"{scan_txt} [{self.scan_source}]",
             "Norme probable": std,
-            "Audio": self.audio_desc or "aucune piste audio",
+            "Audio": self.audio_desc or "aucune piste audio (film muet ?)",
+            "Couleur": ("Noir et blanc probable" if self.black_and_white else
+                        "Couleur" if self.saturation is not None else "Inconnue"),
+            "Origine suggérée": f"{SOURCE_LABELS[self.suggested_source]} — {self.source_reason}",
         }
 
 
@@ -118,6 +139,51 @@ def decide_scan(idet: dict[str, int], field_order_meta: str) -> tuple[str, str]:
     if meta != "unknown":
         return meta, "métadonnées uniquement (mesure non concluante)"
     return "unknown", "mesure non concluante et métadonnées absentes"
+
+
+def repeat_ratio(ydif: list[float]) -> float | None:
+    """Part des images dont la variation avec la précédente est inférieure à la moitié
+    de la variation médiane : image répétée (seul le bruit change). None si l'image
+    est quasi fixe (indice sans valeur)."""
+    if len(ydif) < 10:
+        return None
+    med = sorted(ydif)[len(ydif) // 2]
+    if med <= 0.2:
+        return None
+    return sum(v < 0.5 * med for v in ydif) / len(ydif)
+
+
+def parse_signals(text: str) -> dict[str, float | None]:
+    """Champs répétés (idet), images répétées (YDIF de signalstats), saturation."""
+    out: dict[str, float | None] = {"repeated_fields": None, "repeated_frames": None, "saturation": None}
+    rep = re.findall(r"Repeated Fields:\s*Neither:\s*(\d+)\s*Top:\s*(\d+)\s*Bottom:\s*(\d+)", text)
+    if rep:
+        n, t, b = map(int, rep[-1])
+        if n + t + b:
+            out["repeated_fields"] = (t + b) / (n + t + b)
+    out["repeated_frames"] = repeat_ratio(
+        [float(x) for x in re.findall(r"signalstats\.YDIF=([\d.]+)", text)][1:])
+    sat = [float(x) for x in re.findall(r"signalstats\.SATAVG=([\d.]+)", text)]
+    if sat:
+        out["saturation"] = sum(sat) / len(sat)
+    return out
+
+
+def suggest_source(info: MediaInfo) -> tuple[str, str]:
+    """Origine probable, avec la raison affichée. Jamais une certitude."""
+    film_rate = any(abs(float(info.fps - r)) < 0.02 for r in FILM_RATES)
+    rf, rp = info.repeated_fields or 0.0, info.repeated_frames or 0.0
+    fps = f"{float(info.fps):.3f}".rstrip("0").rstrip(".")
+    if film_rate and not info.interlaced:
+        return "film", f"cadence de {fps} i/s, typique d'une pellicule numérisée image par image"
+    if info.interlaced and (rf >= 0.05 or rp >= 0.05):
+        return "transfer", (f"vidéo entrelacée avec champs ou images répétés ({max(rf, rp):.0%}) : "
+                            "pellicule copiée sur vidéo probable")
+    if not info.interlaced and rp >= 0.10:
+        return "transfer", (f"{rp:.0%} d'images répétées : pellicule recopiée à une cadence vidéo probable")
+    if info.interlaced:
+        return "video", "vidéo entrelacée sans images répétées : caméscope ou magnétoscope probable"
+    return "video", "aucun indice net : traité comme une vidéo, à confirmer"
 
 
 def guess_standard(height: int, fps: Fraction) -> tuple[str, str]:
@@ -202,15 +268,35 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
     start = info.duration / 3 if info.duration > 60 else 0
     try:
         r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-ss", f"{start:.3f}",
-                         "-i", str(p), "-map", "0:v:0", "-vf", "idet", "-frames:v",
+                         "-i", str(p), "-map", "0:v:0", "-vf",
+                         "idet,signalstats,metadata=print:key=lavfi.signalstats.YDIF,"
+                         "metadata=print:key=lavfi.signalstats.SATAVG", "-frames:v",
                          str(idet_frames), "-an", "-f", "null", "-"], timeout=300)
         info.idet = parse_idet(r.stderr)
+        sig = parse_signals(r.stderr)
+        info.repeated_fields, info.repeated_frames, info.saturation = \
+            sig["repeated_fields"], sig["repeated_frames"], sig["saturation"]
     except subprocess.TimeoutExpired:
         info.idet = {}
     info.scan, info.scan_source = decide_scan(info.idet, info.field_order_meta)
+    if info.interlaced:
+        # Trames hautes successives : une image de film répartie sur plusieurs trames
+        # donne des trames identiques au bruit près, même quand idet ne le voit pas
+        # (bruit de bande). Théorie : film 18 i/s en 25i -> environ 28 % de répétitions.
+        try:
+            r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-ss", f"{start:.3f}",
+                             "-i", str(p), "-map", "0:v:0", "-vf",
+                             "field=top,signalstats,metadata=print:key=lavfi.signalstats.YDIF",
+                             "-frames:v", "300", "-an", "-f", "null", "-"], timeout=300)
+            top = repeat_ratio([float(x) for x in re.findall(r"signalstats\.YDIF=([\d.]+)", r.stderr)][1:])
+            if top is not None:
+                info.repeated_fields = max(info.repeated_fields or 0.0, top)
+        except subprocess.TimeoutExpired:
+            pass
     if info.scan == "unknown":
         info.warnings.append("Entrelacement non déterminable : choisissez le balayage manuellement "
                              "(en cas de doute sur une cassette de caméscope, essayez « Entrelacée TFF » "
                              "puis « BFF » sur l'aperçu).")
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
+    info.suggested_source, info.source_reason = suggest_source(info)
     return info

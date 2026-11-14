@@ -1,8 +1,9 @@
 # VHS Restore AI
 
-Application Windows gratuite et locale pour restaurer des vidéos de caméscope numérisées
-(VHS-C, Video8, Hi8…) : désentrelacement, réduction du bruit, couleurs, netteté, Full HD, et
-agrandissement IA en option. Elle sert d'**orchestrateur** : FFmpeg fait le travail, et
+Application Windows gratuite et locale pour restaurer des films familiaux numérisés des années
+1970 à 1995 : cassettes vidéo (VHS, VHS-C, Video8, Hi8, Betamax…), pellicules scannées (Super 8,
+8 mm, 16 mm, 9,5 mm) et pellicules copiées sur vidéo. Elle désentrelace, réduit le bruit, corrige
+couleurs et netteté, exporte en Full HD, et propose en option la stabilisation et l'agrandissement IA. Elle sert d'**orchestrateur** : FFmpeg fait le travail, et
 Real-ESRGAN intervient si vous l'installez. Aucun cloud, aucun abonnement.
 
 ## Installation (Windows 10/11)
@@ -23,9 +24,12 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 ## Utilisation
 
 1. **Choisir une vidéo** (ou la glisser dans la fenêtre). L'analyse affiche la résolution, la
-   cadence, le format 4:3, l'entrelacement mesuré, la norme probable et le son. Si une
-   caractéristique est incertaine, un avertissement s'affiche et vous pouvez la forcer
-   (balayage, format).
+   cadence, le format 4:3, l'entrelacement mesuré, la norme probable, le son, le noir et blanc et
+   une **origine suggérée** (vidéo, pellicule, pellicule transférée), avec sa raison. Corrigez
+   « Origine du film » si besoin : les réglages s'adaptent (grain préservé pour une pellicule,
+   jamais de désentrelacement automatique). Pour une pellicule numérisée image par image, la
+   « Cadence de tournage » (16, 18 ou 24 i/s) permet de retrouver la vitesse naturelle des
+   mouvements, sans créer ni supprimer d'image. Laissez « Celle du fichier » en cas de doute.
 2. **Choisir un profil** : Fidèle, Équilibré ou Maximum. Choisissez aussi la résolution de sortie
    et, en option, le débruitage haute qualité (plus lent), la stabilisation (caméra tenue à la
    main) et l'IA.
@@ -35,6 +39,10 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
    choisi. L'original n'est jamais modifié, et vous pouvez annuler à tout moment.
 
 ## Profils (paramètres exacts dans `vhs_restore/profiles.py`)
+
+Le tableau donne les réglages **vidéo**. Pour une pellicule, le débruitage est nettement plus
+léger (Fidèle n'en applique aucun) ; pour un transfert, il est intermédiaire
+(`SOURCE_OVERRIDES`). Option « Réduire le scintillement » pour les pellicules et transferts.
 
 | | Fidèle | Équilibré | Maximum |
 |---|---|---|---|
@@ -63,13 +71,38 @@ par rapport au débruitage standard sur une image bruitée artificiellement), le
 moteur IA manquant), l'aperçu avant/après et le parcours complet dans l'interface. La chaîne IA a
 été testée avec un **faux** moteur qui agrandit sans IA.
 
-**Non testé** : exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell,
+Origines (vidéos de synthèse) : suggestion d'origine sur 4 cas (pellicule 18 i/s, transfert 25i
+bruité, caméscope, noir et blanc) ; pellicule jamais désentrelacée automatiquement ; cadence de
+tournage 16 et 24 i/s (108 images conservées, durée et son ajustés) ; 4:3 et son conservés ;
+film muet resté muet ; transfert traité à 25p sans suppression d'image ni trame mélangée restante ;
+grain mieux conservé qu'avec les réglages vidéo.
+
+**Non testé** : de vraies pellicules ou de vrais transferts (rayures, poussières, décoloration,
+scintillement réels) ; exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell,
 QTGMC) ; l'indexation BestSource sur un long film ;
 le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun échantillon fourni,
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
-**Prévu ensuite** : masquage du bruit de tête en bas d'image,
+**Prévu ensuite** : rayures et poussières image par image (aucun outil simple et maintenu
+retenu pour l'instant), suppression optionnelle des images répétées d'un transfert, masquage du bruit de tête en bas d'image,
 encodage GPU, traitement par lots.
+
+## Préparer les fichiers (numérisation)
+
+Pellicules :
+- Préférez un scan image par image à la capture d'une projection sur un mur (scintillement,
+  déformation, flou).
+- Gardez un fichier maître de bonne qualité (peu compressé, ou sans perte), à la cadence de
+  tournage si elle est connue. Sinon, notez celle du scanner.
+- Numérisez aussi la piste son (magnétique ou optique) si la bobine en a une.
+
+Cassettes vidéo :
+- Utilisez un lecteur du bon format (VHS-C avec adaptateur, Video8/Hi8 sur un caméscope ou un
+  lecteur 8 mm). Si possible, choisissez un magnétoscope avec correcteur de base de temps (TBC).
+- Vérifiez la norme : PAL ou SECAM en France (625 lignes), NTSC pour des cassettes américaines
+  ou japonaises.
+- Capturez sans recompression destructive (sans perte, ou DV), sans désentrelacer ni
+  redimensionner au moment de la capture : VHS Restore AI s'en charge.
 
 ## Développement
 

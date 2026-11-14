@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 
 from . import pipeline
 from .probe import MediaInfo, analyze
-from .profiles import PROFILES, RESOLUTIONS
+from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools
 
 log = logging.getLogger("vhs_restore")
@@ -164,7 +164,8 @@ class MainWindow(QMainWindow):
         self.info_form = QFormLayout(g)
         self.info_labels: dict[str, QLabel] = {}
         for key in ("Fichier", "Durée", "Conteneur / codec", "Résolution", "Images par seconde",
-                    "Format d'affichage", "Balayage", "Norme probable", "Audio"):
+                    "Format d'affichage", "Balayage", "Norme probable", "Audio", "Couleur",
+                    "Origine suggérée"):
             lab = QLabel("—")
             lab.setWordWrap(True)
             lab.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -177,6 +178,26 @@ class MainWindow(QMainWindow):
         self.dar_combo = QComboBox()
         for txt, val in (("Automatique (analyse)", None), ("4:3", Fraction(4, 3)), ("16:9", Fraction(16, 9))):
             self.dar_combo.addItem(txt, val)
+        self.source_combo = QComboBox()
+        for txt, val in (("Je ne sais pas — suivre l'analyse", None),
+                         ("Vidéo analogique (VHS, Video8, Hi8, Betamax…)", "video"),
+                         ("Pellicule cinéma numérisée (Super 8, 8 mm, 16 mm…)", "film"),
+                         ("Pellicule transférée sur vidéo (film copié sur VHS, DVD…)", "transfer")):
+            self.source_combo.addItem(txt, val)
+        self.source_combo.setToolTip("L'origine change les réglages appliqués (grain du film préservé, "
+                                     "pas de désentrelacement automatique d'une pellicule…).")
+        self.source_combo.currentIndexChanged.connect(lambda _i: self._update_state())
+        self.info_form.addRow("Origine du film :", self.source_combo)
+        self.cadence_combo = QComboBox()
+        self.cadence_combo.addItem("Celle du fichier", None)
+        for r in (16, 18, 24):
+            self.cadence_combo.addItem(f"{r} images/s", r)
+        self.cadence_combo.setToolTip(
+            "À changer seulement si la pellicule a été numérisée image par image mais enregistrée "
+            "à une autre cadence (mouvements trop rapides). Aucune image n'est créée ni supprimée : "
+            "la durée change. Laissez « Celle du fichier » en cas de doute.")
+        self.info_form.addRow("Cadence de tournage :", self.cadence_combo)
+        self.scan_combo.currentIndexChanged.connect(lambda _i: self._update_state())
         self.info_form.addRow("Balayage à utiliser :", self.scan_combo)
         self.info_form.addRow("Format à utiliser :", self.dar_combo)
         self.warn_label = QLabel()
@@ -217,12 +238,16 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("Désentrelaceur :"))
         h.addWidget(self.deint_combo, 1)
         v.addLayout(h)
+        self.flicker_check = QCheckBox("Réduire le scintillement lumineux (pellicule)")
+        self.flicker_check.setToolTip("Lisse les variations de luminosité d'une image à l'autre "
+                                      "(filtre deflicker sur 5 images). À vérifier sur l'aperçu.")
+        v.addWidget(self.flicker_check)
         self.hq_check = QCheckBox("Débruitage haute qualité (environ 3 fois plus lent)")
         self.hq_check.setToolTip("Remplace le débruitage standard par fftdnoiz (FFT 3D) avec un renfort "
                                  "sur les taches de couleur. Plus efficace sur le bruit analogique ; "
                                  "intensité adaptée au profil.")
         v.addWidget(self.hq_check)
-        self.stab_check = QCheckBox("Stabiliser l'image (caméra tenue à la main, 2 passes)")
+        self.stab_check = QCheckBox("Stabiliser l'image (tremblements de caméra ou de pellicule, 2 passes)")
         v.addWidget(self.stab_check)
         v.addWidget(self.ai_check)
         left.addWidget(g)
@@ -323,6 +348,17 @@ class MainWindow(QMainWindow):
         self.deint_combo.setEnabled(not busy)
         self.hq_check.setEnabled(not busy)
         self.stab_check.setEnabled(self.tools.stab_available and not busy)
+        # fonctions affichées selon l'origine
+        src = self.source()
+        self.info_form.setRowVisible(self.cadence_combo, src == "film")
+        if src != "film":
+            self.cadence_combo.setCurrentIndex(0)
+        self.flicker_check.setVisible(src in ("film", "transfer"))
+        self.flicker_check.setEnabled(not busy)
+        if src not in ("film", "transfer"):
+            self.flicker_check.setChecked(False)
+        self.deint_combo.setEnabled(src == "video" and not busy)
+        self._refresh_hints()
         if not self.tools.stab_available:
             self.stab_check.setChecked(False)
         if not self.tools.ai_available:
@@ -348,9 +384,34 @@ class MainWindow(QMainWindow):
             self.res_combo.setCurrentIndex(self.res_combo.findData("1080"))
         self._update_state()
 
+    def source(self) -> str:
+        """Origine effective : choix de l'utilisateur, sinon suggestion de l'analyse."""
+        chosen = self.source_combo.currentData()
+        if chosen:
+            return chosen
+        return self.info.suggested_source if self.info else "video"
+
+    def _refresh_hints(self) -> None:
+        if not self.info:
+            return
+        notes = ["⚠ " + w for w in self.info.warnings]
+        src = self.source()
+        if src == "film" and self.info.interlaced and not self.scan_combo.currentData():
+            notes.append("⚠ L'analyse mesure de l'entrelacement : s'il s'agit d'une copie sur vidéo, "
+                         "choisissez « Pellicule transférée sur vidéo ».")
+        if self.info.black_and_white:
+            notes.append("ℹ Film noir et blanc probable : aucune colorisation n'est appliquée.")
+        if not self.info.has_audio:
+            notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
+        self.warn_label.setText("\n".join(notes))
+
     def settings(self) -> pipeline.Settings:
         key = next(k for k, b in self.profile_buttons.items() if b.isChecked())
-        return pipeline.Settings(profile=PROFILES[key], resolution=self.res_combo.currentData(),
+        src = self.source()
+        return pipeline.Settings(profile=profile_for(key, src), resolution=self.res_combo.currentData(),
+                                 source=src, playback_fps=(Fraction(self.cadence_combo.currentData())
+                                                           if self.cadence_combo.currentData() else None),
+                                 deflicker=self.flicker_check.isChecked() and src != "video",
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
                                  use_ai=self.ai_check.isChecked(),
                                  deinterlacer=self.deint_combo.currentData(),
@@ -383,9 +444,16 @@ class MainWindow(QMainWindow):
         for k, val in info.summary().items():
             self.info_labels[k].setText(val)
         self.info_labels["Norme probable"].setToolTip(info.standard_reason)
-        self.warn_label.setText("\n".join("⚠ " + w for w in info.warnings))
         self.scan_combo.setCurrentIndex(0)
         self.dar_combo.setCurrentIndex(0)
+        self.source_combo.setItemText(0, "Je ne sais pas — suggestion : "
+                                      + {"video": "vidéo", "film": "pellicule",
+                                         "transfer": "pellicule transférée"}[info.suggested_source])
+        self.source_combo.setCurrentIndex(0)
+        fps = f"{float(info.fps):.3f}".rstrip("0").rstrip(".")
+        self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} images/s)")
+        self.cadence_combo.setCurrentIndex(0)
+        self._update_state()
         self.start_spin.setRange(0, max(0.0, info.duration - 10))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
         if not self.out_edit.text():

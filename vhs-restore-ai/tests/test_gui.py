@@ -69,3 +69,21 @@ def test_bad_file_shows_error(app, tools, samples, monkeypatch):
     wait(app, win)
     assert shown and win.info is None and not win.run_btn.isEnabled()
     win.close()
+
+
+def test_source_selector(app, tools, samples):
+    win = MainWindow(tools)
+    win.load_file(str(samples["film18"]))
+    wait(app, win)
+    assert win.source_combo.currentData() is None and win.source() == "film"   # suggestion
+    assert win.cadence_combo.isVisibleTo(win) and not win.deint_combo.isEnabled()
+    assert win.flicker_check.isVisibleTo(win)
+    assert "muet" in win.warn_label.text()
+    win.cadence_combo.setCurrentIndex(win.cadence_combo.findData(24))
+    s = win.settings()
+    assert s.source == "film" and s.playback_fps == 24 and s.profile.denoise == (1.0, 3.0, 1.0, 3.0)
+    win.source_combo.setCurrentIndex(win.source_combo.findData("video"))       # correction manuelle
+    s = win.settings()
+    assert s.source == "video" and s.playback_fps is None and not s.deflicker
+    assert not win.cadence_combo.isVisibleTo(win) and not win.flicker_check.isVisibleTo(win)
+    win.close()

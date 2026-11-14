@@ -122,6 +122,46 @@ dans le temps. Mesure : PSNR et SSIM par rapport à l'image propre, vitesse sur 
 - **Limite** : un bruit artificiel n'est pas un bruit VHS réel (traînées horizontales, bruit
   basse fréquence). Les réglages sont à confirmer sur de vraies cassettes.
 
+## Origines des films : vidéo, pellicule, transfert (phase 6)
+
+Une seule chaîne FFmpeg. L'origine (`Settings.source`) ne change que des paramètres, jamais de moteur.
+
+| | VIDÉO (VHS, Video8, Betamax…) | FILM (Super 8, 8, 16, 9,5 mm scannés) | TRANSFERT (film copié sur vidéo) |
+|---|---|---|---|
+| Désentrelacement | si mesuré : bwdif/QTGMC, 50p | **jamais automatique** (choix manuel seulement) | si mesuré : `fieldmatch` puis `bwdif` sur les seules images encore mélangées, 25p |
+| Cadence exportée | 50p (une image par trame) | celle du fichier, ou la **cadence de tournage choisie** | celle du support (25p) |
+| Images répétées | – | – | conservées : aucune suppression (`decimate`), cadence d'origine non supposée |
+| Débruitage | profils existants (inchangés) | nettement plus léger, Fidèle sans débruitage : le grain est préservé | luminance plus douce, chroma comme en vidéo |
+| Scintillement | – | option `deflicker` | option `deflicker` |
+
+- **Origine suggérée, jamais imposée** : l'analyse existante (`idet` + `signalstats`, même passe)
+  fournit la cadence, les champs ou images répétés et la saturation. Si la vidéo est entrelacée,
+  une seconde passe courte compare les trames hautes successives : une image de film répartie sur
+  plusieurs trames donne des trames identiques au bruit près. `idet` seul ne voit plus ces
+  répétitions dès qu'il y a du bruit de bande (0 % mesuré sur l'échantillon de test), alors que
+  cette mesure en trouve 26 à 28 %, comme le veut la théorie (18 → 25 : 7/25). Sur les trois
+  vidéos de caméscope de test, elle trouve 0 %. Le codec n'est jamais utilisé comme indice. Choix
+  « Je ne sais pas » = suivre la suggestion, affichée avec sa raison ; elle reste modifiable.
+- **Cadence de tournage** (16, 18 ou 24 i/s, pellicule seulement) : `setpts` re-date les images
+  sans en créer ni en supprimer (pas d'interpolation, pas de conversion forcée en 25 i/s). Le son
+  éventuel suit avec `atempo`, ce qui garde sa hauteur et la synchronisation. Les pages de la NARA
+  consultées ne donnent aucune cadence : les valeurs proposées sont les cadences d'usage, jamais
+  appliquées automatiquement.
+- **Noir et blanc** : détecté pour information (saturation moyenne < 15). Aucune colorisation
+  n'existe dans le logiciel.
+- **Films muets** : la piste son est facultative (`0:a:0?`). Aucune piste n'est créée (vérifié par
+  test, en export comme en aperçu).
+- **Fidélité mesurée, pas seulement le débruitage** : sur une pellicule de synthèse avec grain,
+  la proximité avec le scan d'origine (PSNR Y, image par image) vaut 34,7 dB avec les réglages
+  vidéo, 36,7 dB avec Équilibré pellicule et 48,9 dB avec Fidèle pellicule. Ici, une PSNR élevée
+  signifie « texture d'origine conservée ».
+- **Reporté (P2)** : rayures et poussières image par image. FFmpeg n'a pas de filtre adapté
+  (`removegrain` ne traite que les points isolés). Les solutions connues sont des plugins
+  VapourSynth issus d'AviSynth (famille DeSpot/DeScratch) ; je n'ai pas vérifié leur maintenance
+  ni leur disponibilité par pip : pas d'intégration. Restent aussi en P2 la correction automatique
+  des couleurs décolorées (trop risquée pour la fidélité), la suppression des images répétées
+  d'un transfert (cadence d'origine rarement certaine) et l'IA spécialisée pellicule.
+
 ## IA : limites assumées
 
 Real-ESRGAN est entraîné sur des dégradations synthétiques (flou, bruit, JPEG), pas sur des
@@ -150,6 +190,10 @@ n'a été vérifiée sur une vraie cassette.
 - Builds Windows : https://www.gyan.dev/ffmpeg/builds/
 - Real-ESRGAN : https://github.com/xinntao/Real-ESRGAN (releases v0.2.5.0, exécutables ncnn-vulkan)
 - Video2X : https://github.com/k4yt3x/video2x (6.x, AGPLv3)
+- NARA, formats film et vidéo : https://www.archives.gov/preservation/formats/motion-picture-film-identify-formats.html
+  et https://www.archives.gov/preservation/formats/video-identify-formats.html (VHS et Betamax :
+  « late 1970s to 1990s » ; Super 8 : « common home movie format » ; aucune cadence indiquée)
+- FFmpeg : fieldmatch, deflicker, signalstats, setpts, atempo (https://ffmpeg.org/ffmpeg-filters.html)
 - VapourSynth R74 (pip) : https://www.vapoursynth.com/2026/03/26/new-packaging-and-install-methods-in-r74/
 - QTempGaussMC : https://forum.doom9.org/showthread.php?p=2050828 ; havsfunc :
   https://github.com/HomeOfVapourSynthEvolution/havsfunc/releases

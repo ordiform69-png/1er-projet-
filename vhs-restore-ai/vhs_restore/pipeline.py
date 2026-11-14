@@ -1,5 +1,16 @@
 """Orchestration : construction de la chaîne de filtres FFmpeg, aperçu, export.
 
+Une seule chaîne, trois origines (Settings.source) qui changent seulement des
+paramètres, jamais de moteur :
+  video    : cassette analogique ; désentrelacement par trame (50p) si mesuré.
+  film     : pellicule numérisée directement ; jamais désentrelacée sans choix
+             manuel ; cadence de tournage réglable (re-cadencement sans
+             créer ni supprimer d'image) ; grain préservé (profils plus légers).
+  transfer : pellicule copiée sur vidéo ; si entrelacée, appariement des trames
+             (fieldmatch) puis désentrelacement des seules images encore
+             mélangées, à la cadence vidéo (25p). Aucune suppression d'images
+             répétées : la cadence d'origine n'est pas supposée connue.
+
 Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   1. recadrage à des dimensions paires (si nécessaire, 1 pixel au plus)
   2. désentrelacement, une image par trame (50p / 59,94p) : conserve la
@@ -64,6 +75,9 @@ class Settings:
     deinterlacer: str = "bwdif"           # bwdif | qtgmc
     stabilize: bool = False
     denoise_hq: bool = False
+    source: str = "video"                 # video | film | transfer
+    playback_fps: Fraction | None = None  # film : cadence de tournage choisie (None = celle du fichier)
+    deflicker: bool = False               # film / transfert : réduction du scintillement
     crf: int = 18
     preset: str = "medium"
 
@@ -73,12 +87,50 @@ def _even(x: float) -> int:
 
 
 def effective_scan(info: MediaInfo, s: Settings) -> str:
-    """'unknown' n'est jamais traité comme entrelacé (pas de supposition)."""
-    return s.scan or info.scan
+    """'unknown' n'est jamais traité comme entrelacé (pas de supposition).
+    Pellicule numérisée directement : progressive, sauf choix manuel explicite."""
+    if s.scan:
+        return s.scan
+    return "progressive" if s.source == "film" else info.scan
 
 
 def uses_qtgmc(info: MediaInfo, s: Settings) -> bool:
-    return s.deinterlacer == "qtgmc" and effective_scan(info, s) in ("tff", "bff")
+    return (s.source == "video" and s.deinterlacer == "qtgmc"
+            and effective_scan(info, s) in ("tff", "bff"))
+
+
+def retime(info: MediaInfo, s: Settings) -> Fraction | None:
+    """Nouvelle cadence si l'utilisateur a indiqué une cadence de tournage différente
+    de celle du fichier (pellicule numérisée image par image uniquement)."""
+    if s.source == "film" and s.playback_fps and s.playback_fps != info.fps:
+        return s.playback_fps
+    return None
+
+
+def time_ratio(info: MediaInfo, s: Settings) -> float:
+    """Durée exportée / durée du fichier (1 sans re-cadencement)."""
+    r = retime(info, s)
+    return float(info.fps / r) if r else 1.0
+
+
+def retime_args(info: MediaInfo, s: Settings) -> list[str]:
+    """Options de sortie du re-cadencement : cadence fixe et son au même tempo
+    (atempo conserve la hauteur du son), pour garder la synchronisation."""
+    r = retime(info, s)
+    if not r:
+        return []
+    args = ["-r", f"{r.numerator}/{r.denominator}"]
+    if info.has_audio:
+        f, chain = float(r / info.fps), []
+        while f > 2.0:
+            chain.append("atempo=2.0")
+            f /= 2.0
+        while f < 0.5:
+            chain.append("atempo=0.5")
+            f /= 0.5
+        chain.append(f"atempo={f:.6f}")
+        args += ["-af", ",".join(chain)]
+    return args
 
 
 def effective_dar(info: MediaInfo, s: Settings) -> Fraction:
@@ -95,7 +147,12 @@ def effective_resolution(s: Settings) -> str:
 
 
 def output_fps(info: MediaInfo, s: Settings) -> Fraction:
-    return info.fps * 2 if effective_scan(info, s) in ("tff", "bff") else info.fps
+    r = retime(info, s)
+    if r:
+        return r
+    if s.source == "video" and effective_scan(info, s) in ("tff", "bff"):
+        return info.fps * 2      # une image par trame
+    return info.fps
 
 
 def target_size(info: MediaInfo, s: Settings) -> tuple[int, int, Fraction]:
@@ -119,8 +176,18 @@ def _base_filters(info: MediaInfo, s: Settings) -> list[str]:
     if info.width % 2 or info.height % 2:
         f.append(f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0")
     scan = effective_scan(info, s)
-    if scan in ("tff", "bff") and not uses_qtgmc(info, s):
-        f.append(f"bwdif=mode=send_field:parity={scan}:deint=all")
+    if scan in ("tff", "bff"):
+        if s.source == "video":
+            if not uses_qtgmc(info, s):
+                f.append(f"bwdif=mode=send_field:parity={scan}:deint=all")
+        else:
+            # pellicule passée par la vidéo : on recolle les trames issues d'une même
+            # image de film, et on ne désentrelace que les images restées mélangées
+            f.append(f"fieldmatch=order={scan}:combmatch=full")
+            f.append(f"bwdif=mode=send_frame:parity={scan}:deint=interlaced")
+    r = retime(info, s)
+    if r:
+        f.append(f"setpts=N*{r.denominator}/{r.numerator}/TB")
     return f
 
 
@@ -143,6 +210,8 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     f = _base_filters(info, s)
     if s.stabilize:
         f.append(stab_transform_filter(info, s))
+    if s.deflicker:
+        f.append("deflicker=size=5:mode=pm")   # lisse la luminosité moyenne sur 5 images
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
     if s.denoise_hq:
@@ -239,7 +308,9 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
 
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     res = effective_resolution(s)
-    tag = ({"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
+    tag = ({"video": "", "film": "_film", "transfer": "_transfert"}.get(s.source, "")
+           + {"source": "", "1080": "_1080p", "2160": "_4k"}[res]
+           + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
            + ("_ia" if s.use_ai else ""))
     base = f"{info.path.stem}_restaure_{s.profile.key}{tag}"
     cand = out_dir / f"{base}.mp4"
@@ -264,7 +335,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         raise ToolError("La stabilisation demande un FFmpeg compilé avec libvidstab "
                         "(filtres vidstabdetect/vidstabtransform), absent de votre FFmpeg.")
     part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
-    total = duration or info.duration
+    total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
     work: Path | None = None
     try:
         if s.use_ai:
@@ -279,7 +350,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
-                   *encode_args(info, s), "-f", "mp4", str(part)])
+                   *encode_args(info, s), *retime_args(info, s), "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         os.replace(part, out_path)
@@ -343,7 +414,7 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
         pre = ",".join(pre_filters(info, s)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
         run(_ff_base(tools) + args + [
-            "-map", vmap, "-map", amap, "-vf", pre,
+            "-map", vmap, "-map", amap, "-vf", pre, *retime_args(info, s),
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
@@ -457,6 +528,10 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     w = _even(h * effective_dar(info, s))
     fps = output_fps(info, s)
     crop = f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0,"
+    r = retime(info, s)
+    if r:  # même cadence à gauche qu'à droite : seul le moment affiché compte
+        crop += f"setpts=N*{r.denominator}/{r.numerator}/TB,"
+    out_duration = duration * time_ratio(info, s)
     fc = (f"[0:v]{crop}scale={w}:{h}:flags=lanczos,setsar=1,fps={fps.numerator}/{fps.denominator}[a];"
           f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1[b];[a][b]hstack=inputs=2,format=yuv420p[v]")
     compare = workdir / "apercu_comparaison.mp4"
@@ -464,12 +539,12 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         "-filter_complex", fc, "-map", "[v]", "-map", "1:a:0?", "-c:v", "libx264", "-preset",
         "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
         str(compare)], cancel=cancel, what="FFmpeg (comparaison)",
-        on_line=_FFProgress(duration, progress, 0.8, 0.95, "Comparaison…"))
+        on_line=_FFProgress(out_duration, progress, 0.8, 0.95, "Comparaison…"))
     stills = []
     for k, frac in enumerate((0.2, 0.5, 0.8)):
         still = workdir / f"image_{k + 1}.png"
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-             "-ss", f"{duration * frac:.3f}", "-i", str(compare), "-frames:v", "1", str(still)],
+             "-ss", f"{out_duration * frac:.3f}", "-i", str(compare), "-frames:v", "1", str(still)],
             cancel=cancel, what="FFmpeg (image fixe)")
         stills.append(still)
     if progress:

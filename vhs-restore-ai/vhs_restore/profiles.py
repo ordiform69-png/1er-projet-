@@ -70,3 +70,31 @@ RESOLUTIONS = {
     "1080": "Full HD (1080 lignes)",
     "2160": "4K (2160 lignes, IA requise)",
 }
+
+
+# Variantes par origine. Les profils ci-dessus restent ceux de la VIDÉO analogique.
+# Pellicule : le grain photographique fait partie de l'image. On ne le traite pas
+# comme du bruit électronique : débruitage nettement plus léger (surtout la
+# luminance, qui porte le grain), pas de lissage en Fidèle, netteté réduite.
+# Transfert pellicule -> vidéo : entre les deux. Le bruit chroma de la bande est
+# traité comme en vidéo, la luminance plus doucement pour garder le grain du film.
+SOURCE_OVERRIDES: dict[str, dict[str, dict]] = {
+    "film": {
+        "fidele": dict(denoise=None, despeckle=False, denoise_hq=(2.0, 2.0, 3.0)),
+        "equilibre": dict(denoise=(1.0, 3.0, 1.0, 3.0), contrast=1.02, saturation=1.04,
+                          sharpen=0.15, denoise_hq=(3.0, 4.0, 5.0)),
+        "maximum": dict(denoise=(2.0, 4.0, 2.0, 5.0), contrast=1.04, saturation=1.06,
+                        sharpen=0.25, denoise_hq=(5.0, 5.0, 7.0)),
+    },
+    "transfer": {
+        "fidele": dict(denoise=(1.0, 3.0, 1.0, 4.0)),
+        "equilibre": dict(denoise=(2.0, 5.0, 2.5, 7.0), sharpen=0.2, denoise_hq=(6.0, 6.0, 9.0)),
+        "maximum": dict(denoise=(3.0, 7.0, 4.0, 10.0), sharpen=0.3, denoise_hq=(8.0, 8.0, 12.0)),
+    },
+}
+
+
+def profile_for(key: str, source: str = "video") -> Profile:
+    """Profil effectif pour une origine donnée (video, film, transfer)."""
+    from dataclasses import replace
+    return replace(PROFILES[key], **SOURCE_OVERRIDES.get(source, {}).get(key, {}))

@@ -27,7 +27,8 @@ _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 # Filtres FFmpeg indispensables à la chaîne de restauration.
 QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
-REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack", "fftdnoiz")
+REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack", "fftdnoiz",
+                    "signalstats", "fieldmatch", "deflicker", "setpts", "atempo")
 STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
 
 

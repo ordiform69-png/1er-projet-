@@ -64,6 +64,25 @@ def samples(tmp_path_factory):
        "-c:v", "ffv1", str(s["clean"]))
     s["noisy"] = d / "bruité.mkv"
     ff("-i", str(s["clean"]), "-vf", "noise=c0s=10:c1s=22:c2s=22:allf=t", "-c:v", "ffv1", str(s["noisy"]))
+    # Pellicules de synthèse : 18 i/s progressif avec grain, muet / sonore / noir et blanc
+    grain = "noise=c0s=14:c1s=4:c2s=4:allf=t"
+    s["film18"] = d / "super 8 été 1975.mkv"
+    ff("-f", "lavfi", "-i", f"testsrc2=size=720x540:rate=18,{grain}", "-t", "6",
+       "-c:v", "ffv1", str(s["film18"]))
+    s["film18_son"] = d / "super 8 sonore.mkv"
+    ff("-f", "lavfi", "-i", f"testsrc2=size=720x540:rate=18,{grain}",
+       "-f", "lavfi", "-i", "sine=frequency=330:sample_rate=48000", "-t", "6",
+       "-c:v", "ffv1", "-c:a", "flac", str(s["film18_son"]))
+    s["film_nb"] = d / "film noir et blanc.mkv"
+    ff("-f", "lavfi", "-i", f"testsrc2=size=720x540:rate=16,hue=s=0,{grain}", "-t", "4",
+       "-c:v", "ffv1", str(s["film_nb"]))
+    # Pellicule 18 i/s copiée sur vidéo 25i (trames réparties sur les images de film), son
+    s["transfert"] = d / "super 8 copié sur VHS.avi"
+    ff("-f", "lavfi", "-i", f"testsrc2=size=720x576:rate=18,{grain},fps=50,"
+       "tinterlace=mode=interleave_top,setfield=tff,setsar=16/15,noise=c0s=5:c1s=12:c2s=12:allf=t",
+       "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "6",
+       "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-top", "1", "-b:v", "9M",
+       "-c:a", "pcm_s16le", str(s["transfert"]))
     s["corrupt"] = d / "abîmé.avi"
     s["corrupt"].write_bytes(os.urandom(20000))
     return s
