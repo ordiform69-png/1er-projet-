@@ -217,6 +217,11 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("Désentrelaceur :"))
         h.addWidget(self.deint_combo, 1)
         v.addLayout(h)
+        self.hq_check = QCheckBox("Débruitage haute qualité (environ 3 fois plus lent)")
+        self.hq_check.setToolTip("Remplace le débruitage standard par fftdnoiz (FFT 3D) avec un renfort "
+                                 "sur les taches de couleur. Plus efficace sur le bruit analogique ; "
+                                 "intensité adaptée au profil.")
+        v.addWidget(self.hq_check)
         self.stab_check = QCheckBox("Stabiliser l'image (caméra tenue à la main, 2 passes)")
         v.addWidget(self.stab_check)
         v.addWidget(self.ai_check)
@@ -316,6 +321,7 @@ class MainWindow(QMainWindow):
         self.cancel_btn.setEnabled(busy)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
         self.deint_combo.setEnabled(not busy)
+        self.hq_check.setEnabled(not busy)
         self.stab_check.setEnabled(self.tools.stab_available and not busy)
         if not self.tools.stab_available:
             self.stab_check.setChecked(False)
@@ -348,7 +354,8 @@ class MainWindow(QMainWindow):
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
                                  use_ai=self.ai_check.isChecked(),
                                  deinterlacer=self.deint_combo.currentData(),
-                                 stabilize=self.stab_check.isChecked())
+                                 stabilize=self.stab_check.isChecked(),
+                                 denoise_hq=self.hq_check.isChecked())
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:

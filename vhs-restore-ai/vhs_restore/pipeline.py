@@ -8,7 +8,8 @@ Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   3. [stabilisation facultative : vid.stab, 2 passes] sur images progressives,
      avant le débruitage temporel qui profite d'images alignées
   4. suppression des parasites ponctuels (removegrain)
-  5. réduction du bruit spatio-temporelle (hqdn3d)
+  5. réduction du bruit spatio-temporelle : hqdn3d, ou en haute qualité
+     fftdnoiz (FFT 3D) + renfort chroma
   6. correction modérée contraste / saturation (eq)
   7. [IA facultative : Real-ESRGAN x4 sur images PNG]
   8. mise à l'échelle lanczos vers la taille cible, matrice couleur BT.709 en HD
@@ -62,6 +63,7 @@ class Settings:
     use_ai: bool = False
     deinterlacer: str = "bwdif"           # bwdif | qtgmc
     stabilize: bool = False
+    denoise_hq: bool = False
     crf: int = 18
     preset: str = "medium"
 
@@ -143,7 +145,11 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
         f.append(stab_transform_filter(info, s))
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
-    if p.denoise:
+    if s.denoise_hq:
+        sigma, cs, ct = p.denoise_hq
+        f.append(f"fftdnoiz=sigma={sigma:g}:prev=1:next=1")
+        f.append(f"hqdn3d=0:{cs:g}:0:{ct:g}")
+    elif p.denoise:
         f.append("hqdn3d=" + ":".join(f"{v:g}" for v in p.denoise))
     if p.contrast != 1 or p.saturation != 1:
         f.append(f"eq=contrast={p.contrast:g}:saturation={p.saturation:g}")
@@ -233,7 +239,7 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
 
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     res = effective_resolution(s)
-    tag = ({"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_stab" if s.stabilize else "")
+    tag = ({"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
            + ("_ia" if s.use_ai else ""))
     base = f"{info.path.stem}_restaure_{s.profile.key}{tag}"
     cand = out_dir / f"{base}.mp4"

@@ -10,6 +10,7 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
 | Analyse | FFprobe + filtre `idet` de FFmpeg | GPL (build gyan.dev) | obligatoire |
 | Désentrelacement | `bwdif` (FFmpeg), une image par trame | idem | obligatoire |
 | Bruit / parasites | `hqdn3d` + `removegrain` mode 1 (FFmpeg) | idem | obligatoire |
+| Débruitage haute qualité | `fftdnoiz` + `hqdn3d` en renfort chroma (FFmpeg) | idem | option |
 | Couleurs / netteté | `eq`, `cas` (FFmpeg ≥ 5.0) | idem | obligatoire |
 | Mise à l'échelle classique | `scale` lanczos, matrice BT.601 → BT.709 | idem | obligatoire |
 | Encodage | libx264 CRF 18 + AAC 192k, MP4 `faststart` | idem | obligatoire |
@@ -27,8 +28,6 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
 - **Video2X 6.x** : orchestre Real-ESRGAN/Real-CUGAN/RIFE, mais licence AGPLv3, installateur Qt
   et chaîne d'encodage propre à lui. Nous n'utilisons qu'un seul modèle : appeler directement
   Real-ESRGAN est plus simple et laisse l'encodage (synchro son, 4:3, couleurs) sous notre contrôle.
-- **nlmeans / bm3d** (FFmpeg) : qualité de débruitage supérieure, mais beaucoup plus lent.
-  Candidats pour un futur réglage « qualité lente ».
 - **Encodage GPU (NVENC/QSV/AMF)** : non retenu dans le MVP. libx264 donne une qualité stable
   partout ; l'accélération GPU est utilisée là où elle compte (Real-ESRGAN, via Vulkan).
 
@@ -96,6 +95,32 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
   Elle est désactivée par défaut dans tous les profils et se juge sur l'aperçu.
 - **Mesuré** (vidéo de synthèse tremblée, scène fixe) : la différence moyenne entre images
   successives baisse de 59 % (30,9 → 12,7). Aucune mesure sur de vraies cassettes.
+
+## Débruitage haute qualité (phase 5)
+
+Banc d'essai : fractale animée détaillée (720×576), bruit ajouté fort sur la chroma et variable
+dans le temps. Mesure : PSNR et SSIM par rapport à l'image propre, vitesse sur 4 cœurs.
+
+| Filtre | PSNR Y | PSNR moyen | SSIM Y | images/s |
+|---|---|---|---|---|
+| aucun (bruité) | 33,4 | 29,7 | 0,74 | – |
+| hqdn3d 3:5:4.5:7 (Équilibré) | 34,1 | 30,1 | 0,78 | 61 |
+| nlmeans s=4 | 41,1 | 30,9 | 0,99 | 2,2 |
+| fftdnoiz σ9 | 39,4 | 33,0 | 0,97 | 20 |
+| **fftdnoiz σ8 + hqdn3d=0:6:0:9** | 39,8 | **33,7** | 0,98 | 21 |
+| bm3d (réglages testés) | sortie identique à l'entrée | | | 2,9 |
+| MDegrain (vs-jetpack) | sortie identique à l'entrée | | | – |
+
+- **Retenu** : `fftdnoiz` (FFT 3D sur l'image et ses deux voisines), suivi d'un `hqdn3d` réglé pour
+  la chroma. Le passage par l'export complet le confirme : +2,9 / +3,9 / +4,8 dB par rapport à
+  hqdn3d (Fidèle / Équilibré / Maximum). Il est environ 3 fois plus lent. C'est une case à cocher,
+  désactivée par défaut, qui remplace hqdn3d.
+- **Écartés** : `nlmeans`, excellent sur la luminance mais faible sur la chroma (pourtant la
+  composante dominante sur VHS) et 10 fois plus lent. `bm3d` et MDegrain n'ont rien modifié avec
+  les réglages essayés (MDegrain est probablement bloqué par sa détection de changement de plan
+  sous un bruit aussi fort) ; les mettre au point coûterait plus que le gain attendu.
+- **Limite** : un bruit artificiel n'est pas un bruit VHS réel (traînées horizontales, bruit
+  basse fréquence). Les réglages sont à confirmer sur de vraies cassettes.
 
 ## IA : limites assumées
 

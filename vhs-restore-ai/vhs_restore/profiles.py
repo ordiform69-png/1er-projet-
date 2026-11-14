@@ -8,6 +8,11 @@ réglages universels : l'aperçu sert à juger sur VOTRE vidéo.
   Défauts FFmpeg : 4:3:6:4.5. Le bruit chroma (taches colorées) étant dominant
   sur VHS/Video8, la chroma est filtrée plus fort que la luminance, qui porte
   le détail des visages.
+- denoise_hq : débruitage « haute qualité » (option, ~3x plus lent), qui remplace hqdn3d :
+  fftdnoiz (débruitage par FFT 3D sur l'image et ses deux voisines) avec ce sigma,
+  puis hqdn3d=0:c:0:ct en renfort sur la chroma. Mesuré sur une vidéo détaillée
+  bruitée artificiellement : +3,6 dB de PSNR moyen par rapport à hqdn3d pour
+  Équilibré (voir DECISIONS.md).
 - despeckle : removegrain mode 1 = ramène un pixel isolé dans l'intervalle de ses
   8 voisins ; enlève points et petits parasites sans flouter.
 - contrast / saturation : filtre eq (1.0 = inchangé).
@@ -36,6 +41,7 @@ class Profile:
     default_resolution: str       # "source" | "1080" | "2160"
     ai_default: bool
     deinterlacer: str = "qtgmc"   # "qtgmc" | "bwdif"
+    denoise_hq: tuple[float, float, float] = (8.0, 6.0, 9.0)   # sigma fftdnoiz, chroma spatial, chroma temporel
 
 
 PROFILES: dict[str, Profile] = {p.key: p for p in (
@@ -43,7 +49,8 @@ PROFILES: dict[str, Profile] = {p.key: p for p in (
             "Nettoyage léger du bruit, couleurs et cadrage d'origine, pas d'agrandissement.",
             denoise=(1.5, 3.0, 2.0, 4.0), despeckle=False,
             contrast=1.0, saturation=1.0, sharpen=0.0,
-            default_resolution="source", ai_default=False, deinterlacer="bwdif"),
+            default_resolution="source", ai_default=False, deinterlacer="bwdif",
+            denoise_hq=(5.0, 4.0, 6.0)),
     Profile("equilibre", "Équilibré",
             "Réduction du bruit et des parasites, couleurs ravivées modérément, "
             "netteté prudente. Export Full HD possible.",
@@ -55,7 +62,7 @@ PROFILES: dict[str, Profile] = {p.key: p for p in (
             "si elle est installée. À vérifier sur l'aperçu : visages et peau.",
             denoise=(4.0, 7.0, 6.0, 10.0), despeckle=True,
             contrast=1.06, saturation=1.12, sharpen=0.45,
-            default_resolution="1080", ai_default=True),
+            default_resolution="1080", ai_default=True, denoise_hq=(11.0, 8.0, 12.0)),
 )}
 
 RESOLUTIONS = {

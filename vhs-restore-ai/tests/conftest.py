@@ -58,6 +58,12 @@ def samples(tmp_path_factory):
        "crop=720:576:80+40*sin(n*1.7)+18*sin(n*4.1):62+30*cos(n*2.3)+12*sin(n*3.7),setsar=16/15",
        "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "6",
        "-c:v", "mpeg2video", "-b:v", "10M", "-c:a", "pcm_s16le", str(s["shaky"]))
+    # Image détaillée propre + même image avec un bruit analogique (fort sur la chroma, temporel)
+    s["clean"] = d / "propre.mkv"
+    ff("-f", "lavfi", "-i", "mandelbrot=size=720x576:rate=25,format=yuv420p,setsar=16/15", "-t", "2",
+       "-c:v", "ffv1", str(s["clean"]))
+    s["noisy"] = d / "bruité.mkv"
+    ff("-i", str(s["clean"]), "-vf", "noise=c0s=10:c1s=22:c2s=22:allf=t", "-c:v", "ffv1", str(s["noisy"]))
     s["corrupt"] = d / "abîmé.avi"
     s["corrupt"].write_bytes(os.urandom(20000))
     return s

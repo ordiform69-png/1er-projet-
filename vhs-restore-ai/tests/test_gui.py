@@ -43,6 +43,10 @@ def test_window_flow(app, tools, samples, tmp_path, monkeypatch):
     win.stab_check.setChecked(True)
     assert win.settings().stabilize == t.stab_available
     win.stab_check.setChecked(False)
+    assert not win.settings().denoise_hq
+    win.hq_check.setChecked(True)
+    assert win.settings().denoise_hq
+    win.hq_check.setChecked(False)
     win.profile_buttons["fidele"].setChecked(True)
     win.start_spin.setValue(0)
     win.start_preview()
