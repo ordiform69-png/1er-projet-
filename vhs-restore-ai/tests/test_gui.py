@@ -39,6 +39,10 @@ def test_window_flow(app, tools, samples, tmp_path, monkeypatch):
     expected = "qtgmc" if t.qtgmc_available else "bwdif"
     assert win.settings().deinterlacer == expected
     assert win.deint_combo.model().item(1).isEnabled() == t.qtgmc_available
+    assert win.stab_check.isEnabled() == t.stab_available and not win.settings().stabilize
+    win.stab_check.setChecked(True)
+    assert win.settings().stabilize == t.stab_available
+    win.stab_check.setChecked(False)
     win.profile_buttons["fidele"].setChecked(True)
     win.start_spin.setValue(0)
     win.start_preview()

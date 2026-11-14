@@ -128,3 +128,16 @@ def test_real_qtgmc_with_ai(pal, qtools, fake_ai, tmp_path, monkeypatch):
     _, v, a = _streams(res)
     assert (v["width"], v["height"]) == (1440, 1080) and int(v["nb_read_frames"]) == 50 and a
     assert list(work.iterdir()) == []                       # temporaires supprimés
+
+
+def test_real_qtgmc_with_stabilization(pal, qtools, tmp_path, monkeypatch):
+    if not qtools.stab_available:
+        pytest.skip("FFmpeg sans libvidstab")
+    work, out = tmp_path / "travail", tmp_path / "sortie"
+    work.mkdir()
+    out.mkdir()
+    monkeypatch.setenv("VHSRA_TMP", str(work))
+    res = pipeline.export(pal, S(stabilize=True), out / "qs.mp4", qtools, start=1, duration=2)
+    _, v, a = _streams(res)
+    assert int(v["nb_read_frames"]) == 100 and v["display_aspect_ratio"] == "4:3" and a
+    assert list(work.iterdir()) == []

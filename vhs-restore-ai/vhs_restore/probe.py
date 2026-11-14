@@ -138,7 +138,7 @@ def guess_standard(height: int, fps: Fraction) -> tuple[str, str]:
 
 def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) -> MediaInfo:
     tools.require_ffmpeg()
-    p = Path(path)
+    p = Path(path).resolve()
     if not p.is_file():
         raise ToolError(f"Fichier introuvable : {p}")
     try:

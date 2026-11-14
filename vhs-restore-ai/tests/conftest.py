@@ -52,6 +52,12 @@ def samples(tmp_path_factory):
     ff("-f", "lavfi", "-i", "testsrc2=size=720x576:rate=25,setsar=16/15",
        "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "120",
        "-c:v", "mpeg2video", "-b:v", "8M", "-c:a", "pcm_s16le", str(s["long"]))
+    # Caméra « tenue à la main » : scène fixe recadrée avec un tremblement (pixels 16:15), son
+    s["shaky"] = d / "caméra tremblante.avi"
+    ff("-f", "lavfi", "-i", "testsrc2=size=880x700:rate=25,"
+       "crop=720:576:80+40*sin(n*1.7)+18*sin(n*4.1):62+30*cos(n*2.3)+12*sin(n*3.7),setsar=16/15",
+       "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "6",
+       "-c:v", "mpeg2video", "-b:v", "10M", "-c:a", "pcm_s16le", str(s["shaky"]))
     s["corrupt"] = d / "abîmé.avi"
     s["corrupt"].write_bytes(os.urandom(20000))
     return s

@@ -5,13 +5,15 @@ Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   2. désentrelacement, une image par trame (50p / 59,94p) : conserve la
      fluidité de mouvement d'origine ; ordre des trames explicite.
      bwdif (FFmpeg) ou QTGMC (VapourSynth, vspipe → FFmpeg par un tube)
-  3. suppression des parasites ponctuels (removegrain)
-  4. réduction du bruit spatio-temporelle (hqdn3d) sur des images progressives
-  5. correction modérée contraste / saturation (eq)
-  6. [IA facultative : Real-ESRGAN x4 sur images PNG]
-  7. mise à l'échelle lanczos vers la taille cible, matrice couleur BT.709 en HD
-  8. netteté adaptative (cas), sauf si l'IA est utilisée
-  9. rapport de pixel (setsar) pour un affichage 4:3 sans étirement, yuv420p
+  3. [stabilisation facultative : vid.stab, 2 passes] sur images progressives,
+     avant le débruitage temporel qui profite d'images alignées
+  4. suppression des parasites ponctuels (removegrain)
+  5. réduction du bruit spatio-temporelle (hqdn3d)
+  6. correction modérée contraste / saturation (eq)
+  7. [IA facultative : Real-ESRGAN x4 sur images PNG]
+  8. mise à l'échelle lanczos vers la taille cible, matrice couleur BT.709 en HD
+  9. netteté adaptative (cas), sauf si l'IA est utilisée
+ 10. rapport de pixel (setsar) pour un affichage 4:3 sans étirement, yuv420p
 Une seule compression finale (H.264) : pas de conversions successives destructives
 (l'intermédiaire du mode IA est sans perte : FFV1 + FLAC, images PNG).
 """
@@ -40,6 +42,15 @@ from .upscaler import RealEsrganUpscaler
 log = logging.getLogger("vhs_restore")
 Progress = Callable[[float, str], None]
 AI_CHUNK_FRAMES = 60
+STAB_FILE = "transforms.trf"   # nom relatif : les commandes vid.stab tournent dans le dossier de travail
+
+# Réglages de stabilisation (vid.stab). Objectif : atténuer les tremblements de la
+# caméra tenue à la main, pas figer les mouvements volontaires (panoramiques).
+STAB_SHAKINESS = 5            # 1-10 : tremblements attendus (5 = défaut vid.stab)
+STAB_ACCURACY = 15            # précision maximale de la détection
+STAB_SMOOTH_SECONDS = 0.3     # lissage de la trajectoire : ±0,3 s
+STAB_MAX_SHIFT = 0.04         # correction maximale : 4 % de la largeur…
+STAB_MAX_ANGLE = 0.035        # …et 2° de rotation : limite le zoom nécessaire
 
 
 @dataclass
@@ -50,6 +61,7 @@ class Settings:
     dar: Fraction | None = None           # forçage manuel du format d'affichage
     use_ai: bool = False
     deinterlacer: str = "bwdif"           # bwdif | qtgmc
+    stabilize: bool = False
     crf: int = 18
     preset: str = "medium"
 
@@ -99,14 +111,36 @@ def _in_matrix(info: MediaInfo) -> str:
     return "bt709" if info.color_space == "bt709" else "bt601"
 
 
-def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
-    p = s.profile
+def _base_filters(info: MediaInfo, s: Settings) -> list[str]:
+    """Recadrage pair + désentrelacement FFmpeg : ce que voient les deux passes de stabilisation."""
     f: list[str] = []
     if info.width % 2 or info.height % 2:
         f.append(f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0")
     scan = effective_scan(info, s)
     if scan in ("tff", "bff") and not uses_qtgmc(info, s):
         f.append(f"bwdif=mode=send_field:parity={scan}:deint=all")
+    return f
+
+
+def stab_detect_filters(info: MediaInfo, s: Settings) -> list[str]:
+    return _base_filters(info, s) + [
+        f"vidstabdetect=result={STAB_FILE}:shakiness={STAB_SHAKINESS}:accuracy={STAB_ACCURACY}"]
+
+
+def stab_transform_filter(info: MediaInfo, s: Settings) -> str:
+    """Zoom statique optimal (pas de bords noirs en général) borné par maxshift/maxangle ;
+    s'il reste un bord, il est noir (crop=black) plutôt que rempli avec une image passée."""
+    smoothing = max(1, round(float(output_fps(info, s)) * STAB_SMOOTH_SECONDS))
+    maxshift = max(1, round(info.width * STAB_MAX_SHIFT))
+    return (f"vidstabtransform=input={STAB_FILE}:smoothing={smoothing}:optzoom=1:"
+            f"maxshift={maxshift}:maxangle={STAB_MAX_ANGLE:g}:crop=black:interpol=bicubic")
+
+
+def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
+    p = s.profile
+    f = _base_filters(info, s)
+    if s.stabilize:
+        f.append(stab_transform_filter(info, s))
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
     if p.denoise:
@@ -199,7 +233,8 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
 
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     res = effective_resolution(s)
-    tag = {"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_ia" if s.use_ai else "")
+    tag = ({"source": "", "1080": "_1080p", "2160": "_4k"}[res] + ("_stab" if s.stabilize else "")
+           + ("_ia" if s.use_ai else ""))
     base = f"{info.path.stem}_restaure_{s.profile.key}{tag}"
     cand = out_dir / f"{base}.mp4"
     n = 2
@@ -214,28 +249,40 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            start: float | None = None, duration: float | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet."""
     tools.require_ffmpeg()
-    out_path = Path(out_path)
+    out_path = Path(out_path).resolve()
     if out_path.resolve() == info.path.resolve():
         raise ToolError("Le fichier de sortie ne peut pas être le fichier original.")
     if not out_path.parent.is_dir():
         raise ToolError(f"Dossier de sortie introuvable : {out_path.parent}")
-    part = out_path.with_name(out_path.stem + ".partiel.mp4")
+    if s.stabilize and not tools.stab_available:
+        raise ToolError("La stabilisation demande un FFmpeg compilé avec libvidstab "
+                        "(filtres vidstabdetect/vidstabtransform), absent de votre FFmpeg.")
+    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
     total = duration or info.duration
+    work: Path | None = None
     try:
         if s.use_ai:
             _export_ai(info, s, part, tools, cancel, progress, start, duration, total)
         else:
+            lo = 0.0
+            if s.stabilize:
+                work = Path(tempfile.mkdtemp(prefix="vhsrestore_stab_", dir=_work_root()))
+                lo = 0.35
+                _stab_detect(info, s, tools, work, start, duration, total, cancel, progress, 0, lo)
             args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
             if vs and progress:
-                progress(0.0, "QTGMC : préparation (indexation de la vidéo)…")
+                progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
                    *encode_args(info, s), "-f", "mp4", str(part)])
-            run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs,
-                on_line=_FFProgress(total, progress, 0, 1, "Restauration…"))
+            run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
+                on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         os.replace(part, out_path)
     except BaseException:
         part.unlink(missing_ok=True)
         raise
+    finally:
+        if work is not None:
+            shutil.rmtree(work, ignore_errors=True)
     if progress:
         progress(1.0, "Terminé")
     log.info("Export terminé : %s", out_path)
@@ -244,6 +291,25 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
 
 def _work_root() -> str:
     return os.environ.get("VHSRA_TMP") or tempfile.gettempdir()
+
+
+def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
+                 start: float | None, duration: float | None, total: float,
+                 cancel: threading.Event | None, progress: Progress | None,
+                 lo: float, hi: float) -> None:
+    """Passe 1 : mesure des mouvements de caméra -> work/transforms.trf.
+    Elle voit exactement les mêmes images que la passe 2 (mêmes entrées, même
+    désentrelacement), condition pour que les corrections tombent sur les bonnes images."""
+    args, vs, vmap, _ = source_inputs(info, s, tools, start, duration)
+    if progress:
+        progress(lo, "Stabilisation : analyse des mouvements…")
+    run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "warning",
+         "-progress", "pipe:1", "-nostats", *args, "-map", vmap,
+         "-vf", ",".join(stab_detect_filters(info, s)), "-f", "null", "-"],
+        cancel=cancel, what="FFmpeg (analyse de stabilisation)", feeder=vs, cwd=work,
+        on_line=_FFProgress(total, progress, lo, hi, "Stabilisation : analyse des mouvements…"))
+    if not (work / STAB_FILE).is_file():
+        raise ToolError("L'analyse de stabilisation n'a produit aucun résultat.")
 
 
 def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
@@ -263,14 +329,18 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
     enc: subprocess.Popen | None = None
     try:
         # 1. pré-traitement sans perte (vidéo FFV1 tout-intra + audio FLAC)
+        lo = 0.0
+        if s.stabilize:
+            lo = 0.04
+            _stab_detect(info, s, tools, tmp, start, duration, total, cancel, progress, 0, lo)
         inter = tmp / "inter.mkv"
         pre = ",".join(pre_filters(info, s)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
         run(_ff_base(tools) + args + [
             "-map", vmap, "-map", amap, "-vf", pre,
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
-            cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs,
-            on_line=_FFProgress(total, progress, 0, 0.1, "Nettoyage avant IA…"))
+            cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
+            on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
         meta = run_capture([tools.ffprobe.path, "-v", "error", "-count_packets",
                             "-show_entries", "stream=codec_type,start_time,nb_read_packets:format=start_time",
                             "-of", "json", str(inter)])

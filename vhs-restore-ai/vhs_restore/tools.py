@@ -28,6 +28,7 @@ _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 # Filtres FFmpeg indispensables à la chaîne de restauration.
 QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
 REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack")
+STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
 
 
 class ToolError(RuntimeError):
@@ -57,6 +58,11 @@ class Toolset:
     realesrgan: Tool
     missing_filters: list[str] = field(default_factory=list)
     vspipe: Tool = field(default_factory=lambda: Tool("QTGMC"))
+    vidstab: bool = False
+
+    @property
+    def stab_available(self) -> bool:
+        return self.vidstab
 
     @property
     def ai_available(self) -> bool:
@@ -120,6 +126,7 @@ def detect_tools() -> Toolset:
     re_ = Tool("Real-ESRGAN", _find("VHSRA_REALESRGAN", ["realesrgan-ncnn-vulkan"],
                                     ["realesrgan", "realesrgan-ncnn-vulkan"]))
     missing: list[str] = []
+    vidstab = False
     for t in (ff, fp):
         if t.path:
             t.version = _version(t.path)
@@ -128,6 +135,7 @@ def detect_tools() -> Toolset:
             listing = run_capture([ff.path, "-hide_banner", "-filters"], timeout=15).stdout
             present = {line.split()[1] for line in listing.splitlines() if len(line.split()) > 2}
             missing = [f for f in REQUIRED_FILTERS if f not in present]
+            vidstab = all(f in present for f in STAB_FILTERS)
         except (OSError, subprocess.TimeoutExpired) as exc:
             ff.problem = f"FFmpeg ne répond pas : {exc}"
     if re_.path:
@@ -136,7 +144,7 @@ def detect_tools() -> Toolset:
         if not (models / "realesrgan-x4plus.param").is_file():
             re_.problem = f"modèle realesrgan-x4plus absent de {models}"
         re_.version = "ncnn-vulkan"
-    ts = Toolset(ff, fp, re_, missing, detect_qtgmc())
+    ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab)
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem, missing)
     return ts
@@ -178,13 +186,16 @@ ProgressFn = Callable[[float, str], None]
 def run(cmd: list[str], *, cancel: threading.Event | None = None,
         on_line: Callable[[str], None] | None = None,
         poll: Callable[[], None] | None = None,
-        what: str = "commande", feeder: list[str] | None = None) -> list[str]:
+        what: str = "commande", feeder: list[str] | None = None,
+        cwd: str | Path | None = None) -> list[str]:
     """Exécute une commande longue, annulable. Lève ToolError si échec.
 
     stdout et stderr sont fusionnés et lus ligne par ligne dans un thread,
     ce qui évite tout blocage de tampon. Renvoie les dernières lignes.
     feeder : commande dont la sortie standard alimente l'entrée de cmd (tube
     sans shell, ex. vspipe → ffmpeg) ; elle est arrêtée avec cmd en cas d'annulation.
+    cwd : dossier de travail (permet de nommer un fichier dans un filtre FFmpeg sans
+    avoir à échapper un chemin Windows complet).
     """
     log.info("exec: %s%s", subprocess.list2cmdline(feeder) + " | " if feeder else "",
              subprocess.list2cmdline(cmd))
@@ -204,7 +215,7 @@ def run(cmd: list[str], *, cancel: threading.Event | None = None,
             threading.Thread(target=drain, daemon=True).start()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 stdin=feed_proc.stdout if feed_proc else subprocess.DEVNULL,
-                                text=True, encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
+                                cwd=cwd, text=True, encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
         if feed_proc:
             feed_proc.stdout.close()  # seul ffmpeg garde le tube ouvert
     except OSError as exc:

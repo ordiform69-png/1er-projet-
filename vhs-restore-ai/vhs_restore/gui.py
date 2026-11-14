@@ -217,6 +217,8 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("Désentrelaceur :"))
         h.addWidget(self.deint_combo, 1)
         v.addLayout(h)
+        self.stab_check = QCheckBox("Stabiliser l'image (caméra tenue à la main, 2 passes)")
+        v.addWidget(self.stab_check)
         v.addWidget(self.ai_check)
         left.addWidget(g)
         left.addStretch(1)
@@ -290,6 +292,10 @@ class MainWindow(QMainWindow):
         qt = f"QTGMC ✔ ({t.vspipe.version})" if t.qtgmc_available else "QTGMC non installé (facultatif)"
         self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}")
         self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
+        self.stab_check.setToolTip(
+            "Atténue les tremblements (vid.stab). L'image est légèrement agrandie pour masquer "
+            "les bords : le cadrage change un peu. Vérifiez sur l'aperçu." if t.stab_available else
+            "Indisponible : votre FFmpeg n'inclut pas libvidstab (le FFmpeg installé par installer.bat l'inclut).")
         self.deint_combo.setToolTip(
             "Utilisé seulement si la vidéo est entrelacée. QTGMC : désentrelaceur de référence "
             "(VapourSynth), plus stable sur les détails fins, mais plusieurs fois plus lent."
@@ -310,6 +316,9 @@ class MainWindow(QMainWindow):
         self.cancel_btn.setEnabled(busy)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
         self.deint_combo.setEnabled(not busy)
+        self.stab_check.setEnabled(self.tools.stab_available and not busy)
+        if not self.tools.stab_available:
+            self.stab_check.setChecked(False)
         if not self.tools.ai_available:
             self.ai_check.setChecked(False)
         idx_4k = self.res_combo.findData("2160")
@@ -338,7 +347,8 @@ class MainWindow(QMainWindow):
         return pipeline.Settings(profile=PROFILES[key], resolution=self.res_combo.currentData(),
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
                                  use_ai=self.ai_check.isChecked(),
-                                 deinterlacer=self.deint_combo.currentData())
+                                 deinterlacer=self.deint_combo.currentData(),
+                                 stabilize=self.stab_check.isChecked())
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:

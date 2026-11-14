@@ -14,6 +14,7 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
 | Mise à l'échelle classique | `scale` lanczos, matrice BT.601 → BT.709 | idem | obligatoire |
 | Encodage | libx264 CRF 18 + AAC 192k, MP4 `faststart` | idem | obligatoire |
 | Désentrelacement HQ (facultatif) | QTGMC = `QTempGaussMC` de vs-jetpack 3.0, VapourSynth R82 (pip) | VapourSynth LGPL-2.1+, vs-jetpack MIT, plugins MIT/LGPL/GPL-2.0 (mvutensils, znedi3) | optionnel |
+| Stabilisation (facultatif) | vid.stab : `vidstabdetect` + `vidstabtransform` (FFmpeg) | GPL-2.0 (libvidstab) | optionnel |
 | IA (facultatif) | Real-ESRGAN ncnn-vulkan v0.2.5.0, modèle `realesrgan-x4plus` | BSD-3 | optionnel |
 
 **Une seule dépendance Python : PySide6.** Tout le reste est invoqué comme exécutable externe
@@ -28,8 +29,6 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
   Real-ESRGAN est plus simple et laisse l'encodage (synchro son, 4:3, couleurs) sous notre contrôle.
 - **nlmeans / bm3d** (FFmpeg) : qualité de débruitage supérieure, mais beaucoup plus lent.
   Candidats pour un futur réglage « qualité lente ».
-- **Stabilisation** (`vidstabdetect/transform`, disponibles dans FFmpeg) : demande deux passes
-  et recadre l'image. Reportée.
 - **Encodage GPU (NVENC/QSV/AMF)** : non retenu dans le MVP. libx264 donne une qualité stable
   partout ; l'accélération GPU est utilisée là où elle compte (Real-ESRGAN, via Vulkan).
 
@@ -75,6 +74,28 @@ Ce document est court et sert de référence unique. Date : novembre 2026.
   sans progression visible.
 - **Mesuré ici** (Linux, 4 cœurs, 720×576) : environ 31 images/s pour QTGMC seul. Rien n'a été
   mesuré sous Windows.
+
+## Stabilisation (phase 4)
+
+- **Choix** : vid.stab, déjà présent dans FFmpeg (le build gyan.dev « essentials » contient
+  libvidstab). Aucune nouvelle dépendance. `deshake` a été écarté : il est plus simple mais moins
+  précis. Si le FFmpeg utilisé n'a pas libvidstab, la case est grisée et le motif est indiqué.
+- **Deux passes** : la passe 1 mesure les mouvements (`transforms.trf`), la passe 2 corrige. Les
+  deux passes reçoivent exactement les mêmes images (mêmes entrées, même désentrelacement), sinon
+  les corrections ne tomberaient pas sur les bonnes images. Avec QTGMC, il est donc exécuté deux
+  fois. Le fichier est nommé relativement au dossier de travail, ce qui évite d'échapper un chemin
+  Windows dans le graphe de filtres.
+- **Place dans la chaîne** : juste après le désentrelacement, avant le débruitage temporel
+  (hqdn3d est plus efficace sur des images alignées) et avant l'agrandissement. Le travail porte
+  ainsi sur moins de pixels.
+- **Réglages** (`pipeline.py`) : shakiness 5, accuracy 15. Le lissage vaut ±0,3 s (15 images
+  en 50p). La correction est bornée à 4 % de la largeur et à 2° de rotation, ce qui limite le
+  zoom. Le zoom statique optimal masque les bords ; s'il reste un bord, il est noir plutôt que
+  rempli avec une image passée.
+- **Fidélité** : la stabilisation agrandit légèrement l'image, donc le cadrage change un peu.
+  Elle est désactivée par défaut dans tous les profils et se juge sur l'aperçu.
+- **Mesuré** (vidéo de synthèse tremblée, scène fixe) : la différence moyenne entre images
+  successives baisse de 59 % (30,9 → 12,7). Aucune mesure sur de vraies cassettes.
 
 ## IA : limites assumées
 

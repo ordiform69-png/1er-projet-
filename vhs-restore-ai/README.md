@@ -27,7 +27,7 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
    caractéristique est incertaine, un avertissement s'affiche et vous pouvez la forcer
    (balayage, format).
 2. **Choisir un profil** : Fidèle, Équilibré ou Maximum. Choisissez aussi la résolution de sortie
-   et, en option, l'IA.
+   et, en option, la stabilisation (caméra tenue à la main) et l'IA.
 3. **Générer l'aperçu** d'un extrait de 10 s. Passez la souris sur l'image pour déplacer le rideau
    avant/après. « Lire la comparaison vidéo » ouvre l'extrait côte à côte dans votre lecteur.
 4. **Lancer la restauration.** Le fichier `<nom>_restaure_<profil>.mp4` est créé dans le dossier
@@ -41,6 +41,7 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 | Parasites ponctuels | – | removegrain 1 | removegrain 1 |
 | Bruit hqdn3d | 1.5:3:2:4 | 3:5:4.5:7 | 4:7:6:10 |
 | Contraste / saturation | inchangés | ×1,04 / ×1,08 | ×1,06 / ×1,12 |
+| Stabilisation (vid.stab) | case à cocher, désactivée par défaut | idem | idem |
 | Netteté cas | – | 0,30 | 0,45 (aucune si IA) |
 | Sortie par défaut | origine | origine (Full HD au choix) | Full HD (+ IA si installée) |
 
@@ -53,7 +54,9 @@ les visages. La 4K n'est proposée qu'avec l'IA, et elle n'apporte aucun détail
 analyse (accents et espaces dans les noms), détection TFF/progressif, 4:3 et pixels 16:15,
 PAL/NTSC, les trois profils, l'export (taille, 50 i/s, son présent et synchronisé, durée, original
 intact, pas d'écrasement), l'annulation avec nettoyage, QTGMC réel (VapourSynth R82 et vs-jetpack 3.0 :
-export, extrait, aperçu, annulation, combinaison avec l'IA, plugin manquant signalé), les erreurs (fichier corrompu, dossier absent,
+export, extrait, aperçu, annulation, combinaison avec l'IA, plugin manquant signalé), stabilisation
+(tremblement mesuré −59 % sur une vidéo de synthèse ; 4:3, cadence et son conservés ; extrait,
+annulation, combinaisons avec QTGMC et avec l'IA), les erreurs (fichier corrompu, dossier absent,
 moteur IA manquant), l'aperçu avant/après et le parcours complet dans l'interface. La chaîne IA a
 été testée avec un **faux** moteur qui agrandit sans IA.
 
@@ -62,7 +65,7 @@ QTGMC) ; l'indexation BestSource sur un long film ;
 le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun échantillon fourni,
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
-**Prévu ensuite** : stabilisation (vid.stab),
+**Prévu ensuite** :
 débruitage lent haute qualité (nlmeans/bm3d), masquage du bruit de tête en bas d'image,
 encodage GPU, traitement par lots.
 
