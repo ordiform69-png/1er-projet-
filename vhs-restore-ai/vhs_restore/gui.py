@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 
 from . import pipeline
 from .dvd import open_media
-from .probe import MediaInfo
+from .probe import MediaInfo, cast_gains
 from .advice import advise
 from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
@@ -496,6 +496,13 @@ class MainWindow(QMainWindow):
         h.addWidget(self.chroma_spin)
         h.addStretch(1)
         v.addLayout(h)
+        self.cast_check = QCheckBox("Corriger la dominante de couleur")
+        self.cast_check.setToolTip(
+            "Retire une teinte qui couvre tout le film (vert de VHS, par exemple). "
+            "Les trois gains sont calculés une seule fois, pour tout le film. "
+            "Un noir et blanc reste neutre, une image pâle n'est pas ravivée. "
+            "Désactivé par défaut. L'analyse le conseille seulement si la dominante est forte.")
+        v.addWidget(self.cast_check)
         v.addWidget(self.ai_check)
         left.addWidget(g)
         left.addStretch(1)
@@ -711,6 +718,9 @@ class MainWindow(QMainWindow):
     def _raw_settings(self) -> pipeline.Settings:
         key = next(k for k, b in self.profile_buttons.items() if b.isChecked())
         src = self.source()
+        gains = (1.0, 1.0, 1.0)
+        if self.cast_check.isChecked() and self.info is not None and self.info.cast_rgb:
+            gains = cast_gains(self.info.cast_rgb)
         return pipeline.Settings(profile=profile_for(key, src), resolution=self.res_combo.currentData(),
                                  source=src, playback_fps=(Fraction(self.cadence_combo.currentData())
                                                            if self.cadence_combo.currentData() else None),
@@ -735,6 +745,7 @@ class MainWindow(QMainWindow):
                                  audio_highpass=self.wind_check.isChecked(),
                                  audio_presence=self.presence_check.isChecked(),
                                  chroma_shift=int(self.chroma_spin.value()),
+                                 gain_r=gains[0], gain_g=gains[1], gain_b=gains[2],
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
 
     # ------------------------------------------------------------ actions
@@ -890,6 +901,12 @@ class MainWindow(QMainWindow):
         base = self.settings(with_advice=False)
         if self.s_advice.isChecked():          # conseils propres à CHAQUE film du dossier
             base = apply_advice(base, advise(info))
+        if self.cast_check.isChecked():
+            if info.cast_rgb:
+                gr, gg, gb = cast_gains(info.cast_rgb)
+                base = dataclasses.replace(base, gain_r=gr, gain_g=gg, gain_b=gb)
+            else:
+                base = dataclasses.replace(base, gain_r=1.0, gain_g=1.0, gain_b=1.0)
         src = self.source_combo.currentData() or info.suggested_source
         return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
                                    scan=None, dar=None, playback_fps=None,
@@ -995,6 +1012,8 @@ class MainWindow(QMainWindow):
             self.wind_check.setChecked(bool(s.value("audio_highpass", False, type=bool)))
         if s.contains("audio_presence"):
             self.presence_check.setChecked(bool(s.value("audio_presence", False, type=bool)))
+        if s.contains("correct_cast"):
+            self.cast_check.setChecked(bool(s.value("correct_cast", False, type=bool)))
         self.offset_spin.setValue(float(s.value("audio_offset_ms", 0) or 0))
         self.drift_spin.setValue(float(s.value("audio_drift_ms_per_min", 0) or 0))
         mains = int(float(s.value("audio_mains_hz", 0) or 0))
@@ -1025,6 +1044,7 @@ class MainWindow(QMainWindow):
         s.setValue("use_rnnoise", self.rnnoise_check.isChecked())
         s.setValue("audio_highpass", self.wind_check.isChecked())
         s.setValue("audio_presence", self.presence_check.isChecked())
+        s.setValue("correct_cast", self.cast_check.isChecked())
         s.setValue("audio_offset_ms", self.offset_spin.value())
         s.setValue("audio_drift_ms_per_min", self.drift_spin.value())
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))

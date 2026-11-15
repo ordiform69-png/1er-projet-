@@ -59,6 +59,7 @@ class MediaInfo:
     saturation_high: float | None = None   # saturation des pixels les plus colorés (SATHIGH)
     level_low: float | None = None         # médiane de YLOW (percentile bas de la luminance)
     level_high: float | None = None        # médiane de YHIGH (percentile haut)
+    cast_rgb: tuple[float, float, float] | None = None   # moyennes R, G, B de l'échantillon
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     audio_channels: int = 0
     channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
@@ -196,6 +197,32 @@ def parse_signals(text: str) -> dict[str, float | None]:
         if vals:
             out[name] = vals[len(vals) // 2]          # médiane : une valeur pour tout le film
     return out
+
+
+def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float, float] | None:
+    """Moyenne R, G, B sur quelques images réduites. Une seule lecture courte."""
+    try:
+        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+                            "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
+                            "-map", "0:v:0", "-vf", "scale=32:32,format=rgb24",
+                            "-frames:v", "8", "-an", "-f", "rawvideo", "-"],
+                           capture_output=True, timeout=60, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    data = r.stdout
+    if r.returncode or len(data) < 32 * 32 * 3:
+        return None
+    n = len(data) // 3
+    return (sum(data[0::3]) / n, sum(data[1::3]) / n, sum(data[2::3]) / n)
+
+
+def cast_gains(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
+    """Gains fixes pour ramener les trois moyennes au même niveau. 1, 1, 1 si c'est déjà le cas."""
+    r, g, b = rgb
+    if min(r, g, b) < 1:
+        return (1.0, 1.0, 1.0)
+    mean = (r + g + b) / 3
+    return (mean / r, mean / g, mean / b)
 
 
 def suggest_source(info: MediaInfo) -> tuple[str, str]:
@@ -342,6 +369,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.repeated_fields, info.repeated_frames, info.saturation, info.saturation_high = \
             sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
         info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
+        info.cast_rgb = rgb_mean(tools.ffmpeg.path, p, start)
     except subprocess.TimeoutExpired:
         info.idet = {}
     info.scan, info.scan_source = decide_scan(info.idet, info.field_order_meta)

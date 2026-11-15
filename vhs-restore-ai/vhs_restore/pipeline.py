@@ -97,6 +97,9 @@ class Settings:
     level_black: float = 0.0              # 0 et 1 = ne pas toucher aux niveaux
     level_white: float = 1.0
     chroma_shift: int = 0                  # décalage horizontal de la couleur, en pixels (−8 à +8)
+    gain_r: float = 1.0                    # dominante : 1 = ne pas toucher
+    gain_g: float = 1.0
+    gain_b: float = 1.0
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
@@ -372,6 +375,15 @@ def _levels_filter(s: Settings) -> str | None:
             f"rimax={hi:.4f}:gimax={hi:.4f}:bimax={hi:.4f}")
 
 
+def _cast_filter(s: Settings) -> str | None:
+    """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux."""
+    gains = (float(s.gain_r), float(s.gain_g), float(s.gain_b))
+    if all(abs(g - 1.0) < 0.02 for g in gains):
+        return None
+    rr, gg, bb = (min(1.5, max(0.5, g)) for g in gains)
+    return f"colorchannelmixer=rr={rr:.4f}:gg={gg:.4f}:bb={bb:.4f}"
+
+
 def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     p = s.profile
     f = _base_filters(info, s)
@@ -379,6 +391,9 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
         f.append(stab_transform_filter(info, s))
     if s.deflicker:
         f.append("deflicker=size=5:mode=pm")   # lisse la luminosité moyenne sur 5 images
+    cast = _cast_filter(s)
+    if cast:
+        f.append(cast)                         # avant les niveaux : le même étirement garde l'équilibre
     lvl = _levels_filter(s)
     if lvl:
         f.append(lvl)                          # une correction pour tout le film, pas image par image

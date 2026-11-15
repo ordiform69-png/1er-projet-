@@ -6,7 +6,7 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 
-from .probe import MediaInfo
+from .probe import MediaInfo, cast_gains
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,11 @@ def advise(info: MediaInfo) -> list[Advice]:
                           f"Les noirs sont gris et les blancs ternes (niveaux {lo:.0f} à {hi:.0f}) : "
                           "ils seront étirés, une seule fois pour tout le film.",
                           {"level_black": lo / 255.0, "level_white": hi / 255.0}))
+    if info.cast_rgb and max(info.cast_rgb) - min(info.cast_rgb) > 15:
+        gr, gg, gb = cast_gains(info.cast_rgb)
+        out.append(Advice("cast", "Une dominante de couleur couvre l'image : elle sera retirée "
+                                  "(sans raviver une image pâle).",
+                          {"gain_r": gr, "gain_g": gg, "gain_b": gb}))
     return out
 
 

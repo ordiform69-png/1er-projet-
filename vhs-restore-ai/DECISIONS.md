@@ -392,3 +392,13 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
 - **Décalage de couleur** : réglage avancé −8 à +8 pixels, 0 par défaut (`chromashift` horizontal,
   le glissement typique d'une VHS). Mesuré : un carré rouge décalé de 4 px (PSNR du plan U ≈ 31 dB
   contre l'original) revient à l'identique (PSNR infini) après correction de −4 px. Taille inchangée.
+- **Dominante de couleur** : `grayworld` écarté (il fait exploser `signalstats`, y compris sur un
+  noir et blanc). Correction choisie : moyennes R, G, B sur 8 images réduites à 32×32, une seule
+  fois, puis `colorchannelmixer` avec trois gains fixes (moyenne / canal, bornés 0,5–1,5). Conseil
+  `cast` seulement si l'écart entre les moyennes dépasse 15. Case avancée « Corriger la dominante
+  de couleur », décochée. Le filtre est placé avant l'étirement des niveaux : le même étirement
+  sur les trois canaux ne recrée pas la teinte. Mesuré : vert ajouté, écart des moyennes 36,3 → 1,4,
+  UAVG 118,7 → 127,9 et VAVG 113,7 → 127,6 (neutre = 128). Noir et blanc : gains 1, saturation 0.
+  Couleur pâle (saturation 0,25) : pas de conseil, saturation 27,2 → 26,9 (pas ravivée). Un
+  `testsrc2` déjà neutre (écart 4,8) n'a pas de conseil.
+
