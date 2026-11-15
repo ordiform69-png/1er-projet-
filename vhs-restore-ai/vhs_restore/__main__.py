@@ -90,8 +90,16 @@ def run() -> int:
     if len(sys.argv) >= 3 and sys.argv[1] == "--autotest":
         return autotest(sys.argv[2])
     if len(sys.argv) >= 3 and sys.argv[1] == "--poussieres":   # sous-processus Analog Repair
-        from vhs_restore.dust import bridge_main
-        return bridge_main(sys.argv[2])
+        # Aucune exception ne doit remonter : dans l'exe Windows sans console, elle ouvrirait
+        # une boîte d'erreur qui bloquerait le traitement en attendant un clic.
+        try:
+            from vhs_restore.dust import bridge_main
+            return bridge_main(sys.argv[2])
+        except BaseException as exc:  # noqa: BLE001
+            import json
+            logging.getLogger("vhs_restore").exception("Échec du module poussières")
+            print(json.dumps({"kind": "error", "message": f"{type(exc).__name__}: {exc}"}), flush=True)
+            return 1
     from vhs_restore.gui import main
     return main()
 
