@@ -32,7 +32,8 @@ QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
 REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack", "fftdnoiz",
                     "signalstats", "fieldmatch", "deflicker", "setpts", "atempo")
 STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
-AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject", "arnndn")  # facultatifs
+AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject", "arnndn",
+                 "adeclip", "pan")  # facultatifs
 
 
 class ToolError(RuntimeError):

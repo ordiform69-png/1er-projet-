@@ -40,6 +40,10 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 dossier… » traite d'un coup toutes les vidéos d'un dossier et les range dans un sous-dossier
 « Films restaurés ». Un fichier illisible est signalé sans interrompre les autres.
 
+Si l'analyse détecte un défaut du son (un seul côté enregistré, côtés en opposition de phase, son
+saturé, ronflement électrique), elle l'explique en une phrase sous la description du film et propose
+une case « Appliquer ces conseils », décochée par défaut.
+
 **Options avancées** (lien en bas à droite) : tous les réglages ci-dessous.
 
 1. **Choisir une vidéo** (ou la glisser dans la fenêtre). L'analyse affiche la résolution, la

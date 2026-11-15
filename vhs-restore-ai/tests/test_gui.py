@@ -137,3 +137,23 @@ def test_read_only_source_uses_fallback(app, tools, samples, tmp_path, monkeypat
     wait(app, win)
     assert win.out_edit.text() == str(fb) and "ne peut pas être modifié" in win.warn_label.text()
     win.close()
+
+
+def test_advice_checkbox(app, tools, samples, tmp_path):
+    from conftest import ff
+    src = tmp_path / "son d'un seul côté.mkv"
+    ff("-f", "lavfi", "-i", "testsrc2=size=320x240:rate=25", "-filter_complex",
+       "sine=f=440:sample_rate=48000[t];anullsrc=r=48000:cl=mono[s];[t][s]join=inputs=2:channel_layout=stereo[a]",
+       "-map", "0:v", "-map", "[a]", "-t", "3", "-c:v", "ffv1", "-c:a", "pcm_s16le", str(src))
+    win = MainWindow(tools)
+    win.load_file(str(src))
+    wait(app, win)
+    assert win.s_advice.isVisibleTo(win) and not win.s_advice.isChecked()
+    assert "côté gauche" in win.s_info.text()
+    assert win.settings().audio_channel_fix == ""                 # rien sans accord
+    win.s_advice.setChecked(True)
+    assert win.settings().audio_channel_fix == "left"
+    win.load_file(str(samples["film18"]))                         # film muet : aucun conseil
+    wait(app, win)
+    assert not win.s_advice.isVisibleTo(win) and win.settings().audio_channel_fix == ""
+    win.close()

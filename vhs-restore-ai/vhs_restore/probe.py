@@ -58,6 +58,10 @@ class MediaInfo:
     saturation: float | None = None        # saturation moyenne (signalstats, 0 = gris)
     saturation_high: float | None = None   # saturation des pixels les plus colorés (SATHIGH)
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
+    audio_channels: int = 0
+    channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
+    clipped: float = 0.0                   # part d'échantillons saturés
+    hum_hz: int = 0                        # ronflement détecté : 0 | 50 | 60
     suggested_source: str = "video"        # video | film | transfer
     source_reason: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -312,6 +316,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.has_audio = True
         info.audio_desc = (f"{a.get('codec_name', '?')}, {a.get('sample_rate', '?')} Hz, "
                            f"{a.get('channels', '?')} canal(aux)")
+        info.audio_channels = int(a.get("channels") or 0)
         _audio_timing_notes(info, a, v, fmt)
 
     # --- entrelacement mesuré sur le contenu (au tiers du film, hors amorce)
@@ -358,6 +363,10 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
             info.audio_silent = bool(m) and (m.group(1) == "-inf" or float(m.group(1)) < -60)
         except subprocess.TimeoutExpired:
             pass
+        if not info.audio_silent:
+            from .audio_check import measure
+            chk = measure(tools.ffmpeg.path, p, info.audio_channels)
+            info.channel_issue, info.clipped, info.hum_hz = chk.channel_issue, chk.clipped, chk.hum_hz
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
     info.suggested_source, info.source_reason = suggest_source(info)
     return info

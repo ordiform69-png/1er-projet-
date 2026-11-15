@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
 from . import pipeline
 from .dvd import open_media
 from .probe import MediaInfo
+from .advice import advise
+from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools
 
@@ -192,6 +194,13 @@ class MainWindow(QMainWindow):
         self.s_info.setWordWrap(True)
         self.s_info.setStyleSheet("font-size:13pt;color:#333")
         v.addWidget(self.s_info)
+        self.advice: list = []
+        self.s_advice = QCheckBox("Appliquer ces conseils")
+        self.s_advice.setStyleSheet("font-size:13pt")
+        self.s_advice.setToolTip("Corrige les défauts de son détectés par l'analyse. "
+                                 "Décochez pour garder le son tel quel.")
+        self.s_advice.setVisible(False)
+        v.addWidget(self.s_advice)
         h = QHBoxLayout()
         self.s_choose = QPushButton("1. Choisir le film")
         self.s_choose.clicked.connect(self._choose_file)
@@ -437,6 +446,20 @@ class MainWindow(QMainWindow):
         h.addWidget(self.mains_combo, 1)
         h.addWidget(self.copy_combo, 1)
         v.addLayout(h)
+        h = QHBoxLayout()
+        self.channel_combo = QComboBox()
+        self.channel_combo.addItem("Canaux du son inchangés", "")
+        self.channel_combo.addItem("Son gauche mis des deux côtés", "left")
+        self.channel_combo.addItem("Son droit mis des deux côtés", "right")
+        self.channel_combo.addItem("Remettre les deux côtés en phase", "phase")
+        self.channel_combo.setToolTip("Pour un son enregistré d'un seul côté, ou dont les deux côtés "
+                                      "s'annulent. L'analyse le détecte et le conseille.")
+        self.declip_check = QCheckBox("Réparer le son saturé")
+        self.declip_check.setToolTip("Reconstruit les crêtes coupées d'un son enregistré trop fort "
+                                     "(cris, fêtes, vent). L'analyse le détecte et le conseille.")
+        h.addWidget(self.channel_combo, 1)
+        h.addWidget(self.declip_check, 1)
+        v.addLayout(h)
         self.mask_spin = QDoubleSpinBox()
         self.mask_spin.setRange(0, 32)
         self.mask_spin.setDecimals(0)
@@ -646,6 +669,9 @@ class MainWindow(QMainWindow):
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
         elif self.info.audio_silent:
             notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
+        for a in getattr(self, "advice", []):
+            notes.append(f"💡 Conseil : {a.text} (case « Appliquer ces conseils » du mode simple, "
+                         "ou réglages du son ci-dessous)")
         if getattr(self, "out_note", ""):
             notes.append(self.out_note)
         if self.info.pale_colors:
@@ -653,7 +679,14 @@ class MainWindow(QMainWindow):
                          "automatique des couleurs n'est faite (fidélité).")
         self.warn_label.setText("\n".join(notes))
 
-    def settings(self) -> pipeline.Settings:
+    def settings(self, with_advice: bool = True) -> pipeline.Settings:
+        """Réglages choisis ; avec les conseils de l'analyse si la case est cochée."""
+        s = self._raw_settings()
+        if with_advice and self.info is not None and self.s_advice.isChecked():
+            s = apply_advice(s, self.advice)
+        return s
+
+    def _raw_settings(self) -> pipeline.Settings:
         key = next(k for k, b in self.profile_buttons.items() if b.isChecked())
         src = self.source()
         return pipeline.Settings(profile=profile_for(key, src), resolution=self.res_combo.currentData(),
@@ -675,6 +708,8 @@ class MainWindow(QMainWindow):
                                  audio_drift_ms_per_min=float(self.drift_spin.value()),
                                  audio_mains_hz=int(self.mains_combo.currentData() or 0),
                                  audio_copy=str(self.copy_combo.currentData() or ""),
+                                 audio_channel_fix=str(self.channel_combo.currentData() or ""),
+                                 audio_declip=self.declip_check.isChecked(),
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
 
     # ------------------------------------------------------------ actions
@@ -732,8 +767,15 @@ class MainWindow(QMainWindow):
         extra = (" Noir et blanc." if info.black_and_white else
                  " Couleurs très pâles." if info.pale_colors else "") + \
                 ("" if info.has_audio and not info.audio_silent else " Film muet : il restera muet.")
+        self.advice = advise(info)
+        tips = "".join(f"<br>💡 {a.text}" for a in self.advice)
         self.s_info.setText(f"<b>{info.summary()['Fichier']}</b> — {info.summary()['Durée']} — "
-                            f"semble être une {src_txt}.{extra}")
+                            f"semble être une {src_txt}.{extra}{tips}")
+        self.s_advice.setChecked(False)
+        self.s_advice.setVisible(bool(self.advice))
+        self.channel_combo.setCurrentIndex(0)
+        self.declip_check.setChecked(False)
+        self._refresh_hints()
         self.status.setText("Vidéo analysée. Choisissez un profil puis générez un aperçu.")
 
     def start_preview(self) -> None:
@@ -820,7 +862,9 @@ class MainWindow(QMainWindow):
     def settings_for(self, info: MediaInfo) -> pipeline.Settings:
         """Réglages d'un film du dossier : options choisies, origine propre à chaque film
         (choix manuel s'il y en a un, sinon suggestion de l'analyse)."""
-        base = self.settings()
+        base = self.settings(with_advice=False)
+        if self.s_advice.isChecked():          # conseils propres à CHAQUE film du dossier
+            base = apply_advice(base, advise(info))
         src = self.source_combo.currentData() or info.suggested_source
         return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
                                    scan=None, dar=None, playback_fps=None,

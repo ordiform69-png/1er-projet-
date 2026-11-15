@@ -357,3 +357,22 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
 - VapourSynth R74 (pip) : https://www.vapoursynth.com/2026/03/26/new-packaging-and-install-methods-in-r74/
 - QTempGaussMC : https://forum.doom9.org/showthread.php?p=2050828 ; havsfunc :
   https://github.com/HomeOfVapourSynthEvolution/havsfunc/releases
+
+## Conseils de l'analyse et réparations du son (phase 11)
+
+- `audio_check.py` mesure (FFmpeg seul, 2 premières minutes) : un canal muet (RMS < −70 dB
+  d'un côté, > −50 dB de l'autre), l'opposition de phase (somme des canaux plus de 10 dB sous
+  leur différence), la saturation (part d'échantillons au plafond, pic > −0,1 dB, seuil 0,05 %)
+  et le ronflement (bande de 4 Hz à 50/60 Hz plus de 12 dB au-dessus de 75/90 Hz).
+- `advice.py` en tire une phrase simple et la correction : `pan` (canal recopié, ou un côté
+  inversé pour la phase), `adeclip`, encoche 50/60 Hz existante. **Rien n'est appliqué sans
+  accord** : case « Appliquer ces conseils » du mode simple, décochée, visible seulement s'il y
+  a un conseil, ou réglages équivalents dans les options avancées. Ces corrections réparent un
+  défaut : elles s'appliquent même si « Restaurer le son » est décoché. Le ronflement suit
+  désormais la même règle.
+- Vérifié : 5 cas de synthèse détectés, aucun conseil sur un son propre ni sur les deux archives
+  réelles. Chaque correction est mesurée dans le fichier exporté : son des deux côtés, plus
+  d'opposition de phase, saturation divisée par plus de 2, ronflement plus détecté.
+  `aeval` a été écarté pour la phase (format refusé par l'encodeur AAC) au profit de `pan`.
+- Coût : jusqu'à 7 lectures courtes du son pendant l'analyse (à regrouper si c'est trop lent sur
+  de longs fichiers DV).

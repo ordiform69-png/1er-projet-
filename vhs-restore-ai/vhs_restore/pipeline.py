@@ -90,6 +90,8 @@ class Settings:
     audio_offset_ms: float = 0.0          # >0 retarde le son, <0 l'avance. 0 = inchangé
     audio_drift_ms_per_min: float = 0.0   # >0 le son prend du retard : on l'accélère (atempo)
     audio_mains_hz: int = 0                # 0 | 50 | 60 : encoche secteur, seulement si demandé
+    audio_channel_fix: str = ""            # "" | left | right (canal gardé des deux côtés) | phase
+    audio_declip: bool = False             # reconstruire les crêtes saturées (adeclip)
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
@@ -197,12 +199,21 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
     if not info.has_audio:
         return []
     chain: list[str] = []
-    if restore and s.restore_audio and not info.audio_silent:
+    # Corrections demandées explicitement (conseils de l'analyse) : appliquées même si
+    # « Restaurer le son » est décoché, car elles réparent un défaut et n'embellissent pas.
+    if restore and not info.audio_silent:
+        fix = {"left": "pan=stereo|c0=c0|c1=c0", "right": "pan=stereo|c0=c1|c1=c1",
+               "phase": "pan=stereo|c0=c0|c1=-1*c1"}.get(s.audio_channel_fix)
+        if fix and info.audio_channels == 2 and _has(present, fix.split("=")[0]):
+            chain.append(fix)
+        if s.audio_declip and _has(present, "adeclip"):
+            chain.append("adeclip")
         if s.audio_mains_hz in (50, 60) and _has(present, "bandreject"):
             hz = int(s.audio_mains_hz)
             # Q élevé = encoche étroite : le bourdonnement, pas la musique grave
             chain.append(f"bandreject=f={hz}:t=q:w=30")
             chain.append(f"bandreject=f={hz * 2}:t=q:w=30")
+    if restore and s.restore_audio and not info.audio_silent:
         p = s.profile
         if p.adeclick and _has(present, "adeclick"):
             chain.append("adeclick")
