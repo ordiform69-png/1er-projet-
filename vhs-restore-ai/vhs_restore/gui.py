@@ -15,13 +15,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 from PySide6.QtCore import QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QFont, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
-                               QRadioButton, QSizePolicy, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
+                               QFrame, QRadioButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
+                               QVBoxLayout, QWidget)
 
-from . import photo, pipeline
+from . import photo, pipeline, theme
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -105,10 +106,17 @@ class CompareView(QWidget):
 
     def paintEvent(self, _e) -> None:  # noqa: N802
         p = QPainter(self)
-        p.fillRect(self.rect(), Qt.black)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setBrush(QColor("#1e232b"))
+        p.setPen(Qt.NoPen)
+        p.drawRoundedRect(self.rect(), 12, 12)
         if self.before is None or self.after is None:
-            p.setPen(Qt.gray)
-            p.drawText(self.rect(), Qt.AlignCenter, "Générez un aperçu pour comparer\navant / après")
+            p.setPen(QColor("#9fb0c4"))
+            f = p.font()
+            f.setPointSizeF(f.pointSizeF() * 1.3)
+            p.setFont(f)
+            p.drawText(self.rect(), Qt.AlignCenter,
+                       "L'avant / après apparaîtra ici\n\n(choisissez un film ou une photo, puis « 2. Voir l'avant / après »)")
             return
         size = self.before.size().scaled(self.size(), Qt.KeepAspectRatio)
         r = QRect(QPoint(0, 0), size)
@@ -122,8 +130,15 @@ class CompareView(QWidget):
         x = r.x() + cut
         p.setPen(QPen(Qt.white, 2))
         p.drawLine(x, r.top(), x, r.bottom())
-        p.drawText(r.adjusted(8, 6, 0, 0), Qt.AlignLeft | Qt.AlignTop, "Original")
-        p.drawText(r.adjusted(0, 6, -8, 0), Qt.AlignRight | Qt.AlignTop, "Restauré")
+        for text, left in (("Original", True), ("Restauré", False)):
+            fm = p.fontMetrics()
+            w, h = fm.horizontalAdvance(text) + 18, fm.height() + 8
+            box = QRect(r.x() + 10 if left else r.right() - w - 10, r.y() + 10, w, h)
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(20, 26, 34, 190))
+            p.drawRoundedRect(box, 8, 8)
+            p.setPen(QColor("white"))
+            p.drawText(box, Qt.AlignCenter, text)
 
 
 class DropZone(QLabel):
@@ -174,6 +189,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("VHS Restore AI")
         self.resize(1100, 760)
+        app = QApplication.instance()
+        if app is not None:
+            theme.apply(app)
         self.tools = tools or detect_tools()
         self.info: MediaInfo | None = None
         self.worker: Worker | None = None
@@ -187,14 +205,24 @@ class MainWindow(QMainWindow):
     def _build_simple(self) -> QWidget:
         """Page d'accueil : trois étapes, gros boutons, aucun réglage technique."""
         page = QWidget()
+        page.setObjectName("page")
         v = QVBoxLayout(page)
-        v.setContentsMargins(24, 16, 24, 12)
+        v.setContentsMargins(20, 14, 20, 10)
+        v.setSpacing(10)
+        band = QFrame()
+        band.setObjectName("bandeau")
+        bv = QVBoxLayout(band)
+        bv.setContentsMargins(22, 12, 22, 14)
+        brand = QLabel("🎞  VHS RESTORE AI")
+        brand.setObjectName("marque")
         title = QLabel("Restaurer un film ou une photo de famille")
-        title.setStyleSheet("font-size:20pt;font-weight:bold")
-        v.addWidget(title)
+        title.setObjectName("titre")
+        bv.addWidget(brand)
+        bv.addWidget(title)
+        v.addWidget(band)
         self.s_info = QLabel("Commencez par choisir le film à restaurer.")
         self.s_info.setWordWrap(True)
-        self.s_info.setStyleSheet("font-size:13pt;color:#333")
+        self.s_info.setObjectName("infos")
         v.addWidget(self.s_info)
         self.advice: list = []
         self.s_advice = QCheckBox("Appliquer ces conseils")
@@ -204,20 +232,21 @@ class MainWindow(QMainWindow):
         self.s_advice.setVisible(False)
         v.addWidget(self.s_advice)
         h = QHBoxLayout()
-        self.s_choose = QPushButton("1. Choisir le film ou la photo")
+        self.s_choose = QPushButton("📂  1. Choisir le film ou la photo")
         self.s_choose.clicked.connect(self._choose_file)
-        self.s_preview = QPushButton("2. Voir l'avant / après")
+        self.s_preview = QPushButton("👁  2. Voir l'avant / après")
         self.s_preview.clicked.connect(self.start_preview)
-        self.s_run = QPushButton("3. Restaurer")
+        self.s_run = QPushButton("✨  3. Restaurer")
         self.s_run.clicked.connect(self.start_export)
         for b in (self.s_choose, self.s_preview, self.s_run):
-            b.setStyleSheet(BIG)
+            b.setObjectName("principal" if b is self.s_run else "etape")
+            b.setCursor(Qt.PointingHandCursor)
             h.addWidget(b)
         v.addLayout(h)
         self.s_note = note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
                       "Décalage, dérive et copie WAV : Options avancées.")
         note.setWordWrap(True)
-        note.setStyleSheet("color:#444;font-size:12pt")
+        note.setObjectName("note")
         v.addWidget(note)
         self.s_compare = CompareView()
         v.addWidget(self.s_compare, 1)
@@ -227,7 +256,7 @@ class MainWindow(QMainWindow):
         self.s_progress.setMinimumHeight(22)
         self.s_status = QLabel("Prêt.")
         self.s_status.setWordWrap(True)
-        self.s_status.setStyleSheet("font-size:13pt")
+        self.s_status.setObjectName("statut")
         v.addWidget(self.s_progress)
         v.addWidget(self.s_status)
         h = QHBoxLayout()
@@ -243,8 +272,9 @@ class MainWindow(QMainWindow):
             b.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
-        adv = QPushButton("Options avancées ▸")
-        adv.setFlat(True)
+        adv = QPushButton("⚙  Options avancées ▸")
+        adv.setObjectName("lien")
+        adv.setCursor(Qt.PointingHandCursor)
         adv.clicked.connect(lambda: self.set_advanced(True))
         h.addWidget(self.s_cancel)
         h.addWidget(self.s_folder)
@@ -260,9 +290,11 @@ class MainWindow(QMainWindow):
 
     def _build(self) -> None:
         central = QWidget()
+        central.setObjectName("page")
         outer = QVBoxLayout(central)
-        back = QPushButton("◂ Retour au mode simple")
-        back.setFlat(True)
+        back = QPushButton("◂  Retour au mode simple")
+        back.setObjectName("lien")
+        back.setCursor(Qt.PointingHandCursor)
         back.clicked.connect(lambda: self.set_advanced(False))
         outer.addWidget(back, 0, Qt.AlignLeft)
         root = QHBoxLayout()
@@ -273,7 +305,11 @@ class MainWindow(QMainWindow):
         root.addLayout(right, 3)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._build_simple())
-        self.pages.addWidget(central)
+        scroll = QScrollArea()          # la page des options est plus haute qu'un écran de portable
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setWidget(central)
+        self.pages.addWidget(scroll)
         self.setCentralWidget(self.pages)
 
         # Import
@@ -588,7 +624,7 @@ class MainWindow(QMainWindow):
         v.addLayout(h)
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
-        self.run_btn.setStyleSheet("font-weight:bold;padding:6px 14px")
+        self.run_btn.setObjectName("action")
         self.run_btn.clicked.connect(self.start_export)
         self.cancel_btn = QPushButton("Annuler")
         self.cancel_btn.clicked.connect(self.cancel)
