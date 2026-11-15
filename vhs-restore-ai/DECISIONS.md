@@ -305,6 +305,16 @@ converti en stéréo.
 - **Réglages** : profil, son et dossier de sortie sont mémorisés (`QSettings`).
 - **Analog Repair et VapourBox** recopient le son. Ils ne couvrent pas ce besoin.
 
+## DVD en plusieurs VOB (phase 11)
+
+Un film gravé sur DVD est souvent coupé en `VTS_01_1.VOB`, `VTS_01_2.VOB`… (1 Go).
+Choisir un morceau, le dossier `VIDEO_TS`, ou le disque qui le contient, restaure
+**un film par titre**. Les menus (`VTS_xx_0.VOB`, `VIDEO_TS.VOB`) sont ignorés.
+FFmpeg les enchaîne avec son démultiplexeur `concat` (liste dans un dossier temporaire,
+rien n'est écrit sur le DVD). Pas de nouvelle dépendance. QTGMC et les poussières
+ne lisent pas cette liste : le message le dit, bwdif reste disponible.
+Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans le paquet.
+
 ## Sources consultées
 
 - FFmpeg filters : https://ffmpeg.org/ffmpeg-filters.html (bwdif, idet, hqdn3d, removegrain, cas)

@@ -105,6 +105,12 @@ le binaire officiel 0.5.6 dans `tools\deepfilter\`
 ([dépôt](https://github.com/Rikorose/DeepFilterNet), licence libre). L'atténuation est
 plafonnée à 12 dB pour garder l'ambiance. Sans lui, le profil Maximum utilise seulement FFmpeg.
 
+## DVD (plusieurs fichiers VOB)
+
+Un film sur DVD (`VIDEO_TS\VTS_01_1.VOB`, `VTS_01_2.VOB`…) est restauré en **un seul fichier**
+par titre. Les menus ne sont pas traités. Le disque n'est pas modifié : s'il est protégé en
+écriture, le résultat va dans `Vidéos\Films restaurés`.
+
 ## État des fonctions
 
 **Opérationnel et testé automatiquement** (Linux, FFmpeg 6.1, PySide6 hors écran, vidéos de synthèse) :
