@@ -103,6 +103,7 @@ class Settings:
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
+    mask_sides: int = 0                    # pixels noirs sur les bords, 0 = rien. Pellicule : les quatre côtés
     crf: int = 18
     preset: str = "medium"
 
@@ -423,6 +424,7 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
     f += _bottom_mask(info, s)
+    f += _edge_mask(info, s)
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
     f.append("format=yuv420p")
     return f
@@ -438,6 +440,27 @@ def _bottom_mask(info: MediaInfo, s: Settings) -> list[str]:
     if n < 2 or h - n < 2:
         return []
     return [f"crop={w}:{h - n}:0:0", f"pad={w}:{h}:0:0:black"]
+
+
+def _edge_mask(info: MediaInfo, s: Settings) -> list[str]:
+    """Bords noirs, même taille et même format. Vidéo : gauche et droite.
+    Pellicule : cadre des quatre côtés. 0 = filtre absent."""
+    n = int(s.mask_sides or 0)
+    if n < 2:
+        return []
+    w, h, _ = target_size(info, s)
+    n = min(n // 2 * 2, (min(w, h) // 4) // 2 * 2)
+    if n < 2:
+        return []
+    if s.source == "film":
+        cw, ch = w - 2 * n, h - 2 * n
+        if cw < 2 or ch < 2:
+            return []
+        return [f"crop={cw}:{ch}:{n}:{n}", f"pad={w}:{h}:{n}:{n}:black"]
+    cw = w - 2 * n
+    if cw < 2:
+        return []
+    return [f"crop={cw}:{h}:{n}:0", f"pad={w}:{h}:{n}:0:black"]
 
 
 def filter_chain(info: MediaInfo, s: Settings) -> str:

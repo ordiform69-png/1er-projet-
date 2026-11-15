@@ -485,6 +485,21 @@ class MainWindow(QMainWindow):
         h.addWidget(self.mask_spin)
         h.addStretch(1)
         v.addLayout(h)
+        self.edge_spin = QDoubleSpinBox()
+        self.edge_spin.setRange(0, 64)
+        self.edge_spin.setDecimals(0)
+        self.edge_spin.setSingleStep(2)
+        self.edge_spin.setSuffix(" px")
+        self.edge_spin.setToolTip(
+            "Bords abîmés, remplacés par du noir. Cassette : gauche et droite. "
+            "Pellicule : un cadre des quatre côtés. L'image garde la même taille "
+            "et le même format (4:3 inchangé). 0 = ne rien masquer.")
+        self.edge_label = QLabel("Masquer les bords :")
+        h = QHBoxLayout()
+        h.addWidget(self.edge_label)
+        h.addWidget(self.edge_spin)
+        h.addStretch(1)
+        v.addLayout(h)
         h = QHBoxLayout()
         self.chroma_spin = QSpinBox()
         self.chroma_spin.setRange(-8, 8)
@@ -746,7 +761,8 @@ class MainWindow(QMainWindow):
                                  audio_presence=self.presence_check.isChecked(),
                                  chroma_shift=int(self.chroma_spin.value()),
                                  gain_r=gains[0], gain_g=gains[1], gain_b=gains[2],
-                                 mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
+                                 mask_bottom=int(self.mask_spin.value()) if src == "video" else 0,
+                                 mask_sides=int(self.edge_spin.value()))
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:
@@ -1025,6 +1041,7 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.copy_combo.setCurrentIndex(idx)
         self.mask_spin.setValue(int(float(s.value("mask_bottom", 0) or 0)))
+        self.edge_spin.setValue(int(float(s.value("mask_sides", 0) or 0)))
         self.chroma_spin.setValue(int(float(s.value("chroma_shift", 0) or 0)))
         if s.contains("tape_noise"):
             self.tape_check.setChecked(bool(s.value("tape_noise", False, type=bool)))
@@ -1050,6 +1067,7 @@ class MainWindow(QMainWindow):
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
         s.setValue("audio_copy", str(self.copy_combo.currentData() or ""))
         s.setValue("mask_bottom", self.mask_spin.value())
+        s.setValue("mask_sides", self.edge_spin.value())
         s.setValue("chroma_shift", self.chroma_spin.value())
         s.setValue("tape_noise", self.tape_check.isChecked())
         s.setValue("chroma_repair", self.chroma_check.isChecked())
