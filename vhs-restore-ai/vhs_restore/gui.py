@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 import shutil
 import sys
 import tempfile
@@ -846,8 +847,17 @@ class MainWindow(QMainWindow):
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
 
+    def _prefs(self) -> QSettings | None:
+        # Les tests lancent plusieurs fenêtres dans le même compte : ils ne doivent
+        # pas se transmettre le profil ou le dossier de sortie.
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return None
+        return QSettings("VHSRestoreAI", "VHSRestoreAI")
+
     def _load_prefs(self) -> None:
-        s = QSettings("VHSRestoreAI", "VHSRestoreAI")
+        s = self._prefs()
+        if s is None:
+            return
         key = s.value("profile")
         if key in self.profile_buttons:
             self.profile_buttons[str(key)].setChecked(True)
@@ -869,7 +879,9 @@ class MainWindow(QMainWindow):
             self.out_edit.setText(out)
 
     def _save_prefs(self) -> None:
-        s = QSettings("VHSRestoreAI", "VHSRestoreAI")
+        s = self._prefs()
+        if s is None:
+            return
         key = next((k for k, b in self.profile_buttons.items() if b.isChecked()), "equilibre")
         s.setValue("profile", key)
         s.setValue("restore_audio", self.audio_check.isChecked())
