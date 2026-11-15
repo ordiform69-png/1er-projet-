@@ -211,8 +211,32 @@ automatique des couleurs (choix de fidélité, à reconsidérer avec de vraies c
   pour régler `mindif`/`maxwidth`, et l'avis de Grok.
 - **SpotLess** (poussières) : ce n'est pas un paquet pip, et vs-jetpack n'a pas d'équivalent.
   Reporté.
-- **« Analog Repair »** : projet introuvable lors de nos recherches (nom, licence MIT et fonctions
-  non vérifiables). Il ne sera pas utilisé sans lien vers un dépôt réel.
+- **Analog Repair** (https://github.com/Bratwurstexe/ANALOG_REPAIR, lien fourni par Grok) : le
+  dépôt existe. Licence MIT, 5 commits, 0 étoile, dernier commit le 26/10/2026. Moteur Python de
+  3 600 lignes (NumPy + OpenCV + FFmpeg, aucun modèle d'IA), interface .NET. Code lu avant
+  exécution : pas d'accès réseau, FFmpeg appelé sans shell, seuls ses fichiers temporaires sont
+  supprimés. Testé dans un environnement séparé, sur les deux extraits réels, avec les valeurs
+  exactes de ses préréglages :
+
+  | Mesure (même instant, ciel du film González) | Grain conservé |
+  |---|---|
+  | VHS Restore AI Fidèle / Équilibré / Équilibré HQ | 99 % / 107 % / 75 % |
+  | Analog Repair, préréglage « 8 mm / Super 8 » | 51 % |
+  | Analog Repair, **poussières et rayures seules** (60/100) | **97 %** |
+
+  - Poussières et rayures : c'est **nettement mieux que nous** (nous ne faisons rien) : point noir
+    supprimé, rayure verticale fortement atténuée. Avec ce seul réglage, la texture du film reste
+    intacte. 49 s pour 6 s de film 2K sur 4 cœurs.
+  - Le préréglage complet Super 8 lisse la moitié du grain et la stabilisation déplace le cadrage.
+  - **Défaut de proportions sur la VHS** : la sortie 352×240 perd le rapport de pixel (10:11) et
+    s'affiche en 1,47:1 au lieu de 4:3. Elle a aussi une cadence irrégulière (179 images au lieu
+    de 180).
+  - Piste d'intégration (non faite, décision à prendre) : appeler uniquement son étape
+    « poussières et rayures » comme moteur externe facultatif pour les pellicules, avec un
+    intermédiaire ProRes pour éviter une double compression, et une version du projet figée.
+    Coût : NumPy + OpenCV dans le paquet (environ 60 à 80 Mo, non mesuré). Risque : projet très
+    jeune, interface interne non documentée (paramètres en allemand). Fausses détections sur des
+    objets réels en mouvement : non évaluées (l'extrait est presque fixe).
 
 ## IA : limites assumées
 
