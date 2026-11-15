@@ -101,6 +101,8 @@ Dans les options avancées :
   retard au bout de 10 minutes. La hauteur des voix est conservée. Rien n'est corrigé tout
   seul : l'analyse peut seulement signaler un écart déjà écrit dans le fichier.
 - **Ronflement** 50 Hz (Europe) ou 60 Hz, encoche étroite, désactivé par défaut.
+- **Vent et grondements** : passe-haut doux à 80 Hz, désactivé par défaut. L'analyse le
+  conseille seulement si les graves sont forts et irréguliers. Les voix restent.
 - **Copie WAV ou FLAC** du son restauré, à côté du film.
 - Après un aperçu : « Écouter l'original » et « Écouter le son restauré ».
 
