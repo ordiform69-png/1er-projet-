@@ -56,6 +56,8 @@ class MediaInfo:
     repeated_fields: float | None = None   # part de champs répétés (idet)
     repeated_frames: float | None = None   # part d'images quasi identiques à la précédente
     saturation: float | None = None        # saturation moyenne (signalstats, 0 = gris)
+    saturation_high: float | None = None   # saturation des pixels les plus colorés (SATHIGH)
+    audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     suggested_source: str = "video"        # video | film | transfer
     source_reason: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -66,7 +68,13 @@ class MediaInfo:
 
     @property
     def black_and_white(self) -> bool:
-        return self.saturation is not None and self.saturation < 15
+        """Mesuré sur une vraie pellicule couleur décolorée (années 1970) : saturation
+        moyenne 8 mais pixels les plus colorés à 15 ; un noir et blanc reste sous 5."""
+        return self.saturation_high is not None and self.saturation_high < 8
+
+    @property
+    def pale_colors(self) -> bool:
+        return self.saturation_high is not None and 8 <= self.saturation_high < 20
 
     def summary(self) -> dict[str, str]:
         scan_txt = {"progressive": "Progressive", "tff": "Entrelacée, trame haute en premier (TFF)",
@@ -85,8 +93,10 @@ class MediaInfo:
             "Format d'affichage": f"{self.dar.numerator}:{self.dar.denominator} ({self.dar_source})",
             "Balayage": f"{scan_txt} [{self.scan_source}]",
             "Norme probable": std,
-            "Audio": self.audio_desc or "aucune piste audio (film muet ?)",
+            "Audio": (self.audio_desc + (" — silencieuse (aucun son enregistré)" if self.audio_silent else "")
+                      if self.audio_desc else "aucune piste audio (film muet ?)"),
             "Couleur": ("Noir et blanc probable" if self.black_and_white else
+                        "Couleurs très pâles (film décoloré ou noir et blanc teinté)" if self.pale_colors else
                         "Couleur" if self.saturation is not None else "Inconnue"),
             "Origine suggérée": f"{SOURCE_LABELS[self.suggested_source]} — {self.source_reason}",
         }
@@ -155,7 +165,8 @@ def repeat_ratio(ydif: list[float]) -> float | None:
 
 def parse_signals(text: str) -> dict[str, float | None]:
     """Champs répétés (idet), images répétées (YDIF de signalstats), saturation."""
-    out: dict[str, float | None] = {"repeated_fields": None, "repeated_frames": None, "saturation": None}
+    out: dict[str, float | None] = {"repeated_fields": None, "repeated_frames": None, "saturation": None,
+                                    "saturation_high": None}
     rep = re.findall(r"Repeated Fields:\s*Neither:\s*(\d+)\s*Top:\s*(\d+)\s*Bottom:\s*(\d+)", text)
     if rep:
         n, t, b = map(int, rep[-1])
@@ -166,6 +177,9 @@ def parse_signals(text: str) -> dict[str, float | None]:
     sat = [float(x) for x in re.findall(r"signalstats\.SATAVG=([\d.]+)", text)]
     if sat:
         out["saturation"] = sum(sat) / len(sat)
+    high = [float(x) for x in re.findall(r"signalstats\.SATHIGH=([\d.]+)", text)]
+    if high:
+        out["saturation_high"] = sum(high) / len(high)
     return out
 
 
@@ -270,12 +284,13 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-ss", f"{start:.3f}",
                          "-i", str(p), "-map", "0:v:0", "-vf",
                          "idet,signalstats,metadata=print:key=lavfi.signalstats.YDIF,"
-                         "metadata=print:key=lavfi.signalstats.SATAVG", "-frames:v",
+                         "metadata=print:key=lavfi.signalstats.SATAVG,"
+                         "metadata=print:key=lavfi.signalstats.SATHIGH", "-frames:v",
                          str(idet_frames), "-an", "-f", "null", "-"], timeout=300)
         info.idet = parse_idet(r.stderr)
         sig = parse_signals(r.stderr)
-        info.repeated_fields, info.repeated_frames, info.saturation = \
-            sig["repeated_fields"], sig["repeated_frames"], sig["saturation"]
+        info.repeated_fields, info.repeated_frames, info.saturation, info.saturation_high = \
+            sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
     except subprocess.TimeoutExpired:
         info.idet = {}
     info.scan, info.scan_source = decide_scan(info.idet, info.field_order_meta)
@@ -297,6 +312,16 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.warnings.append("Entrelacement non déterminable : choisissez le balayage manuellement "
                              "(en cas de doute sur une cassette de caméscope, essayez « Entrelacée TFF » "
                              "puis « BFF » sur l'aperçu).")
+    if info.has_audio:
+        # Piste vide ajoutée lors de la numérisation (constaté sur une archive réelle) :
+        # on la garde (rien n'est supprimé), mais on l'annonce.
+        try:
+            r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-i", str(p), "-map", "0:a:0",
+                             "-t", "300", "-af", "volumedetect", "-f", "null", "-"], timeout=300)
+            m = re.search(r"max_volume:\s*(-?[\d.]+|-inf) dB", r.stderr)
+            info.audio_silent = bool(m) and (m.group(1) == "-inf" or float(m.group(1)) < -60)
+        except subprocess.TimeoutExpired:
+            pass
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
     info.suggested_source, info.source_reason = suggest_source(info)
     return info

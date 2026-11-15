@@ -18,7 +18,10 @@ pytestmark = pytest.mark.skipif(FF is None, reason="ffmpeg absent")
 
 
 def ff(*args):
-    subprocess.run([FF, "-hide_banner", "-loglevel", "error", "-y", *args], check=True)
+    r = subprocess.run([FF, "-hide_banner", "-loglevel", "error", "-y", *args],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if r.returncode:
+        raise RuntimeError(f"ffmpeg a échoué (code {r.returncode}) : {r.stderr.strip()[-800:]}\n{args}")
 
 
 @pytest.fixture(scope="session")

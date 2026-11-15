@@ -43,6 +43,7 @@ def test_suggestions(A):
     assert A("pal_tff").suggested_source == "video"
     assert A("prog").suggested_source == "video" and "à confirmer" in A("prog").source_reason
     assert A("film_nb").black_and_white and not A("film18").black_and_white
+    assert not A("film18").pale_colors and not A("film18_son").audio_silent
 
 
 def test_parse_signals():
@@ -53,6 +54,20 @@ def test_parse_signals():
     assert s["repeated_fields"] == pytest.approx(0.10)
     assert s["repeated_frames"] == pytest.approx(3 / 11)
     assert s["saturation"] == 3
+
+
+def test_silent_track_and_pale_colors(samples, tools, tmp_path):
+    """Cas rencontrés sur une vraie archive : piste son vide, couleurs décolorées."""
+    import subprocess as sp
+    src = tmp_path / "pâle muet.mkv"
+    sp.run([shutil.which("ffmpeg"), "-loglevel", "error", "-f", "lavfi", "-i",
+            "testsrc2=size=720x540:rate=18,hue=s=0.12,noise=alls=8:allf=t", "-f", "lavfi", "-i",
+            "anullsrc=r=48000:cl=stereo", "-t", "3", "-c:v", "ffv1", "-c:a", "flac", str(src)], check=True)
+    i = analyze(src, tools)
+    assert i.has_audio and i.audio_silent and "silencieuse" in i.summary()["Audio"]
+    assert i.pale_colors and not i.black_and_white
+    out = pipeline.export(i, S(source="film"), tmp_path / "o.mp4", tools)
+    assert streams(out)[2]                                # piste conservée, pas supprimée
 
 
 # ---- 1. la vidéo analogique garde exactement le pipeline existant

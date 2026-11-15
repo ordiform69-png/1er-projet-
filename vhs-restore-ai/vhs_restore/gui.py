@@ -497,6 +497,11 @@ class MainWindow(QMainWindow):
             notes.append("ℹ Film noir et blanc probable : aucune colorisation n'est appliquée.")
         if not self.info.has_audio:
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
+        elif self.info.audio_silent:
+            notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
+        if self.info.pale_colors:
+            notes.append("ℹ Couleurs très pâles : film probablement décoloré. Aucune correction "
+                         "automatique des couleurs n'est faite (fidélité).")
         self.warn_label.setText("\n".join(notes))
 
     def settings(self) -> pipeline.Settings:
@@ -555,8 +560,9 @@ class MainWindow(QMainWindow):
         self.drop.setText(info.path.name)
         src_txt = {"video": "vidéo de caméscope ou de magnétoscope", "film": "pellicule (Super 8, 8 mm…)",
                    "transfer": "pellicule copiée sur vidéo"}[info.suggested_source]
-        extra = (" Noir et blanc." if info.black_and_white else "") + \
-                ("" if info.has_audio else " Film muet : il restera muet.")
+        extra = (" Noir et blanc." if info.black_and_white else
+                 " Couleurs très pâles." if info.pale_colors else "") + \
+                ("" if info.has_audio and not info.audio_silent else " Film muet : il restera muet.")
         self.s_info.setText(f"<b>{info.path.name}</b> — {info.summary()['Durée']} — "
                             f"semble être une {src_txt}.{extra}")
         self.status.setText("Vidéo analysée. Choisissez un profil puis générez un aperçu.")

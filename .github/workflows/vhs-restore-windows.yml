@@ -35,12 +35,14 @@ jobs:
         run: ./scripts/installer_outils.ps1
 
       - name: Tests automatiques
+        id: tests
+        continue-on-error: true
         env:
           QT_QPA_PLATFORM: offscreen
           PYTHONUTF8: "1"
         run: |
           $env:PATH = "$PWD\tools\ffmpeg\bin;$env:PATH"
-          python -m pytest -q tests -o faulthandler_timeout=900
+          python -m pytest -q -rfE tests -o faulthandler_timeout=900
 
       - name: Fabrication de l'application
         run: pyinstaller --noconfirm VHSRestoreAI.spec
@@ -65,3 +67,7 @@ jobs:
           name: VHSRestoreAI-Windows
           path: vhs-restore-ai/dist/VHSRestoreAI
           retention-days: 90
+
+      - name: Bilan des tests
+        if: steps.tests.outcome != 'success'
+        run: throw "Des tests automatiques ont échoué (voir l'étape « Tests automatiques »)."

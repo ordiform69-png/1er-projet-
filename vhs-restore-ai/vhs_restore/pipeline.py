@@ -575,22 +575,36 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     export(info, sp, restored, tools, cancel=cancel, progress=sub(0, 0.8),
            start=start, duration=duration)
 
+    # Moitié « original » : produite par le même chemin que l'export (même saut,
+    # même calage sur le son, même cadence), sans aucun filtre de restauration.
+    # Aligner les deux moitiés sur leurs horodatages ne suffit pas : sur un MPEG
+    # de graveur DVD réel, l'image ne reprend que 0,4 s après le son au point de
+    # saut, et la comparaison était décalée d'environ 0,5 s.
     h = 540
     w = _even(h * effective_dar(info, s))
     fps = output_fps(info, s)
-    crop = f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0,"
+    ref_vf = [f"crop={info.width // 2 * 2}:{info.height // 2 * 2}:0:0"]
     r = retime(info, s)
-    if r:  # même cadence à gauche qu'à droite : seul le moment affiché compte
-        crop += f"setpts=N*{r.denominator}/{r.numerator}/TB,"
+    if r:
+        ref_vf.append(f"setpts=N*{r.denominator}/{r.numerator}/TB")
+    ref_vf += [f"fps={fps.numerator}/{fps.denominator}", f"scale={w}:{h}:flags=lanczos", "setsar=1",
+               "format=yuv420p"]
     out_duration = duration * time_ratio(info, s)
-    fc = (f"[0:v]{crop}scale={w}:{h}:flags=lanczos,setsar=1,fps={fps.numerator}/{fps.denominator}[a];"
-          f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1[b];[a][b]hstack=inputs=2,format=yuv420p[v]")
+    reference = workdir / "apercu_original.mp4"
+    run(_ff_base(tools) + _seek(start, duration) + [
+        "-i", str(info.path), "-map", "0:v:0", "-map", "0:a:0?", "-vf", ",".join(ref_vf),
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k",
+        *retime_args(info, s), "-f", "mp4", str(reference)],
+        cancel=cancel, what="FFmpeg (aperçu de l'original)",
+        on_line=_FFProgress(out_duration, progress, 0.8, 0.88, "Comparaison…"))
+    fc = (f"[0:v]setpts=PTS-STARTPTS[a];[1:v]scale={w}:{h}:flags=lanczos,setsar=1,setpts=PTS-STARTPTS[b];"
+          "[a][b]hstack=inputs=2:shortest=1,format=yuv420p[v]")
     compare = workdir / "apercu_comparaison.mp4"
-    run(_ff_base(tools) + _seek(start, duration) + ["-i", str(info.path), "-i", str(restored),
+    run(_ff_base(tools) + ["-i", str(reference), "-i", str(restored),
         "-filter_complex", fc, "-map", "[v]", "-map", "1:a:0?", "-c:v", "libx264", "-preset",
-        "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
+        "veryfast", "-crf", "16", "-c:a", "copy", "-movflags", "+faststart",
         str(compare)], cancel=cancel, what="FFmpeg (comparaison)",
-        on_line=_FFProgress(out_duration, progress, 0.8, 0.95, "Comparaison…"))
+        on_line=_FFProgress(out_duration, progress, 0.88, 0.95, "Comparaison…"))
     stills = []
     for k, frac in enumerate((0.2, 0.5, 0.8)):
         still = workdir / f"image_{k + 1}.png"

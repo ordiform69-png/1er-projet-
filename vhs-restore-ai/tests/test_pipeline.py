@@ -157,3 +157,24 @@ def test_ai_missing_engine(pal, tools, tmp_path):
     with pytest.raises(ToolError, match="Real-ESRGAN"):
         pipeline.export(pal, S(use_ai=True), tmp_path / "x.mp4", t)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_preview_aligned_when_video_starts_after_audio(tools, tmp_path):
+    """Cas réel (MPEG de graveur DVD) : l'image commence ~0,9 s après le son. Les deux
+    moitiés de l'aperçu doivent montrer le même instant (réglage quasi neutre -> PSNR élevé)."""
+    import re
+    import shutil
+    import subprocess
+    from vhs_restore.profiles import profile_for
+    src = tmp_path / "graveur dvd.mpg"
+    subprocess.run([shutil.which("ffmpeg"), "-loglevel", "error", "-itsoffset", "0.9", "-f", "lavfi", "-i",
+                    "testsrc2=size=352x240:rate=30000/1001", "-f", "lavfi", "-i", "sine=sample_rate=48000",
+                    "-t", "12", "-map", "0:v", "-map", "1:a", "-c:v", "mpeg2video", "-g", "15", "-bf", "2",
+                    "-b:v", "4M", "-c:a", "mp2", "-f", "dvd", str(src)], check=True)
+    info = analyze(src, tools)
+    s = pipeline.Settings(profile_for("fidele", "film"), source="film", scan="progressive")
+    r = pipeline.make_preview(info, s, tools, tmp_path / "ap", start=4, duration=4)
+    out = subprocess.run([shutil.which("ffmpeg"), "-hide_banner", "-i", str(r.compare), "-lavfi",
+                          "[0:v]split[a][b];[a]crop=iw/2:ih:0:0[l];[b]crop=iw/2:ih:iw/2:0[r];[l][r]psnr",
+                          "-f", "null", "-"], capture_output=True, text=True).stderr
+    assert float(re.findall(r"average:([\d.]+)", out)[-1]) > 30
