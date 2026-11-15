@@ -619,6 +619,8 @@ class MainWindow(QMainWindow):
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
         elif self.info.audio_silent:
             notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
+        if getattr(self, "out_note", ""):
+            notes.append(self.out_note)
         if self.info.pale_colors:
             notes.append("ℹ Couleurs très pâles : film probablement décoloré. Aucune correction "
                          "automatique des couleurs n'est faite (fidélité).")
@@ -682,8 +684,17 @@ class MainWindow(QMainWindow):
         self._update_state()
         self.start_spin.setRange(0, max(0.0, info.duration - 10))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
-        if not self.out_edit.text():
-            self.out_edit.setText(str(info.path.parent))
+        self.out_note = ""
+        if not self.out_edit.text() or not pipeline.is_writable(Path(self.out_edit.text())):
+            try:
+                out, fallback = pipeline.output_dir_for(info.path.parent)
+                self.out_edit.setText(str(out))
+                if fallback:
+                    self.out_note = (f"ℹ Le dossier du film ne peut pas être modifié (DVD, clé protégée…) : "
+                                     f"le film restauré sera enregistré dans {out}")
+            except ToolError as exc:
+                self.out_note = f"⚠ {exc}"
+        self._refresh_hints()
         self.drop.setText(info.path.name)
         src_txt = {"video": "vidéo de caméscope ou de magnétoscope", "film": "pellicule (Super 8, 8 mm…)",
                    "transfer": "pellicule copiée sur vidéo"}[info.suggested_source]
@@ -734,9 +745,17 @@ class MainWindow(QMainWindow):
         if not self.info or self._busy():
             return
         out_dir = Path(self.out_edit.text() or self.info.path.parent)
-        if not out_dir.is_dir():
-            QMessageBox.warning(self, "Dossier de sortie", f"Ce dossier n'existe pas :\n{out_dir}")
-            return
+        if not out_dir.is_dir() or not pipeline.is_writable(out_dir):
+            try:
+                new_dir, _ = pipeline.output_dir_for(out_dir)
+            except ToolError as exc:
+                QMessageBox.warning(self, "Dossier de sortie", str(exc))
+                return
+            QMessageBox.information(self, "Dossier de sortie",
+                                    f"Impossible d'enregistrer dans :\n{out_dir}\n\n"
+                                    f"Le film restauré sera enregistré dans :\n{new_dir}")
+            out_dir = new_dir
+            self.out_edit.setText(str(out_dir))
         info, s = self.info, self.settings()
         try:
             out = pipeline.unique_output_path(info, s, out_dir)
@@ -793,6 +812,10 @@ class MainWindow(QMainWindow):
     def _folder_done(self, res: pipeline.BatchResult) -> None:
         self.status.setText(f"Terminé : {len(res.done)} film(s) restauré(s) dans {res.out_dir}")
         txt = f"{len(res.done)} film(s) restauré(s) dans le dossier :\n{res.out_dir}"
+        if res.fallback:
+            txt += "\n(le dossier des films ne pouvait pas être modifié : DVD ou clé protégée)"
+        if res.skipped:
+            txt += f"\n\n{len(res.skipped)} film(s) déjà restauré(s) auparavant, laissé(s) tel(s) quel(s)."
         if res.errors:
             txt += "\n\nCes fichiers n'ont pas pu être restaurés :\n" + "\n".join(
                 f"• {name} : {msg}" for name, msg in res.errors)

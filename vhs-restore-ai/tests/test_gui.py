@@ -121,3 +121,19 @@ def test_simple_mode(app, tools, samples, tmp_path, monkeypatch):
     win.set_advanced(True)
     assert win.pages.currentIndex() == 1
     win.close()
+
+
+def test_read_only_source_uses_fallback(app, tools, samples, tmp_path, monkeypatch):
+    from pathlib import Path
+    from vhs_restore import pipeline
+    fb = tmp_path / "Films restaurés"
+    monkeypatch.setenv("VHSRA_SORTIE", str(fb))
+    src_dir = samples["film18"].parent
+    real = pipeline.is_writable
+    monkeypatch.setattr(pipeline, "is_writable", lambda d: Path(d) != src_dir and real(d))
+    win = MainWindow(tools)
+    win.out_edit.setText("")
+    win.load_file(str(samples["film18"]))
+    wait(app, win)
+    assert win.out_edit.text() == str(fb) and "ne peut pas être modifié" in win.warn_label.text()
+    win.close()

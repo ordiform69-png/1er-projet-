@@ -20,10 +20,10 @@ sur son PC Windows, sans aide. Chaque manque est marqué *vérifié dans le code
 | # | Manque | Constat | Proposition |
 |---|---|---|---|
 | 1 | **Aucun essai humain sous Windows** | La CI teste sans écran ; personne n'a encore cliqué dans l'interface | Essai par l'utilisateur sur son PC avant de l'installer chez son père |
-| 2 | **Sources sur DVD ou clé protégée** | *Vérifié* : la sortie va par défaut à côté de l'original, et « dossier entier » crée « Films restaurés » dans le dossier source. Sur un DVD (lecture seule), l'export échoue, et le dossier entier plante avec une « erreur inattendue » (`mkdir` non intercepté) | Si le dossier source n'est pas inscriptible : sortie dans `Vidéos\Films restaurés`, avec un message clair |
+| 2 | ~~Sources sur DVD ou clé protégée~~ **Fait** | Test d'écriture réel ; sinon sortie dans `Vidéos\Films restaurés`, avec une note dans l'interface et un message ; même chose pour un dossier entier | Testé (lecture seule simulée) |
 | 3 | **Films sur DVD découpés en VOB** | *Supposé* : un DVD de transfert contient `VIDEO_TS\VTS_01_1.VOB`, `_2`, `_3`… Chaque morceau serait traité séparément, en plusieurs fichiers | Reconnaître un dossier `VIDEO_TS` et enchaîner les VOB d'un même titre (concat FFmpeg) |
-| 4 | **Relancer un dossier refait tout** | *Vérifié* : un second passage crée des copies « (2) » au lieu de sauter les films déjà faits | Sauter un film dont la sortie existe déjà (même nom, même réglage) |
-| 5 | **Longs films : veille et espace disque** | Veille Windows empêchée pendant un traitement. L'espace disque reste contrôlé seulement en mode IA | Contrôle d'espace aussi pour les poussières (ProRes) et la stabilisation |
+| 4 | ~~Relancer un dossier refait tout~~ **Fait** | Un film déjà restauré avec les mêmes réglages est sauté et compté (« déjà restauré ») | Testé |
+| 5 | ~~Longs films : veille et espace disque~~ **Fait** | Veille empêchée (Windows) ; espace vérifié avant de commencer, pour tous les traitements (fichier final + ProRes poussières + WAV DeepFilterNet), avec un message clair | Testé (disque plein simulé) |
 | 6 | **Téléchargement durable** | L'artefact GitHub expire au bout de 90 jours et demande un compte GitHub | Publier une version (GitHub Release) téléchargeable sans compte |
 | 7 | Son (souffle, clics, volume, sync) | Fait : trois profils, décalage, dérive manuelle, ronflement, copie WAV/FLAC, DeepFilterNet plafonné à 12 dB | Écoute sur de vraies cassettes |
 

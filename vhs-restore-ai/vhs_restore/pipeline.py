@@ -425,14 +425,93 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
     return args, vs, "0:v:0", "1:a:0?"
 
 
-def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
+# ---------------------------------------------------------------- dossier de sortie
+def is_writable(folder: Path) -> bool:
+    """Vrai test d'écriture (os.access ne voit pas un DVD ou une clé protégée sous Windows)."""
+    try:
+        with tempfile.NamedTemporaryFile(dir=folder, prefix=".vhsrestore_test_"):
+            return True
+    except OSError:
+        return False
+
+
+def fallback_dir() -> Path:
+    """« Vidéos\\Films restaurés » de l'utilisateur (VHSRA_SORTIE pour les tests)."""
+    if os.environ.get("VHSRA_SORTIE"):
+        return Path(os.environ["VHSRA_SORTIE"])
+    home = Path(os.environ.get("USERPROFILE") or Path.home())
+    videos = home / "Videos"            # nom réel du dossier « Vidéos » de Windows
+    return (videos if videos.is_dir() else home) / BATCH_DIR
+
+
+def output_dir_for(folder: Path) -> tuple[Path, bool]:
+    """Dossier où enregistrer : celui du film, sinon (DVD, clé protégée…) le dossier
+    de secours. Renvoie (dossier, True si c'est le dossier de secours)."""
+    folder = Path(folder)
+    if folder.is_dir() and is_writable(folder):
+        return folder, False
+    fb = fallback_dir()
+    try:
+        fb.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise ToolError(f"Impossible de créer le dossier de sortie {fb} : {exc}") from exc
+    return fb, True
+
+
+# ---------------------------------------------------------------- espace disque
+GB = 1e9
+
+
+def disk_needs(info: MediaInfo, s: Settings, start: float | None = None,
+               duration: float | None = None) -> tuple[float, float]:
+    """Estimation prudente (octets) : (fichier final, fichiers temporaires).
+    Débits H.264 CRF 18 constatés : SD ~5 Mbit/s, Full HD ~12, 4K ~35 (marge x1,5)."""
+    dur = (duration or max(0.0, info.duration - (start or 0.0))) * time_ratio(info, s)
+    w, h, _ = target_size(info, s)
+    rate = 5e6 if h <= 576 else 12e6 if h <= 1080 else 35e6
+    final = dur * rate / 8 * 1.5
+    temp = 0.0
+    if s.dust:   # ProRes 422 : ~2,4 bits par pixel et par image
+        temp += info.width * info.height * float(info.fps) * dur * 2.4 / 8
+    if s.restore_audio and s.profile.deepfilter and info.has_audio:
+        temp += dur * 48000 * 2 * 2 * 2   # WAV source + WAV nettoyé
+    return final, temp
+
+
+def check_disk_space(info: MediaInfo, s: Settings, out_dir: Path, start: float | None = None,
+                     duration: float | None = None) -> None:
+    """Refuse de commencer s'il ne reste pas assez de place (le mode IA a son propre contrôle)."""
+    final, temp = disk_needs(info, s, start, duration)
+    roots = {}
+    for path, need in ((Path(out_dir), final), (Path(_work_root()), temp)):
+        if need <= 0:
+            continue
+        try:
+            dev = os.stat(path).st_dev
+        except OSError:
+            continue
+        free = shutil.disk_usage(path).free
+        prev = roots.get(dev, (path, 0.0, free))
+        roots[dev] = (prev[0], prev[1] + need, free)
+    for path, need, free in roots.values():
+        if free < need * 1.1:
+            raise ToolError(f"Espace disque insuffisant dans {path} : il faut environ "
+                            f"{need / GB:.1f} Go, il en reste {free / GB:.1f} Go. Libérez de la place "
+                            "ou choisissez un autre dossier de sortie (disque externe, par exemple).")
+
+
+def output_base(info: MediaInfo, s: Settings) -> str:
     res = effective_resolution(s)
     tag = ({"video": "", "film": "_film", "transfer": "_transfert"}.get(s.source, "")
            + {"source": "", "1080": "_1080p", "2160": "_4k"}[res]
            + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
            + ("_poussieres" if s.dust else "")
            + ("_ia" if s.use_ai else ""))
-    base = f"{info.path.stem}_restaure_{s.profile.key}{tag}"
+    return f"{info.path.stem}_restaure_{s.profile.key}{tag}"
+
+
+def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
+    base = output_base(info, s)
     cand = out_dir / f"{base}.mp4"
     n = 2
     while cand.exists() or cand.resolve() == info.path.resolve():
@@ -446,6 +525,8 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            start: float | None = None, duration: float | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet."""
     tools.require_ffmpeg()
+    if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
+        check_disk_space(info, s, Path(out_path).parent, start, duration)
     if s.dust:
         return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
     out_path = Path(out_path).resolve()
@@ -700,6 +781,8 @@ class BatchResult:
     out_dir: Path
     done: list[Path]
     errors: list[tuple[str, str]]
+    skipped: list[str] = dataclasses.field(default_factory=list)   # déjà restaurés
+    fallback: bool = False             # dossier source non modifiable : sortie de secours
 
 
 def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaInfo], Settings], *,
@@ -713,9 +796,10 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                    and "_restaure_" not in p.stem and not p.stem.endswith(".partiel"))
     if not files:
         raise ToolError(f"Aucune vidéo trouvée dans ce dossier :\n{folder}")
-    out_dir = folder / BATCH_DIR
+    base_dir, fallback = output_dir_for(folder)
+    out_dir = base_dir if fallback else folder / BATCH_DIR
     out_dir.mkdir(exist_ok=True)
-    res = BatchResult(out_dir, [], [])
+    res = BatchResult(out_dir, [], [], fallback=fallback)
     n = len(files)
     for k, f in enumerate(files):
         if cancel is not None and cancel.is_set():
@@ -728,6 +812,10 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             sub(0.0, "analyse…")
             info = analyze(f, tools)
             s = settings_for(info)
+            if (out_dir / f"{output_base(info, s)}.mp4").exists():
+                # déjà restauré avec les mêmes réglages (relance après une coupure)
+                res.skipped.append(f.name)
+                continue
             res.done.append(export(info, s, unique_output_path(info, s, out_dir), tools,
                                    cancel=cancel, progress=sub))
         except Cancelled:
