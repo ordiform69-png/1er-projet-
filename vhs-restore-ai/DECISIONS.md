@@ -401,4 +401,10 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   UAVG 118,7 → 127,9 et VAVG 113,7 → 127,6 (neutre = 128). Noir et blanc : gains 1, saturation 0.
   Couleur pâle (saturation 0,25) : pas de conseil, saturation 27,2 → 26,9 (pas ravivée). Un
   `testsrc2` déjà neutre (écart 4,8) n'a pas de conseil.
+- **Bords abîmés** : réglage avancé en pixels, 0 par défaut. Vidéo : gauche et droite noirs.
+  Pellicule : cadre des quatre côtés. `crop` puis `pad` noir, donc la taille et le 4:3 ne changent
+  pas (comme la bande du bas). Mesuré sur un gris uniforme (YAVG 126) : après 16 px, les bords
+  masqués sont à YAVG 16 et le centre reste à 126. Cassette 720×576, pixels 16:15, format 4:3.
+  Pellicule 720×540 : les quatre côtés du cadre à 16, centre à 126, format 4:3.
+
 

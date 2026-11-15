@@ -124,6 +124,9 @@ l'analyse la conseille (une teinte forte couvre tout le film) et que vous appliq
 trois gains fixes rééquilibrent le rouge, le vert et le bleu, une seule fois pour tout le film.
 Un noir et blanc reste gris. Une image pâle n'est pas ravivée.
 
+**Bords abîmés** : réglage en pixels, 0 par défaut. Cassette : bandes noires à gauche et à
+droite. Pellicule : cadre des quatre côtés. La taille de l'image et le 4:3 ne changent pas.
+
 ## Bande VHS (Analog Repair)
 
 Dans les options avancées, pour une cassette seulement, trois cases désactivées par défaut.
