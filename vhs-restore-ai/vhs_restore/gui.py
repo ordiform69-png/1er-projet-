@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
                                QRadioButton, QSizePolicy, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
-from . import pipeline
+from . import photo, pipeline
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -31,7 +31,8 @@ from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools
 
 log = logging.getLogger("vhs_restore")
-VIDEO_FILTER = "Vidéos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *.mts *.ts *.dv *.vob *.wmv *.m4v);;Tous les fichiers (*)"
+VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *.mts *.ts *.dv *.vob *.wmv *.m4v "
+                "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp);;Tous les fichiers (*)")
 
 
 class Worker(QThread):
@@ -188,7 +189,7 @@ class MainWindow(QMainWindow):
         page = QWidget()
         v = QVBoxLayout(page)
         v.setContentsMargins(24, 16, 24, 12)
-        title = QLabel("Restaurer un film de famille")
+        title = QLabel("Restaurer un film ou une photo de famille")
         title.setStyleSheet("font-size:20pt;font-weight:bold")
         v.addWidget(title)
         self.s_info = QLabel("Commencez par choisir le film à restaurer.")
@@ -203,17 +204,17 @@ class MainWindow(QMainWindow):
         self.s_advice.setVisible(False)
         v.addWidget(self.s_advice)
         h = QHBoxLayout()
-        self.s_choose = QPushButton("1. Choisir le film")
+        self.s_choose = QPushButton("1. Choisir le film ou la photo")
         self.s_choose.clicked.connect(self._choose_file)
         self.s_preview = QPushButton("2. Voir l'avant / après")
         self.s_preview.clicked.connect(self.start_preview)
-        self.s_run = QPushButton("3. Restaurer le film")
+        self.s_run = QPushButton("3. Restaurer")
         self.s_run.clicked.connect(self.start_export)
         for b in (self.s_choose, self.s_preview, self.s_run):
             b.setStyleSheet(BIG)
             h.addWidget(b)
         v.addLayout(h)
-        note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
+        self.s_note = note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
                       "Décalage, dérive et copie WAV : Options avancées.")
         note.setWordWrap(True)
         note.setStyleSheet("color:#444;font-size:12pt")
@@ -233,7 +234,7 @@ class MainWindow(QMainWindow):
         self.s_cancel = QPushButton("Arrêter")
         self.s_cancel.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
         self.s_cancel.clicked.connect(self.cancel)
-        self.s_folder = QPushButton("Restaurer tous les films d'un dossier…")
+        self.s_folder = QPushButton("Restaurer tout un dossier (films et photos)…")
         self.s_folder.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
         self.s_folder.clicked.connect(self.start_folder)
         self.s_hear_orig = QPushButton("Écouter l'original")
@@ -700,6 +701,8 @@ class MainWindow(QMainWindow):
         for b in (self.play_btn, self.hear_orig_btn, self.hear_new_btn,
                   self.s_hear_orig, self.s_hear_new):
             b.setEnabled(has_prev and not busy)
+            b.setVisible(not getattr(self, "is_photo", False))     # une photo n'a pas de son
+        self.s_note.setVisible(not getattr(self, "is_photo", False))
         self.still_combo.setEnabled(has_prev)
 
     def _profile_changed(self, key: str) -> None:
@@ -801,11 +804,46 @@ class MainWindow(QMainWindow):
     def load_file(self, path: str) -> None:
         if self._busy():
             return
-        self.status.setText("Analyse de la vidéo…")
         self.progress.setRange(0, 0)  # animation indéterminée
+        if photo.is_photo(path):
+            self.status.setText("Analyse de la photo…")
+            self._launch(lambda c, p: photo.analyze_photo(path, self.tools), self._photo_loaded)
+            return
+        self.status.setText("Analyse de la vidéo…")
         self._launch(lambda c, p: open_media(path, self.tools), self._loaded)
 
+    def _photo_loaded(self, info: MediaInfo) -> None:
+        """Photo : description simple, conseils de contraste et de couleur, mêmes boutons."""
+        self.info, self.is_photo, self.preview = info, True, None
+        self.compare.clear()
+        self.still_combo.clear()
+        for k, lab in self.info_labels.items():
+            lab.setText("—")
+        self.info_labels["Fichier"].setText(info.path.name)
+        self.info_labels["Résolution"].setText(f"{info.width} × {info.height} (photo)")
+        self.out_note = ""
+        if not self.out_edit.text() or not pipeline.is_writable(Path(self.out_edit.text())):
+            try:
+                out, fallback = pipeline.output_dir_for(info.path.parent)
+                self.out_edit.setText(str(out))
+                if fallback:
+                    self.out_note = (f"ℹ Le dossier de la photo ne peut pas être modifié : la photo restaurée "
+                                     f"sera enregistrée dans {out}")
+            except ToolError as exc:
+                self.out_note = f"⚠ {exc}"
+        self.advice = advise(info)
+        tips = "".join(f"<br>💡 {a.text}" for a in self.advice)
+        kind = " Noir et blanc : elle le restera." if info.black_and_white else ""
+        self.s_info.setText(f"<b>{info.path.name}</b> — photo de {info.width} × {info.height} pixels.{kind}{tips}")
+        self.s_advice.setChecked(False)
+        self.s_advice.setVisible(bool(self.advice))
+        self.drop.setText(info.path.name)
+        self._update_state()
+        self._refresh_hints()
+        self.status.setText("Photo analysée. Choisissez un profil puis regardez l'avant / après.")
+
     def _loaded(self, info: MediaInfo) -> None:
+        self.is_photo = False
         self.info = info
         self.preview = None
         self.compare.clear()
@@ -861,6 +899,10 @@ class MainWindow(QMainWindow):
             return
         info, s, start = self.info, self.settings(), self.start_spin.value()
         self.status.setText("Préparation de l'aperçu…")
+        if getattr(self, "is_photo", False):
+            self._launch(lambda c, p: photo.make_photo_preview(info, s, self.tools, self.preview_dir / "photo",
+                                                               cancel=c, progress=p), self._preview_done)
+            return
         self._launch(lambda c, p: pipeline.make_preview(info, s, self.tools, self.preview_dir, start,
                                                         cancel=c, progress=p), self._preview_done)
 
@@ -871,10 +913,14 @@ class MainWindow(QMainWindow):
         for i, _ in enumerate(res.stills):
             self.still_combo.addItem(f"Image {i + 1}/{len(res.stills)}")
         self.still_combo.blockSignals(False)
-        self.still_combo.setCurrentIndex(1)
-        self._show_still(1)
-        self.status.setText(f"Aperçu prêt (de {res.start:.0f} s à {res.start + res.duration:.0f} s). "
-                            "Déplacez la souris sur l'image pour comparer.")
+        idx = min(1, len(res.stills) - 1)
+        self.still_combo.setCurrentIndex(idx)
+        self._show_still(idx)
+        if getattr(self, "is_photo", False):
+            self.status.setText("Aperçu prêt. Déplacez la souris sur l'image pour comparer.")
+        else:
+            self.status.setText(f"Aperçu prêt (de {res.start:.0f} s à {res.start + res.duration:.0f} s). "
+                                "Déplacez la souris sur l'image pour comparer.")
 
     def _show_still(self, idx: int) -> None:
         if self.preview and 0 <= idx < len(self.preview.stills):
@@ -908,6 +954,12 @@ class MainWindow(QMainWindow):
             out_dir = new_dir
             self.out_edit.setText(str(out_dir))
         info, s = self.info, self.settings()
+        if getattr(self, "is_photo", False):
+            out = photo.output_path(info, s, out_dir)
+            self.status.setText(f"Restauration vers {out.name}…")
+            self._launch(lambda c, p: photo.restore_photo(info, s, out, self.tools, cancel=c, progress=p),
+                         self._export_done)
+            return
         try:
             out = pipeline.unique_output_path(info, s, out_dir)
             start, length = pipeline.trim_window(info, self.trim_start.value(), self.trim_end.value())
@@ -955,6 +1007,11 @@ class MainWindow(QMainWindow):
             side = out.with_suffix(".wav" if kind == "wav" else ".flac")
             if side.is_file():
                 extra = f"\n\nCopie du son restauré :\n{side.name}"
+        if getattr(self, "is_photo", False):
+            self._done_box("Votre photo restaurée est prête",
+                           f"Votre photo restaurée est prête :\n{out.name}\n\nElle se trouve dans le dossier :\n"
+                           f"{out.parent}\n\nLa photo d'origine n'a pas été modifiée.", out.parent)
+            return
         self._done_box("Votre film restauré est prêt",
                        f"Votre film restauré est prêt :\n{out.name}\n\nIl se trouve dans le dossier :\n"
                        f"{out.parent}{extra}\n\nLe film d'origine n'a pas été modifié.", out.parent)

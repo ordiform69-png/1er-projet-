@@ -423,3 +423,18 @@ l'image au magenta** avec des noirs bouchés : pire que l'original. Les correcti
 plafonnées (`pipeline.MAX_CONTRAST` = 1,6 ; gains de dominante entre 0,85 et 1,18), dans le
 conseil comme dans la chaîne. Le défaut est atténué, il n'est plus forcément annulé. Vérifié à
 l'œil sur les deux archives, et par `tests/test_plafonds.py` (dominante jamais inversée).
+
+## Mode Photo (phase 13)
+
+- `vhs_restore/photo.py` : photo ou carte postale numérisée -> PNG sans perte. Filtres FFmpeg
+  seuls : `spp` (blocs de compression JPEG), `nlmeans` léger (grain), `cas` (netteté), x2 en
+  Maximum. Niveaux et dominante : mêmes mesures, mêmes conseils et mêmes plafonds que les films.
+  Une photo noir et blanc sort en niveaux de gris : aucune couleur n'est ajoutée.
+- Réglages choisis sur une vraie carte postale ancienne (730×1156, noir et blanc, blocs JPEG) : un
+  débruitage `nlmeans` s=2,5 donnait aux pierres d'un mur un aspect d'aquarelle ; les profils
+  restent donc à s=1,2 (Équilibré) et 1,6 (Maximum).
+- Vérifié (`tests/test_photo.py`) : la photo Fidèle est plus proche de l'image non compressée que
+  le JPEG de départ (PSNR), le noir et blanc reste gris, l'original n'est pas modifié, aucun
+  écrasement, aperçu avant/après à la même taille, dossier mixte films et photos avec relance.
+- Real-ESRGAN (facultatif) peut agrandir une photo ; décochée par défaut, car l'IA invente des
+  traits sur des visages de quelques pixels. Pas de colorisation ni de retouche des visages.

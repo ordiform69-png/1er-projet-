@@ -157,3 +157,24 @@ def test_advice_checkbox(app, tools, samples, tmp_path):
     wait(app, win)
     assert not win.s_advice.isVisibleTo(win) and win.settings().audio_channel_fix == ""
     win.close()
+
+
+def test_photo_mode(app, tools, tmp_path, monkeypatch):
+    from conftest import ff
+    from PySide6.QtWidgets import QMessageBox
+    shown = []
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: shown.append(self.text()) or 0)
+    src = tmp_path / "carte postale.jpg"
+    ff("-f", "lavfi", "-i", "mandelbrot=size=320x240", "-frames:v", "1", "-vf", "format=gray", "-q:v", "20", str(src))
+    win = MainWindow(tools)
+    win.out_edit.setText(str(tmp_path))
+    win.load_file(str(src))
+    wait(app, win)
+    assert win.is_photo and "photo de 320 × 240" in win.s_info.text() and "Noir et blanc" in win.s_info.text()
+    win.s_preview.click()
+    wait(app, win)
+    assert win.s_compare.before is not None and win.status.text().startswith("Aperçu prêt")
+    win.s_run.click()
+    wait(app, win)
+    assert list(tmp_path.glob("carte postale_restaure_*.png")) and "photo restaurée" in shown[-1]
+    win.close()

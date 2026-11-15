@@ -1016,8 +1016,12 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
     if not titles:
         # dossier ordinaire : le tri ci-dessus suffit, menus exclus seulement s'ils portent ce nom
         files = sorted(files)
+    from . import photo   # import tardif : photo.py importe pipeline
+    if folder.is_dir():   # photos du même dossier (mode Photo), après les films
+        files += sorted(p for p in folder.iterdir() if p.is_file() and photo.is_photo(p)
+                        and "_restaure_" not in p.stem and not p.stem.endswith(".partiel"))
     if not files:
-        raise ToolError(f"Aucune vidéo trouvée dans ce dossier :\n{folder}")
+        raise ToolError(f"Aucune vidéo ni photo trouvée dans ce dossier :\n{folder}")
     base_dir, fallback = output_dir_for(folder)
     out_dir = base_dir if fallback else folder / BATCH_DIR
     out_dir.mkdir(exist_ok=True)
@@ -1032,6 +1036,15 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                 progress((k + frac) / n, f"Film {k + 1}/{n} ({name}) : {msg}")
         try:
             sub(0.0, "analyse…")
+            if photo.is_photo(f):
+                pinfo = photo.analyze_photo(f, tools)
+                ps = settings_for(pinfo)
+                if (out_dir / f"{pinfo.path.stem}_restaure_{ps.profile.key}{'_ia' if ps.use_ai else ''}.png").exists():
+                    res.skipped.append(f.name)
+                    continue
+                res.done.append(photo.restore_photo(pinfo, ps, photo.output_path(pinfo, ps, out_dir), tools,
+                                                    cancel=cancel, progress=sub))
+                continue
             info = open_media(f, tools)
             s = settings_for(info)
             if (out_dir / f"{output_base(info, s)}.mp4").exists():

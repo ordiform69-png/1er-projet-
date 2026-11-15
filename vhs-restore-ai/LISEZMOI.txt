@@ -31,6 +31,9 @@ Pour le nettoyage de voix du profil Maximum (facultatif) :
 Cela télécharge DeepFilterNet, un logiciel libre. Sans lui, le son est quand
 même nettoyé par FFmpeg.
 
+Photos : choisissez une photo ou une carte postale numérisée (.jpg, .png…) avec le
+même bouton. La photo restaurée est enregistrée à côté de l'originale, en .png.
+
 Plusieurs films d'un coup : « Restaurer tous les films d'un dossier… ».
 Ils sont rangés dans un sous-dossier « Films restaurés ».
 

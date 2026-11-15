@@ -44,6 +44,13 @@ Si l'analyse détecte un défaut du son (un seul côté enregistré, côtés en 
 saturé, ronflement électrique), elle l'explique en une phrase sous la description du film et propose
 une case « Appliquer ces conseils », décochée par défaut.
 
+**Photos** : le même écran accepte une photo ou une carte postale numérisée (JPEG, PNG, TIFF,
+BMP, WebP). Elle est restaurée en PNG, sans perte, à côté de l'originale : blocs de compression
+JPEG atténués, grain léger réduit, netteté prudente. Le profil Maximum double aussi la taille. Le
+noir et blanc reste noir et blanc, et le contraste ou une dominante de couleur ne sont corrigés que
+sur conseil, avec les mêmes plafonds que pour les films. « Restaurer tout un dossier » traite films
+et photos ensemble.
+
 **Options avancées** (lien en bas à droite) : tous les réglages ci-dessous.
 
 Pendant un traitement, le **temps restant** s'affiche sous la barre de progression (« environ
