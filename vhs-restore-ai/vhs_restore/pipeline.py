@@ -93,6 +93,7 @@ class Settings:
     audio_channel_fix: str = ""            # "" | left | right (canal gardé des deux côtés) | phase
     audio_declip: bool = False             # reconstruire les crêtes saturées (adeclip)
     audio_highpass: bool = False           # vent et grondements : passe-haut doux à 80 Hz
+    audio_presence: bool = False           # voix étouffée : présence vers 3 kHz, +3 dB au plus
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
@@ -217,6 +218,9 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
         if s.audio_highpass and _has(present, "highpass"):
             # 6 dB/octave : le vent et les grondements, pas les voix (300 Hz ≈ −0,3 dB)
             chain.append("highpass=f=80:poles=1")
+        if s.audio_presence and _has(present, "equalizer"):
+            # Cloche étroite : +3 dB à 3 kHz, pas plus. Les graves et les aigus extrêmes restent.
+            chain.append("equalizer=f=3000:t=q:w=1:g=3")
     if restore and s.restore_audio and not info.audio_silent:
         p = s.profile
         if p.adeclick and _has(present, "adeclick"):

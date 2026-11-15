@@ -382,3 +382,6 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   `highpass=f=80:poles=1` (6 dB/octave). Case avancée « Réduire le vent et les grondements »,
   ou le conseil `wind`. Mesuré sur synthèse : graves −29,5 → −35,5 dB (−6,0 dB) ; voix 300 Hz–3 kHz
   −42,2 → −42,3 dB. Un son rose léger et un ronflement ne déclenchent pas le conseil.
+- **Voix étouffée** : case « Rendre les voix plus claires », jamais par défaut.
+  `equalizer=f=3000:t=q:w=1:g=3` (+3 dB, pas plus). Mesuré : bande 2–4 kHz en hausse d'environ
+  3 dB, crête toujours loin de 0 dB (pas d'écrêtage créé).
