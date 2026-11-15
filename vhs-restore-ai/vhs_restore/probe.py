@@ -216,6 +216,37 @@ def guess_standard(height: int, fps: Fraction) -> tuple[str, str]:
     return "inconnu", ""
 
 
+def _num(value: object) -> float:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _audio_timing_notes(info: MediaInfo, audio: dict, video: dict, fmt: dict) -> None:
+    """Signale un écart déjà écrit dans le fichier. Ne corrige rien et ne lit pas les lèvres."""
+    base = _num(fmt.get("start_time"))
+    a_vs_v = (_num(audio.get("start_time")) - base) - info.video_offset
+    if abs(a_vs_v) >= 0.04:
+        ms = a_vs_v * 1000
+        sens = ("le son commence plus tard que l'image : un décalage négatif l'avance"
+                if ms > 0 else
+                "le son commence plus tôt que l'image : un décalage positif le retarde")
+        info.warnings.append(
+            f"Métadonnées : écart son/image d'environ {ms:+.0f} ms ({sens}). "
+            "À vérifier à l'oreille : ce n'est pas une détection des lèvres.")
+    a_dur, v_dur = _num(audio.get("duration")), _num(video.get("duration")) or info.duration
+    if a_dur > 1 and v_dur > 1:
+        delta = a_dur - v_dur
+        if abs(delta) >= 0.15 and abs(delta) / v_dur >= 0.002:
+            per_min = delta / v_dur * 60000.0
+            info.warnings.append(
+                f"La piste son dure {delta:+.2f} s de plus que l'image "
+                f"(environ {per_min:+.0f} ms par minute). "
+                "Si le décalage s'aggrave, réglez « Dérive du son ». "
+                "L'application ne détecte pas les lèvres.")
+
+
 def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) -> MediaInfo:
     tools.require_ffmpeg()
     p = Path(path).resolve()
@@ -277,6 +308,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.has_audio = True
         info.audio_desc = (f"{a.get('codec_name', '?')}, {a.get('sample_rate', '?')} Hz, "
                            f"{a.get('channels', '?')} canal(aux)")
+        _audio_timing_notes(info, a, v, fmt)
 
     # --- entrelacement mesuré sur le contenu (au tiers du film, hors amorce)
     start = info.duration / 3 if info.duration > 60 else 0

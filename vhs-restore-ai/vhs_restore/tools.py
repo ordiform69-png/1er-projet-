@@ -32,6 +32,7 @@ QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
 REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack", "fftdnoiz",
                     "signalstats", "fieldmatch", "deflicker", "setpts", "atempo")
 STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
+AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject")  # facultatifs
 
 
 class ToolError(RuntimeError):
@@ -63,6 +64,12 @@ class Toolset:
     vspipe: Tool = field(default_factory=lambda: Tool("QTGMC"))
     vidstab: bool = False
     dust: bool = False          # module « poussières et rayures » (Analog Repair) installé
+    deepfilter: Tool = field(default_factory=lambda: Tool("DeepFilterNet"))
+    audio_filters: frozenset[str] = frozenset()
+
+    @property
+    def deepfilter_available(self) -> bool:
+        return self.deepfilter.ok
 
     @property
     def dust_available(self) -> bool:
@@ -135,6 +142,7 @@ def detect_tools() -> Toolset:
                                     ["realesrgan", "realesrgan-ncnn-vulkan"]))
     missing: list[str] = []
     vidstab = False
+    audio_present: set[str] = set()
     for t in (ff, fp):
         if t.path:
             t.version = _version(t.path)
@@ -144,6 +152,7 @@ def detect_tools() -> Toolset:
             present = {line.split()[1] for line in listing.splitlines() if len(line.split()) > 2}
             missing = [f for f in REQUIRED_FILTERS if f not in present]
             vidstab = all(f in present for f in STAB_FILTERS)
+            audio_present = {f for f in AUDIO_FILTERS if f in present}
         except (OSError, subprocess.TimeoutExpired) as exc:
             ff.problem = f"FFmpeg ne répond pas : {exc}"
     if re_.path:
@@ -152,10 +161,16 @@ def detect_tools() -> Toolset:
         if not (models / "realesrgan-x4plus.param").is_file():
             re_.problem = f"modèle realesrgan-x4plus absent de {models}"
         re_.version = "ncnn-vulkan"
+    df = Tool("DeepFilterNet", _find("VHSRA_DEEPFILTER", ["deep-filter"], ["deepfilter", "DeepFilterNet"]))
+    if df.path:
+        df.version = "deep-filter"
     from . import dust
-    ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available())
-    log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s filtres manquants=%s",
-             ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem, missing)
+    ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available(),
+                 df, frozenset(audio_present))
+    log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s "
+             "deepfilter=%s audio=%s filtres manquants=%s",
+             ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem,
+             df.path, sorted(audio_present), missing)
     return ts
 
 

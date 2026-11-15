@@ -43,7 +43,8 @@ def autotest(folder: str) -> int:
         report.append(f"FFmpeg {ts.ffmpeg.version} : {ts.ffmpeg.path}")
         report.append(f"Stabilisation : {'oui' if ts.stab_available else 'non'} ; "
                       f"QTGMC : {'oui' if ts.qtgmc_available else 'non'} ; "
-                      f"IA : {'oui' if ts.ai_available else 'non'}")
+                      f"IA : {'oui' if ts.ai_available else 'non'} ; "
+                      f"DeepFilterNet : {'oui' if ts.deepfilter_available else 'non'}")
         sample = out / "échantillon été 1975.avi"
         r = run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
                          "testsrc2=size=720x576:rate=50,tinterlace=mode=interleave_top,setfield=tff,"

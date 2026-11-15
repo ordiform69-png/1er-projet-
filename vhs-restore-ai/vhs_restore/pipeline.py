@@ -79,6 +79,12 @@ class Settings:
     playback_fps: Fraction | None = None  # film : cadence de tournage choisie (None = celle du fichier)
     deflicker: bool = False               # film / transfert : réduction du scintillement
     dust: bool = False                    # film : poussières et rayures (Analog Repair, facultatif)
+    restore_audio: bool = True            # nettoyage du son selon le profil (jamais si piste muette)
+    audio_offset_ms: float = 0.0          # >0 retarde le son, <0 l'avance. 0 = inchangé
+    audio_drift_ms_per_min: float = 0.0   # >0 le son prend du retard : on l'accélère (atempo)
+    audio_mains_hz: int = 0                # 0 | 50 | 60 : encoche secteur, seulement si demandé
+    audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
+    mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
     crf: int = 18
     preset: str = "medium"
 
@@ -115,23 +121,122 @@ def time_ratio(info: MediaInfo, s: Settings) -> float:
 
 
 def retime_args(info: MediaInfo, s: Settings) -> list[str]:
-    """Options de sortie du re-cadencement : cadence fixe et son au même tempo
-    (atempo conserve la hauteur du son), pour garder la synchronisation."""
+    """Cadence de sortie fixe. Le son correspondant est dans audio_args (atempo)."""
     r = retime(info, s)
     if not r:
         return []
-    args = ["-r", f"{r.numerator}/{r.denominator}"]
-    if info.has_audio:
-        f, chain = float(r / info.fps), []
-        while f > 2.0:
-            chain.append("atempo=2.0")
-            f /= 2.0
-        while f < 0.5:
-            chain.append("atempo=0.5")
-            f /= 0.5
-        chain.append(f"atempo={f:.6f}")
-        args += ["-af", ",".join(chain)]
-    return args
+    return ["-r", f"{r.numerator}/{r.denominator}"]
+
+
+def _tempo_factor(info: MediaInfo, s: Settings, *, drift: bool) -> float:
+    """Vitesse du son par rapport au fichier. 1 = inchangée.
+    Le re-cadencement pellicule et la dérive se combinent en un seul atempo."""
+    f = 1.0
+    r = retime(info, s)
+    if r:
+        f *= float(r / info.fps)
+    if drift:
+        # positif : le son s'éloigne en retard de N ms par minute de film → on l'accélère
+        per = max(-0.04, min(0.04, s.audio_drift_ms_per_min / 60000.0))
+        if abs(per) >= 0.5 / 60000.0:
+            f *= 1.0 / (1.0 - per)
+    return f
+
+
+def _atempo_chain(factor: float) -> list[str]:
+    if abs(factor - 1.0) < 1e-4:
+        return []
+    f, chain = factor, []
+    while f > 2.0:
+        chain.append("atempo=2.0")
+        f /= 2.0
+    while f < 0.5:
+        chain.append("atempo=0.5")
+        f /= 0.5
+    chain.append(f"atempo={f:.6f}")
+    return chain
+
+
+def _atempo_filters(info: MediaInfo, s: Settings, *, drift: bool = True) -> list[str]:
+    if not info.has_audio:
+        return []
+    return _atempo_chain(_tempo_factor(info, s, drift=drift))
+
+
+def _has(present: frozenset[str] | None, name: str) -> bool:
+    return present is None or name in present
+
+
+def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
+                  skip_afftdn: bool = False, apply_offset: bool = True,
+                  apply_drift: bool = True,
+                  present: frozenset[str] | None = None) -> list[str]:
+    """Chaîne -af. Les ambiances restent dans le signal : pas de séparation voix/bruit.
+    present=None : on suppose les filtres présents (tests). Un ensemble vide les retire."""
+    if not info.has_audio:
+        return []
+    chain: list[str] = []
+    if restore and s.restore_audio and not info.audio_silent:
+        if s.audio_mains_hz in (50, 60) and _has(present, "bandreject"):
+            hz = int(s.audio_mains_hz)
+            # Q élevé = encoche étroite : le bourdonnement, pas la musique grave
+            chain.append(f"bandreject=f={hz}:t=q:w=30")
+            chain.append(f"bandreject=f={hz * 2}:t=q:w=30")
+        p = s.profile
+        if p.adeclick and _has(present, "adeclick"):
+            chain.append("adeclick")
+        if p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
+            chain.append(f"afftdn=nr={p.afftdn_nr:g}:nf=-50:tn=1")
+        if p.loudnorm and _has(present, "dynaudnorm"):
+            # gain plafonné : rattrape les écarts de volume sans écraser l'ambiance
+            chain.append("dynaudnorm=f=250:g=15:p=0.95:m=8")
+    ms = s.audio_offset_ms if apply_offset else 0.0
+    if abs(ms) >= 1:
+        if ms > 0 and _has(present, "adelay"):
+            chain.append(f"adelay={int(round(ms))}:all=1")
+        elif ms < 0 and _has(present, "atrim"):
+            chain += [f"atrim=start={-ms / 1000:.4f}", "asetpts=PTS-STARTPTS"]
+    chain += _atempo_filters(info, s, drift=apply_drift)
+    return chain
+
+
+def audio_args(info: MediaInfo, s: Settings, *, restore: bool = True,
+               skip_afftdn: bool = False, apply_offset: bool = True,
+               apply_drift: bool = True,
+               present: frozenset[str] | None = None) -> list[str]:
+    chain = audio_filters(info, s, restore=restore, skip_afftdn=skip_afftdn,
+                          apply_offset=apply_offset, apply_drift=apply_drift, present=present)
+    return ["-af", ",".join(chain)] if chain else []
+
+
+def _try_deepfilter(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
+                    start: float | None, duration: float | None,
+                    cancel: threading.Event | None) -> Path | None:
+    """DeepFilterNet (binaire libre) sur un WAV 48 kHz. Échec = repli afftdn, pas d'arrêt."""
+    if not (s.restore_audio and s.profile.deepfilter and tools.deepfilter.ok
+            and info.has_audio and not info.audio_silent):
+        return None
+    src = work / "son_source.wav"
+    out_dir = work / "son_df"
+    out_dir.mkdir(exist_ok=True)
+    try:
+        run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+             *_seek(start, duration), "-i", str(info.path), "-map", "0:a:0",
+             "-ar", "48000", "-c:a", "pcm_s16le", str(src)],
+            cancel=cancel, what="FFmpeg (extraction du son)")
+        run([tools.deepfilter.path, "-D", "-a", "12", "-o", str(out_dir), str(src)],
+            cancel=cancel, what="DeepFilterNet")
+    except (ToolError, Cancelled):
+        if cancel is not None and cancel.is_set():
+            raise
+        log.warning("DeepFilterNet indisponible ou en échec : repli sur afftdn", exc_info=True)
+        return None
+    wavs = sorted(out_dir.glob("*.wav"))
+    if not wavs:
+        log.warning("DeepFilterNet n'a rien écrit dans %s", out_dir)
+        return None
+    log.info("Son traité par DeepFilterNet : %s", wavs[0])
+    return wavs[0]
 
 
 def effective_dar(info: MediaInfo, s: Settings) -> Fraction:
@@ -234,9 +339,22 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
         f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709")
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
+    f += _bottom_mask(info, s)
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
     f.append("format=yuv420p")
     return f
+
+
+def _bottom_mask(info: MediaInfo, s: Settings) -> list[str]:
+    """Bande noire en bas, même taille d'image. 0 ligne = filtre absent (comportement d'origine)."""
+    n = int(s.mask_bottom or 0)
+    if n < 2 or s.source != "video":
+        return []
+    w, h, _ = target_size(info, s)
+    n = min(n // 2 * 2, (h // 4) // 2 * 2)
+    if n < 2 or h - n < 2:
+        return []
+    return [f"crop={w}:{h - n}:0:0", f"pad={w}:{h}:0:0:black"]
 
 
 def filter_chain(info: MediaInfo, s: Settings) -> str:
@@ -341,33 +459,73 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
     total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
     work: Path | None = None
+    df_owned = False
     try:
+        if s.restore_audio and s.profile.deepfilter and tools.deepfilter.ok and info.has_audio \
+                and not info.audio_silent:
+            work = Path(tempfile.mkdtemp(prefix="vhsrestore_son_", dir=_work_root()))
+            df_owned = True
+        df_wav = _try_deepfilter(info, s, tools, work, start, duration, cancel) if work else None
+        present = frozenset(tools.audio_filters)
         if s.use_ai:
-            _export_ai(info, s, part, tools, cancel, progress, start, duration, total)
+            _export_ai(info, s, part, tools, cancel, progress, start, duration, total,
+                       df_wav, present)
         else:
             lo = 0.0
             if s.stabilize:
-                work = Path(tempfile.mkdtemp(prefix="vhsrestore_stab_", dir=_work_root()))
+                if work is None:
+                    work = Path(tempfile.mkdtemp(prefix="vhsrestore_stab_", dir=_work_root()))
                 lo = 0.35
                 _stab_detect(info, s, tools, work, start, duration, total, cancel, progress, 0, lo)
             args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
+            if df_wav is not None:
+                args = args + ["-i", str(df_wav)]
+                amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
-                   *encode_args(info, s), *retime_args(info, s), "-f", "mp4", str(part)])
+                   *encode_args(info, s), *retime_args(info, s),
+                   *audio_args(info, s, skip_afftdn=df_wav is not None, present=present),
+                   "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         os.replace(part, out_path)
+        _write_audio_copy(out_path, info, s, tools, cancel, progress)
     except BaseException:
         part.unlink(missing_ok=True)
         raise
     finally:
-        if work is not None:
+        if work is not None and (df_owned or s.stabilize):
             shutil.rmtree(work, ignore_errors=True)
     if progress:
         progress(1.0, "Terminé")
     log.info("Export terminé : %s", out_path)
     return out_path
+
+
+def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Toolset,
+                      cancel: threading.Event | None, progress: Progress | None) -> None:
+    """WAV ou FLAC du son déjà présent dans le film restauré. L'original n'est pas touché."""
+    kind = (s.audio_copy or "").lower()
+    if kind not in ("wav", "flac") or not info.has_audio:
+        return
+    dest = out_path.with_suffix(".wav" if kind == "wav" else ".flac")
+    if dest.resolve() == info.path.resolve():
+        raise ToolError("La copie du son ne peut pas remplacer le fichier original.")
+    part = dest.with_name(dest.stem + ".partiel" + dest.suffix)
+    codec = (["-c:a", "pcm_s16le"] if kind == "wav"
+             else ["-c:a", "flac", "-compression_level", "8"])
+    if progress:
+        progress(0.99, "Copie du son restauré…")
+    try:
+        run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+             "-i", str(out_path), "-vn", "-map", "0:a:0", *codec, str(part)],
+            cancel=cancel, what="FFmpeg (copie du son)")
+        os.replace(part, dest)
+    except BaseException:
+        part.unlink(missing_ok=True)
+        raise
+    log.info("Copie du son : %s", dest)
 
 
 def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
@@ -424,7 +582,8 @@ def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
 
 def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                cancel: threading.Event | None, progress: Progress | None,
-               start: float | None, duration: float | None, total: float) -> None:
+               start: float | None, duration: float | None, total: float,
+               df_wav: Path | None = None, present: frozenset[str] | None = None) -> None:
     upscaler = RealEsrganUpscaler(tools.realesrgan)
     fps = output_fps(info, s)
     frames_est = int(total * fps) + 1
@@ -446,8 +605,12 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
         inter = tmp / "inter.mkv"
         pre = ",".join(pre_filters(info, s)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
+        if df_wav is not None:
+            args = args + ["-i", str(df_wav)]
+            amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
         run(_ff_base(tools) + args + [
             "-map", vmap, "-map", amap, "-vf", pre, *retime_args(info, s),
+            *audio_args(info, s, skip_afftdn=df_wav is not None, present=present),
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
@@ -585,6 +748,7 @@ class PreviewResult:
     restored: Path
     compare: Path
     stills: list[Path]
+    original: Path | None = None
 
 
 def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, start: float,
@@ -627,7 +791,8 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     run(_ff_base(tools) + _seek(start, duration) + [
         "-i", str(info.path), "-map", "0:v:0", "-map", "0:a:0?", "-vf", ",".join(ref_vf),
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k",
-        *retime_args(info, s), "-f", "mp4", str(reference)],
+        *retime_args(info, s),
+        *audio_args(info, s, restore=False, apply_offset=False, apply_drift=False), "-f", "mp4", str(reference)],
         cancel=cancel, what="FFmpeg (aperçu de l'original)",
         on_line=_FFProgress(out_duration, progress, 0.8, 0.88, "Comparaison…"))
     fc = (f"[0:v]setpts=PTS-STARTPTS[a];[1:v]scale={w}:{h}:flags=lanczos,setsar=1,setpts=PTS-STARTPTS[b];"
@@ -647,4 +812,4 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         stills.append(still)
     if progress:
         progress(1.0, "Aperçu prêt")
-    return PreviewResult(start, duration, restored, compare, stills)
+    return PreviewResult(start, duration, restored, compare, stills, reference)

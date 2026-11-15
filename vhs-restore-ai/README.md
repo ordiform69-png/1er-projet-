@@ -77,6 +77,34 @@ léger (Fidèle n'en applique aucun) ; pour un transfert, il est intermédiaire
 Ces réglages sont des points de départ, pas une garantie : jugez toujours sur l'aperçu, surtout
 les visages. La 4K n'est proposée qu'avec l'IA, et elle n'apporte aucun détail authentique de plus.
 
+## Son
+
+Case « Restaurer le son », cochée par défaut. Le profil choisi s'applique aussi à la piste :
+
+| | Fidèle | Équilibré | Maximum |
+|---|---|---|---|
+| Souffle | très léger | modéré | plus marqué, ou DeepFilterNet s'il est installé |
+| Clics | non | oui | oui |
+| Écarts de volume | non | oui, gain limité | oui, gain limité |
+
+Une piste absente ou vide n'est pas remplacée. Le mono reste mono. Les rires, la musique et
+les bruits de la pièce ne sont pas isolés pour être supprimés.
+
+Dans les options avancées :
+
+- **Décalage** (ms) : le son est en avance ou en retard d'une valeur fixe.
+- **Dérive** (ms par minute) : le décalage s'aggrave. Exemple : +100 ms/min = 1 seconde de
+  retard au bout de 10 minutes. La hauteur des voix est conservée. Rien n'est corrigé tout
+  seul : l'analyse peut seulement signaler un écart déjà écrit dans le fichier.
+- **Ronflement** 50 Hz (Europe) ou 60 Hz, encoche étroite, désactivé par défaut.
+- **Copie WAV ou FLAC** du son restauré, à côté du film.
+- Après un aperçu : « Écouter l'original » et « Écouter le son restauré ».
+
+DeepFilterNet est facultatif, profil Maximum seulement. `installer.bat -AvecSon` télécharge
+le binaire officiel 0.5.6 dans `tools\deepfilter\`
+([dépôt](https://github.com/Rikorose/DeepFilterNet), licence libre). L'atténuation est
+plafonnée à 12 dB pour garder l'ambiance. Sans lui, le profil Maximum utilise seulement FFmpeg.
+
 ## État des fonctions
 
 **Opérationnel et testé automatiquement** (Linux, FFmpeg 6.1, PySide6 hors écran, vidéos de synthèse) :

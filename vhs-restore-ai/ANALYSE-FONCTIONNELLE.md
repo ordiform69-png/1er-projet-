@@ -23,19 +23,19 @@ sur son PC Windows, sans aide. Chaque manque est marqué *vérifié dans le code
 | 2 | **Sources sur DVD ou clé protégée** | *Vérifié* : la sortie va par défaut à côté de l'original, et « dossier entier » crée « Films restaurés » dans le dossier source. Sur un DVD (lecture seule), l'export échoue, et le dossier entier plante avec une « erreur inattendue » (`mkdir` non intercepté) | Si le dossier source n'est pas inscriptible : sortie dans `Vidéos\Films restaurés`, avec un message clair |
 | 3 | **Films sur DVD découpés en VOB** | *Supposé* : un DVD de transfert contient `VIDEO_TS\VTS_01_1.VOB`, `_2`, `_3`… Chaque morceau serait traité séparément, en plusieurs fichiers | Reconnaître un dossier `VIDEO_TS` et enchaîner les VOB d'un même titre (concat FFmpeg) |
 | 4 | **Relancer un dossier refait tout** | *Vérifié* : un second passage crée des copies « (2) » au lieu de sauter les films déjà faits | Sauter un film dont la sortie existe déjà (même nom, même réglage) |
-| 5 | **Longs films : veille et espace disque** | *Vérifié* : rien n'empêche la mise en veille du PC pendant des heures ; l'espace disque n'est contrôlé qu'en mode IA (pas pour les poussières, dont l'intermédiaire ProRes est volumineux, ni pour la stabilisation) | Empêcher la veille pendant un traitement (`SetThreadExecutionState`) ; contrôle d'espace pour tous les chemins, avec message clair |
+| 5 | **Longs films : veille et espace disque** | Veille Windows empêchée pendant un traitement. L'espace disque reste contrôlé seulement en mode IA | Contrôle d'espace aussi pour les poussières (ProRes) et la stabilisation |
 | 6 | **Téléchargement durable** | L'artefact GitHub expire au bout de 90 jours et demande un compte GitHub | Publier une version (GitHub Release) téléchargeable sans compte |
+| 7 | Son (souffle, clics, volume, sync) | Fait : trois profils, décalage, dérive manuelle, ronflement, copie WAV/FLAC, DeepFilterNet plafonné à 12 dB | Écoute sur de vraies cassettes |
 
 ### P1 — confort et qualité
 
 | # | Manque | Proposition |
 |---|---|---|
 | 7 | Durée restante non affichée | Estimation « environ 1 h 20 restantes » à partir de la progression |
-| 8 | Son non traité (souffle) | `afftdn` léger en Équilibré et Maximum, réglé à l'écoute ; rien en Fidèle |
-| 9 | Bande de parasites en bas des images VHS (commutation des têtes) | Option « masquer la bande du bas » (quelques lignes en noir, proportions inchangées) |
-| 10 | Dominante de couleur (VHS verte) | Option facultative, par exemple filtre `grayworld` de FFmpeg, à évaluer sur de vraies cassettes |
+| 8 | Bande de parasites en bas des images VHS | Option en place (lignes noires, taille inchangée), désactivée par défaut. À juger sur de vraies cassettes |
+| 9 | Dominante de couleur (VHS verte) | Volontairement non corrigée (fidélité). Pas de bouton tant qu'une cassette réelle n'a pas été vue |
 | 11 | Couper le début et la fin (neige, écran bleu) | Début/fin simples dans les options avancées |
-| 12 | Réglages non mémorisés (dossier de sortie, profil) | `QSettings` |
+| 12 | Réglages mémorisés | Fait : profil, options de son et dossier de sortie (`QSettings`) |
 | 13 | Vérifier l'installation sans ligne de commande | Bouton « Vérifier l'installation » qui lance l'autotest |
 | 14 | Compatibilité des vieilles télés (Full HD 50 i/s) | Réglage « compatibilité maximale » si un téléviseur réel pose problème |
 

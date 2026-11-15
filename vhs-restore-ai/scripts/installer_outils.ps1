@@ -1,8 +1,9 @@
 ﻿# Télécharge les outils externes dans le dossier tools\ de l'application.
 #   FFmpeg (obligatoire)   : build "release essentials" de gyan.dev, somme SHA-256 vérifiée.
 #   Real-ESRGAN (option)   : -AvecIA, exécutable ncnn-vulkan officiel v0.2.5.0 (GPU Vulkan requis).
+#   DeepFilterNet (option) : -AvecSon, binaire officiel v0.5.6 (voix, plafond 12 dB dans l'application).
 #   (-AvecQTGMC est traité par installer.bat : paquets pip dans .venv)
-param([switch]$AvecIA, [switch]$AvecQTGMC, [switch]$AvecPoussieres)
+param([switch]$AvecIA, [switch]$AvecQTGMC, [switch]$AvecPoussieres, [switch]$AvecSon)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -47,6 +48,19 @@ if ($AvecIA) {
     } else {
         Install-Zip 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip' `
             $re 'realesrgan-ncnn-vulkan.exe' $null
+    }
+}
+if ($AvecSon) {
+    $dir = Join-Path $tools 'deepfilter'
+    $exe = Join-Path $dir 'deep-filter.exe'
+    if (Test-Path $exe) {
+        Write-Host "DeepFilterNet déjà présent."
+    } else {
+        New-Item -ItemType Directory -Force $dir | Out-Null
+        $url = 'https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe'
+        Write-Host "Téléchargement de DeepFilterNet ..."
+        Invoke-WebRequest $url -OutFile $exe -UseBasicParsing
+        Write-Host "DeepFilterNet installé : $exe"
     }
 }
 Write-Host "Outils installés dans $tools"

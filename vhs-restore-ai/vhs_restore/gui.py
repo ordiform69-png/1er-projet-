@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import shutil
+import sys
 import tempfile
 import threading
 import traceback
@@ -12,7 +13,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable
 
-from PySide6.QtCore import QObject, QPoint, QRect, Qt, QThread, QUrl, Signal
+from PySide6.QtCore import QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
@@ -41,6 +42,7 @@ class Worker(QThread):
         self.cancel_event = threading.Event()
 
     def run(self) -> None:
+        _keep_awake(True)
         try:
             res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
         except Cancelled:
@@ -48,10 +50,23 @@ class Worker(QThread):
         except ToolError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:  # erreur imprévue : journalisée en détail
-            log.error("Erreur inattendue\n%s", traceback.format_exc())
+            log.error("échec\n%s", traceback.format_exc())
             self.failed.emit(f"Erreur inattendue : {exc}\nConsultez le journal pour le détail.")
         else:
             self.succeeded.emit(res)
+        finally:
+            _keep_awake(False)
+
+
+def _keep_awake(on: bool) -> None:
+    """Empêche la veille Windows pendant un film long. Sans effet ailleurs."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    ES_CONTINUOUS = 0x80000000
+    ES_SYSTEM_REQUIRED = 0x00000001
+    flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED if on else ES_CONTINUOUS
+    ctypes.windll.kernel32.SetThreadExecutionState(flags)
 
 
 class CompareView(QWidget):
@@ -186,6 +201,11 @@ class MainWindow(QMainWindow):
             b.setStyleSheet(BIG)
             h.addWidget(b)
         v.addLayout(h)
+        note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
+                      "Décalage, dérive et copie WAV : Options avancées.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color:#444;font-size:12pt")
+        v.addWidget(note)
         self.s_compare = CompareView()
         v.addWidget(self.s_compare, 1)
         self.s_progress = QProgressBar()
@@ -204,11 +224,19 @@ class MainWindow(QMainWindow):
         self.s_folder = QPushButton("Restaurer tous les films d'un dossier…")
         self.s_folder.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
         self.s_folder.clicked.connect(self.start_folder)
+        self.s_hear_orig = QPushButton("Écouter l'original")
+        self.s_hear_new = QPushButton("Écouter le son restauré")
+        for b in (self.s_hear_orig, self.s_hear_new):
+            b.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+        self.s_hear_orig.clicked.connect(self._play_original)
+        self.s_hear_new.clicked.connect(self._play_restored)
         adv = QPushButton("Options avancées ▸")
         adv.setFlat(True)
         adv.clicked.connect(lambda: self.set_advanced(True))
         h.addWidget(self.s_cancel)
         h.addWidget(self.s_folder)
+        h.addWidget(self.s_hear_orig)
+        h.addWidget(self.s_hear_new)
         h.addStretch(1)
         h.addWidget(adv)
         v.addLayout(h)
@@ -338,6 +366,71 @@ class MainWindow(QMainWindow):
         v.addWidget(self.hq_check)
         self.stab_check = QCheckBox("Stabiliser l'image (tremblements de caméra ou de pellicule, 2 passes)")
         v.addWidget(self.stab_check)
+        self.audio_check = QCheckBox("Restaurer le son (souffle, clics, volume)")
+        self.audio_check.setChecked(True)
+        self.audio_check.setToolTip(
+            "Suit le profil image. Fidèle : souffle très léger. Équilibré : souffle, clics et volume. "
+            "Maximum : plus marqué, et DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
+            "(installer.bat -AvecSon). Le plafond est de 12 dB : les rires, la musique et la rue restent. "
+            "Aucune séparation voix/ambiance. Une piste muette le reste.")
+        v.addWidget(self.audio_check)
+        h = QHBoxLayout()
+        self.offset_spin = QDoubleSpinBox()
+        self.offset_spin.setRange(-500, 500)
+        self.offset_spin.setDecimals(0)
+        self.offset_spin.setSingleStep(10)
+        self.offset_spin.setSuffix(" ms")
+        self.offset_spin.setToolTip(
+            "Décalage constant entre le son et l'image. Positif : retarder le son "
+            "(il était en avance). Négatif : avancer le son. 0 : ne rien changer.")
+        h.addWidget(QLabel("Décalage du son :"))
+        h.addWidget(self.offset_spin)
+        self.drift_spin = QDoubleSpinBox()
+        self.drift_spin.setRange(-2000, 2000)
+        self.drift_spin.setDecimals(0)
+        self.drift_spin.setSingleStep(10)
+        self.drift_spin.setSuffix(" ms/min")
+        self.drift_spin.setToolTip(
+            "Si le décalage s'aggrave au fil du film. Positif : le son prend du retard "
+            "(il est accéléré, la hauteur des voix est conservée). "
+            "Exemple : +100 = une seconde de retard au bout de 10 minutes. "
+            "0 = ne rien changer. Ce n'est pas une détection des lèvres.")
+        h.addWidget(QLabel("Dérive :"))
+        h.addWidget(self.drift_spin)
+        h.addStretch(1)
+        v.addLayout(h)
+        h = QHBoxLayout()
+        self.mains_combo = QComboBox()
+        self.mains_combo.addItem("Pas de ronflement à enlever", 0)
+        self.mains_combo.addItem("Ronflement 50 Hz (Europe)", 50)
+        self.mains_combo.addItem("Ronflement 60 Hz (Amérique)", 60)
+        self.mains_combo.setToolTip(
+            "Encoche très étroite sur la fréquence du secteur et son double. "
+            "À n'activer que si un bourdonnement continu est audible. La musique grave reste.")
+        self.copy_combo = QComboBox()
+        self.copy_combo.addItem("Pas de copie séparée du son", "")
+        self.copy_combo.addItem("Aussi un fichier WAV", "wav")
+        self.copy_combo.addItem("Aussi un fichier FLAC", "flac")
+        self.copy_combo.setToolTip(
+            "Enregistre le son restauré à côté du film, sans modifier l'original. "
+            "C'est le même son que dans la vidéo.")
+        h.addWidget(self.mains_combo, 1)
+        h.addWidget(self.copy_combo, 1)
+        v.addLayout(h)
+        self.mask_spin = QDoubleSpinBox()
+        self.mask_spin.setRange(0, 32)
+        self.mask_spin.setDecimals(0)
+        self.mask_spin.setSingleStep(2)
+        self.mask_spin.setSuffix(" lignes")
+        self.mask_spin.setToolTip(
+            "Bande parasite en bas de certaines VHS (commutation des têtes). "
+            "Ces lignes deviennent noires. L'image n'est ni agrandie ni déformée. 0 = ne rien masquer.")
+        self.mask_label = QLabel("Masquer la bande du bas :")
+        h = QHBoxLayout()
+        h.addWidget(self.mask_label)
+        h.addWidget(self.mask_spin)
+        h.addStretch(1)
+        v.addLayout(h)
         v.addWidget(self.ai_check)
         left.addWidget(g)
         left.addStretch(1)
@@ -355,14 +448,23 @@ class MainWindow(QMainWindow):
         self.still_combo = QComboBox()
         self.still_combo.setMinimumContentsLength(9)
         self.still_combo.currentIndexChanged.connect(self._show_still)
-        self.play_btn = QPushButton("Lire la comparaison vidéo")
+        self.play_btn = QPushButton("Lire la comparaison")
         self.play_btn.clicked.connect(self._play_compare)
+        self.hear_orig_btn = QPushButton("Écouter l'original")
+        self.hear_orig_btn.clicked.connect(self._play_original)
+        self.hear_new_btn = QPushButton("Écouter le son restauré")
+        self.hear_new_btn.clicked.connect(self._play_restored)
         h.addWidget(QLabel("Début de l'extrait :"))
         h.addWidget(self.start_spin)
         h.addWidget(self.preview_btn)
         h.addStretch(1)
         h.addWidget(self.still_combo)
         h.addWidget(self.play_btn)
+        v.addLayout(h)
+        h = QHBoxLayout()
+        h.addWidget(self.hear_orig_btn)
+        h.addWidget(self.hear_new_btn)
+        h.addStretch(1)
         v.addLayout(h)
         self.compare = CompareView()
         v.addWidget(self.compare, 1)
@@ -405,6 +507,7 @@ class MainWindow(QMainWindow):
         self.tools_label = QLabel()
         self.statusBar().addPermanentWidget(self.tools_label)
         self.profile_buttons["equilibre"].setChecked(True)
+        self._load_prefs()
 
     # ------------------------------------------------------------ état
     def _refresh_tools(self) -> None:
@@ -413,7 +516,8 @@ class MainWindow(QMainWindow):
             else "FFmpeg ✖ (requis)"
         ai = "Real-ESRGAN ✔" if t.ai_available else "Real-ESRGAN non installé (facultatif)"
         qt = f"QTGMC ✔ ({t.vspipe.version})" if t.qtgmc_available else "QTGMC non installé (facultatif)"
-        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}")
+        df = "DeepFilterNet ✔" if t.deepfilter_available else "DeepFilterNet non installé (facultatif)"
+        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}   ·   {df}")
         self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
         self.stab_check.setToolTip(
             "Atténue les tremblements (vid.stab). L'image est légèrement agrandie pour masquer "
@@ -451,6 +555,8 @@ class MainWindow(QMainWindow):
             self.cadence_combo.setCurrentIndex(0)
         self.flicker_check.setVisible(src in ("film", "transfer"))
         self.dust_check.setVisible(src == "film")
+        self.mask_spin.setVisible(src == "video")
+        self.mask_label.setVisible(src == "video")
         self.dust_check.setEnabled(self.tools.dust_available and not busy)
         if src != "film" or not self.tools.dust_available:
             self.dust_check.setChecked(False)
@@ -473,7 +579,9 @@ class MainWindow(QMainWindow):
         if not self.ai_check.isChecked() and self.res_combo.currentData() == "2160":
             self.res_combo.setCurrentIndex(self.res_combo.findData("1080"))
         has_prev = self.preview is not None
-        self.play_btn.setEnabled(has_prev and not busy)
+        for b in (self.play_btn, self.hear_orig_btn, self.hear_new_btn,
+                  self.s_hear_orig, self.s_hear_new):
+            b.setEnabled(has_prev and not busy)
         self.still_combo.setEnabled(has_prev)
 
     def _profile_changed(self, key: str) -> None:
@@ -527,7 +635,13 @@ class MainWindow(QMainWindow):
                                  use_ai=self.ai_check.isChecked(),
                                  deinterlacer=self.deint_combo.currentData(),
                                  stabilize=self.stab_check.isChecked(),
-                                 denoise_hq=self.hq_check.isChecked())
+                                 denoise_hq=self.hq_check.isChecked(),
+                                 restore_audio=self.audio_check.isChecked(),
+                                 audio_offset_ms=float(self.offset_spin.value()),
+                                 audio_drift_ms_per_min=float(self.drift_spin.value()),
+                                 audio_mains_hz=int(self.mains_combo.currentData() or 0),
+                                 audio_copy=str(self.copy_combo.currentData() or ""),
+                                 mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:
@@ -607,6 +721,14 @@ class MainWindow(QMainWindow):
         if self.preview:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.compare)))
 
+    def _play_original(self) -> None:
+        if self.preview and self.preview.original:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.original)))
+
+    def _play_restored(self) -> None:
+        if self.preview:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.restored)))
+
     def start_export(self) -> None:
         if not self.info or self._busy():
             return
@@ -626,9 +748,15 @@ class MainWindow(QMainWindow):
 
     def _export_done(self, out: Path) -> None:
         self.status.setText(f"Terminé : {out}")
+        extra = ""
+        kind = self.settings().audio_copy
+        if kind in ("wav", "flac"):
+            side = out.with_suffix(".wav" if kind == "wav" else ".flac")
+            if side.is_file():
+                extra = f"\n\nCopie du son restauré :\n{side.name}"
         self._done_box("Votre film restauré est prêt",
                        f"Votre film restauré est prêt :\n{out.name}\n\nIl se trouve dans le dossier :\n"
-                       f"{out.parent}\n\nLe film d'origine n'a pas été modifié.", out.parent)
+                       f"{out.parent}{extra}\n\nLe film d'origine n'a pas été modifié.", out.parent)
 
     def _done_box(self, title: str, text: str, folder: Path) -> None:
         box = QMessageBox(QMessageBox.Information, title, text, parent=self)
@@ -646,7 +774,8 @@ class MainWindow(QMainWindow):
         return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
                                    scan=None, dar=None, playback_fps=None,
                                    deflicker=self.flicker_check.isChecked() and src != "video",
-                                   dust=self.dust_check.isChecked() and src == "film")
+                                   dust=self.dust_check.isChecked() and src == "film",
+                                   mask_bottom=base.mask_bottom if src == "video" else 0)
 
     def start_folder(self) -> None:
         if self._busy():
@@ -713,8 +842,43 @@ class MainWindow(QMainWindow):
                 return
             self.worker.cancel_event.set()
             self.worker.wait(15000)
+        self._save_prefs()
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
+
+    def _load_prefs(self) -> None:
+        s = QSettings("VHSRestoreAI", "VHSRestoreAI")
+        key = s.value("profile")
+        if key in self.profile_buttons:
+            self.profile_buttons[str(key)].setChecked(True)
+        if s.contains("restore_audio"):
+            self.audio_check.setChecked(bool(s.value("restore_audio", True, type=bool)))
+        self.offset_spin.setValue(float(s.value("audio_offset_ms", 0) or 0))
+        self.drift_spin.setValue(float(s.value("audio_drift_ms_per_min", 0) or 0))
+        mains = int(float(s.value("audio_mains_hz", 0) or 0))
+        idx = self.mains_combo.findData(mains)
+        if idx >= 0:
+            self.mains_combo.setCurrentIndex(idx)
+        copy = str(s.value("audio_copy", "") or "")
+        idx = self.copy_combo.findData(copy)
+        if idx >= 0:
+            self.copy_combo.setCurrentIndex(idx)
+        self.mask_spin.setValue(int(float(s.value("mask_bottom", 0) or 0)))
+        out = str(s.value("out_dir", "") or "")
+        if out:
+            self.out_edit.setText(out)
+
+    def _save_prefs(self) -> None:
+        s = QSettings("VHSRestoreAI", "VHSRestoreAI")
+        key = next((k for k, b in self.profile_buttons.items() if b.isChecked()), "equilibre")
+        s.setValue("profile", key)
+        s.setValue("restore_audio", self.audio_check.isChecked())
+        s.setValue("audio_offset_ms", self.offset_spin.value())
+        s.setValue("audio_drift_ms_per_min", self.drift_spin.value())
+        s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
+        s.setValue("audio_copy", str(self.copy_combo.currentData() or ""))
+        s.setValue("mask_bottom", self.mask_spin.value())
+        s.setValue("out_dir", self.out_edit.text())
 
 
 def main() -> int:

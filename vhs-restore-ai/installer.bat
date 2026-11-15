@@ -1,6 +1,6 @@
 @echo off
 rem Installation de VHS Restore AI.
-rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair)
+rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair)  -AvecSon (DeepFilterNet)
 chcp 65001 >nul
 cd /d "%~dp0"
 set "PY=python"

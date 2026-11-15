@@ -270,6 +270,41 @@ n'a été vérifiée sur une vraie cassette.
 5. Les captures à timestamps irréguliers (VFR, images perdues) sont ramenées à une cadence constante
    par FFmpeg. C'est en général correct, mais ce n'est pas vérifié sur de vraies captures.
 
+## Son (phase 9, obligatoire)
+
+Le son d'origine est une archive, pas un bruit à jeter. Aucune piste n'est inventée :
+un film muet le reste, une piste silencieuse est conservée, le mono d'origine n'est pas
+converti en stéréo.
+
+| Profil | Souffle `afftdn` | Clics `adeclick` | Volume `dynaudnorm` (gain max 8 dB) | Voix IA |
+|---|---|---|---|---|
+| Fidèle | 4 dB | non | non | non |
+| Équilibré | 10 dB | oui | oui | non |
+| Maximum | 14 dB (seulement si DeepFilterNet est absent) | oui | oui | DeepFilterNet si le binaire est là |
+
+- **Moteurs** : uniquement FFmpeg, déjà dans le paquet, et en option le binaire libre
+  [`deep-filter` 0.5.6](https://github.com/Rikorose/DeepFilterNet) (`-D` compense la latence du modèle,
+  `-a 12` limite l'atténuation à 12 dB pour ne pas effacer la pièce, WAV 48 kHz, canaux d'origine).
+  `installer.bat -AvecSon` le place dans `tools/deepfilter/deep-filter.exe`. Variable `VHSRA_DEEPFILTER`
+  acceptée. S'il échoue, repli sur `afftdn` : l'export ne s'arrête pas.
+- **Pas de séparation voix / ambiance.** DeepFilterNet atténue le bruit qui masque la parole ;
+  il ne remplace pas les voix et n'ajoute aucun son. Audacity n'est pas piloté : les mêmes
+  nettoyages (souffle, clics, volume, encoche) sont déjà des filtres FFmpeg, sans deuxième logiciel.
+  RNNoise et les séparateurs (Demucs) ne sont pas branchés : un seul moteur vocal, facultatif.
+- **Synchronisation** : décalage constant manuel, −500 à +500 ms (`adelay` ou `atrim`).
+  Dérive manuelle en ms par minute (`atempo`, hauteur conservée, bornée à ±4 %). L'analyse
+  signale un écart de durée ou d'horodatage déjà présent dans le fichier, sans le corriger
+  toute seule et sans prétendre lire les lèvres.
+- **Ronflement** : encoche `bandreject` 50 ou 60 Hz plus l'harmonique, seulement si l'utilisateur
+  l'active. Q = 30, donc très étroite.
+- **Copie** : WAV (PCM) ou FLAC facultatifs, extraits du film restauré. L'original n'est pas écrasé.
+- **Comparaison** : l'extrait restauré porte le son traité ; `apercu_original.mp4` garde le son
+  d'origine, sans le décalage ni la dérive, pour l'écoute comparative (boutons « Écouter »).
+- **Bande du bas** : option VHS, 0 à 32 lignes passées au noir, taille d'image inchangée. Défaut : rien.
+- **Veille** : pendant un traitement, Windows est prié de ne pas s'endormir (`SetThreadExecutionState`).
+- **Réglages** : profil, son et dossier de sortie sont mémorisés (`QSettings`).
+- **Analog Repair et VapourBox** recopient le son. Ils ne couvrent pas ce besoin.
+
 ## Sources consultées
 
 - FFmpeg filters : https://ffmpeg.org/ffmpeg-filters.html (bwdif, idet, hqdn3d, removegrain, cas)

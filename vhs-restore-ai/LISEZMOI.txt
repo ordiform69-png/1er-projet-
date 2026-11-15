@@ -20,6 +20,17 @@ Restaurer un film
 Le film restauré est enregistré à côté de l'original, avec « _restaure » dans
 son nom. Le film d'origine n'est jamais modifié.
 
+Le son est nettoyé en même temps que l'image (souffle, et selon le profil les
+clics et le volume). Une cassette muette reste muette. Si le son ne colle pas
+à l'image, ouvrez « Options avancées » : décalage en millisecondes, et dérive
+en millisecondes par minute si le décalage s'aggrave. On peut aussi demander
+une copie WAV ou FLAC du son restauré.
+
+Pour le nettoyage de voix du profil Maximum (facultatif) :
+  installer.bat -AvecSon
+Cela télécharge DeepFilterNet, un logiciel libre. Sans lui, le son est quand
+même nettoyé par FFmpeg.
+
 Plusieurs films d'un coup : « Restaurer tous les films d'un dossier… ».
 Ils sont rangés dans un sous-dossier « Films restaurés ».
 
