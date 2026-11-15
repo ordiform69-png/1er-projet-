@@ -94,6 +94,8 @@ class Settings:
     audio_declip: bool = False             # reconstruire les crêtes saturées (adeclip)
     audio_highpass: bool = False           # vent et grondements : passe-haut doux à 80 Hz
     audio_presence: bool = False           # voix étouffée : présence vers 3 kHz, +3 dB au plus
+    level_black: float = 0.0              # 0 et 1 = ne pas toucher aux niveaux
+    level_white: float = 1.0
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
@@ -360,6 +362,15 @@ def stab_transform_filter(info: MediaInfo, s: Settings) -> str:
             f"maxshift={maxshift}:maxangle={STAB_MAX_ANGLE:g}:crop=black:interpol=bicubic")
 
 
+def _levels_filter(s: Settings) -> str | None:
+    """Étirement fixe des noirs et des blancs. Absent si les niveaux sont déjà ouverts."""
+    lo, hi = float(s.level_black), float(s.level_white)
+    if not (0.02 < lo < hi < 0.98 and hi - lo < 0.75):
+        return None
+    return (f"colorlevels=rimin={lo:.4f}:gimin={lo:.4f}:bimin={lo:.4f}:"
+            f"rimax={hi:.4f}:gimax={hi:.4f}:bimax={hi:.4f}")
+
+
 def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     p = s.profile
     f = _base_filters(info, s)
@@ -367,6 +378,9 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
         f.append(stab_transform_filter(info, s))
     if s.deflicker:
         f.append("deflicker=size=5:mode=pm")   # lisse la luminosité moyenne sur 5 images
+    lvl = _levels_filter(s)
+    if lvl:
+        f.append(lvl)                          # une correction pour tout le film, pas image par image
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
     if s.denoise_hq:
