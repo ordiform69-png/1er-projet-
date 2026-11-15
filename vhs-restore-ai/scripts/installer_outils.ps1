@@ -15,9 +15,22 @@ function Install-Zip($url, $dest, $exeName, $sha256Url) {
     $zip = Join-Path $env:TEMP ("vhsra_" + [IO.Path]::GetFileName($url))
     $tmp = Join-Path $env:TEMP ("vhsra_x_" + [guid]::NewGuid())
     Write-Host "Téléchargement de $url ..."
-    Invoke-WebRequest $url -OutFile $zip -UseBasicParsing
+    # 3 tentatives : un site momentanément indisponible (erreur 503) ne doit pas tout arrêter.
+    for ($essai = 1; $essai -le 3; $essai++) {
+        try { Invoke-WebRequest $url -OutFile $zip -UseBasicParsing; break }
+        catch {
+            if ($essai -eq 3) { throw "Téléchargement impossible de $url après 3 essais : $($_.Exception.Message)" }
+            Write-Host "Site indisponible (essai $essai sur 3), nouvel essai dans $(30 * $essai) s..."
+            Start-Sleep -Seconds (30 * $essai)
+        }
+    }
     if ($sha256Url) {
-        $expected = ((Invoke-WebRequest $sha256Url -UseBasicParsing).Content.ToString().Trim() -split '\s+')[0]
+        $page = $null
+        for ($essai = 1; $essai -le 3 -and -not $page; $essai++) {
+            try { $page = Invoke-WebRequest $sha256Url -UseBasicParsing }
+            catch { if ($essai -eq 3) { throw } ; Start-Sleep -Seconds (30 * $essai) }
+        }
+        $expected = ($page.Content.ToString().Trim() -split '\s+')[0]
         $actual = (Get-FileHash $zip -Algorithm SHA256).Hash
         if ($actual -ne $expected.ToUpper()) { throw "Somme SHA-256 incorrecte pour $url" }
         Write-Host "Somme SHA-256 vérifiée."
