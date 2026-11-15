@@ -19,7 +19,7 @@ from PySide6.QtGui import QDesktopServices, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
-                               QRadioButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
+                               QRadioButton, QSizePolicy, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
 from . import pipeline
 from .dvd import open_media
@@ -485,6 +485,17 @@ class MainWindow(QMainWindow):
         h.addWidget(self.mask_spin)
         h.addStretch(1)
         v.addLayout(h)
+        h = QHBoxLayout()
+        self.chroma_spin = QSpinBox()
+        self.chroma_spin.setRange(-8, 8)
+        self.chroma_spin.setSuffix(" px")
+        self.chroma_spin.setToolTip(
+            "Décalage horizontal de la couleur, typique d'une VHS (la couleur glisse "
+            "par rapport au dessin). 0 = ne pas toucher. Négatif = vers la gauche.")
+        h.addWidget(QLabel("Décalage de couleur :"))
+        h.addWidget(self.chroma_spin)
+        h.addStretch(1)
+        v.addLayout(h)
         v.addWidget(self.ai_check)
         left.addWidget(g)
         left.addStretch(1)
@@ -723,6 +734,7 @@ class MainWindow(QMainWindow):
                                  audio_declip=self.declip_check.isChecked(),
                                  audio_highpass=self.wind_check.isChecked(),
                                  audio_presence=self.presence_check.isChecked(),
+                                 chroma_shift=int(self.chroma_spin.value()),
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
 
     # ------------------------------------------------------------ actions
@@ -994,6 +1006,7 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.copy_combo.setCurrentIndex(idx)
         self.mask_spin.setValue(int(float(s.value("mask_bottom", 0) or 0)))
+        self.chroma_spin.setValue(int(float(s.value("chroma_shift", 0) or 0)))
         if s.contains("tape_noise"):
             self.tape_check.setChecked(bool(s.value("tape_noise", False, type=bool)))
             self.chroma_check.setChecked(bool(s.value("chroma_repair", False, type=bool)))
@@ -1017,6 +1030,7 @@ class MainWindow(QMainWindow):
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
         s.setValue("audio_copy", str(self.copy_combo.currentData() or ""))
         s.setValue("mask_bottom", self.mask_spin.value())
+        s.setValue("chroma_shift", self.chroma_spin.value())
         s.setValue("tape_noise", self.tape_check.isChecked())
         s.setValue("chroma_repair", self.chroma_check.isChecked())
         s.setValue("dropouts", self.dropout_check.isChecked())

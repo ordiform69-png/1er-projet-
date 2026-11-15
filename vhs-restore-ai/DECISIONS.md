@@ -389,3 +389,6 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   l'échantillon. Conseil `levels` seulement si l'écart est sous 140 et que les noirs dépassent 35
   et les blancs restent sous 190. Correction fixe `colorlevels` pour tout le film, jamais image
   par image, jamais sans accord. Un `testsrc2` déjà ouvert ne déclenche pas le conseil.
+- **Décalage de couleur** : réglage avancé −8 à +8 pixels, 0 par défaut (`chromashift` horizontal,
+  le glissement typique d'une VHS). Mesuré : un carré rouge décalé de 4 px (PSNR du plan U ≈ 31 dB
+  contre l'original) revient à l'identique (PSNR infini) après correction de −4 px. Taille inchangée.
