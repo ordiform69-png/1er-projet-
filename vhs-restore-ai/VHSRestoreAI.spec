@@ -14,6 +14,8 @@ a = Analysis(
     datas=[("vhs_restore/qtgmc.vpy", "vhs_restore"),
            ("vhs_restore/models/rnnoise_std.rnnn", "vhs_restore/models"),
            ("vhs_restore/models/RNNOISE-LICENSE.txt", "vhs_restore/models"),
+           ("vhs_restore/assets/fonts", "vhs_restore/assets/fonts"),
+           ("vhs_restore/assets/icons", "vhs_restore/assets/icons"),
            *_dust_data],
     hiddenimports=_dust_mods,
     # modules Qt inutiles : paquet plus léger

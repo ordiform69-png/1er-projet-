@@ -14,12 +14,12 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable
 
-from PySide6.QtCore import QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
+from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
-                               QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-                               QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
-                               QFrame, QRadioButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
+                               QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGroupBox,
+                               QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
+                               QRadioButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
 from . import photo, pipeline, theme
@@ -85,7 +85,7 @@ class CompareView(QWidget):
         self.before: QPixmap | None = None
         self.after: QPixmap | None = None
         self.split = 0.5
-        self.setMinimumSize(480, 300)
+        self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
 
@@ -107,20 +107,26 @@ class CompareView(QWidget):
     def paintEvent(self, _e) -> None:  # noqa: N802
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        p.setBrush(QColor("#1e232b"))
+        frame = self.rect().adjusted(1, 1, -2, -2)
+        p.setPen(QPen(QColor("#1d5c68"), 1))
+        p.setBrush(QColor(theme.MONITEUR))
+        p.drawRoundedRect(frame, 12, 12)
+        inner = frame.adjusted(10, 10, -10, -10)
         p.setPen(Qt.NoPen)
-        p.drawRoundedRect(self.rect(), 12, 12)
+        p.setBrush(QColor("#0a0e13"))
+        p.drawRoundedRect(inner, 6, 6)
         if self.before is None or self.after is None:
-            p.setPen(QColor("#9fb0c4"))
+            p.setPen(QColor(theme.MONITEUR_TEXTE))
             f = p.font()
-            f.setPointSizeF(f.pointSizeF() * 1.3)
+            f.setPointSizeF(max(f.pointSizeF(), 13))
             p.setFont(f)
-            p.drawText(self.rect(), Qt.AlignCenter,
-                       "L'avant / après apparaîtra ici\n\n(choisissez un film ou une photo, puis « 2. Voir l'avant / après »)")
+            p.drawText(inner, Qt.AlignCenter,
+                       "L'avant / après apparaîtra ici\n\n"
+                       "(choisissez un film ou une photo, puis « 2. Voir l'avant / après »)")
             return
-        size = self.before.size().scaled(self.size(), Qt.KeepAspectRatio)
+        size = self.before.size().scaled(inner.size(), Qt.KeepAspectRatio)
         r = QRect(QPoint(0, 0), size)
-        r.moveCenter(self.rect().center())
+        r.moveCenter(inner.center())
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         p.drawPixmap(r, self.after)
         cut = int(r.width() * self.split)
@@ -128,16 +134,19 @@ class CompareView(QWidget):
         p.drawPixmap(QRect(r.x(), r.y(), cut, r.height()), self.before,
                      QRect(0, 0, int(sx), self.before.height()))
         x = r.x() + cut
-        p.setPen(QPen(Qt.white, 2))
+        p.setPen(QPen(QColor(theme.ACCENT), 2))
         p.drawLine(x, r.top(), x, r.bottom())
-        for text, left in (("Original", True), ("Restauré", False)):
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.ACCENT))
+        p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
+        for text, left in (("ORIGINAL", True), ("RESTAURÉ", False)):
             fm = p.fontMetrics()
-            w, h = fm.horizontalAdvance(text) + 18, fm.height() + 8
-            box = QRect(r.x() + 10 if left else r.right() - w - 10, r.y() + 10, w, h)
-            p.setPen(Qt.NoPen)
-            p.setBrush(QColor(20, 26, 34, 190))
-            p.drawRoundedRect(box, 8, 8)
-            p.setPen(QColor("white"))
+            w, h = fm.horizontalAdvance(text) + 22, fm.height() + 10
+            box = QRect(r.x() + 12 if left else r.right() - w - 12, r.y() + 12, w, h)
+            p.setPen(QPen(QColor(theme.ACCENT), 1))
+            p.setBrush(QColor(16, 32, 40, 210))
+            p.drawRoundedRect(box, 4, 4)
+            p.setPen(QColor("#f3f6fa"))
             p.drawText(box, Qt.AlignCenter, text)
 
 
@@ -148,8 +157,8 @@ class DropZone(QLabel):
         super().__init__("Déposez une vidéo ici\nou cliquez sur « Choisir une vidéo »")
         self.setAlignment(Qt.AlignCenter)
         self.setAcceptDrops(True)
-        self.setMinimumHeight(60)
-        self.setStyleSheet("QLabel{border:2px dashed #888;border-radius:8px;color:#555;padding:8px}")
+        self.setMinimumHeight(72)
+        self.setObjectName("depot")
 
     def dragEnterEvent(self, e) -> None:  # noqa: N802
         if e.mimeData().hasUrls():
@@ -184,6 +193,104 @@ class _Mirror:
 BIG = "QPushButton{font-size:15pt;padding:12px;min-height:44px}"
 
 
+class _ReelMark(QWidget):
+    """Cassette dessinée : deux bobines et une fenêtre de bande. Pas d'image externe."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFixedSize(68, 48)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(QPen(QColor(theme.ACCENT), 1.4))
+        p.setBrush(QColor("#0a2228"))
+        p.drawRoundedRect(1, 6, 66, 36, 6, 6)
+        p.setBrush(QColor("#12343c"))
+        p.drawRoundedRect(18, 14, 32, 16, 2, 2)
+        p.setBrush(Qt.NoBrush)
+        for cx in (16, 52):
+            p.setPen(QPen(QColor("#e8b15a"), 1.6))
+            p.drawEllipse(QPoint(cx, 24), 7, 7)
+            p.drawEllipse(QPoint(cx, 24), 2, 2)
+        p.setPen(QPen(QColor(theme.ACCENT), 1))
+        p.drawLine(23, 24, 45, 24)
+
+
+class StepButton(QPushButton):
+    """Grand bouton d'étape : numéro dans un cercle, texte aligné à gauche."""
+
+    def __init__(self, number: str, text: str) -> None:
+        super().__init__(text)
+        self.number = number
+        self.setCursor(Qt.PointingHandCursor)
+        self.setMinimumHeight(58)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        principal = self.objectName() == "principal"
+        on = self.isEnabled()
+        if principal and on:
+            bg, fg, border = QColor(theme.AMBRE), QColor(theme.AMBRE_TEXTE), QColor(theme.AMBRE)
+        elif principal:
+            bg, fg = QColor(theme.AMBRE_ETEINT), QColor(theme.AMBRE_ETEINT_TEXTE)
+            border = bg
+        elif on:
+            bg, fg, border = QColor(theme.CARTE), QColor(theme.TEXTE), QColor("#49c3d4")
+            if self.underMouse():
+                border = QColor(theme.ACCENT)
+                bg = QColor("#24323a")
+        else:
+            bg, fg, border = QColor(theme.FOND_DESACTIVE), QColor(theme.TEXTE_DESACTIVE), QColor("#2a3340")
+        p.setPen(QPen(border, 1.4))
+        p.setBrush(bg)
+        p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 12, 12)
+        cx, cy, r = 30, self.height() // 2, 15
+        if principal:
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE))
+            p.drawEllipse(QPoint(cx, cy), r, r)
+            p.setPen(QColor(theme.AMBRE if on else theme.AMBRE_ETEINT))
+        else:
+            p.setPen(QPen(QColor(theme.ACCENT if on else theme.ACCENT_SOURD), 1.6))
+            p.setBrush(Qt.NoBrush)
+            p.drawEllipse(QPoint(cx, cy), r, r)
+            p.setPen(fg)
+        f = QFont(theme.DISPLAY_FAMILY or p.font().family())
+        f.setPointSizeF(14)
+        f.setBold(True)
+        p.setFont(f)
+        p.drawText(QRect(cx - r, cy - r, r * 2, r * 2), Qt.AlignCenter, self.number)
+        f.setPointSizeF(15)
+        f.setBold(principal)
+        p.setFont(f)
+        p.setPen(fg)
+        p.drawText(QRect(54, 0, self.width() - 66, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+
+
+class _HoverHalo(QObject):
+    """Léger halo coloré au survol. Rien n'est animé tant que la souris n'est pas dessus."""
+
+    def __init__(self, color: str) -> None:
+        super().__init__()
+        self._color = QColor(color)
+
+    def eventFilter(self, obj, ev) -> bool:  # noqa: N802
+        if ev.type() == QEvent.Enter and obj.isEnabled():
+            eff = QGraphicsDropShadowEffect(obj)
+            eff.setBlurRadius(26)
+            eff.setOffset(0, 0)
+            c = QColor(self._color)
+            c.setAlpha(170)
+            eff.setColor(c)
+            obj.setGraphicsEffect(eff)
+        elif ev.type() in (QEvent.Leave, QEvent.Hide) or (
+                ev.type() == QEvent.EnabledChange and not obj.isEnabled()):
+            obj.setGraphicsEffect(None)
+        return False
+
+
 class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
@@ -211,14 +318,22 @@ class MainWindow(QMainWindow):
         v.setSpacing(10)
         band = QFrame()
         band.setObjectName("bandeau")
-        bv = QVBoxLayout(band)
-        bv.setContentsMargins(22, 12, 22, 14)
-        brand = QLabel("🎞  VHS RESTORE AI")
+        bh = QHBoxLayout(band)
+        bh.setContentsMargins(18, 12, 22, 14)
+        bh.setSpacing(14)
+        bh.addWidget(_ReelMark(), 0, Qt.AlignVCenter)
+        bv = QVBoxLayout()
+        bv.setSpacing(2)
+        brand = QLabel("VHS RESTORE AI")
         brand.setObjectName("marque")
         title = QLabel("Restaurer un film ou une photo de famille")
         title.setObjectName("titre")
+        filet = QFrame()
+        filet.setObjectName("filet")
         bv.addWidget(brand)
         bv.addWidget(title)
+        bv.addWidget(filet)
+        bh.addLayout(bv, 1)
         v.addWidget(band)
         self.s_info = QLabel("Commencez par choisir le film à restaurer.")
         self.s_info.setWordWrap(True)
@@ -226,21 +341,23 @@ class MainWindow(QMainWindow):
         v.addWidget(self.s_info)
         self.advice: list = []
         self.s_advice = QCheckBox("Appliquer ces conseils")
-        self.s_advice.setStyleSheet("font-size:13pt")
         self.s_advice.setToolTip("Corrige avec modération les défauts détectés par l'analyse (son, contraste, couleur). "
                                  "Décochez pour garder le son tel quel.")
         self.s_advice.setVisible(False)
         v.addWidget(self.s_advice)
         h = QHBoxLayout()
-        self.s_choose = QPushButton("📂  1. Choisir le film ou la photo")
+        self.s_choose = StepButton("1", "Choisir le film ou la photo")
         self.s_choose.clicked.connect(self._choose_file)
-        self.s_preview = QPushButton("👁  2. Voir l'avant / après")
+        self.s_preview = StepButton("2", "Voir l'avant / après")
         self.s_preview.clicked.connect(self.start_preview)
-        self.s_run = QPushButton("✨  3. Restaurer")
+        self.s_run = StepButton("3", "Restaurer")
         self.s_run.clicked.connect(self.start_export)
+        halo_cyan = _HoverHalo(theme.ACCENT)
+        halo_ambre = _HoverHalo(theme.AMBRE)
+        self._halos = (halo_cyan, halo_ambre)
         for b in (self.s_choose, self.s_preview, self.s_run):
             b.setObjectName("principal" if b is self.s_run else "etape")
-            b.setCursor(Qt.PointingHandCursor)
+            b.installEventFilter(halo_ambre if b is self.s_run else halo_cyan)
             h.addWidget(b)
         v.addLayout(h)
         self.s_note = note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
@@ -250,10 +367,7 @@ class MainWindow(QMainWindow):
         v.addWidget(note)
         self.s_compare = CompareView()
         v.addWidget(self.s_compare, 1)
-        self.s_progress = QProgressBar()
-        self.s_progress.setRange(0, 1000)
-        self.s_progress.setTextVisible(False)
-        self.s_progress.setMinimumHeight(22)
+        self.s_progress = theme.SweepBar()
         self.s_status = QLabel("Prêt.")
         self.s_status.setWordWrap(True)
         self.s_status.setObjectName("statut")
@@ -261,15 +375,15 @@ class MainWindow(QMainWindow):
         v.addWidget(self.s_status)
         h = QHBoxLayout()
         self.s_cancel = QPushButton("Arrêter")
-        self.s_cancel.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+        self.s_cancel.setObjectName("secondaire")
         self.s_cancel.clicked.connect(self.cancel)
         self.s_folder = QPushButton("Restaurer tout un dossier (films et photos)…")
-        self.s_folder.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+        self.s_folder.setObjectName("secondaire")
         self.s_folder.clicked.connect(self.start_folder)
         self.s_hear_orig = QPushButton("Écouter l'original")
         self.s_hear_new = QPushButton("Écouter le son restauré")
         for b in (self.s_hear_orig, self.s_hear_new):
-            b.setStyleSheet("QPushButton{font-size:13pt;padding:8px}")
+            b.setObjectName("secondaire")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
         adv = QPushButton("⚙  Options avancées ▸")
@@ -304,7 +418,11 @@ class MainWindow(QMainWindow):
         root.addLayout(left, 2)
         root.addLayout(right, 3)
         self.pages = QStackedWidget()
-        self.pages.addWidget(self._build_simple())
+        accueil = QScrollArea()
+        accueil.setWidgetResizable(True)
+        accueil.setFrameShape(QFrame.NoFrame)
+        accueil.setWidget(self._build_simple())
+        self.pages.addWidget(accueil)
         scroll = QScrollArea()          # la page des options est plus haute qu'un écran de portable
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -366,7 +484,7 @@ class MainWindow(QMainWindow):
         self.info_form.addRow("Format à utiliser :", self.dar_combo)
         self.warn_label = QLabel()
         self.warn_label.setWordWrap(True)
-        self.warn_label.setStyleSheet("color:#a05a00")
+        self.warn_label.setStyleSheet(f"color:{theme.AMBRE}")
         self.info_form.addRow(self.warn_label)
         left.addWidget(g)
 
@@ -380,7 +498,8 @@ class MainWindow(QMainWindow):
             rb.setToolTip(p.description)
             d = QLabel(p.description)
             d.setWordWrap(True)
-            d.setStyleSheet("color:#666;margin-left:22px")
+            d.setObjectName("note")
+            d.setContentsMargins(26, 0, 0, 4)
             self.profile_group.addButton(rb)
             self.profile_buttons[p.key] = rb
             rb.toggled.connect(lambda on, k=p.key: on and self._profile_changed(k))
@@ -626,6 +745,7 @@ class MainWindow(QMainWindow):
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
         self.run_btn.clicked.connect(self.start_export)
+        self.run_btn.installEventFilter(self._halos[1])
         self.cancel_btn = QPushButton("Annuler")
         self.cancel_btn.clicked.connect(self.cancel)
         self.check_btn = QPushButton("Vérifier l'installation")
@@ -637,9 +757,7 @@ class MainWindow(QMainWindow):
         h.addStretch(1)
         h.addWidget(self.check_btn)
         v.addLayout(h)
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 1000)
-        self.progress.setTextVisible(False)
+        self.progress = theme.SweepBar()
         self.status = QLabel("Prêt.")
         self.status.setWordWrap(True)
         v.addWidget(self.progress)
@@ -1230,10 +1348,7 @@ def main() -> int:
     import sys
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
-    app.setStyle("Fusion")
-    font = QFont(app.font())
-    font.setPointSizeF(max(font.pointSizeF(), 10.5))   # lisible sans lunettes de lecture
-    app.setFont(font)
+    theme.apply(app)
     win = MainWindow()
     win.show()
     if not (win.tools.ffmpeg.path and win.tools.ffprobe.path):

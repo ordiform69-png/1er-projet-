@@ -412,6 +412,17 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   masqués sont à YAVG 16 et le centre reste à 126. Cassette 720×576, pixels 16:15, format 4:3.
   Pellicule 720×540 : les quatre côtés du cadre à 16, centre à 126, format 4:3.
 
+## Interface (phase 14)
+
+Thème sombre fixe (« salle de montage »), indépendant du mode clair ou sombre de Windows.
+Inter (texte, OFL) et Rajdhani (bandeau et titres, OFL) sont dans `vhs_restore/assets/fonts/`
+et dans l'exécutable (`VHSRestoreAI.spec`). Si un fichier manque, la police du système est
+utilisée. Accent cyan en filet seulement ; le bouton Restaurer est ambre, le plus visible.
+Le balayage de la barre de progression est un minuteur à 120 ms, actif seulement pendant le
+traitement. Contrastes listés dans `theme.CONTRASTES`, tous ≥ 4,5:1 (`tests/test_theme.py`).
+Aucun réglage de restauration n'a changé.
+
+
 
 
 ## Plafonds de fidélité des conseils d'image (phase 12)
