@@ -31,7 +31,7 @@ sur son PC Windows, sans aide. Chaque manque est marqué *vérifié dans le code
 
 | # | Manque | Proposition |
 |---|---|---|
-| 7 | ~~Durée restante~~ **Fait** non affichée | Estimation « environ 1 h 20 restantes » à partir de la progression |
+| 7 | ~~Durée restante non affichée~~ **Fait** | Estimation « environ 1 h 20 restantes » à partir de la progression |
 | 8 | Bande de parasites en bas des images VHS | Option en place (lignes noires, taille inchangée), désactivée par défaut. À juger sur de vraies cassettes |
 | 9 | Dominante de couleur (VHS verte) | Volontairement non corrigée (fidélité). Pas de bouton tant qu'une cassette réelle n'a pas été vue |
 | 11 | **Fait** — Couper le début et la fin (neige, écran bleu) | Début/fin simples dans les options avancées |
