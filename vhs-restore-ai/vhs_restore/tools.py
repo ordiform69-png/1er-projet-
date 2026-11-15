@@ -62,6 +62,11 @@ class Toolset:
     missing_filters: list[str] = field(default_factory=list)
     vspipe: Tool = field(default_factory=lambda: Tool("QTGMC"))
     vidstab: bool = False
+    dust: bool = False          # module « poussières et rayures » (Analog Repair) installé
+
+    @property
+    def dust_available(self) -> bool:
+        return self.dust
 
     @property
     def stab_available(self) -> bool:
@@ -147,7 +152,8 @@ def detect_tools() -> Toolset:
         if not (models / "realesrgan-x4plus.param").is_file():
             re_.problem = f"modèle realesrgan-x4plus absent de {models}"
         re_.version = "ncnn-vulkan"
-    ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab)
+    from . import dust
+    ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available())
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem, missing)
     return ts
@@ -190,7 +196,7 @@ def run(cmd: list[str], *, cancel: threading.Event | None = None,
         on_line: Callable[[str], None] | None = None,
         poll: Callable[[], None] | None = None,
         what: str = "commande", feeder: list[str] | None = None,
-        cwd: str | Path | None = None) -> list[str]:
+        cwd: str | Path | None = None, env: dict[str, str] | None = None) -> list[str]:
     """Exécute une commande longue, annulable. Lève ToolError si échec.
 
     stdout et stderr sont fusionnés et lus ligne par ligne dans un thread,
@@ -218,7 +224,7 @@ def run(cmd: list[str], *, cancel: threading.Event | None = None,
             threading.Thread(target=drain, daemon=True).start()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 stdin=feed_proc.stdout if feed_proc else subprocess.DEVNULL,
-                                cwd=cwd, text=True, encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
+                                cwd=cwd, env=env, text=True, encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
         if feed_proc:
             feed_proc.stdout.close()  # seul ffmpeg garde le tube ouvert
     except OSError as exc:

@@ -1,6 +1,6 @@
 @echo off
 rem Installation de VHS Restore AI.
-rem Options : -AvecIA (ajoute Real-ESRGAN)  -AvecQTGMC (ajoute VapourSynth + QTGMC, Python 3.12+)
+rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair)
 chcp 65001 >nul
 cd /d "%~dp0"
 set "PY=python"
@@ -15,6 +15,11 @@ if errorlevel 1 (
 if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erreur
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt || goto erreur
 set "QTGMC="
+set "POUSSIERES="
+for %%a in (%*) do if /i "%%~a"=="-AvecPoussieres" set "POUSSIERES=1"
+if defined POUSSIERES (
+  ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements-poussieres.txt || goto erreur
+)
 for %%a in (%*) do if /i "%%~a"=="-AvecQTGMC" set "QTGMC=1"
 if defined QTGMC (
   ".venv\Scripts\python.exe" -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"

@@ -62,6 +62,19 @@ def autotest(folder: str) -> int:
         report.append(f"Export : {res.name}, {after.width}x{after.height}, {float(after.fps):g} i/s, "
                       f"{after.dar.numerator}:{after.dar.denominator}, son {'oui' if after.has_audio else 'non'}")
         ok = (after.width, after.height, after.has_audio) == (1440, 1080, True) and after.fps == 50
+        report.append(f"Poussières et rayures : {'oui' if ts.dust_available else 'non installé'}")
+        if ts.dust_available:   # essai réel du moteur externe (sous-processus --poussieres)
+            film = out / "pellicule 18 is.mkv"
+            run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                         "testsrc2=size=720x540:rate=18", "-t", "2", "-c:v", "ffv1", str(film)], timeout=120)
+            finfo = analyze(film, ts)
+            fres = pipeline.export(finfo, pipeline.Settings(profile_for("fidele", "film"), source="film",
+                                                            dust=True), out / "pellicule nettoyée.mp4", ts)
+            fafter = analyze(fres, ts)
+            dust_ok = fafter.fps == 18 and abs(fafter.duration - 2) < 0.2
+            report.append(f"Export poussières : {fafter.width}x{fafter.height}, {float(fafter.fps):g} i/s, "
+                          f"{fafter.duration:.1f} s")
+            ok = ok and dust_ok
         report.append("RÉSULTAT : OK" if ok else "RÉSULTAT : ÉCHEC (sortie inattendue)")
         code = 0 if ok else 1
     except Exception as exc:  # le rapport doit toujours être écrit
@@ -76,6 +89,9 @@ def run() -> int:
     logging.getLogger("vhs_restore").info("Démarrage, journal : %s", p)
     if len(sys.argv) >= 3 and sys.argv[1] == "--autotest":
         return autotest(sys.argv[2])
+    if len(sys.argv) >= 3 and sys.argv[1] == "--poussieres":   # sous-processus Analog Repair
+        from vhs_restore.dust import bridge_main
+        return bridge_main(sys.argv[2])
     from vhs_restore.gui import main
     return main()
 

@@ -231,12 +231,22 @@ automatique des couleurs (choix de fidélité, à reconsidérer avec de vraies c
   - **Défaut de proportions sur la VHS** : la sortie 352×240 perd le rapport de pixel (10:11) et
     s'affiche en 1,47:1 au lieu de 4:3. Elle a aussi une cadence irrégulière (179 images au lieu
     de 180).
-  - Piste d'intégration (non faite, décision à prendre) : appeler uniquement son étape
-    « poussières et rayures » comme moteur externe facultatif pour les pellicules, avec un
-    intermédiaire ProRes pour éviter une double compression, et une version du projet figée.
-    Coût : NumPy + OpenCV dans le paquet (environ 60 à 80 Mo, non mesuré). Risque : projet très
-    jeune, interface interne non documentée (paramètres en allemand). Fausses détections sur des
-    objets réels en mouvement : non évaluées (l'extrait est presque fixe).
+  - **Intégré (phase 9)** comme option facultative « Enlever les poussières et rayures »,
+    réservée aux pellicules et désactivée par défaut (`vhs_restore/dust.py`). Seule son étape
+    « poussières et rayures » est utilisée (60/100, toutes les autres à 0), dans la version figée
+    `561ba5a` (`requirements-poussieres.txt`, archive zip : pip n'a pas besoin de Git). Il est
+    lancé dans un sous-processus annulable de notre propre exécutable (`--poussieres`), ce qui
+    fonctionne aussi dans le paquet Windows. Son PATH commence par notre FFmpeg. L'intermédiaire
+    est en ProRes 422 10 bits, et le reste de la chaîne en part : une seule compression finale.
+    Le rapport de pixel, la cadence et le son d'origine sont rétablis par notre chaîne (son défaut
+    de proportions ne nous touche pas : test dédié).
+  - **Test en mouvement** (`tests/test_poussieres.py`, film de synthèse avec grain) : écart avec
+    le film propre sur les poussières d'une seule image 140 → 5 ; balle claire rapide (30 px par
+    image), balle sombre rapide (35 px par image) et grand objet lent intacts (écart ≈ 4, le niveau
+    du grain). Ce sont les cas qui ressemblent le plus à une poussière. Ce n'est pas un vrai film
+    avec des visages : à confirmer sur les films réels.
+  - Coût : NumPy + OpenCV embarqués (taille du paquet Windows à mesurer). Licence MIT : son texte
+    est copié dans `licences/` du paquet.
 
 ## IA : limites assumées
 

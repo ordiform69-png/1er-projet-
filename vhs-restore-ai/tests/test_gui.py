@@ -79,6 +79,9 @@ def test_source_selector(app, tools, samples):
     assert win.source_combo.currentData() is None and win.source() == "film"   # suggestion
     assert win.cadence_combo.isVisibleTo(win) and not win.deint_combo.isEnabled()
     assert win.flicker_check.isVisibleTo(win)
+    assert win.dust_check.isVisibleTo(win) and win.dust_check.isEnabled() == tools.dust_available
+    win.dust_check.setChecked(True)
+    assert win.settings().dust == tools.dust_available
     assert "muet" in win.warn_label.text()
     win.cadence_combo.setCurrentIndex(win.cadence_combo.findData(24))
     s = win.settings()
@@ -87,6 +90,7 @@ def test_source_selector(app, tools, samples):
     s = win.settings()
     assert s.source == "video" and s.playback_fps is None and not s.deflicker
     assert not win.cadence_combo.isVisibleTo(win) and not win.flicker_check.isVisibleTo(win)
+    assert not win.dust_check.isVisibleTo(win) and not win.settings().dust
     win.close()
 
 

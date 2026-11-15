@@ -325,6 +325,8 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("Désentrelaceur :"))
         h.addWidget(self.deint_combo, 1)
         v.addLayout(h)
+        self.dust_check = QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)")
+        v.addWidget(self.dust_check)
         self.flicker_check = QCheckBox("Réduire le scintillement lumineux (pellicule)")
         self.flicker_check.setToolTip("Lisse les variations de luminosité d'une image à l'autre "
                                       "(filtre deflicker sur 5 images). À vérifier sur l'aperçu.")
@@ -448,6 +450,15 @@ class MainWindow(QMainWindow):
         if src != "film":
             self.cadence_combo.setCurrentIndex(0)
         self.flicker_check.setVisible(src in ("film", "transfer"))
+        self.dust_check.setVisible(src == "film")
+        self.dust_check.setEnabled(self.tools.dust_available and not busy)
+        if src != "film" or not self.tools.dust_available:
+            self.dust_check.setChecked(False)
+        self.dust_check.setToolTip(
+            "Efface les poussières et atténue les rayures, en gardant le grain du film "
+            "(moteur Analog Repair). Vérifiez l'aperçu sur les objets qui bougent vite."
+            if self.tools.dust_available else
+            "Module non installé : relancez installer.bat -AvecPoussieres.")
         self.flicker_check.setEnabled(not busy)
         if src not in ("film", "transfer"):
             self.flicker_check.setChecked(False)
@@ -511,6 +522,7 @@ class MainWindow(QMainWindow):
                                  source=src, playback_fps=(Fraction(self.cadence_combo.currentData())
                                                            if self.cadence_combo.currentData() else None),
                                  deflicker=self.flicker_check.isChecked() and src != "video",
+                                 dust=self.dust_check.isChecked() and src == "film",
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
                                  use_ai=self.ai_check.isChecked(),
                                  deinterlacer=self.deint_combo.currentData(),
@@ -633,7 +645,8 @@ class MainWindow(QMainWindow):
         src = self.source_combo.currentData() or info.suggested_source
         return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
                                    scan=None, dar=None, playback_fps=None,
-                                   deflicker=self.flicker_check.isChecked() and src != "video")
+                                   deflicker=self.flicker_check.isChecked() and src != "video",
+                                   dust=self.dust_check.isChecked() and src == "film")
 
     def start_folder(self) -> None:
         if self._busy():

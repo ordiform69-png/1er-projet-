@@ -23,7 +23,10 @@ dans `LISEZMOI.txt`. Le téléchargement d'un artefact demande d'être connecté
      Real-ESRGAN dans `tools\realesrgan` (il faut une carte graphique compatible Vulkan).
    - Option QTGMC (meilleur désentrelacement) : lancez `installer.bat -AvecQTGMC`. Il faut
      **Python 3.12 ou plus**. Le script installe VapourSynth et les plugins par pip dans `.venv`.
-     Les deux options se combinent : `installer.bat -AvecIA -AvecQTGMC`.
+   - Option poussières et rayures (pellicules) : `installer.bat -AvecPoussieres` installe le
+     moteur Analog Repair (licence MIT, version figée). Il est déjà inclus dans l'application prête
+     à l'emploi.
+     Les options se combinent : `installer.bat -AvecIA -AvecQTGMC -AvecPoussieres`.
 3. Double-cliquez sur **`lancer.bat`**.
 
 Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variables `VHSRA_FFMPEG`,
@@ -106,8 +109,10 @@ sous Windows ; l'indexation BestSource sur un long film ;
 le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun échantillon fourni,
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
-**Prévu ensuite** : rayures et poussières image par image (aucun outil simple et maintenu
-retenu pour l'instant), suppression optionnelle des images répétées d'un transfert, masquage du
+Poussières et rayures (option pellicule, Analog Repair) : poussières supprimées, objets rapides
+clairs ou sombres intacts sur un film de synthèse ; grain conservé à 97 % sur une vraie pellicule.
+
+**Prévu ensuite** : suppression optionnelle des images répétées d'un transfert, masquage du
 bruit de tête en bas d'image, encodage GPU.
 
 ## Préparer les fichiers (numérisation)

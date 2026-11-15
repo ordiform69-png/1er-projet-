@@ -78,6 +78,7 @@ class Settings:
     source: str = "video"                 # video | film | transfer
     playback_fps: Fraction | None = None  # film : cadence de tournage choisie (None = celle du fichier)
     deflicker: bool = False               # film / transfert : réduction du scintillement
+    dust: bool = False                    # film : poussières et rayures (Analog Repair, facultatif)
     crf: int = 18
     preset: str = "medium"
 
@@ -311,6 +312,7 @@ def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     tag = ({"video": "", "film": "_film", "transfer": "_transfert"}.get(s.source, "")
            + {"source": "", "1080": "_1080p", "2160": "_4k"}[res]
            + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
+           + ("_poussieres" if s.dust else "")
            + ("_ia" if s.use_ai else ""))
     base = f"{info.path.stem}_restaure_{s.profile.key}{tag}"
     cand = out_dir / f"{base}.mp4"
@@ -326,6 +328,8 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            start: float | None = None, duration: float | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet."""
     tools.require_ffmpeg()
+    if s.dust:
+        return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
     out_path = Path(out_path).resolve()
     if out_path.resolve() == info.path.resolve():
         raise ToolError("Le fichier de sortie ne peut pas être le fichier original.")
@@ -364,6 +368,35 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         progress(1.0, "Terminé")
     log.info("Export terminé : %s", out_path)
     return out_path
+
+
+def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
+                      cancel: threading.Event | None, progress: Progress | None,
+                      start: float | None, duration: float | None) -> Path:
+    """Étape facultative « poussières et rayures » (pellicule seulement), avant tout le
+    reste : intermédiaire ProRes, puis la chaîne habituelle part de ce fichier."""
+    from . import dust
+    if s.source != "film":
+        raise ToolError("« Poussières et rayures » est réservé aux pellicules numérisées directement.")
+    if not tools.dust_available:
+        raise ToolError("Le module « poussières et rayures » n'est pas installé.")
+    if Path(out_path).resolve() == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas être le fichier original.")
+    work = Path(tempfile.mkdtemp(prefix="vhsrestore_poussieres_", dir=_work_root()))
+
+    def sub(lo: float, hi: float) -> Progress | None:
+        return (lambda f, m: progress(lo + (hi - lo) * f, m)) if progress else None
+    try:
+        inter = dust.clean(info.path, work, str(Path(tools.ffmpeg.path).parent), start, duration,
+                           cancel=cancel, progress=sub(0.0, 0.5))
+        length = duration or max(0.0, info.duration - (start or 0.0))
+        # Même film, mêmes caractéristiques (proportions, cadence, origine) : seul le
+        # fichier lu change. Le rapport de pixel d'origine est donc conservé.
+        cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0)
+        return export(cleaned, dataclasses.replace(s, dust=False), out_path, tools,
+                      cancel=cancel, progress=sub(0.5, 1.0))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
 
 
 def _work_root() -> str:

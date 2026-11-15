@@ -2,7 +2,7 @@
 #   FFmpeg (obligatoire)   : build "release essentials" de gyan.dev, somme SHA-256 vérifiée.
 #   Real-ESRGAN (option)   : -AvecIA, exécutable ncnn-vulkan officiel v0.2.5.0 (GPU Vulkan requis).
 #   (-AvecQTGMC est traité par installer.bat : paquets pip dans .venv)
-param([switch]$AvecIA, [switch]$AvecQTGMC)
+param([switch]$AvecIA, [switch]$AvecQTGMC, [switch]$AvecPoussieres)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
