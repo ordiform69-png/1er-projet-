@@ -11,7 +11,7 @@ from .probe import MediaInfo
 
 @dataclass(frozen=True)
 class Advice:
-    key: str        # hum | channel | clip
+    key: str        # hum | channel | clip | wind
     text: str       # phrase affichée à l'utilisateur
     fix: dict       # champs de pipeline.Settings à modifier
 
@@ -35,6 +35,9 @@ def advise(info: MediaInfo) -> list[Advice]:
     if info.hum_hz:
         out.append(Advice("hum", f"Un ronflement électrique à {info.hum_hz} Hz est audible : il sera filtré.",
                           {"audio_mains_hz": info.hum_hz}))
+    if info.wind:
+        out.append(Advice("wind", "Du vent ou des grondements graves couvrent le son : ils seront atténués, "
+                                  "sans toucher aux voix.", {"audio_highpass": True}))
     return out
 
 

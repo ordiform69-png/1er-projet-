@@ -374,5 +374,11 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   réelles. Chaque correction est mesurée dans le fichier exporté : son des deux côtés, plus
   d'opposition de phase, saturation divisée par plus de 2, ronflement plus détecté.
   `aeval` a été écarté pour la phase (format refusé par l'encodeur AAC) au profit de `pan`.
-- Coût : jusqu'à 7 lectures courtes du son pendant l'analyse (à regrouper si c'est trop lent sur
+- Coût : jusqu'à 8 lectures courtes du son pendant l'analyse (à regrouper si c'est trop lent sur
   de longs fichiers DV).
+- **Vent et grondements** : une lecture de plus, passe-bas 80 Hz. Conseil seulement si ces graves
+  sont forts (RMS > −36 dB), irréguliers (crête au moins 8 dB au-dessus du RMS : un ronflement
+  sinusoïdal reste un ronflement) et comparables au reste du signal. Correction, jamais par défaut :
+  `highpass=f=80:poles=1` (6 dB/octave). Case avancée « Réduire le vent et les grondements »,
+  ou le conseil `wind`. Mesuré sur synthèse : graves −29,5 → −35,5 dB (−6,0 dB) ; voix 300 Hz–3 kHz
+  −42,2 → −42,3 dB. Un son rose léger et un ronflement ne déclenchent pas le conseil.

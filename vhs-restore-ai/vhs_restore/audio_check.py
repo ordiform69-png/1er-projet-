@@ -20,6 +20,7 @@ class AudioCheck:
     channel_issue: str = ""         # "" | left_silent | right_silent | phase
     clipped: float = 0.0            # part des échantillons au plafond (0 à 1)
     hum_hz: int = 0                 # 0 | 50 | 60
+    wind: bool = False              # graves forts et irréguliers (vent, grondement)
 
 
 def _levels(ffmpeg: str, path: Path, af: str) -> list[dict[str, float]]:
@@ -80,6 +81,14 @@ def measure(ffmpeg: str, path: Path, channels: int) -> AudioCheck:
         for hz, ref in ((50, 75), (60, 90)):
             if band[hz] > -65 and band[hz] - band[ref] > 12 and band[hz] >= band[110 - hz]:
                 c.hum_hz = hz
+        # Vent : énergie sous 80 Hz forte, et irrégulière (crête nettement au-dessus du RMS).
+        # Un ronflement sinusoïdal a une crête d'environ 3 dB : il n'est pas pris pour du vent.
+        low = _levels(ffmpeg, path, f"{mono}lowpass=f=80,")
+        low_rms = _rms(low)
+        low_peak = low[0].get("Peak level dB", float("-inf")) if low else float("-inf")
+        full_rms = max((ch.get("RMS level dB", float("-inf")) for ch in per), default=float("-inf"))
+        if low_rms > -36 and low_peak - low_rms > 8 and low_rms > full_rms - 8:
+            c.wind = True
     except (subprocess.TimeoutExpired, OSError, ValueError, KeyError):
         pass
     return c

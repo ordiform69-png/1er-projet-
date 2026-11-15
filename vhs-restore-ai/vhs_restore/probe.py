@@ -62,6 +62,7 @@ class MediaInfo:
     channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
     clipped: float = 0.0                   # part d'échantillons saturés
     hum_hz: int = 0                        # ronflement détecté : 0 | 50 | 60
+    wind: bool = False                     # graves forts et irréguliers (vent)
     suggested_source: str = "video"        # video | film | transfer
     source_reason: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -367,6 +368,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
             from .audio_check import measure
             chk = measure(tools.ffmpeg.path, p, info.audio_channels)
             info.channel_issue, info.clipped, info.hum_hz = chk.channel_issue, chk.clipped, chk.hum_hz
+            info.wind = chk.wind
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
     info.suggested_source, info.source_reason = suggest_source(info)
     return info
