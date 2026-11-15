@@ -17,27 +17,34 @@ class Advice:
 
 
 def advise(info: MediaInfo) -> list[Advice]:
-    if not info.has_audio or info.audio_silent:
-        return []
     out: list[Advice] = []
-    if info.channel_issue == "left_silent":
-        out.append(Advice("channel", "Le son n'est enregistré que du côté droit : il sera mis des deux côtés.",
-                          {"audio_channel_fix": "right"}))
-    elif info.channel_issue == "right_silent":
-        out.append(Advice("channel", "Le son n'est enregistré que du côté gauche : il sera mis des deux côtés.",
-                          {"audio_channel_fix": "left"}))
-    elif info.channel_issue == "phase":
-        out.append(Advice("channel", "Les deux côtés du son s'annulent en partie (opposition de phase) : "
-                                     "ils seront remis en accord.", {"audio_channel_fix": "phase"}))
-    if info.clipped >= 0.0005:
-        out.append(Advice("clip", f"Le son sature par moments ({info.clipped:.1%} des échantillons) : "
-                                  "les crêtes coupées seront reconstruites.", {"audio_declip": True}))
-    if info.hum_hz:
-        out.append(Advice("hum", f"Un ronflement électrique à {info.hum_hz} Hz est audible : il sera filtré.",
-                          {"audio_mains_hz": info.hum_hz}))
-    if info.wind:
-        out.append(Advice("wind", "Du vent ou des grondements graves couvrent le son : ils seront atténués, "
-                                  "sans toucher aux voix.", {"audio_highpass": True}))
+    if info.has_audio and not info.audio_silent:
+        if info.channel_issue == "left_silent":
+            out.append(Advice("channel", "Le son n'est enregistré que du côté droit : il sera mis des deux côtés.",
+                              {"audio_channel_fix": "right"}))
+        elif info.channel_issue == "right_silent":
+            out.append(Advice("channel", "Le son n'est enregistré que du côté gauche : il sera mis des deux côtés.",
+                              {"audio_channel_fix": "left"}))
+        elif info.channel_issue == "phase":
+            out.append(Advice("channel", "Les deux côtés du son s'annulent en partie (opposition de phase) : "
+                                         "ils seront remis en accord.", {"audio_channel_fix": "phase"}))
+        if info.clipped >= 0.0005:
+            out.append(Advice("clip", f"Le son sature par moments ({info.clipped:.1%} des échantillons) : "
+                                      "les crêtes coupées seront reconstruites.", {"audio_declip": True}))
+        if info.hum_hz:
+            out.append(Advice("hum", f"Un ronflement électrique à {info.hum_hz} Hz est audible : il sera filtré.",
+                              {"audio_mains_hz": info.hum_hz}))
+        if info.wind:
+            out.append(Advice("wind", "Du vent ou des grondements graves couvrent le son : ils seront atténués, "
+                                      "sans toucher aux voix.", {"audio_highpass": True}))
+    lo, hi = info.level_low, info.level_high
+    # Noirs gris ET blancs ternes : l'écart de luminance est écrasé. Une scène de nuit
+    # (blancs absents mais noirs vraiment noirs) n'est pas étirée.
+    if lo is not None and hi is not None and hi - lo < 140 and lo > 35 and hi < 190:
+        out.append(Advice("levels",
+                          f"Les noirs sont gris et les blancs ternes (niveaux {lo:.0f} à {hi:.0f}) : "
+                          "ils seront étirés, une seule fois pour tout le film.",
+                          {"level_black": lo / 255.0, "level_white": hi / 255.0}))
     return out
 
 

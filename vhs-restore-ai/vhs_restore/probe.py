@@ -57,6 +57,8 @@ class MediaInfo:
     repeated_frames: float | None = None   # part d'images quasi identiques à la précédente
     saturation: float | None = None        # saturation moyenne (signalstats, 0 = gris)
     saturation_high: float | None = None   # saturation des pixels les plus colorés (SATHIGH)
+    level_low: float | None = None         # médiane de YLOW (percentile bas de la luminance)
+    level_high: float | None = None        # médiane de YHIGH (percentile haut)
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     audio_channels: int = 0
     channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
@@ -189,6 +191,10 @@ def parse_signals(text: str) -> dict[str, float | None]:
     high = [float(x) for x in re.findall(r"signalstats\.SATHIGH=([\d.]+)", text)]
     if high:
         out["saturation_high"] = sum(high) / len(high)
+    for name, key in (("level_low", "YLOW"), ("level_high", "YHIGH")):
+        vals = sorted(float(x) for x in re.findall(rf"signalstats\.{key}=([\d.]+)", text))
+        if vals:
+            out[name] = vals[len(vals) // 2]          # médiane : une valeur pour tout le film
     return out
 
 
@@ -327,12 +333,15 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
                          "-i", str(p), "-map", "0:v:0", "-vf",
                          "idet,signalstats,metadata=print:key=lavfi.signalstats.YDIF,"
                          "metadata=print:key=lavfi.signalstats.SATAVG,"
-                         "metadata=print:key=lavfi.signalstats.SATHIGH", "-frames:v",
+                         "metadata=print:key=lavfi.signalstats.SATHIGH,"
+                         "metadata=print:key=lavfi.signalstats.YLOW,"
+                         "metadata=print:key=lavfi.signalstats.YHIGH", "-frames:v",
                          str(idet_frames), "-an", "-f", "null", "-"], timeout=300)
         info.idet = parse_idet(r.stderr)
         sig = parse_signals(r.stderr)
         info.repeated_fields, info.repeated_frames, info.saturation, info.saturation_high = \
             sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
+        info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
     except subprocess.TimeoutExpired:
         info.idet = {}
     info.scan, info.scan_source = decide_scan(info.idet, info.field_order_meta)

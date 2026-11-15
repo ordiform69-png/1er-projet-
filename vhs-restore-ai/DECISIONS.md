@@ -385,3 +385,7 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
 - **Voix étouffée** : case « Rendre les voix plus claires », jamais par défaut.
   `equalizer=f=3000:t=q:w=1:g=3` (+3 dB, pas plus). Mesuré : bande 2–4 kHz en hausse d'environ
   3 dB, crête toujours loin de 0 dB (pas d'écrêtage créé).
+- **Niveaux** : YLOW et YHIGH (déjà dans la passe `signalstats` de l'analyse), médiane sur
+  l'échantillon. Conseil `levels` seulement si l'écart est sous 140 et que les noirs dépassent 35
+  et les blancs restent sous 190. Correction fixe `colorlevels` pour tout le film, jamais image
+  par image, jamais sans accord. Un `testsrc2` déjà ouvert ne déclenche pas le conseil.
