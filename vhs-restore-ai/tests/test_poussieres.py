@@ -120,3 +120,21 @@ def test_cancel(samples, tools, tmp_path, monkeypatch):
         pipeline.export(info, pipeline.Settings(profile_for("fidele", "film"), source="film", dust=True),
                         tmp_path / "c.mp4", tools, cancel=c)
     assert list(work.iterdir()) == [] and not list(tmp_path.glob("*.mp4"))
+
+
+def test_tape_repair_keeps_standard_ntsc_rate(tools, tmp_path):
+    """Constaté sur une vraie VHS NTSC : après Analog Repair, cadence irrégulière
+    (979001/32666). La sortie doit rester à 30000/1001, son synchronisé."""
+    src = tmp_path / "vhs ntsc.mpg"
+    ff("-f", "lavfi", "-i", "testsrc2=size=352x240:rate=30000/1001,setsar=10/11,noise=alls=8:allf=t",
+       "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "4", "-c:v", "mpeg2video", "-b:v", "3M",
+       "-c:a", "mp2", "-f", "dvd", str(src))
+    info = analyze(src, tools)
+    s = pipeline.Settings(profile_for("equilibre", "video"), source="video", tape_noise=True,
+                          chroma_repair=True, dropouts=True)
+    out = pipeline.export(info, s, tmp_path / "o.mp4", tools)
+    d = probe_json(out)
+    v = next(x for x in d["streams"] if x["codec_type"] == "video")
+    a = next(x for x in d["streams"] if x["codec_type"] == "audio")
+    assert v["avg_frame_rate"] == "30000/1001" and v["display_aspect_ratio"] == "4:3"
+    assert abs(float(a["duration"]) - float(v["duration"])) < 0.1

@@ -80,6 +80,8 @@ class Settings:
     source: str = "video"                 # video | film | transfer
     playback_fps: Fraction | None = None  # film : cadence de tournage choisie (None = celle du fichier)
     deflicker: bool = False               # film / transfert : réduction du scintillement
+    constant_rate: bool = False           # interne : imposer la cadence (après Analog Repair, dont
+                                          # les horodatages sont irréguliers sur un MPEG NTSC réel)
     dust: bool = False                    # film : poussières et rayures (Analog Repair, facultatif)
     tape_noise: bool = False              # vidéo : poursuite, bande du bas, lignes (Analog Repair)
     chroma_repair: bool = False           # vidéo : arcs-en-ciel et couleur perdue, luminance intacte
@@ -124,6 +126,13 @@ def time_ratio(info: MediaInfo, s: Settings) -> float:
     """Durée exportée / durée du fichier (1 sans re-cadencement)."""
     r = retime(info, s)
     return float(info.fps / r) if r else 1.0
+
+
+def _cfr_args(info: MediaInfo, s: Settings) -> list[str]:
+    if not s.constant_rate or retime(info, s):   # le re-cadencement impose déjà -r
+        return []
+    r = output_fps(info, s)
+    return ["-r", f"{r.numerator}/{r.denominator}"]
 
 
 def retime_args(info: MediaInfo, s: Settings) -> list[str]:
@@ -596,7 +605,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
-                   *encode_args(info, s), *retime_args(info, s),
+                   *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
                    *audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
                               rnnoise=tools.rnnoise_model),
                    "-f", "mp4", str(part)])
@@ -700,7 +709,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
             # fichier lu change. Le rapport de pixel d'origine est donc conservé.
             cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0,
                                           parts=(), concat_list=None)
-            return export(cleaned, dataclasses.replace(s, dust=False), out_path, tools,
+            return export(cleaned, dataclasses.replace(s, dust=False, constant_rate=True), out_path, tools,
                           cancel=cancel, progress=sub(0.5, 1.0))
         src, seek_start, seek_len = info, start, duration
         deinterlaced = effective_scan(info, s) in ("tff", "bff")
@@ -719,6 +728,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
         cleaned = dataclasses.replace(src, path=inter, duration=length, video_offset=0.0,
                                       parts=(), concat_list=None)
         quiet = dataclasses.replace(s, dust=False, tape_noise=False, chroma_repair=False, dropouts=False,
+                                    constant_rate=True,
                                     scan="progressive" if deinterlaced else s.scan)
         return export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
     finally:
