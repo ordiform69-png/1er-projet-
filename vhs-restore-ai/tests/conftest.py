@@ -40,7 +40,7 @@ def samples(tmp_path_factory):
     s["pal_tff"] = d / "Vacances été 1988 l'essai.avi"
     ff("-f", "lavfi", "-i", "testsrc2=size=720x576:rate=50,tinterlace=mode=interleave_top,setfield=tff,setsar=16/15",
        "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-t", "4",
-       "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-top", "1", "-b:v", "8M",
+       "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-b:v", "8M",
        "-c:a", "pcm_s16le", str(s["pal_tff"]))
     # NTSC-like progressif carré, sans son
     s["prog"] = d / "progressif sans son.mp4"
@@ -84,7 +84,7 @@ def samples(tmp_path_factory):
     ff("-f", "lavfi", "-i", f"testsrc2=size=720x576:rate=18,{grain},fps=50,"
        "tinterlace=mode=interleave_top,setfield=tff,setsar=16/15,noise=c0s=5:c1s=12:c2s=12:allf=t",
        "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "6",
-       "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-top", "1", "-b:v", "9M",
+       "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-b:v", "9M",
        "-c:a", "pcm_s16le", str(s["transfert"]))
     s["corrupt"] = d / "abîmé.avi"
     s["corrupt"].write_bytes(os.urandom(20000))

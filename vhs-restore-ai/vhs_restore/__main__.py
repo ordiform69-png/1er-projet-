@@ -48,7 +48,7 @@ def autotest(folder: str) -> int:
         r = run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
                          "testsrc2=size=720x576:rate=50,tinterlace=mode=interleave_top,setfield=tff,"
                          "setsar=16/15", "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "2",
-                         "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-top", "1", "-b:v", "8M",
+                         "-c:v", "mpeg2video", "-flags", "+ilme+ildct", "-b:v", "8M",
                          "-c:a", "pcm_s16le", str(sample)], timeout=120)
         if r.returncode:
             raise RuntimeError("génération de l'échantillon : " + r.stderr[-300:])
