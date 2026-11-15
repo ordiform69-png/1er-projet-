@@ -367,9 +367,29 @@ def stab_transform_filter(info: MediaInfo, s: Settings) -> str:
             f"maxshift={maxshift}:maxangle={STAB_MAX_ANGLE:g}:crop=black:interpol=bicubic")
 
 
+# Plafonds de fidélité, constatés sur une vraie VHS de 1988 (très verte, niveaux 84-163) :
+# corrigée sans limite (rouge x1,56, contraste x2,8), l'image virait au magenta avec des
+# noirs bouchés. On atténue le défaut au lieu de chercher à l'annuler.
+MAX_CONTRAST = 1.6            # étirement des niveaux au plus x1,6
+GAIN_MIN, GAIN_MAX = 0.85, 1.18   # dominante : chaque couleur de -15 % à +18 % au plus
+
+
+def safe_levels(lo: float, hi: float) -> tuple[float, float]:
+    """Élargit la plage mesurée autour de son milieu pour ne pas dépasser MAX_CONTRAST."""
+    width = 1.0 / MAX_CONTRAST
+    if hi - lo < width:
+        mid = (lo + hi) / 2
+        lo, hi = max(0.0, mid - width / 2), min(1.0, mid + width / 2)
+    return lo, hi
+
+
+def safe_gains(gains: tuple[float, float, float]) -> tuple[float, float, float]:
+    return tuple(min(GAIN_MAX, max(GAIN_MIN, g)) for g in gains)
+
+
 def _levels_filter(s: Settings) -> str | None:
     """Étirement fixe des noirs et des blancs. Absent si les niveaux sont déjà ouverts."""
-    lo, hi = float(s.level_black), float(s.level_white)
+    lo, hi = safe_levels(float(s.level_black), float(s.level_white))
     if not (0.02 < lo < hi < 0.98 and hi - lo < 0.75):
         return None
     return (f"colorlevels=rimin={lo:.4f}:gimin={lo:.4f}:bimin={lo:.4f}:"
@@ -381,7 +401,7 @@ def _cast_filter(s: Settings) -> str | None:
     gains = (float(s.gain_r), float(s.gain_g), float(s.gain_b))
     if all(abs(g - 1.0) < 0.02 for g in gains):
         return None
-    rr, gg, bb = (min(1.5, max(0.5, g)) for g in gains)
+    rr, gg, bb = safe_gains(gains)
     return f"colorchannelmixer=rr={rr:.4f}:gg={gg:.4f}:bb={bb:.4f}"
 
 

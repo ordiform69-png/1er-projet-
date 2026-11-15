@@ -43,11 +43,11 @@ def advise(info: MediaInfo) -> list[Advice]:
     if lo is not None and hi is not None and hi - lo < 140 and lo > 35 and hi < 190:
         out.append(Advice("levels",
                           f"Les noirs sont gris et les blancs ternes (niveaux {lo:.0f} à {hi:.0f}) : "
-                          "ils seront étirés, une seule fois pour tout le film.",
+                          "le contraste sera rehaussé avec modération, une seule fois pour tout le film.",
                           {"level_black": lo / 255.0, "level_white": hi / 255.0}))
     if info.cast_rgb and max(info.cast_rgb) - min(info.cast_rgb) > 15:
         gr, gg, gb = cast_gains(info.cast_rgb)
-        out.append(Advice("cast", "Une dominante de couleur couvre l'image : elle sera retirée "
+        out.append(Advice("cast", "Une dominante de couleur couvre l'image : elle sera atténuée "
                                   "(sans raviver une image pâle).",
                           {"gain_r": gr, "gain_g": gg, "gain_b": gb}))
     return out

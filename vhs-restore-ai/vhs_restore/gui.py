@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
         self.advice: list = []
         self.s_advice = QCheckBox("Appliquer ces conseils")
         self.s_advice.setStyleSheet("font-size:13pt")
-        self.s_advice.setToolTip("Corrige les défauts de son détectés par l'analyse. "
+        self.s_advice.setToolTip("Corrige avec modération les défauts détectés par l'analyse (son, contraste, couleur). "
                                  "Décochez pour garder le son tel quel.")
         self.s_advice.setVisible(False)
         v.addWidget(self.s_advice)

@@ -413,3 +413,13 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   Pellicule 720×540 : les quatre côtés du cadre à 16, centre à 126, format 4:3.
 
 
+
+## Plafonds de fidélité des conseils d'image (phase 12)
+
+Après fusion des PR #3 à #9, les conseils d'image (niveaux, dominante) ont été essayés sur les
+deux archives réelles. Sur la pellicule González, le résultat est bon. Sur la VHS de 1988 (très
+verte, niveaux 84-163), la correction sans limite (rouge x1,56, contraste x2,8) faisait **virer
+l'image au magenta** avec des noirs bouchés : pire que l'original. Les corrections sont désormais
+plafonnées (`pipeline.MAX_CONTRAST` = 1,6 ; gains de dominante entre 0,85 et 1,18), dans le
+conseil comme dans la chaîne. Le défaut est atténué, il n'est plus forcément annulé. Vérifié à
+l'œil sur les deux archives, et par `tests/test_plafonds.py` (dominante jamais inversée).
