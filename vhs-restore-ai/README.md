@@ -103,6 +103,7 @@ Dans les options avancées :
 - **Ronflement** 50 Hz (Europe) ou 60 Hz, encoche étroite, désactivé par défaut.
 - **Vent et grondements** : passe-haut doux à 80 Hz, désactivé par défaut. L'analyse le
   conseille seulement si les graves sont forts et irréguliers. Les voix restent.
+- **Voix plus claires** : présence de +3 dB vers 3 kHz, désactivé par défaut.
 - **Copie WAV ou FLAC** du son restauré, à côté du film.
 - Après un aperçu : « Écouter l'original » et « Écouter le son restauré ».
 

@@ -409,6 +409,11 @@ class MainWindow(QMainWindow):
             "grondements graves. Une voix à partir de 300 Hz n'est presque pas touchée. "
             "Désactivé par défaut. L'analyse le conseille si les graves sont forts et irréguliers.")
         v.addWidget(self.wind_check)
+        self.presence_check = QCheckBox("Rendre les voix plus claires")
+        self.presence_check.setToolTip(
+            "Légère présence autour de 3 kHz, +3 dB au plus. Pour un son étouffé. "
+            "Désactivé par défaut : rien n'est ajouté si la case n'est pas cochée.")
+        v.addWidget(self.presence_check)
         h = QHBoxLayout()
         self.offset_spin = QDoubleSpinBox()
         self.offset_spin.setRange(-500, 500)
@@ -717,6 +722,7 @@ class MainWindow(QMainWindow):
                                  audio_channel_fix=str(self.channel_combo.currentData() or ""),
                                  audio_declip=self.declip_check.isChecked(),
                                  audio_highpass=self.wind_check.isChecked(),
+                                 audio_presence=self.presence_check.isChecked(),
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0)
 
     # ------------------------------------------------------------ actions
@@ -975,6 +981,8 @@ class MainWindow(QMainWindow):
             self.rnnoise_check.setChecked(bool(s.value("use_rnnoise", False, type=bool)))
         if s.contains("audio_highpass"):
             self.wind_check.setChecked(bool(s.value("audio_highpass", False, type=bool)))
+        if s.contains("audio_presence"):
+            self.presence_check.setChecked(bool(s.value("audio_presence", False, type=bool)))
         self.offset_spin.setValue(float(s.value("audio_offset_ms", 0) or 0))
         self.drift_spin.setValue(float(s.value("audio_drift_ms_per_min", 0) or 0))
         mains = int(float(s.value("audio_mains_hz", 0) or 0))
@@ -1003,6 +1011,7 @@ class MainWindow(QMainWindow):
         s.setValue("restore_audio", self.audio_check.isChecked())
         s.setValue("use_rnnoise", self.rnnoise_check.isChecked())
         s.setValue("audio_highpass", self.wind_check.isChecked())
+        s.setValue("audio_presence", self.presence_check.isChecked())
         s.setValue("audio_offset_ms", self.offset_spin.value())
         s.setValue("audio_drift_ms_per_min", self.drift_spin.value())
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
