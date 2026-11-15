@@ -162,6 +162,37 @@ Une seule chaîne FFmpeg. L'origine (`Settings.source`) ne change que des param�
   des couleurs décolorées (trop risquée pour la fidélité), la suppression des images répétées
   d'un transfert (cadence d'origine rarement certaine) et l'IA spécialisée pellicule.
 
+## Test sur de vraies archives libres de droits (phase 7)
+
+Extraits de 30 s téléchargés sur archive.org, non versionnés :
+- « Home Movie: González Family, circa 1970s » (Amateur Library Collection Fund, CC BY-NC-SA) :
+  scan image par image 2048×1556 à 18 i/s, couleur très décolorée (dominante bleu-cyan), grain
+  fort, poussières, rayures, piste son vide ajoutée.
+- « DEX No. 56 Exercising (June 1988) (Vintage VHS Camcorder Footage) » (CC0) : VOB d'origine,
+  MPEG-2 NTSC 352×240 (mode longue durée d'un graveur DVD), 4:3, son AC3.
+
+Constats et corrections :
+1. **Aperçu décalé de 0,5 s sur le VOB réel** : au point de saut, l'image reprend 0,4 s après le
+   son. L'export gère ce cas correctement (synchronisation avec le son), mais la moitié
+   « original » de l'aperçu était assemblée d'après ses horodatages et se décalait (15 images de
+   décalage mesurées). Correction : l'original de l'aperçu suit le même chemin que l'export.
+   Décalage mesuré ensuite : 0 image. Un test de non-régression échoue avec l'ancien code.
+2. **Couleur décolorée prise pour du noir et blanc** (saturation moyenne 8) : le critère est
+   désormais la saturation des pixels les plus colorés (noir et blanc ≈ 4, film décoloré ≈ 15),
+   avec un état « couleurs très pâles ». Aucune correction automatique des couleurs n'est faite.
+3. **Piste son vide** (-91 dB) annoncée comme « silencieuse ». Elle est conservée telle quelle.
+4. Ce qui était correct d'emblée : NTSC, 4:3 avec pixels non carrés, balayage progressif et
+   origine « vidéo, à confirmer » pour la VHS ; origine « pellicule », 18 i/s et aucun
+   désentrelacement pour le film.
+
+Rendu (comparaison à 100 %, même image) : en profil Fidèle, la pellicule reste quasi identique
+au scan ; Équilibré pellicule atténue légèrement le grain sans lisser ; les réglages vidéo
+appliqués au même film lissent davantage, ce qui confirme l'intérêt des profils par origine.
+Le débruitage haute qualité avec anti-scintillement réduit la variation de luminosité d'une
+image à l'autre de 11 % (0,95 → 0,84) sans aplatir la texture. Les poussières et rayures
+restent : ce n'est pas traité (P2). Sur la VHS, la dominante verte reste, faute de correction
+automatique des couleurs (choix de fidélité, à reconsidérer avec de vraies cassettes).
+
 ## IA : limites assumées
 
 Real-ESRGAN est entraîné sur des dégradations synthétiques (flou, bruit, JPEG), pas sur des

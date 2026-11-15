@@ -85,6 +85,11 @@ tournage 16 et 24 i/s (108 images conservées, durée et son ajustés) ; 4:3 et 
 film muet resté muet ; transfert traité à 25p sans suppression d'image ni trame mélangée restante ;
 grain mieux conservé qu'avec les réglages vidéo.
 
+**Testé sur deux vraies archives libres de droits** (film amateur couleur des années 1970 scanné
+à 18 i/s, VOB d'un caméscope VHS de 1988, voir DECISIONS.md) : analyse correcte après deux
+corrections (couleur décolorée, piste son vide), aperçu réaligné. Jugement visuel seulement sur
+ces deux extraits.
+
 **Non testé** : de vraies pellicules ou de vrais transferts (rayures, poussières, décoloration,
 scintillement réels) ; exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell,
 QTGMC) ; l'indexation BestSource sur un long film ;
