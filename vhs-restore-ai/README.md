@@ -46,6 +46,11 @@ une case « Appliquer ces conseils », décochée par défaut.
 
 **Options avancées** (lien en bas à droite) : tous les réglages ci-dessous.
 
+Pendant un traitement, le **temps restant** s'affiche sous la barre de progression (« environ
+1 h 20 restantes »), dès que l'estimation devient fiable. Dans les options avancées : **garder
+seulement une partie du film** (début et fin, pour retirer la neige ou l'écran bleu), et le
+bouton **« Vérifier l'installation »**, qui restaure une vidéo d'essai et affiche un rapport.
+
 1. **Choisir une vidéo** (ou la glisser dans la fenêtre). L'analyse affiche la résolution, la
    cadence, le format 4:3, l'entrelacement mesuré, la norme probable, le son, le noir et blanc et
    une **origine suggérée** (vidéo, pellicule, pellicule transférée), avec sa raison. Corrigez

@@ -646,6 +646,22 @@ def output_base(info: MediaInfo, s: Settings) -> str:
     return f"{(info.output_stem or info.path.stem)}_restaure_{s.profile.key}{tag}"
 
 
+def trim_window(info: MediaInfo, begin: float, end: float) -> tuple[float | None, float | None]:
+    """Début et fin choisis (secondes ; fin à 0 = jusqu'au bout) -> (start, duration) pour
+    export(). (None, None) si on garde tout le film."""
+    begin, end = max(0.0, float(begin or 0)), float(end or 0)
+    if end and info.duration:
+        end = min(end, info.duration)
+    if end and end <= begin + 0.5:
+        raise ToolError("La fin doit être après le début (au moins une demi-seconde plus loin).")
+    if info.duration and begin >= info.duration - 0.5:
+        raise ToolError("Le début choisi est après la fin du film.")
+    if begin <= 0 and not end:
+        return None, None
+    length = (end or info.duration) - begin
+    return (begin or None), length
+
+
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     base = output_base(info, s)
     cand = out_dir / f"{base}.mp4"

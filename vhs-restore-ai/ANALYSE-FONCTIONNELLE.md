@@ -31,12 +31,12 @@ sur son PC Windows, sans aide. Chaque manque est marqué *vérifié dans le code
 
 | # | Manque | Proposition |
 |---|---|---|
-| 7 | Durée restante non affichée | Estimation « environ 1 h 20 restantes » à partir de la progression |
+| 7 | ~~Durée restante~~ **Fait** non affichée | Estimation « environ 1 h 20 restantes » à partir de la progression |
 | 8 | Bande de parasites en bas des images VHS | Option en place (lignes noires, taille inchangée), désactivée par défaut. À juger sur de vraies cassettes |
 | 9 | Dominante de couleur (VHS verte) | Volontairement non corrigée (fidélité). Pas de bouton tant qu'une cassette réelle n'a pas été vue |
-| 11 | Couper le début et la fin (neige, écran bleu) | Début/fin simples dans les options avancées |
+| 11 | **Fait** — Couper le début et la fin (neige, écran bleu) | Début/fin simples dans les options avancées |
 | 12 | Réglages mémorisés | Fait : profil, options de son et dossier de sortie (`QSettings`) |
-| 13 | Vérifier l'installation sans ligne de commande | Bouton « Vérifier l'installation » qui lance l'autotest |
+| 13 | **Fait** — Vérifier l'installation sans ligne de commande | Bouton « Vérifier l'installation » qui lance l'autotest |
 | 14 | Compatibilité des vieilles télés (Full HD 50 i/s) | Réglage « compatibilité maximale » si un téléviseur réel pose problème |
 
 ### P2 — plus tard

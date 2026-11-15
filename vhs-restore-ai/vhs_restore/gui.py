@@ -25,6 +25,7 @@ from . import pipeline
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
+from .eta import Eta
 from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools
@@ -569,14 +570,35 @@ class MainWindow(QMainWindow):
         h.addWidget(bo)
         v.addLayout(h)
         h = QHBoxLayout()
+        self.trim_start = QDoubleSpinBox()
+        self.trim_end = QDoubleSpinBox()
+        for sp in (self.trim_start, self.trim_end):
+            sp.setDecimals(1)
+            sp.setRange(0, 0)
+            sp.setSuffix(" s")
+        self.trim_end.setSpecialValueText("jusqu'au bout")
+        self.trim_start.setToolTip("Pour ne pas garder la neige ou l'écran bleu du début.")
+        self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « jusqu'au bout » = tout garder.")
+        h.addWidget(QLabel("Garder du début à :"))
+        h.addWidget(self.trim_start)
+        h.addWidget(QLabel("jusqu'à :"))
+        h.addWidget(self.trim_end)
+        h.addStretch(1)
+        v.addLayout(h)
+        h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setStyleSheet("font-weight:bold;padding:6px 14px")
         self.run_btn.clicked.connect(self.start_export)
         self.cancel_btn = QPushButton("Annuler")
         self.cancel_btn.clicked.connect(self.cancel)
+        self.check_btn = QPushButton("Vérifier l'installation")
+        self.check_btn.setToolTip("Restaure une courte vidéo d'essai et affiche un rapport "
+                                  "(utile si quelque chose ne marche pas).")
+        self.check_btn.clicked.connect(self.check_install)
         h.addWidget(self.run_btn)
         h.addWidget(self.cancel_btn)
         h.addStretch(1)
+        h.addWidget(self.check_btn)
         v.addLayout(h)
         self.progress = QProgressBar()
         self.progress.setRange(0, 1000)
@@ -628,6 +650,7 @@ class MainWindow(QMainWindow):
         self.preview_btn.setEnabled(loaded and not busy)
         self.run_btn.setEnabled(loaded and not busy)
         self.cancel_btn.setEnabled(busy)
+        self.check_btn.setEnabled(not busy)
         for b, ok in ((self.s_choose, not busy), (self.s_preview, loaded and not busy),
                       (self.s_run, loaded and not busy), (self.s_folder, not busy), (self.s_cancel, busy)):
             b.setEnabled(ok)
@@ -800,6 +823,9 @@ class MainWindow(QMainWindow):
         self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} images/s)")
         self.cadence_combo.setCurrentIndex(0)
         self._update_state()
+        for sp in (self.trim_start, self.trim_end):     # tout garder par défaut
+            sp.setRange(0, max(0.0, info.duration))
+            sp.setValue(0)
         self.start_spin.setRange(0, max(0.0, info.duration - 10))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
         self.out_note = ""
@@ -884,12 +910,42 @@ class MainWindow(QMainWindow):
         info, s = self.info, self.settings()
         try:
             out = pipeline.unique_output_path(info, s, out_dir)
+            start, length = pipeline.trim_window(info, self.trim_start.value(), self.trim_end.value())
         except ToolError as exc:
             QMessageBox.warning(self, "Réglages", str(exc))
             return
         self.status.setText(f"Restauration vers {out.name}…")
-        self._launch(lambda c, p: pipeline.export(info, s, out, self.tools, cancel=c, progress=p),
+        self._launch(lambda c, p: pipeline.export(info, s, out, self.tools, cancel=c, progress=p,
+                                                  start=start, duration=length),
                      self._export_done)
+
+    def check_install(self) -> None:
+        """Lance l'autotest (le même que celui de la fabrication Windows) et montre le rapport."""
+        if self._busy():
+            return
+        from .__main__ import autotest
+        folder = Path(tempfile.mkdtemp(prefix="vhsrestore_verif_"))
+
+        def job(cancel, progress):
+            progress(0.1, "Vérification de l'installation…")
+            code = autotest(str(folder))
+            text = (folder / "autotest.txt").read_text(encoding="utf-8", errors="replace")
+            shutil.rmtree(folder, ignore_errors=True)
+            return code, text
+        self.status.setText("Vérification de l'installation…")
+        self._launch(job, self._check_done)
+
+    def _check_done(self, res) -> None:
+        code, text = res
+        ok = code == 0
+        self.status.setText("Installation vérifiée : tout fonctionne." if ok else
+                            "Vérification : un problème a été trouvé.")
+        box = QMessageBox(QMessageBox.Information if ok else QMessageBox.Warning, "Vérifier l'installation",
+                          "Tout fonctionne : une vidéo d'essai a été analysée puis restaurée."
+                          if ok else "Un problème a été trouvé. Le rapport ci-dessous aide à le corriger.",
+                          parent=self)
+        box.setDetailedText(text)
+        box.exec()
 
     def _export_done(self, out: Path) -> None:
         self.status.setText(f"Terminé : {out}")
@@ -973,6 +1029,7 @@ class MainWindow(QMainWindow):
         w.finished.connect(self._on_finished)
         if self.progress.maximum() != 0:
             self.progress.setValue(0)
+        self.eta = Eta()
         w.start()
         self._update_state()
 
@@ -980,7 +1037,8 @@ class MainWindow(QMainWindow):
         if self.progress.maximum() == 0:
             self.progress.setRange(0, 1000)
         self.progress.setValue(int(frac * 1000))
-        self.status.setText(f"{msg} {frac * 100:.0f} %")
+        left = self.eta.update(frac) if getattr(self, "eta", None) else ""
+        self.status.setText(f"{msg} {frac * 100:.0f} %" + (f" — {left}" if left else ""))
 
     def _on_failed(self, msg: str) -> None:
         self.status.setText("Échec.")
