@@ -72,3 +72,18 @@ def test_options_avancées_défilent_jusqu_au_bouton(app, tools, taille):
     assert isinstance(scroll, QScrollArea)
     assert _bouton_visible(scroll, win.run_btn, app)
     win.close()
+
+
+@pytest.mark.parametrize("taille", [(1366, 740), (1280, 720), (1093, 600)])
+def test_options_avancées_sans_défilement_horizontal(app, tools, taille):
+    """Portable 1366×768, 1280×720, et 1366 à 125 % (≈ 1093 px utiles) : rien n'est coupé à droite."""
+    win = MainWindow(tools)
+    win.show()
+    win.resize(*taille)
+    win.set_advanced(True)
+    app.processEvents()
+    scroll = win.pages.widget(1)
+    assert scroll.horizontalScrollBar().maximum() == 0
+    droite = win.check_btn.mapTo(scroll.viewport(), QPoint(win.check_btn.width(), 0)).x()
+    assert droite <= scroll.viewport().width()
+    win.close()

@@ -422,6 +422,13 @@ Le balayage de la barre de progression est un minuteur à 120 ms, actif seulemen
 traitement. Contrastes listés dans `theme.CONTRASTES`, tous ≥ 4,5:1 (`tests/test_theme.py`).
 Aucun réglage de restauration n'a changé.
 
+Correctifs après relecture sur un écran de portable : la page des options demandait 1 609 px de
+large (défilement horizontal, colonne de droite coupée à 1366 px). Les listes aux libellés longs
+sont désormais compactes (texte complet à l'ouverture), la ligne d'aperçu est sur deux lignes, et
+sous 1 240 px (portable à 125 % ou 150 %) les deux colonnes passent l'une sous l'autre. Test :
+aucun défilement horizontal à 1366×740, 1280×720 et 1093×600. Sur une photo en hauteur, l'étiquette
+« Restauré » passe en bas pour ne plus chevaucher « Original ».
+
 
 
 

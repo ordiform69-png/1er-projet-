@@ -16,7 +16,7 @@ from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
+from PySide6.QtWidgets import (QApplication, QBoxLayout, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
                                QRadioButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
@@ -139,10 +139,14 @@ class CompareView(QWidget):
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(theme.ACCENT))
         p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
+        fm = p.fontMetrics()
+        h = fm.height() + 10
+        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", "RESTAURÉ")) + 36
+        etroit = r.width() < largeur    # photo en hauteur : « Restauré » passe en bas
         for text, left in (("ORIGINAL", True), ("RESTAURÉ", False)):
-            fm = p.fontMetrics()
-            w, h = fm.horizontalAdvance(text) + 22, fm.height() + 10
-            box = QRect(r.x() + 12 if left else r.right() - w - 12, r.y() + 12, w, h)
+            w = fm.horizontalAdvance(text) + 22
+            y = r.bottom() - h - 12 if (etroit and not left) else r.y() + 12
+            box = QRect(r.x() + 12 if left else r.right() - w - 12, y, w, h)
             p.setPen(QPen(QColor(theme.ACCENT), 1))
             p.setBrush(QColor(16, 32, 40, 210))
             p.drawRoundedRect(box, 4, 4)
@@ -305,6 +309,7 @@ class MainWindow(QMainWindow):
         self.preview: pipeline.PreviewResult | None = None
         self.preview_dir = Path(tempfile.mkdtemp(prefix="vhsrestore_apercu_"))
         self._build()
+        self._compacter_options()
         self._refresh_tools()
         self._update_state()
 
@@ -402,6 +407,26 @@ class MainWindow(QMainWindow):
     def set_advanced(self, on: bool) -> None:
         self.pages.setCurrentIndex(1 if on else 0)
 
+    COLONNE_UNIQUE_SOUS = 1240     # px : portable à 125 % / 150 %, ou fenêtre réduite
+
+    def resizeEvent(self, e) -> None:  # noqa: N802
+        super().resizeEvent(e)
+        cols = getattr(self, "_colonnes", None)
+        if cols is not None:
+            sens = (QBoxLayout.TopToBottom if self.width() < self.COLONNE_UNIQUE_SOUS
+                    else QBoxLayout.LeftToRight)
+            if cols.direction() != sens:
+                cols.setDirection(sens)
+
+    def _compacter_options(self) -> None:
+        """Les listes aux libellés longs ne doivent pas élargir la page des options au-delà
+        d'un écran de portable : le texte complet reste visible quand la liste est ouverte."""
+        page = self.pages.widget(1).widget()
+        for combo in page.findChildren(QComboBox):
+            combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(min(combo.minimumContentsLength() or 14, 14))
+            combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
+
     def _build(self) -> None:
         central = QWidget()
         central.setObjectName("page")
@@ -411,7 +436,7 @@ class MainWindow(QMainWindow):
         back.setCursor(Qt.PointingHandCursor)
         back.clicked.connect(lambda: self.set_advanced(False))
         outer.addWidget(back, 0, Qt.AlignLeft)
-        root = QHBoxLayout()
+        root = self._colonnes = QBoxLayout(QBoxLayout.LeftToRight)
         outer.addLayout(root, 1)
         left = QVBoxLayout()
         right = QVBoxLayout()
@@ -702,8 +727,11 @@ class MainWindow(QMainWindow):
         h.addWidget(self.start_spin)
         h.addWidget(self.preview_btn)
         h.addStretch(1)
+        v.addLayout(h)
+        h = QHBoxLayout()               # deuxième ligne : la page tient sur un écran de portable
         h.addWidget(self.still_combo)
         h.addWidget(self.play_btn)
+        h.addStretch(1)
         v.addLayout(h)
         h = QHBoxLayout()
         h.addWidget(self.hear_orig_btn)
