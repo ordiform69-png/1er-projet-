@@ -76,6 +76,24 @@ def autotest(folder: str) -> int:
             report.append(f"Export poussières : {fafter.width}x{fafter.height}, {float(fafter.fps):g} i/s, "
                           f"{fafter.duration:.1f} s")
             ok = ok and dust_ok
+        # Mode Photo : une carte postale noir et blanc compressée en JPEG
+        import hashlib
+        from vhs_restore import photo
+        card = out / "carte postale été.jpg"
+        run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                     "mandelbrot=size=320x240", "-frames:v", "1", "-vf", "format=gray", "-q:v", "20",
+                     str(card)], timeout=120)
+        before = hashlib.sha256(card.read_bytes()).hexdigest()
+        pinfo = photo.analyze_photo(card, ts)
+        pres = photo.restore_photo(pinfo, pipeline.Settings(profile_for("equilibre")),
+                                   out / "carte postale restaurée.png", ts)
+        pafter = photo.analyze_photo(pres, ts)
+        photo_ok = ((pafter.width, pafter.height) == (320, 240) and pafter.black_and_white
+                    and hashlib.sha256(card.read_bytes()).hexdigest() == before)
+        report.append(f"Photo : {pres.name}, {pafter.width}x{pafter.height}, "
+                      f"{'noir et blanc conservé' if pafter.black_and_white else 'COULEUR AJOUTÉE'}, "
+                      f"original {'intact' if hashlib.sha256(card.read_bytes()).hexdigest() == before else 'MODIFIÉ'}")
+        ok = ok and photo_ok
         report.append("RÉSULTAT : OK" if ok else "RÉSULTAT : ÉCHEC (sortie inattendue)")
         code = 0 if ok else 1
     except Exception as exc:  # le rapport doit toujours être écrit
