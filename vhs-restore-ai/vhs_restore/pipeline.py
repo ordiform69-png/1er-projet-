@@ -51,6 +51,7 @@ from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run
                     terminate)
 from .dvd import input_args as dvd_input
 from .dvd import is_menu, open_media, titles_in
+from .upscaler import RealEsrganUpscaler
 
 log = logging.getLogger("vhs_restore")
 Progress = Callable[[float, str], None]
