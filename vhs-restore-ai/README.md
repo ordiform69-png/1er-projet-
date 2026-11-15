@@ -117,6 +117,13 @@ le binaire officiel 0.5.6 dans `tools\deepfilter\`
 plafonnée à 12 dB pour garder l'ambiance. Sans lui, Maximum garde le souffle FFmpeg du profil.
 RNNoise ne se substitue pas tout seul.
 
+## Couleur
+
+Dans les options avancées, case **Dominante de couleur**, décochée. Si vous la cochez, ou si
+l'analyse la conseille (une teinte forte couvre tout le film) et que vous appliquez les conseils,
+trois gains fixes rééquilibrent le rouge, le vert et le bleu, une seule fois pour tout le film.
+Un noir et blanc reste gris. Une image pâle n'est pas ravivée.
+
 ## Bande VHS (Analog Repair)
 
 Dans les options avancées, pour une cassette seulement, trois cases désactivées par défaut.
