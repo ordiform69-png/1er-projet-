@@ -96,6 +96,7 @@ class Settings:
     audio_presence: bool = False           # voix étouffée : présence vers 3 kHz, +3 dB au plus
     level_black: float = 0.0              # 0 et 1 = ne pas toucher aux niveaux
     level_white: float = 1.0
+    chroma_shift: int = 0                  # décalage horizontal de la couleur, en pixels (−8 à +8)
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
@@ -381,6 +382,10 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     lvl = _levels_filter(s)
     if lvl:
         f.append(lvl)                          # une correction pour tout le film, pas image par image
+    shift = max(-8, min(8, int(s.chroma_shift or 0)))
+    if shift:
+        # VHS : la couleur glisse souvent horizontalement. 0 = filtre absent.
+        f.append(f"chromashift=cbh={shift}:crh={shift}")
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
     if s.denoise_hq:
