@@ -32,7 +32,7 @@ QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
 REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scale", "hstack", "fftdnoiz",
                     "signalstats", "fieldmatch", "deflicker", "setpts", "atempo")
 STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
-AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject")  # facultatifs
+AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject", "arnndn")  # facultatifs
 
 
 class ToolError(RuntimeError):
@@ -66,6 +66,7 @@ class Toolset:
     dust: bool = False          # module « poussières et rayures » (Analog Repair) installé
     deepfilter: Tool = field(default_factory=lambda: Tool("DeepFilterNet"))
     audio_filters: frozenset[str] = frozenset()
+    rnnoise_model: str | None = None     # modèle RNNoise (Xiph) pour arnndn, livré avec l'application
 
     @property
     def deepfilter_available(self) -> bool:
@@ -135,6 +136,26 @@ def _version(path: str) -> str:
     return m.group(1) if m else ""
 
 
+def _rnnoise_model() -> str | None:
+    """Modèle std de RNNoise (BSD). Variable, dossier tools, ou copie livrée."""
+    env = os.environ.get("VHSRA_RNNOISE")
+    if env and Path(env).is_file():
+        return env
+    names = [
+        Path(__file__).resolve().parent / "models" / "rnnoise_std.rnnn",
+        TOOLS_DIR / "rnnoise" / "rnnoise_std.rnnn",
+        APP_DIR / "_internal" / "vhs_restore" / "models" / "rnnoise_std.rnnn",
+        APP_DIR / "vhs_restore" / "models" / "rnnoise_std.rnnn",
+    ]
+    mei = getattr(sys, "_MEIPASS", None)
+    if mei:
+        names.insert(0, Path(mei) / "vhs_restore" / "models" / "rnnoise_std.rnnn")
+    for p in names:
+        if p.is_file():
+            return str(p)
+    return None
+
+
 def detect_tools() -> Toolset:
     ff = Tool("FFmpeg", _find("VHSRA_FFMPEG", ["ffmpeg"], ["ffmpeg/bin", "ffmpeg"]))
     fp = Tool("FFprobe", _find("VHSRA_FFPROBE", ["ffprobe"], ["ffmpeg/bin", "ffmpeg"]))
@@ -165,12 +186,13 @@ def detect_tools() -> Toolset:
     if df.path:
         df.version = "deep-filter"
     from . import dust
+    model = _rnnoise_model()
     ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available(),
-                 df, frozenset(audio_present))
+                 df, frozenset(audio_present), model)
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s "
-             "deepfilter=%s audio=%s filtres manquants=%s",
+             "deepfilter=%s rnnoise=%s audio=%s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem,
-             df.path, sorted(audio_present), missing)
+             df.path, model, sorted(audio_present), missing)
     return ts
 
 

@@ -83,7 +83,7 @@ Case « Restaurer le son », cochée par défaut. Le profil choisi s'applique au
 
 | | Fidèle | Équilibré | Maximum |
 |---|---|---|---|
-| Souffle | très léger | modéré | plus marqué, ou DeepFilterNet s'il est installé |
+| Souffle | très léger | modéré | plus marqué, ou DeepFilterNet |
 | Clics | non | oui | oui |
 | Écarts de volume | non | oui, gain limité | oui, gain limité |
 
@@ -100,10 +100,27 @@ Dans les options avancées :
 - **Copie WAV ou FLAC** du son restauré, à côté du film.
 - Après un aperçu : « Écouter l'original » et « Écouter le son restauré ».
 
+- **Souffle de la voix (RNNoise)** : désactivé par défaut. Cochez-le pour remplacer le
+  souffle FFmpeg d'Équilibré et de Maximum par le modèle Xiph inclus (35 % ou 55 % du
+  signal nettoyé, le reste de la pièce reste). Fidèle n'est pas concerné.
+
 DeepFilterNet est facultatif, profil Maximum seulement. `installer.bat -AvecSon` télécharge
 le binaire officiel 0.5.6 dans `tools\deepfilter\`
 ([dépôt](https://github.com/Rikorose/DeepFilterNet), licence libre). L'atténuation est
-plafonnée à 12 dB pour garder l'ambiance. Sans lui, le profil Maximum utilise seulement FFmpeg.
+plafonnée à 12 dB pour garder l'ambiance. Sans lui, Maximum garde le souffle FFmpeg du profil.
+RNNoise ne se substitue pas tout seul.
+
+## Bande VHS (Analog Repair)
+
+Dans les options avancées, pour une cassette seulement, trois cases désactivées par défaut.
+Même module que les poussières (`installer.bat -AvecPoussieres`, licence MIT) :
+
+- bruit de bande : poursuite, lignes qui ondulent, bande déchirée du bas ;
+- couleur des décrochages : arcs-en-ciel et couleur perdue, sans toucher à la lumière ;
+- taches présentes sur une seule image.
+
+Le tampon date n'est pas effacé. Le grain n'est pas lissé. Une pellicule garde seulement
+« poussières et rayures ».
 
 ## État des fonctions
 

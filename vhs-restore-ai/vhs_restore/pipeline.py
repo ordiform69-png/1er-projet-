@@ -79,11 +79,15 @@ class Settings:
     playback_fps: Fraction | None = None  # film : cadence de tournage choisie (None = celle du fichier)
     deflicker: bool = False               # film / transfert : réduction du scintillement
     dust: bool = False                    # film : poussières et rayures (Analog Repair, facultatif)
+    tape_noise: bool = False              # vidéo : poursuite, bande du bas, lignes (Analog Repair)
+    chroma_repair: bool = False           # vidéo : arcs-en-ciel et couleur perdue, luminance intacte
+    dropouts: bool = False                # vidéo : taches ou lignes d'une seule image
     restore_audio: bool = True            # nettoyage du son selon le profil (jamais si piste muette)
     audio_offset_ms: float = 0.0          # >0 retarde le son, <0 l'avance. 0 = inchangé
     audio_drift_ms_per_min: float = 0.0   # >0 le son prend du retard : on l'accélère (atempo)
     audio_mains_hz: int = 0                # 0 | 50 | 60 : encoche secteur, seulement si demandé
     audio_copy: str = ""                   # "" | wav | flac : copie du son restauré à côté du film
+    use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
     crf: int = 18
     preset: str = "medium"
@@ -163,6 +167,11 @@ def _atempo_filters(info: MediaInfo, s: Settings, *, drift: bool = True) -> list
     return _atempo_chain(_tempo_factor(info, s, drift=drift))
 
 
+def _ff_filter_path(path: str) -> str:
+    """Chemin dans un graphe -af : les « : » (lecteur Windows) doivent être échappés."""
+    return Path(path).as_posix().replace("\\", "/").replace(":", "\\:")
+
+
 def _has(present: frozenset[str] | None, name: str) -> bool:
     return present is None or name in present
 
@@ -170,7 +179,8 @@ def _has(present: frozenset[str] | None, name: str) -> bool:
 def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
                   skip_afftdn: bool = False, apply_offset: bool = True,
                   apply_drift: bool = True,
-                  present: frozenset[str] | None = None) -> list[str]:
+                  present: frozenset[str] | None = None,
+                  rnnoise: str | None = None) -> list[str]:
     """Chaîne -af. Les ambiances restent dans le signal : pas de séparation voix/bruit.
     present=None : on suppose les filtres présents (tests). Un ensemble vide les retire."""
     if not info.has_audio:
@@ -185,7 +195,14 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
         p = s.profile
         if p.adeclick and _has(present, "adeclick"):
             chain.append("adeclick")
-        if p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
+        # RNNoise (Xiph, modèle livré) seulement si la case est cochée, et seulement
+        # à la place d'afftdn en Équilibré et Maximum. Mélangé au signal d'origine.
+        # DeepFilterNet, s'il a tourné, a déjà traité le souffle. Défaut : afftdn.
+        speech = bool(s.use_rnnoise and p.afftdn_nr and p.afftdn_nr >= 8)
+        if (speech and rnnoise and not skip_afftdn and _has(present, "arnndn")):
+            mix = 0.55 if p.afftdn_nr >= 12 else 0.35
+            chain.append(f"arnndn=m={_ff_filter_path(rnnoise)}:mix={mix}")
+        elif p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
             chain.append(f"afftdn=nr={p.afftdn_nr:g}:nf=-50:tn=1")
         if p.loudnorm and _has(present, "dynaudnorm"):
             # gain plafonné : rattrape les écarts de volume sans écraser l'ambiance
@@ -203,9 +220,11 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
 def audio_args(info: MediaInfo, s: Settings, *, restore: bool = True,
                skip_afftdn: bool = False, apply_offset: bool = True,
                apply_drift: bool = True,
-               present: frozenset[str] | None = None) -> list[str]:
+               present: frozenset[str] | None = None,
+               rnnoise: str | None = None) -> list[str]:
     chain = audio_filters(info, s, restore=restore, skip_afftdn=skip_afftdn,
-                          apply_offset=apply_offset, apply_drift=apply_drift, present=present)
+                          apply_offset=apply_offset, apply_drift=apply_drift,
+                          present=present, rnnoise=rnnoise)
     return ["-af", ",".join(chain)] if chain else []
 
 
@@ -471,8 +490,12 @@ def disk_needs(info: MediaInfo, s: Settings, start: float | None = None,
     rate = 5e6 if h <= 576 else 12e6 if h <= 1080 else 35e6
     final = dur * rate / 8 * 1.5
     temp = 0.0
-    if s.dust:   # ProRes 422 : ~2,4 bits par pixel et par image
+    if s.dust or _tape_job(s):   # ProRes 422 : ~2,4 bits par pixel et par image
         temp += info.width * info.height * float(info.fps) * dur * 2.4 / 8
+        if _tape_job(s) and effective_scan(info, s) in ("tff", "bff"):
+            # désentrelacement ffv1 avant Analog Repair (vidéo : une image par trame)
+            frames = 2 if s.source == "video" else 1
+            temp += info.width * info.height * float(info.fps) * frames * dur
     if s.restore_audio and s.profile.deepfilter and info.has_audio:
         temp += dur * 48000 * 2 * 2 * 2   # WAV source + WAV nettoyé
     return final, temp
@@ -506,6 +529,9 @@ def output_base(info: MediaInfo, s: Settings) -> str:
            + {"source": "", "1080": "_1080p", "2160": "_4k"}[res]
            + ("_stab" if s.stabilize else "") + ("_hq" if s.denoise_hq else "")
            + ("_poussieres" if s.dust else "")
+           + ("_bande" if s.tape_noise else "")
+           + ("_couleur" if s.chroma_repair else "")
+           + ("_decrochages" if s.dropouts else "")
            + ("_ia" if s.use_ai else ""))
     return f"{info.path.stem}_restaure_{s.profile.key}{tag}"
 
@@ -527,7 +553,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     tools.require_ffmpeg()
     if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
         check_disk_space(info, s, Path(out_path).parent, start, duration)
-    if s.dust:
+    if s.dust or _tape_job(s):
         return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
     out_path = Path(out_path).resolve()
     if out_path.resolve() == info.path.resolve():
@@ -566,7 +592,8 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
                    *encode_args(info, s), *retime_args(info, s),
-                   *audio_args(info, s, skip_afftdn=df_wav is not None, present=present),
+                   *audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
+                              rnnoise=tools.rnnoise_model),
                    "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
@@ -609,14 +636,45 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
     log.info("Copie du son : %s", dest)
 
 
+def _tape_job(s: Settings) -> bool:
+    """Réparations Analog Repair utiles sur une cassette, pas sur une pellicule."""
+    return s.source != "film" and (s.tape_noise or s.chroma_repair or s.dropouts)
+
+
+def _to_progressive(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
+                   start: float | None, duration: float | None,
+                   cancel: threading.Event | None) -> MediaInfo:
+    """Images progressives avant Analog Repair, sinon il désentrelace lui-même
+    (une image par image) et la chaîne le referait. Vidéo : une image par trame.
+    Transfert pellicule : appariement des trames, cadence d'origine."""
+    scan = effective_scan(info, s)
+    if s.source == "video":
+        vf = f"bwdif=mode=send_field:parity={scan}:deint=all,setfield=prog"
+        fps = info.fps * 2
+    else:
+        vf = (f"fieldmatch=order={scan}:combmatch=full,"
+              f"bwdif=mode=send_frame:parity={scan}:deint=interlaced,setfield=prog")
+        fps = info.fps
+    out = work / "desentrelace.mkv"
+    run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+         *_seek(start, duration), "-i", str(info.path), "-map", "0:v:0", "-map", "0:a:0?",
+         "-vf", vf, "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", str(out)],
+        cancel=cancel, what="FFmpeg (désentrelacement)")
+    length = duration or max(0.0, info.duration - (start or 0.0))
+    return dataclasses.replace(info, path=out, duration=length, video_offset=0.0,
+                               scan="progressive", fps=fps, field_order_meta="progressive")
+
+
 def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
                       cancel: threading.Event | None, progress: Progress | None,
                       start: float | None, duration: float | None) -> Path:
-    """Étape facultative « poussières et rayures » (pellicule seulement), avant tout le
-    reste : intermédiaire ProRes, puis la chaîne habituelle part de ce fichier."""
+    """Analog Repair avant le reste de la chaîne : poussières de pellicule, ou
+    bruit de bande / couleur / décrochages d'une cassette. Intermédiaire ProRes."""
     from . import dust
-    if s.source != "film":
+    if s.dust and s.source != "film":
         raise ToolError("« Poussières et rayures » est réservé aux pellicules numérisées directement.")
+    if not (s.dust or _tape_job(s)):
+        raise ToolError("Rien à réparer avec Analog Repair.")
     if not tools.dust_available:
         raise ToolError("Le module « poussières et rayures » n'est pas installé.")
     if Path(out_path).resolve() == info.path.resolve():
@@ -626,14 +684,33 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
     def sub(lo: float, hi: float) -> Progress | None:
         return (lambda f, m: progress(lo + (hi - lo) * f, m)) if progress else None
     try:
-        inter = dust.clean(info.path, work, str(Path(tools.ffmpeg.path).parent), start, duration,
-                           cancel=cancel, progress=sub(0.0, 0.5))
-        length = duration or max(0.0, info.duration - (start or 0.0))
-        # Même film, mêmes caractéristiques (proportions, cadence, origine) : seul le
-        # fichier lu change. Le rapport de pixel d'origine est donc conservé.
-        cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0)
-        return export(cleaned, dataclasses.replace(s, dust=False), out_path, tools,
-                      cancel=cancel, progress=sub(0.5, 1.0))
+        if s.dust:
+            inter = dust.clean(info.path, work, str(Path(tools.ffmpeg.path).parent), start, duration,
+                               cancel=cancel, progress=sub(0.0, 0.5))
+            length = duration or max(0.0, info.duration - (start or 0.0))
+            # Même film, mêmes caractéristiques (proportions, cadence, origine) : seul le
+            # fichier lu change. Le rapport de pixel d'origine est donc conservé.
+            cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0)
+            return export(cleaned, dataclasses.replace(s, dust=False), out_path, tools,
+                          cancel=cancel, progress=sub(0.5, 1.0))
+        src, seek_start, seek_len = info, start, duration
+        deinterlaced = effective_scan(info, s) in ("tff", "bff")
+        if deinterlaced:
+            if progress:
+                progress(0.02, "Désentrelacement avant réparation de la bande…")
+            src = _to_progressive(info, s, tools, work, start, duration, cancel)
+            seek_start, seek_len = None, None
+        inter = dust.clean(src.path, work, str(Path(tools.ffmpeg.path).parent), seek_start, seek_len,
+                           cancel=cancel, progress=sub(0.15, 0.55), signal="tape",
+                           dust_strength=dust.TAPE_DROPOUT if s.dropouts else 0,
+                           tape_strength=dust.TAPE_NOISE if s.tape_noise else 0,
+                           colour_strength=dust.TAPE_COLOUR if s.chroma_repair else 0,
+                           label="Réparation de la bande…")
+        length = src.duration if deinterlaced else (duration or max(0.0, info.duration - (start or 0.0)))
+        cleaned = dataclasses.replace(src, path=inter, duration=length, video_offset=0.0)
+        quiet = dataclasses.replace(s, dust=False, tape_noise=False, chroma_repair=False, dropouts=False,
+                                    scan="progressive" if deinterlaced else s.scan)
+        return export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -691,7 +768,8 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
         run(_ff_base(tools) + args + [
             "-map", vmap, "-map", amap, "-vf", pre, *retime_args(info, s),
-            *audio_args(info, s, skip_afftdn=df_wav is not None, present=present),
+            *audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
+                       rnnoise=tools.rnnoise_model),
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))

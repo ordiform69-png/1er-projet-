@@ -24,6 +24,11 @@ from .tools import ToolError, run
 
 ANALOG_REPAIR_COMMIT = "561ba5a18881422ad0415df6c13fa2b962159da2"
 DUST_STRENGTH = 60      # 0-100, valeur de son préréglage « 8 mm / Super 8 »
+# Préréglage « VHS tape » d'Analog Repair, sans le reste (pas de fusion qui mange
+# le grain, pas d'agrandissement, pas d'effacement du tampon date).
+TAPE_NOISE = 60         # poursuite, bande du bas, lignes qui ondulent
+TAPE_COLOUR = 40       # arcs-en-ciel et couleur perdue ; la luminance reste
+TAPE_DROPOUT = 30       # taches ou lignes présentes sur une seule image
 
 
 def available() -> bool:
@@ -40,15 +45,22 @@ def engine_command(settings: Path) -> list[str]:
 
 def clean(source: Path, work: Path, ffmpeg_dir: str, start: float | None, duration: float | None,
           cancel: threading.Event | None = None,
-          progress: Callable[[float, str], None] | None = None) -> Path:
-    """Écrit work/poussieres.mov : l'extrait demandé, poussières et rayures atténuées."""
+          progress: Callable[[float, str], None] | None = None, *,
+          signal: str = "film", dust_strength: int = DUST_STRENGTH,
+          tape_strength: int = 0, colour_strength: int = 0,
+          label: str = "Poussières et rayures…") -> Path:
+    """Écrit work/poussieres.mov. Par défaut : poussières de pellicule seules.
+    Les autres étapes d'Analog Repair restent à 0 sauf si on les demande
+    (bruit de bande, couleur des décrochages, taches d'une image)."""
     if not available():
         raise ToolError("Le module « poussières et rayures » n'est pas installé "
                         "(relancez installer.bat -AvecPoussieres).")
     target = work / "poussieres.mov"
     begin = float(start or 0.0)
-    recipe = dict(signalart="film", farbberuhigung=0, rauschminderung=0, kantendetail=0,
-                  stabilisierung=0, flackerausgleich=0, staubentfernung=DUST_STRENGTH, bandstoerung=0,
+    recipe = dict(signalart=signal, farbberuhigung=int(colour_strength), rauschminderung=0,
+                  kantendetail=0, stabilisierung=0, flackerausgleich=0,
+                  staubentfernung=int(dust_strength), bandstoerung=int(tape_strength),
+                  osd_entfernen=False, vergroesserung_prozent=100, look=False,
                   koernung_behalten=True, dateiformat="mov-prores", schnittbeginn=begin,
                   schnittende=begin + duration if duration else 0.0)
     settings = work / "poussieres.json"
@@ -61,7 +73,7 @@ def clean(source: Path, work: Path, ffmpeg_dir: str, start: float | None, durati
             return
         msg = json.loads(line)
         if msg.get("kind") == "progress" and progress:
-            progress(float(msg.get("fraction", 0)), "Poussières et rayures…")
+            progress(float(msg.get("fraction", 0)), label)
         elif msg.get("kind") == "error":
             errors.append(str(msg.get("message")))
 

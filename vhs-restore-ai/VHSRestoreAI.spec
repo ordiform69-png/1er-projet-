@@ -11,7 +11,10 @@ except Exception:
 
 a = Analysis(
     ["VHSRestoreAI.py"],
-    datas=[("vhs_restore/qtgmc.vpy", "vhs_restore"), *_dust_data],
+    datas=[("vhs_restore/qtgmc.vpy", "vhs_restore"),
+           ("vhs_restore/models/rnnoise_std.rnnn", "vhs_restore/models"),
+           ("vhs_restore/models/RNNOISE-LICENSE.txt", "vhs_restore/models"),
+           *_dust_data],
     hiddenimports=_dust_mods,
     # modules Qt inutiles : paquet plus léger
     excludes=["PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.Qt3DCore",

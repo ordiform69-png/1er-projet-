@@ -290,7 +290,12 @@ converti en stéréo.
 - **Pas de séparation voix / ambiance.** DeepFilterNet atténue le bruit qui masque la parole ;
   il ne remplace pas les voix et n'ajoute aucun son. Audacity n'est pas piloté : les mêmes
   nettoyages (souffle, clics, volume, encoche) sont déjà des filtres FFmpeg, sans deuxième logiciel.
-  RNNoise et les séparateurs (Demucs) ne sont pas branchés : un seul moteur vocal, facultatif.
+  RNNoise (modèle `std` de Xiph, licence BSD, fichier `vhs_restore/models/rnnoise_std.rnnn`)
+  est inclus mais **désactivé par défaut** : les profils restent ceux du tableau.
+  Case « Souffle de la voix » : il remplace `afftdn` en Équilibré (35 % du signal nettoyé)
+  et en Maximum (55 %) quand DeepFilterNet n'a pas tourné. Le filtre est `arnndn`.
+  S'il manque, on revient à `afftdn`. Fidèle reste sur `afftdn` à 4 dB, même si la case
+  est cochée. Les séparateurs (Demucs) ne sont pas branchés.
 - **Synchronisation** : décalage constant manuel, −500 à +500 ms (`adelay` ou `atrim`).
   Dérive manuelle en ms par minute (`atempo`, hauteur conservée, bornée à ±4 %). L'analyse
   signale un écart de durée ou d'horodatage déjà présent dans le fichier, sans le corriger
@@ -304,6 +309,30 @@ converti en stéréo.
 - **Veille** : pendant un traitement, Windows est prié de ne pas s'endormir (`SetThreadExecutionState`).
 - **Réglages** : profil, son et dossier de sortie sont mémorisés (`QSettings`).
 - **Analog Repair et VapourBox** recopient le son. Ils ne couvrent pas ce besoin.
+
+## Bande et décrochages (Analog Repair, phase 10)
+
+Le même moteur MIT déjà utilisé pour les poussières (`561ba5a`) expose d'autres étapes.
+On n'en active que trois, chacune en case à cocher, jamais par défaut, jamais toutes
+les corrections de son préréglage « VHS » (celui-ci lisse le grain : 51 % conservés) :
+
+| Case | Réglage Analog Repair | Force | Ce qui ne change pas |
+|---|---|---|---|
+| Bruit de bande | `bandstoerung` | 60 | le reste de l'image, si les lignes voisines sont saines |
+| Couleur des décrochages | `farbberuhigung` | 40 | la luminance ; un noir et blanc passe tel quel |
+| Taches d'une image | `staubentfernung` | 30 | un objet qui bouge (même essai que les poussières) |
+
+Refusé, exprès : effacement du tampon date (il invente le fond et enlève un souvenir),
+agrandissement, « look » (étalonnage), fusion temporelle (`rauschminderung`),
+stabilisation (déjà `vid.stab`). DeScratch (GPL-2.0) n'est pas copié : sur l'extrait
+González il ratait une rayure sur deux, et l'étape poussières d'Analog Repair fait
+déjà ce travail.
+
+Une cassette vidéo entrelacée est d'abord passée en images progressives par `bwdif`
+(une image par trame, `setfield=prog`). Une pellicule copiée sur bande passe par
+`fieldmatch` puis `bwdif` sur les images encore mélangées, à la cadence d'origine.
+Analog Repair ne désentrelace donc pas une seconde fois. QTGMC n'est pas relancé après.
+Les pellicules numérisées directement ne voient pas ces cases.
 
 ## Sources consultées
 

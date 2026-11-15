@@ -356,6 +356,16 @@ class MainWindow(QMainWindow):
         v.addLayout(h)
         self.dust_check = QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)")
         v.addWidget(self.dust_check)
+        self.tape_check = QCheckBox("Bruit de bande (poursuite, lignes, bande du bas)")
+        self.chroma_check = QCheckBox("Couleur des décrochages (arcs-en-ciel, couleur perdue)")
+        self.dropout_check = QCheckBox("Taches d'une seule image (décrochages)")
+        tip = ("Moteur Analog Repair, désactivé par défaut. La luminance et le grain ne sont pas "
+               "lissés, le tampon date n'est pas effacé. Une cassette entrelacée est d'abord "
+               "désentrelacée (bwdif, ou fieldmatch si c'est une pellicule copiée sur bande). "
+               "QTGMC n'est pas refait ensuite. Sans le module : installer.bat -AvecPoussieres.")
+        for box in (self.tape_check, self.chroma_check, self.dropout_check):
+            box.setToolTip(tip)
+            v.addWidget(box)
         self.flicker_check = QCheckBox("Réduire le scintillement lumineux (pellicule)")
         self.flicker_check.setToolTip("Lisse les variations de luminosité d'une image à l'autre "
                                       "(filtre deflicker sur 5 images). À vérifier sur l'aperçu.")
@@ -370,11 +380,19 @@ class MainWindow(QMainWindow):
         self.audio_check = QCheckBox("Restaurer le son (souffle, clics, volume)")
         self.audio_check.setChecked(True)
         self.audio_check.setToolTip(
-            "Suit le profil image. Fidèle : souffle très léger. Équilibré : souffle, clics et volume. "
-            "Maximum : plus marqué, et DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
-            "(installer.bat -AvecSon). Le plafond est de 12 dB : les rires, la musique et la rue restent. "
-            "Aucune séparation voix/ambiance. Une piste muette le reste.")
+            "Suit le profil image. Fidèle : souffle très léger. Équilibré : clics, souffle, volume. "
+            "Maximum : DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
+            "(installer.bat -AvecSon), sinon le même souffle FFmpeg plus fort. "
+            "Le plafond de DeepFilterNet est de 12 dB. Les rires, la musique et la rue restent. "
+            "Une piste muette le reste.")
         v.addWidget(self.audio_check)
+        self.rnnoise_check = QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)")
+        self.rnnoise_check.setToolTip(
+            "Option, désactivée par défaut : les profils ne changent pas. "
+            "Remplace le souffle FFmpeg d'Équilibré (35 %) et de Maximum (55 %) par RNNoise "
+            "(modèle Xiph inclus, licence BSD). Le reste du signal, donc la pièce, est conservé. "
+            "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
+        v.addWidget(self.rnnoise_check)
         h = QHBoxLayout()
         self.offset_spin = QDoubleSpinBox()
         self.offset_spin.setRange(-500, 500)
@@ -546,6 +564,9 @@ class MainWindow(QMainWindow):
                       (self.s_run, loaded and not busy), (self.s_folder, not busy), (self.s_cancel, busy)):
             b.setEnabled(ok)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
+        self.rnnoise_check.setEnabled(bool(self.tools.rnnoise_model) and not busy)
+        if not self.tools.rnnoise_model:
+            self.rnnoise_check.setChecked(False)
         self.deint_combo.setEnabled(not busy)
         self.hq_check.setEnabled(not busy)
         self.stab_check.setEnabled(self.tools.stab_available and not busy)
@@ -556,6 +577,11 @@ class MainWindow(QMainWindow):
             self.cadence_combo.setCurrentIndex(0)
         self.flicker_check.setVisible(src in ("film", "transfer"))
         self.dust_check.setVisible(src == "film")
+        for box in (self.tape_check, self.chroma_check, self.dropout_check):
+            box.setVisible(src != "film")
+            box.setEnabled(self.tools.dust_available and not busy)
+            if not self.tools.dust_available:
+                box.setChecked(False)
         self.mask_spin.setVisible(src == "video")
         self.mask_label.setVisible(src == "video")
         self.dust_check.setEnabled(self.tools.dust_available and not busy)
@@ -634,12 +660,16 @@ class MainWindow(QMainWindow):
                                                            if self.cadence_combo.currentData() else None),
                                  deflicker=self.flicker_check.isChecked() and src != "video",
                                  dust=self.dust_check.isChecked() and src == "film",
+                                 tape_noise=self.tape_check.isChecked() and src != "film",
+                                 chroma_repair=self.chroma_check.isChecked() and src != "film",
+                                 dropouts=self.dropout_check.isChecked() and src != "film",
                                  scan=self.scan_combo.currentData(), dar=self.dar_combo.currentData(),
                                  use_ai=self.ai_check.isChecked(),
                                  deinterlacer=self.deint_combo.currentData(),
                                  stabilize=self.stab_check.isChecked(),
                                  denoise_hq=self.hq_check.isChecked(),
                                  restore_audio=self.audio_check.isChecked(),
+                                 use_rnnoise=self.rnnoise_check.isChecked(),
                                  audio_offset_ms=float(self.offset_spin.value()),
                                  audio_drift_ms_per_min=float(self.drift_spin.value()),
                                  audio_mains_hz=int(self.mains_combo.currentData() or 0),
@@ -795,6 +825,9 @@ class MainWindow(QMainWindow):
                                    scan=None, dar=None, playback_fps=None,
                                    deflicker=self.flicker_check.isChecked() and src != "video",
                                    dust=self.dust_check.isChecked() and src == "film",
+                                   tape_noise=self.tape_check.isChecked() and src != "film",
+                                   chroma_repair=self.chroma_check.isChecked() and src != "film",
+                                   dropouts=self.dropout_check.isChecked() and src != "film",
                                    mask_bottom=base.mask_bottom if src == "video" else 0)
 
     def start_folder(self) -> None:
@@ -886,6 +919,8 @@ class MainWindow(QMainWindow):
             self.profile_buttons[str(key)].setChecked(True)
         if s.contains("restore_audio"):
             self.audio_check.setChecked(bool(s.value("restore_audio", True, type=bool)))
+        if s.contains("use_rnnoise"):
+            self.rnnoise_check.setChecked(bool(s.value("use_rnnoise", False, type=bool)))
         self.offset_spin.setValue(float(s.value("audio_offset_ms", 0) or 0))
         self.drift_spin.setValue(float(s.value("audio_drift_ms_per_min", 0) or 0))
         mains = int(float(s.value("audio_mains_hz", 0) or 0))
@@ -897,6 +932,10 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.copy_combo.setCurrentIndex(idx)
         self.mask_spin.setValue(int(float(s.value("mask_bottom", 0) or 0)))
+        if s.contains("tape_noise"):
+            self.tape_check.setChecked(bool(s.value("tape_noise", False, type=bool)))
+            self.chroma_check.setChecked(bool(s.value("chroma_repair", False, type=bool)))
+            self.dropout_check.setChecked(bool(s.value("dropouts", False, type=bool)))
         out = str(s.value("out_dir", "") or "")
         if out:
             self.out_edit.setText(out)
@@ -908,11 +947,15 @@ class MainWindow(QMainWindow):
         key = next((k for k, b in self.profile_buttons.items() if b.isChecked()), "equilibre")
         s.setValue("profile", key)
         s.setValue("restore_audio", self.audio_check.isChecked())
+        s.setValue("use_rnnoise", self.rnnoise_check.isChecked())
         s.setValue("audio_offset_ms", self.offset_spin.value())
         s.setValue("audio_drift_ms_per_min", self.drift_spin.value())
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
         s.setValue("audio_copy", str(self.copy_combo.currentData() or ""))
         s.setValue("mask_bottom", self.mask_spin.value())
+        s.setValue("tape_noise", self.tape_check.isChecked())
+        s.setValue("chroma_repair", self.chroma_check.isChecked())
+        s.setValue("dropouts", self.dropout_check.isChecked())
         s.setValue("out_dir", self.out_edit.text())
 
 
