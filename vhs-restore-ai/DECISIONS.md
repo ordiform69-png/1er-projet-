@@ -374,8 +374,13 @@ Aucune copie du code d'un autre logiciel : c'est un usage de FFmpeg, déjà dans
   réelles. Chaque correction est mesurée dans le fichier exporté : son des deux côtés, plus
   d'opposition de phase, saturation divisée par plus de 2, ronflement plus détecté.
   `aeval` a été écarté pour la phase (format refusé par l'encodeur AAC) au profit de `pan`.
-- Coût : jusqu'à 8 lectures courtes du son pendant l'analyse (à regrouper si c'est trop lent sur
-  de longs fichiers DV).
+- Coût : les mesures du son (canal, phase, saturation, ronflement, vent) sont une seule
+  commande FFmpeg (`asplit` + `astats`), plus une deuxième seulement si les canaux sont en
+  opposition de phase. Avant : jusqu'à 8 lectures des deux premières minutes. Mesuré sur un
+  VOB de 10 minutes (598 Mo, son entrelacé) : 2,26 s à froid et 2,16 s à chaud avant, 1,40 s
+  et 1,34 s après. Même conclusion (ronflement 50 Hz, pas de vent). Sur un MKV indexé au son
+  PCM léger, le temps reste autour de 1,5 s : ce sont les filtres qui comptent, pas la lecture.
+  Les niveaux des bandes restent à 0,2 dB près.
 - **Vent et grondements** : une lecture de plus, passe-bas 80 Hz. Conseil seulement si ces graves
   sont forts (RMS > −36 dB), irréguliers (crête au moins 8 dB au-dessus du RMS : un ronflement
   sinusoïdal reste un ronflement) et comparables au reste du signal. Correction, jamais par défaut :
