@@ -122,6 +122,12 @@ Même module que les poussières (`installer.bat -AvecPoussieres`, licence MIT) 
 Le tampon date n'est pas effacé. Le grain n'est pas lissé. Une pellicule garde seulement
 « poussières et rayures ».
 
+## DVD (plusieurs fichiers VOB)
+
+Un film sur DVD (`VIDEO_TS\VTS_01_1.VOB`, `VTS_01_2.VOB`…) est restauré en **un seul fichier**
+par titre. Les menus ne sont pas traités. Le disque n'est pas modifié : s'il est protégé en
+écriture, le résultat va dans `Vidéos\Films restaurés`.
+
 ## État des fonctions
 
 **Opérationnel et testé automatiquement** (Linux, FFmpeg 6.1, PySide6 hors écran, vidéos de synthèse) :

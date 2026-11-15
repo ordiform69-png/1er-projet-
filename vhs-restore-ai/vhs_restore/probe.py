@@ -61,6 +61,9 @@ class MediaInfo:
     suggested_source: str = "video"        # video | film | transfer
     source_reason: str = ""
     warnings: list[str] = field(default_factory=list)
+    parts: tuple[Path, ...] = ()          # DVD : morceaux VOB d'un même titre, dans l'ordre
+    output_stem: str = ""                 # nom du film restauré si différent du fichier (VTS_01)
+    concat_list: Path | None = None       # liste concat FFmpeg, dossier temporaire
 
     @property
     def interlaced(self) -> bool:
@@ -85,7 +88,8 @@ class MediaInfo:
         m, s = divmod(int(round(self.duration)), 60)
         h, m = divmod(m, 60)
         return {
-            "Fichier": self.path.name,
+            "Fichier": (f"{self.output_stem} ({len(self.parts)} morceaux)"
+                        if self.output_stem and len(self.parts) > 1 else self.path.name),
             "Durée": f"{h:d}:{m:02d}:{s:02d}",
             "Conteneur / codec": f"{self.container} / {self.codec} ({self.pix_fmt})",
             "Résolution": f"{self.width} × {self.height} (pixels {self.sar.numerator}:{self.sar.denominator})",

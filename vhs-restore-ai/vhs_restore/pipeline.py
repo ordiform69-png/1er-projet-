@@ -49,6 +49,8 @@ from .probe import MediaInfo, analyze
 from .profiles import Profile
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run, run_capture,
                     terminate)
+from .dvd import input_args as dvd_input
+from .dvd import is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
 
 log = logging.getLogger("vhs_restore")
@@ -240,7 +242,7 @@ def _try_deepfilter(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
     out_dir.mkdir(exist_ok=True)
     try:
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-             *_seek(start, duration), "-i", str(info.path), "-map", "0:a:0",
+             *_seek(start, duration), *dvd_input(info), "-map", "0:a:0",
              "-ar", "48000", "-c:a", "pcm_s16le", str(src)],
             cancel=cancel, what="FFmpeg (extraction du son)")
         run([tools.deepfilter.path, "-D", "-a", "12", "-o", str(out_dir), str(src)],
@@ -427,8 +429,11 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
     Avec QTGMC, la vidéo arrive désentrelacée par un tube (y4m) et le son est lu
     dans la source ; -itsoffset recale la vidéo sur le son (début vidéo décalé,
     première image de l'extrait arrondie)."""
+    if uses_qtgmc(info, s) and len(info.parts) > 1:
+        raise ToolError("QTGMC ne lit pas un DVD découpé en plusieurs VOB. "
+                        "Choisissez le désentrelaceur bwdif : il traite le film réuni.")
     if not uses_qtgmc(info, s):
-        return _seek(start, duration) + ["-i", str(info.path)], None, "0:v:0", "0:a:0?"
+        return _seek(start, duration) + dvd_input(info), None, "0:v:0", "0:a:0?"
     if not tools.qtgmc_available:
         raise ToolError("QTGMC n'est pas disponible : " + (tools.vspipe.problem or
                         "VapourSynth (vspipe) introuvable. Relancez installer.bat -AvecQTGMC "
@@ -533,7 +538,7 @@ def output_base(info: MediaInfo, s: Settings) -> str:
            + ("_couleur" if s.chroma_repair else "")
            + ("_decrochages" if s.dropouts else "")
            + ("_ia" if s.use_ai else ""))
-    return f"{info.path.stem}_restaure_{s.profile.key}{tag}"
+    return f"{(info.output_stem or info.path.stem)}_restaure_{s.profile.key}{tag}"
 
 
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
@@ -675,6 +680,9 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
         raise ToolError("« Poussières et rayures » est réservé aux pellicules numérisées directement.")
     if not (s.dust or _tape_job(s)):
         raise ToolError("Rien à réparer avec Analog Repair.")
+    if len(info.parts) > 1:   # Analog Repair ne lirait que le premier VOB
+        raise ToolError("Les réparations Analog Repair (poussières, bande) ne s'appliquent pas "
+                        "à un DVD en plusieurs morceaux.")
     if not tools.dust_available:
         raise ToolError("Le module « poussières et rayures » n'est pas installé.")
     if Path(out_path).resolve() == info.path.resolve():
@@ -690,7 +698,8 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
             length = duration or max(0.0, info.duration - (start or 0.0))
             # Même film, mêmes caractéristiques (proportions, cadence, origine) : seul le
             # fichier lu change. Le rapport de pixel d'origine est donc conservé.
-            cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0)
+            cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0,
+                                          parts=(), concat_list=None)
             return export(cleaned, dataclasses.replace(s, dust=False), out_path, tools,
                           cancel=cancel, progress=sub(0.5, 1.0))
         src, seek_start, seek_len = info, start, duration
@@ -707,7 +716,8 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
                            colour_strength=dust.TAPE_COLOUR if s.chroma_repair else 0,
                            label="Réparation de la bande…")
         length = src.duration if deinterlaced else (duration or max(0.0, info.duration - (start or 0.0)))
-        cleaned = dataclasses.replace(src, path=inter, duration=length, video_offset=0.0)
+        cleaned = dataclasses.replace(src, path=inter, duration=length, video_offset=0.0,
+                                      parts=(), concat_list=None)
         quiet = dataclasses.replace(s, dust=False, tape_noise=False, chroma_repair=False, dropouts=False,
                                     scan="progressive" if deinterlaced else s.scan)
         return export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
@@ -870,8 +880,20 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
     « Films restaurés ». Un fichier en erreur n'arrête pas les suivants ;
     une annulation arrête tout (les films déjà terminés restent)."""
     folder = Path(folder)
-    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in VIDEO_EXTS
-                   and "_restaure_" not in p.stem and not p.stem.endswith(".partiel"))
+    if folder.is_dir() and not any(p.is_file() and p.suffix.lower() in VIDEO_EXTS for p in folder.iterdir()):
+        nested = folder / "VIDEO_TS"
+        if nested.is_dir():
+            folder = nested
+    titles = titles_in(folder) if folder.is_dir() else []
+    used = {p.resolve() for parts in titles for p in parts}
+    files = [parts[0] for parts in titles]
+    if folder.is_dir():
+        files += sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in VIDEO_EXTS
+                        and p.resolve() not in used and not is_menu(p.name)
+                        and "_restaure_" not in p.stem and not p.stem.endswith(".partiel"))
+    if not titles:
+        # dossier ordinaire : le tri ci-dessus suffit, menus exclus seulement s'ils portent ce nom
+        files = sorted(files)
     if not files:
         raise ToolError(f"Aucune vidéo trouvée dans ce dossier :\n{folder}")
     base_dir, fallback = output_dir_for(folder)
@@ -888,7 +910,7 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                 progress((k + frac) / n, f"Film {k + 1}/{n} ({name}) : {msg}")
         try:
             sub(0.0, "analyse…")
-            info = analyze(f, tools)
+            info = open_media(f, tools)
             s = settings_for(info)
             if (out_dir / f"{output_base(info, s)}.mp4").exists():
                 # déjà restauré avec les mêmes réglages (relance après une coupure)
@@ -955,7 +977,7 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     out_duration = duration * time_ratio(info, s)
     reference = workdir / "apercu_original.mp4"
     run(_ff_base(tools) + _seek(start, duration) + [
-        "-i", str(info.path), "-map", "0:v:0", "-map", "0:a:0?", "-vf", ",".join(ref_vf),
+        *dvd_input(info), "-map", "0:v:0", "-map", "0:a:0?", "-vf", ",".join(ref_vf),
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k",
         *retime_args(info, s),
         *audio_args(info, s, restore=False, apply_offset=False, apply_drift=False), "-f", "mp4", str(reference)],

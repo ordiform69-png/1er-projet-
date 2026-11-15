@@ -22,7 +22,8 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QRadioButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
 from . import pipeline
-from .probe import MediaInfo, analyze
+from .dvd import open_media
+from .probe import MediaInfo
 from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools
 
@@ -692,7 +693,7 @@ class MainWindow(QMainWindow):
             return
         self.status.setText("Analyse de la vidéo…")
         self.progress.setRange(0, 0)  # animation indéterminée
-        self._launch(lambda c, p: analyze(path, self.tools), self._loaded)
+        self._launch(lambda c, p: open_media(path, self.tools), self._loaded)
 
     def _loaded(self, info: MediaInfo) -> None:
         self.info = info
@@ -725,13 +726,13 @@ class MainWindow(QMainWindow):
             except ToolError as exc:
                 self.out_note = f"⚠ {exc}"
         self._refresh_hints()
-        self.drop.setText(info.path.name)
+        self.drop.setText(info.summary()["Fichier"])
         src_txt = {"video": "vidéo de caméscope ou de magnétoscope", "film": "pellicule (Super 8, 8 mm…)",
                    "transfer": "pellicule copiée sur vidéo"}[info.suggested_source]
         extra = (" Noir et blanc." if info.black_and_white else
                  " Couleurs très pâles." if info.pale_colors else "") + \
                 ("" if info.has_audio and not info.audio_silent else " Film muet : il restera muet.")
-        self.s_info.setText(f"<b>{info.path.name}</b> — {info.summary()['Durée']} — "
+        self.s_info.setText(f"<b>{info.summary()['Fichier']}</b> — {info.summary()['Durée']} — "
                             f"semble être une {src_txt}.{extra}")
         self.status.setText("Vidéo analysée. Choisissez un profil puis générez un aperçu.")
 

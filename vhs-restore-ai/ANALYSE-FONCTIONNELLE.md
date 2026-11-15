@@ -21,7 +21,7 @@ sur son PC Windows, sans aide. Chaque manque est marqué *vérifié dans le code
 |---|---|---|---|
 | 1 | **Aucun essai humain sous Windows** | La CI teste sans écran ; personne n'a encore cliqué dans l'interface | Essai par l'utilisateur sur son PC avant de l'installer chez son père |
 | 2 | ~~Sources sur DVD ou clé protégée~~ **Fait** | Test d'écriture réel ; sinon sortie dans `Vidéos\Films restaurés`, avec une note dans l'interface et un message ; même chose pour un dossier entier | Testé (lecture seule simulée) |
-| 3 | **Films sur DVD découpés en VOB** | *Supposé* : un DVD de transfert contient `VIDEO_TS\VTS_01_1.VOB`, `_2`, `_3`… Chaque morceau serait traité séparément, en plusieurs fichiers | Reconnaître un dossier `VIDEO_TS` et enchaîner les VOB d'un même titre (concat FFmpeg) |
+| 3 | ~~Films sur DVD découpés en VOB~~ **Fait** | Un titre `VTS_xx_1` + `VTS_xx_2`… devient un seul film (concat FFmpeg). Menus ignorés. Dossier `VIDEO_TS` ou disque : un film par titre. Sortie de secours si le DVD est en lecture seule | Testé sur un DVD de synthèse (durée, jonction, son, aperçu). Pas sur un vrai DVD du commerce |
 | 4 | ~~Relancer un dossier refait tout~~ **Fait** | Un film déjà restauré avec les mêmes réglages est sauté et compté (« déjà restauré ») | Testé |
 | 5 | ~~Longs films : veille et espace disque~~ **Fait** | Veille empêchée (Windows) ; espace vérifié avant de commencer, pour tous les traitements (fichier final + ProRes poussières + WAV DeepFilterNet), avec un message clair | Testé (disque plein simulé) |
 | 6 | **Téléchargement durable** | L'artefact GitHub expire au bout de 90 jours et demande un compte GitHub | Publier une version (GitHub Release) téléchargeable sans compte |
