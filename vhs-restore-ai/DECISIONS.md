@@ -193,6 +193,27 @@ image à l'autre de 11 % (0,95 → 0,84) sans aplatir la texture. Les poussière
 restent : ce n'est pas traité (P2). Sur la VHS, la dominante verte reste, faute de correction
 automatique des couleurs (choix de fidélité, à reconsidérer avec de vraies cassettes).
 
+## Paquet Windows et poussières/rayures (phase 8)
+
+- **Fabrication Windows** (`.github/workflows/vhs-restore-windows.yml`, `VHSRestoreAI.spec`) :
+  PyInstaller (dossier autonome) + FFmpeg gyan.dev « essentials » copié dans `tools\ffmpeg`.
+  Sur la machine Windows de GitHub, la suite de tests passe, puis l'application fabriquée est lancée
+  avec `--autotest` sans Python ni FFmpeg du système, depuis un dossier accentué : analyse et
+  restauration Full HD 50p, 4:3, son conservé. L'artefact pèse environ 130 Mo.
+- Problème rencontré : FFmpeg 9 a supprimé l'option `-top`, qui ne servait qu'à générer les
+  vidéos d'essai ; l'application elle-même n'était pas concernée. La version de FFmpeg n'est pas
+  figée (dernière version « release » de gyan.dev) : à reconsidérer si une mise à jour casse
+  quelque chose. La question est posée à Grok Build (`partage-grok/DEMANDE-GROK-BUILD-1.md`).
+- **DeScratch** (rayures verticales, VapourSynth) : installable par pip (`vapoursynth-descratch`
+  4.0, GPL-2.0). Essai sur l'extrait González avec les réglages par défaut : une rayure sur deux
+  est détectée et effacée (13 i/s en 2048×1556), et aucune verticale réelle de l'architecture n'est
+  touchée. C'est prudent mais incomplet : **pas encore intégré**. Il faut d'autres films rayés
+  pour régler `mindif`/`maxwidth`, et l'avis de Grok.
+- **SpotLess** (poussières) : ce n'est pas un paquet pip, et vs-jetpack n'a pas d'équivalent.
+  Reporté.
+- **« Analog Repair »** : projet introuvable lors de nos recherches (nom, licence MIT et fonctions
+  non vérifiables). Il ne sera pas utilisé sans lien vers un dépôt réel.
+
 ## IA : limites assumées
 
 Real-ESRGAN est entraîné sur des dégradations synthétiques (flou, bruit, JPEG), pas sur des

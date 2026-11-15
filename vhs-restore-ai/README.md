@@ -8,6 +8,14 @@ Real-ESRGAN intervient si vous l'installez. Aucun cloud, aucun abonnement.
 
 ## Installation (Windows 10/11)
 
+**Le plus simple : l'application prête à l'emploi.** Dans l'onglet « Actions » du dépôt GitHub,
+ouvrez la dernière exécution réussie de « VHS Restore AI (Windows) » et téléchargez l'artefact
+`VHSRestoreAI-Windows` (environ 130 Mo, conservé 90 jours). Décompressez-le et lancez
+`VHSRestoreAI.exe` : FFmpeg est inclus, il n'y a rien d'autre à installer. Le mode d'emploi est
+dans `LISEZMOI.txt`. Le téléchargement d'un artefact demande d'être connecté à GitHub.
+
+**Pour développer** (ou ajouter les options QTGMC et IA) :
+
 1. Installez [Python 3.10 ou plus](https://www.python.org/downloads/) en cochant « Add python.exe to PATH ».
 2. Double-cliquez sur **`installer.bat`**. Il crée un environnement isolé `.venv`, installe
    PySide6 et télécharge FFmpeg (somme SHA-256 vérifiée) dans `tools\ffmpeg`.
@@ -91,8 +99,10 @@ corrections (couleur décolorée, piste son vide), aperçu réaligné. Jugement 
 ces deux extraits.
 
 **Non testé** : de vraies pellicules ou de vrais transferts (rayures, poussières, décoloration,
-scintillement réels) ; exécution réelle sous Windows (`installer.bat`, `lancer.bat`, script PowerShell,
-QTGMC) ; l'indexation BestSource sur un long film ;
+scintillement réels) ; usage interactif sur un vrai PC Windows (la suite de tests et l'autotest de
+l'application fabriquée passent sur la machine Windows de GitHub Actions, avec FFmpeg 9.0.2, mais
+personne n'a encore cliqué dans l'interface sous Windows) ; `installer.bat`/`lancer.bat` et QTGMC
+sous Windows ; l'indexation BestSource sur un long film ;
 le vrai Real-ESRGAN (pas de GPU ici) ; de vraies cassettes numérisées (aucun échantillon fourni,
 donc aucune évaluation visuelle réelle) ; la détection BFF sur du contenu réel ; de longs films.
 
