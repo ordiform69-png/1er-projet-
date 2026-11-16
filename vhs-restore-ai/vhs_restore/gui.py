@@ -14,15 +14,15 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSettings, Qt, QThread, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QApplication, QBoxLayout, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
-                               QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGroupBox,
+from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSettings, QSize, Qt, QThread, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QBoxLayout, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox,
+                               QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
-                               QRadioButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
+                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from . import photo, pipeline, theme
+from . import icons, photo, pipeline, theme
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -230,9 +230,10 @@ class _ReelMark(QWidget):
 class StepButton(QPushButton):
     """Grand bouton d'étape : numéro dans un cercle, texte aligné à gauche."""
 
-    def __init__(self, number: str, text: str) -> None:
+    def __init__(self, number: str, text: str, icon: str = "") -> None:
         super().__init__(text)
         self.number = number
+        self.icon_name = icon
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(58)
 
@@ -272,11 +273,17 @@ class StepButton(QPushButton):
         f.setBold(True)
         p.setFont(f)
         p.drawText(QRect(cx - r, cy - r, r * 2, r * 2), Qt.AlignCenter, self.number)
+        x = 56
+        if self.icon_name:
+            col = (theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE) if principal else \
+                (theme.ACCENT if on else "#6b7887")
+            p.drawPixmap(x, cy - 12, icons.pixmap(self.icon_name, 24, col))
+            x += 34
         f.setPointSizeF(15)
         f.setBold(principal)
         p.setFont(f)
         p.setPen(fg)
-        p.drawText(QRect(54, 0, self.width() - 66, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        p.drawText(QRect(x, 0, self.width() - x - 12, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
 
 
 class _HoverHalo(QObject):
@@ -299,6 +306,127 @@ class _HoverHalo(QObject):
                 ev.type() == QEvent.EnabledChange and not obj.isEnabled()):
             obj.setGraphicsEffect(None)
         return False
+
+
+class Carte(QFrame):
+    """Carte « console » : en-tête avec icône néon, titre, numéro d'étape, coins façon HUD."""
+
+    def __init__(self, title: str, icon: str, number: str = "", subtitle: str = "") -> None:
+        super().__init__()
+        self.setObjectName("carte")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(16, 12, 16, 14)
+        outer.setSpacing(8)
+        head = QHBoxLayout()
+        head.setSpacing(10)
+        ic = QLabel()
+        ic.setPixmap(icons.pixmap(icon, 26))
+        ic.setFixedSize(30, 30)
+        ic.setAlignment(Qt.AlignCenter)
+        ic.setObjectName("carteIcone")
+        t = QLabel(title.upper())
+        t.setObjectName("carteTitre")
+        head.addWidget(ic)
+        head.addWidget(t)
+        if subtitle:
+            st = QLabel(subtitle)
+            st.setObjectName("carteSous")
+            head.addWidget(st)
+        head.addStretch(1)
+        if number:
+            n = QLabel(number.zfill(2))
+            n.setObjectName("carteNumero")
+            head.addWidget(n)
+        outer.addLayout(head)
+        line = QFrame()
+        line.setObjectName("carteFilet")
+        outer.addWidget(line)
+        self.body = QVBoxLayout()
+        self.body.setSpacing(6)
+        outer.addLayout(self.body, 1)
+
+    def paintEvent(self, e) -> None:  # noqa: N802
+        super().paintEvent(e)
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        c = QColor(theme.ACCENT)
+        c.setAlpha(170)
+        p.setPen(QPen(c, 2))
+        r, k = self.rect().adjusted(3, 3, -4, -4), 14
+        for (x, y, dx, dy) in ((r.left(), r.top(), 1, 1), (r.right(), r.top(), -1, 1),
+                               (r.left(), r.bottom(), 1, -1), (r.right(), r.bottom(), -1, -1)):
+            p.drawLine(x, y + dy * 6, x, y + dy * k)
+            p.drawLine(x + dx * 6, y, x + dx * k, y)
+
+
+class ProfileTile(QPushButton):
+    """Tuile de profil (Fidèle / Équilibré / Maximum) : icône, nom, petite phrase."""
+
+    def __init__(self, name: str, icon: str, tagline: str) -> None:
+        super().__init__(name)
+        self.icon_name, self.tagline = icon, tagline
+        self.setCheckable(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setMinimumHeight(88)
+        self.setMinimumWidth(150)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        on, en = self.isChecked(), self.isEnabled()
+        r = self.rect().adjusted(1, 1, -2, -2)
+        if on:
+            g = QLinearGradient(r.topLeft(), r.bottomRight())
+            g.setColorAt(0, QColor(theme.TUILE_ACTIVE))
+            g.setColorAt(1, QColor(theme.CARTE_SUR))
+            p.setBrush(g)
+            p.setPen(QPen(QColor(theme.ACCENT), 2))
+        else:
+            p.setBrush(QColor(theme.CARTE_SUR))
+            p.setPen(QPen(QColor(theme.ACCENT if self.underMouse() and en else theme.BORD), 1.2))
+        p.drawRoundedRect(r, 12, 12)
+        col = theme.ACCENT if (on or self.underMouse()) and en else theme.ACCENT_SOURD
+        p.drawPixmap(14, 14, icons.pixmap(self.icon_name, 28, col))
+        f = QFont(theme.DISPLAY_FAMILY or p.font().family())
+        f.setPointSizeF(15)
+        f.setBold(True)
+        p.setFont(f)
+        p.setPen(QColor(theme.TEXTE))
+        p.drawText(QRect(50, 10, r.width() - 56, 34), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        f = QFont(theme.BODY_FAMILY or p.font().family())
+        f.setPointSizeF(11.5)
+        p.setFont(f)
+        p.setPen(QColor(theme.TEXTE_DOUX))
+        p.drawText(QRect(14, 46, r.width() - 22, r.height() - 50), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
+        if on:                                    # voyant allumé
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.ACCENT))
+            p.drawEllipse(QPoint(r.right() - 14, r.top() + 14), 4, 4)
+
+
+PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
+                "equilibre": ("balance", "Conseillé"),
+                "maximum": ("fusee", "Nettoyage fort")}
+
+
+def _ilabel(text: str, icon: str) -> QWidget:
+    """Libellé précédé d'une petite icône néon."""
+    w = QWidget()
+    h = QHBoxLayout(w)
+    h.setContentsMargins(0, 0, 0, 0)
+    h.setSpacing(6)
+    ic = QLabel()
+    ic.setPixmap(icons.pixmap(icon, 18))
+    h.addWidget(ic)
+    h.addWidget(QLabel(text))
+    return w
+
+
+def _with_icon(widget: QAbstractButton, icon: str) -> QAbstractButton:
+    widget.setIcon(icons.icon(icon))
+    widget.setIconSize(QSize(20, 20))
+    return widget
 
 
 class MainWindow(QMainWindow):
@@ -355,18 +483,20 @@ class MainWindow(QMainWindow):
         self.s_advice.setToolTip("Corrige avec modération les défauts détectés par l'analyse (son, contraste, couleur). "
                                  "Décochez pour garder le son tel quel.")
         self.s_advice.setVisible(False)
+        _with_icon(self.s_advice, "conseil")
         v.addWidget(self.s_advice)
-        self.s_colorize = QCheckBox("🎨  Coloriser aussi — couleurs inventées par l'IA, pas les vraies "
+        self.s_colorize = QCheckBox("Coloriser aussi — couleurs inventées par l'IA, pas les vraies "
                                     "(copie à part, le noir et blanc est gardé)")
+        _with_icon(self.s_colorize, "palette")
         self.s_colorize.setVisible(False)
         self.s_colorize.toggled.connect(lambda _on: self._colorize_toggled())
         v.addWidget(self.s_colorize)
         h = QHBoxLayout()
-        self.s_choose = StepButton("1", "Choisir le film ou la photo")
+        self.s_choose = StepButton("1", "Choisir le film ou la photo", "dossier")
         self.s_choose.clicked.connect(self._choose_file)
-        self.s_preview = StepButton("2", "Voir l'avant / après")
+        self.s_preview = StepButton("2", "Voir l'avant / après", "oeil")
         self.s_preview.clicked.connect(self.start_preview)
-        self.s_run = StepButton("3", "Restaurer")
+        self.s_run = StepButton("3", "Restaurer", "etincelle")
         self.s_run.clicked.connect(self.start_export)
         halo_cyan = _HoverHalo(theme.ACCENT)
         halo_ambre = _HoverHalo(theme.AMBRE)
@@ -400,9 +530,13 @@ class MainWindow(QMainWindow):
         self.s_hear_new = QPushButton("Écouter le son restauré")
         for b in (self.s_hear_orig, self.s_hear_new):
             b.setObjectName("secondaire")
+            _with_icon(b, "casque")
+        _with_icon(self.s_cancel, "stop")
+        _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
-        adv = QPushButton("⚙  Options avancées ▸")
+        adv = QPushButton("Options avancées ▸")
+        _with_icon(adv, "reglages")
         adv.setObjectName("lien")
         adv.setCursor(Qt.PointingHandCursor)
         adv.clicked.connect(lambda: self.set_advanced(True))
@@ -442,7 +576,8 @@ class MainWindow(QMainWindow):
         central = QWidget()
         central.setObjectName("page")
         outer = QVBoxLayout(central)
-        back = QPushButton("◂  Retour au mode simple")
+        back = QPushButton("Retour au mode simple")
+        _with_icon(back, "retour")
         back.setObjectName("lien")
         back.setCursor(Qt.PointingHandCursor)
         back.clicked.connect(lambda: self.set_advanced(False))
@@ -467,19 +602,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.pages)
 
         # Import
-        g = QGroupBox("1. Vidéo numérisée")
-        v = QVBoxLayout(g)
+        g = Carte("Vidéo numérisée", "film", "1")
+        v = g.body
         self.drop = DropZone()
         self.drop.dropped.connect(self.load_file)
-        b = QPushButton("Choisir une vidéo…")
+        b = _with_icon(QPushButton("Choisir une vidéo…"), "dossier")
         b.clicked.connect(self._choose_file)
         v.addWidget(self.drop)
         v.addWidget(b)
         left.addWidget(g)
 
         # Caractéristiques
-        g = QGroupBox("Caractéristiques")
-        self.info_form = QFormLayout(g)
+        g = Carte("Caractéristiques", "info")
+        self.info_form = QFormLayout()
+        g.body.addLayout(self.info_form)
         self.info_labels: dict[str, QLabel] = {}
         for key in ("Fichier", "Durée", "Conteneur / codec", "Résolution", "Images par seconde",
                     "Format d'affichage", "Balayage", "Norme probable", "Audio", "Couleur",
@@ -497,15 +633,15 @@ class MainWindow(QMainWindow):
         for txt, val in (("Automatique (analyse)", None), ("4:3", Fraction(4, 3)), ("16:9", Fraction(16, 9))):
             self.dar_combo.addItem(txt, val)
         self.source_combo = QComboBox()
-        for txt, val in (("Je ne sais pas — suivre l'analyse", None),
-                         ("Vidéo analogique (VHS, Video8, Hi8, Betamax…)", "video"),
-                         ("Pellicule cinéma numérisée (Super 8, 8 mm, 16 mm…)", "film"),
-                         ("Pellicule transférée sur vidéo (film copié sur VHS, DVD…)", "transfer")):
-            self.source_combo.addItem(txt, val)
+        for txt, val, ic in (("Je ne sais pas — suivre l'analyse", None, "info"),
+                             ("Vidéo analogique (VHS, Video8, Hi8, Betamax…)", "video", "bande"),
+                             ("Pellicule cinéma numérisée (Super 8, 8 mm, 16 mm…)", "film", "film"),
+                             ("Pellicule transférée sur vidéo (film copié sur VHS, DVD…)", "transfer", "pile")):
+            self.source_combo.addItem(icons.icon(ic), txt, val)
         self.source_combo.setToolTip("L'origine change les réglages appliqués (grain du film préservé, "
                                      "pas de désentrelacement automatique d'une pellicule…).")
         self.source_combo.currentIndexChanged.connect(lambda _i: self._update_state())
-        self.info_form.addRow("Origine du film :", self.source_combo)
+        self.info_form.addRow(_ilabel("Origine du film :", "film"), self.source_combo)
         self.cadence_combo = QComboBox()
         self.cadence_combo.addItem("Celle du fichier", None)
         for r in (16, 18, 24):
@@ -514,73 +650,136 @@ class MainWindow(QMainWindow):
             "À changer seulement si la pellicule a été numérisée image par image mais enregistrée "
             "à une autre cadence (mouvements trop rapides). Aucune image n'est créée ni supprimée : "
             "la durée change. Laissez « Celle du fichier » en cas de doute.")
-        self.info_form.addRow("Cadence de tournage :", self.cadence_combo)
+        self.info_form.addRow(_ilabel("Cadence de tournage :", "cadence"), self.cadence_combo)
         self.scan_combo.currentIndexChanged.connect(lambda _i: self._update_state())
-        self.info_form.addRow("Balayage à utiliser :", self.scan_combo)
-        self.info_form.addRow("Format à utiliser :", self.dar_combo)
+        self.info_form.addRow(_ilabel("Balayage à utiliser :", "trames"), self.scan_combo)
+        self.info_form.addRow(_ilabel("Format à utiliser :", "format"), self.dar_combo)
         self.warn_label = QLabel()
         self.warn_label.setWordWrap(True)
         self.warn_label.setStyleSheet(f"color:{theme.AMBRE}")
         self.info_form.addRow(self.warn_label)
         left.addWidget(g)
 
-        # Profils
-        g = QGroupBox("2. Profil de restauration")
-        v = QVBoxLayout(g)
+        # Profils : trois tuiles
+        g = Carte("Profil de restauration", "etincelle", "2")
         self.profile_group = QButtonGroup(self)
-        self.profile_buttons: dict[str, QRadioButton] = {}
+        self.profile_buttons: dict[str, QAbstractButton] = {}
+        tiles = QHBoxLayout()
+        tiles.setSpacing(10)
         for p in PROFILES.values():
-            rb = QRadioButton(p.name)
-            rb.setToolTip(p.description)
-            d = QLabel(p.description)
-            d.setWordWrap(True)
-            d.setObjectName("note")
-            d.setContentsMargins(26, 0, 0, 4)
-            self.profile_group.addButton(rb)
-            self.profile_buttons[p.key] = rb
-            rb.toggled.connect(lambda on, k=p.key: on and self._profile_changed(k))
-            v.addWidget(rb)
-            v.addWidget(d)
+            ic, tag = PROFILE_LOOK.get(p.key, ("etincelle", ""))
+            tile = ProfileTile(p.name, ic, tag)
+            tile.setToolTip(p.description)
+            tile.installEventFilter(self._halos[0])
+            self.profile_group.addButton(tile)
+            self.profile_buttons[p.key] = tile
+            tile.toggled.connect(lambda on, k=p.key: on and self._profile_changed(k))
+            tiles.addWidget(tile)
+        g.body.addLayout(tiles)
+        self.profile_desc = QLabel()
+        self.profile_desc.setWordWrap(True)
+        self.profile_desc.setObjectName("note")
+        g.body.addWidget(self.profile_desc)
+        left.addWidget(g)
+
+        # Image
+        gi = Carte("Image", "image")
+        vi = gi.body
         h = QHBoxLayout()
         self.res_combo = QComboBox()
         for k, txt in RESOLUTIONS.items():
-            self.res_combo.addItem(txt, k)
-        self.ai_check = QCheckBox("Amélioration IA (Real-ESRGAN)")
+            self.res_combo.addItem(icons.icon("ecran"), txt, k)
+        self.ai_check = _with_icon(QCheckBox("Amélioration IA (Real-ESRGAN)"), "puce")
         self.ai_check.toggled.connect(self._ai_toggled)
-        h.addWidget(QLabel("Sortie :"))
+        h.addWidget(_ilabel("Sortie :", "ecran"))
         h.addWidget(self.res_combo, 1)
-        v.addLayout(h)
+        vi.addLayout(h)
         h = QHBoxLayout()
         self.deint_combo = QComboBox()
         self.deint_combo.addItem("bwdif (rapide)", "bwdif")
         self.deint_combo.addItem("QTGMC (meilleure qualité, plus lent)", "qtgmc")
-        h.addWidget(QLabel("Désentrelaceur :"))
+        h.addWidget(_ilabel("Désentrelaceur :", "trames"))
         h.addWidget(self.deint_combo, 1)
-        v.addLayout(h)
-        self.dust_check = QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)")
-        v.addWidget(self.dust_check)
-        self.tape_check = QCheckBox("Bruit de bande (poursuite, lignes, bande du bas)")
-        self.chroma_check = QCheckBox("Couleur des décrochages (arcs-en-ciel, couleur perdue)")
-        self.dropout_check = QCheckBox("Taches d'une seule image (décrochages)")
+        vi.addLayout(h)
+        self.dust_check = _with_icon(QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)"),
+                                     "poussiere")
+        vi.addWidget(self.dust_check)
+        self.tape_check = _with_icon(QCheckBox("Bruit de bande (poursuite, lignes, bande du bas)"), "bande")
+        self.chroma_check = _with_icon(QCheckBox("Couleur des décrochages (arcs-en-ciel, couleur perdue)"), "arc")
+        self.dropout_check = _with_icon(QCheckBox("Taches d'une seule image (décrochages)"), "eclat")
         tip = ("Moteur Analog Repair, désactivé par défaut. La luminance et le grain ne sont pas "
                "lissés, le tampon date n'est pas effacé. Une cassette entrelacée est d'abord "
                "désentrelacée (bwdif, ou fieldmatch si c'est une pellicule copiée sur bande). "
                "QTGMC n'est pas refait ensuite. Sans le module : installer.bat -AvecPoussieres.")
         for box in (self.tape_check, self.chroma_check, self.dropout_check):
             box.setToolTip(tip)
-            v.addWidget(box)
-        self.flicker_check = QCheckBox("Réduire le scintillement lumineux (pellicule)")
+            vi.addWidget(box)
+        self.flicker_check = _with_icon(QCheckBox("Réduire le scintillement lumineux (pellicule)"), "soleil")
         self.flicker_check.setToolTip("Lisse les variations de luminosité d'une image à l'autre "
                                       "(filtre deflicker sur 5 images). À vérifier sur l'aperçu.")
-        v.addWidget(self.flicker_check)
-        self.hq_check = QCheckBox("Débruitage haute qualité (environ 3 fois plus lent)")
+        vi.addWidget(self.flicker_check)
+        self.hq_check = _with_icon(QCheckBox("Débruitage haute qualité (environ 3 fois plus lent)"), "lisse")
         self.hq_check.setToolTip("Remplace le débruitage standard par fftdnoiz (FFT 3D) avec un renfort "
                                  "sur les taches de couleur. Plus efficace sur le bruit analogique ; "
                                  "intensité adaptée au profil.")
-        v.addWidget(self.hq_check)
-        self.stab_check = QCheckBox("Stabiliser l'image (tremblements de caméra ou de pellicule, 2 passes)")
-        v.addWidget(self.stab_check)
-        self.audio_check = QCheckBox("Restaurer le son (souffle, clics, volume)")
+        vi.addWidget(self.hq_check)
+        self.stab_check = _with_icon(
+            QCheckBox("Stabiliser l'image (tremblements, 2 passes)"), "viseur")
+        vi.addWidget(self.stab_check)
+        self.cast_check = _with_icon(QCheckBox("Corriger la dominante de couleur"), "goutte")
+        self.cast_check.setToolTip(
+            "Retire une teinte qui couvre tout le film (vert de VHS, par exemple). "
+            "Les trois gains sont calculés une seule fois, pour tout le film. "
+            "Un noir et blanc reste neutre, une image pâle n'est pas ravivée. "
+            "Désactivé par défaut. L'analyse le conseille seulement si la dominante est forte.")
+        vi.addWidget(self.cast_check)
+        self.mask_spin = QDoubleSpinBox()
+        self.mask_spin.setRange(0, 32)
+        self.mask_spin.setDecimals(0)
+        self.mask_spin.setSingleStep(2)
+        self.mask_spin.setSuffix(" lignes")
+        self.mask_spin.setToolTip(
+            "Bande parasite en bas de certaines VHS (commutation des têtes). "
+            "Ces lignes deviennent noires. L'image n'est ni agrandie ni déformée. 0 = ne rien masquer.")
+        self.mask_label = _ilabel("Masquer la bande du bas :", "bande_bas")
+        h = QHBoxLayout()
+        h.addWidget(self.mask_label)
+        h.addWidget(self.mask_spin)
+        h.addStretch(1)
+        vi.addLayout(h)
+        self.edge_spin = QDoubleSpinBox()
+        self.edge_spin.setRange(0, 64)
+        self.edge_spin.setDecimals(0)
+        self.edge_spin.setSingleStep(2)
+        self.edge_spin.setSuffix(" px")
+        self.edge_spin.setToolTip(
+            "Bords abîmés, remplacés par du noir. Cassette : gauche et droite. "
+            "Pellicule : un cadre des quatre côtés. L'image garde la même taille "
+            "et le même format (4:3 inchangé). 0 = ne rien masquer.")
+        self.edge_label = _ilabel("Masquer les bords :", "cadre")
+        h = QHBoxLayout()
+        h.addWidget(self.edge_label)
+        h.addWidget(self.edge_spin)
+        h.addStretch(1)
+        vi.addLayout(h)
+        h = QHBoxLayout()
+        self.chroma_spin = QSpinBox()
+        self.chroma_spin.setRange(-8, 8)
+        self.chroma_spin.setSuffix(" px")
+        self.chroma_spin.setToolTip(
+            "Décalage horizontal de la couleur, typique d'une VHS (la couleur glisse "
+            "par rapport au dessin). 0 = ne pas toucher. Négatif = vers la gauche.")
+        h.addWidget(_ilabel("Décalage de couleur :", "decalage"))
+        h.addWidget(self.chroma_spin)
+        h.addStretch(1)
+        vi.addLayout(h)
+        vi.addWidget(self.ai_check)
+        left.addWidget(gi)
+
+        # Son
+        gs = Carte("Son", "onde")
+        vs = gs.body
+        self.audio_check = _with_icon(QCheckBox("Restaurer le son (souffle, clics, volume)"), "haut_parleur")
         self.audio_check.setChecked(True)
         self.audio_check.setToolTip(
             "Suit le profil image. Fidèle : souffle très léger. Équilibré : clics, souffle, volume. "
@@ -588,25 +787,29 @@ class MainWindow(QMainWindow):
             "(installer.bat -AvecSon), sinon le même souffle FFmpeg plus fort. "
             "Le plafond de DeepFilterNet est de 12 dB. Les rires, la musique et la rue restent. "
             "Une piste muette le reste.")
-        v.addWidget(self.audio_check)
-        self.rnnoise_check = QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)")
+        vs.addWidget(self.audio_check)
+        self.rnnoise_check = _with_icon(QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)"), "micro")
         self.rnnoise_check.setToolTip(
             "Option, désactivée par défaut : les profils ne changent pas. "
             "Remplace le souffle FFmpeg d'Équilibré (35 %) et de Maximum (55 %) par RNNoise "
             "(modèle Xiph inclus, licence BSD). Le reste du signal, donc la pièce, est conservé. "
             "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
-        v.addWidget(self.rnnoise_check)
-        self.wind_check = QCheckBox("Réduire le vent et les grondements")
+        vs.addWidget(self.rnnoise_check)
+        self.wind_check = _with_icon(QCheckBox("Réduire le vent et les grondements"), "vent")
         self.wind_check.setToolTip(
             "Passe-haut doux à 80 Hz (6 dB par octave). Coupe le vent sur le micro et les "
             "grondements graves. Une voix à partir de 300 Hz n'est presque pas touchée. "
             "Désactivé par défaut. L'analyse le conseille si les graves sont forts et irréguliers.")
-        v.addWidget(self.wind_check)
-        self.presence_check = QCheckBox("Rendre les voix plus claires")
+        vs.addWidget(self.wind_check)
+        self.presence_check = _with_icon(QCheckBox("Rendre les voix plus claires"), "egaliseur")
         self.presence_check.setToolTip(
             "Légère présence autour de 3 kHz, +3 dB au plus. Pour un son étouffé. "
             "Désactivé par défaut : rien n'est ajouté si la case n'est pas cochée.")
-        v.addWidget(self.presence_check)
+        vs.addWidget(self.presence_check)
+        self.declip_check = _with_icon(QCheckBox("Réparer le son saturé"), "sature")
+        self.declip_check.setToolTip("Reconstruit les crêtes coupées d'un son enregistré trop fort "
+                                     "(cris, fêtes, vent). L'analyse le détecte et le conseille.")
+        vs.addWidget(self.declip_check)
         h = QHBoxLayout()
         self.offset_spin = QDoubleSpinBox()
         self.offset_spin.setRange(-500, 500)
@@ -616,8 +819,11 @@ class MainWindow(QMainWindow):
         self.offset_spin.setToolTip(
             "Décalage constant entre le son et l'image. Positif : retarder le son "
             "(il était en avance). Négatif : avancer le son. 0 : ne rien changer.")
-        h.addWidget(QLabel("Décalage du son :"))
+        h.addWidget(_ilabel("Décalage du son :", "horloge"))
         h.addWidget(self.offset_spin)
+        h.addStretch(1)
+        vs.addLayout(h)
+        h = QHBoxLayout()
         self.drift_spin = QDoubleSpinBox()
         self.drift_spin.setRange(-2000, 2000)
         self.drift_spin.setDecimals(0)
@@ -628,113 +834,58 @@ class MainWindow(QMainWindow):
             "(il est accéléré, la hauteur des voix est conservée). "
             "Exemple : +100 = une seconde de retard au bout de 10 minutes. "
             "0 = ne rien changer. Ce n'est pas une détection des lèvres.")
-        h.addWidget(QLabel("Dérive :"))
+        h.addWidget(_ilabel("Dérive :", "derive"))
         h.addWidget(self.drift_spin)
         h.addStretch(1)
-        v.addLayout(h)
+        vs.addLayout(h)
         h = QHBoxLayout()
         self.mains_combo = QComboBox()
-        self.mains_combo.addItem("Pas de ronflement à enlever", 0)
-        self.mains_combo.addItem("Ronflement 50 Hz (Europe)", 50)
-        self.mains_combo.addItem("Ronflement 60 Hz (Amérique)", 60)
+        for txt, val in (("Pas de ronflement à enlever", 0), ("Ronflement 50 Hz (Europe)", 50),
+                         ("Ronflement 60 Hz (Amérique)", 60)):
+            self.mains_combo.addItem(icons.icon("prise"), txt, val)
         self.mains_combo.setToolTip(
             "Encoche très étroite sur la fréquence du secteur et son double. "
             "À n'activer que si un bourdonnement continu est audible. La musique grave reste.")
         self.copy_combo = QComboBox()
-        self.copy_combo.addItem("Pas de copie séparée du son", "")
-        self.copy_combo.addItem("Aussi un fichier WAV", "wav")
-        self.copy_combo.addItem("Aussi un fichier FLAC", "flac")
+        for txt, val in (("Pas de copie séparée du son", ""), ("Aussi un fichier WAV", "wav"),
+                         ("Aussi un fichier FLAC", "flac")):
+            self.copy_combo.addItem(icons.icon("fichier_son"), txt, val)
         self.copy_combo.setToolTip(
             "Enregistre le son restauré à côté du film, sans modifier l'original. "
             "C'est le même son que dans la vidéo.")
         h.addWidget(self.mains_combo, 1)
         h.addWidget(self.copy_combo, 1)
-        v.addLayout(h)
-        h = QHBoxLayout()
+        vs.addLayout(h)
         self.channel_combo = QComboBox()
-        self.channel_combo.addItem("Canaux du son inchangés", "")
-        self.channel_combo.addItem("Son gauche mis des deux côtés", "left")
-        self.channel_combo.addItem("Son droit mis des deux côtés", "right")
-        self.channel_combo.addItem("Remettre les deux côtés en phase", "phase")
+        for txt, val in (("Canaux du son inchangés", ""), ("Son gauche mis des deux côtés", "left"),
+                         ("Son droit mis des deux côtés", "right"), ("Remettre les deux côtés en phase", "phase")):
+            self.channel_combo.addItem(icons.icon("canaux"), txt, val)
         self.channel_combo.setToolTip("Pour un son enregistré d'un seul côté, ou dont les deux côtés "
                                       "s'annulent. L'analyse le détecte et le conseille.")
-        self.declip_check = QCheckBox("Réparer le son saturé")
-        self.declip_check.setToolTip("Reconstruit les crêtes coupées d'un son enregistré trop fort "
-                                     "(cris, fêtes, vent). L'analyse le détecte et le conseille.")
-        h.addWidget(self.channel_combo, 1)
-        h.addWidget(self.declip_check, 1)
-        v.addLayout(h)
-        self.mask_spin = QDoubleSpinBox()
-        self.mask_spin.setRange(0, 32)
-        self.mask_spin.setDecimals(0)
-        self.mask_spin.setSingleStep(2)
-        self.mask_spin.setSuffix(" lignes")
-        self.mask_spin.setToolTip(
-            "Bande parasite en bas de certaines VHS (commutation des têtes). "
-            "Ces lignes deviennent noires. L'image n'est ni agrandie ni déformée. 0 = ne rien masquer.")
-        self.mask_label = QLabel("Masquer la bande du bas :")
-        h = QHBoxLayout()
-        h.addWidget(self.mask_label)
-        h.addWidget(self.mask_spin)
-        h.addStretch(1)
-        v.addLayout(h)
-        self.edge_spin = QDoubleSpinBox()
-        self.edge_spin.setRange(0, 64)
-        self.edge_spin.setDecimals(0)
-        self.edge_spin.setSingleStep(2)
-        self.edge_spin.setSuffix(" px")
-        self.edge_spin.setToolTip(
-            "Bords abîmés, remplacés par du noir. Cassette : gauche et droite. "
-            "Pellicule : un cadre des quatre côtés. L'image garde la même taille "
-            "et le même format (4:3 inchangé). 0 = ne rien masquer.")
-        self.edge_label = QLabel("Masquer les bords :")
-        h = QHBoxLayout()
-        h.addWidget(self.edge_label)
-        h.addWidget(self.edge_spin)
-        h.addStretch(1)
-        v.addLayout(h)
-        h = QHBoxLayout()
-        self.chroma_spin = QSpinBox()
-        self.chroma_spin.setRange(-8, 8)
-        self.chroma_spin.setSuffix(" px")
-        self.chroma_spin.setToolTip(
-            "Décalage horizontal de la couleur, typique d'une VHS (la couleur glisse "
-            "par rapport au dessin). 0 = ne pas toucher. Négatif = vers la gauche.")
-        h.addWidget(QLabel("Décalage de couleur :"))
-        h.addWidget(self.chroma_spin)
-        h.addStretch(1)
-        v.addLayout(h)
-        self.cast_check = QCheckBox("Corriger la dominante de couleur")
-        self.cast_check.setToolTip(
-            "Retire une teinte qui couvre tout le film (vert de VHS, par exemple). "
-            "Les trois gains sont calculés une seule fois, pour tout le film. "
-            "Un noir et blanc reste neutre, une image pâle n'est pas ravivée. "
-            "Désactivé par défaut. L'analyse le conseille seulement si la dominante est forte.")
-        v.addWidget(self.cast_check)
-        v.addWidget(self.ai_check)
-        left.addWidget(g)
+        vs.addWidget(self.channel_combo)
+        left.addWidget(gs)
         left.addStretch(1)
 
         # Aperçu
-        g = QGroupBox("3. Aperçu avant / après (extrait de 10 s)")
-        v = QVBoxLayout(g)
+        g = Carte("Aperçu avant / après", "comparer", "3", "extrait de 10 s")
+        v = g.body
         h = QHBoxLayout()
         self.start_spin = QDoubleSpinBox()
         self.start_spin.setDecimals(0)
         self.start_spin.setSuffix(" s")
         self.start_spin.setRange(0, 0)
-        self.preview_btn = QPushButton("Générer l'aperçu")
+        self.preview_btn = _with_icon(QPushButton("Générer l'aperçu"), "oeil")
         self.preview_btn.clicked.connect(self.start_preview)
         self.still_combo = QComboBox()
         self.still_combo.setMinimumContentsLength(9)
         self.still_combo.currentIndexChanged.connect(self._show_still)
-        self.play_btn = QPushButton("Lire la comparaison")
+        self.play_btn = _with_icon(QPushButton("Lire la comparaison"), "jouer")
         self.play_btn.clicked.connect(self._play_compare)
-        self.hear_orig_btn = QPushButton("Écouter l'original")
+        self.hear_orig_btn = _with_icon(QPushButton("Écouter l'original"), "casque")
         self.hear_orig_btn.clicked.connect(self._play_original)
-        self.hear_new_btn = QPushButton("Écouter le son restauré")
+        self.hear_new_btn = _with_icon(QPushButton("Écouter le son restauré"), "casque")
         self.hear_new_btn.clicked.connect(self._play_restored)
-        h.addWidget(QLabel("Début de l'extrait :"))
+        h.addWidget(_ilabel("Début de l'extrait :", "horloge"))
         h.addWidget(self.start_spin)
         h.addWidget(self.preview_btn)
         h.addStretch(1)
@@ -754,12 +905,12 @@ class MainWindow(QMainWindow):
         right.addWidget(g, 1)
 
         # Export
-        g = QGroupBox("4. Restauration complète")
-        v = QVBoxLayout(g)
+        g = Carte("Restauration complète", "export", "4")
+        v = g.body
         h = QHBoxLayout()
         self.out_edit = QLineEdit()
         self.out_edit.setPlaceholderText("Dossier de la vidéo d'origine")
-        bo = QPushButton("Dossier de sortie…")
+        bo = _with_icon(QPushButton("Dossier de sortie…"), "dossier")
         bo.clicked.connect(self._choose_outdir)
         h.addWidget(self.out_edit, 1)
         h.addWidget(bo)
@@ -774,7 +925,7 @@ class MainWindow(QMainWindow):
         self.trim_end.setSpecialValueText("jusqu'au bout")
         self.trim_start.setToolTip("Pour ne pas garder la neige ou l'écran bleu du début.")
         self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « jusqu'au bout » = tout garder.")
-        h.addWidget(QLabel("Garder du début à :"))
+        h.addWidget(_ilabel("Garder du début à :", "ciseaux"))
         h.addWidget(self.trim_start)
         h.addWidget(QLabel("jusqu'à :"))
         h.addWidget(self.trim_end)
@@ -783,24 +934,29 @@ class MainWindow(QMainWindow):
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
+        self.run_btn.setIcon(icons.icon("etincelle", theme.AMBRE_TEXTE, 24))
+        self.run_btn.setIconSize(QSize(24, 24))
         self.run_btn.clicked.connect(self.start_export)
         self.run_btn.installEventFilter(self._halos[1])
-        self.cancel_btn = QPushButton("Annuler")
+        self.cancel_btn = _with_icon(QPushButton("Annuler"), "stop")
         self.cancel_btn.clicked.connect(self.cancel)
-        self.check_btn = QPushButton("Vérifier l'installation")
+        self.check_btn = _with_icon(QPushButton("Vérifier l'installation"), "diagnostic")
         self.check_btn.setToolTip("Restaure une courte vidéo d'essai et affiche un rapport "
                                   "(utile si quelque chose ne marche pas).")
         self.check_btn.clicked.connect(self.check_install)
         h.addWidget(self.run_btn)
         h.addWidget(self.cancel_btn)
         h.addStretch(1)
-        h.addWidget(self.check_btn)
         v.addLayout(h)
         self.progress = theme.SweepBar()
         self.status = QLabel("Prêt.")
         self.status.setWordWrap(True)
         v.addWidget(self.progress)
         v.addWidget(self.status)
+        h = QHBoxLayout()
+        h.addStretch(1)
+        h.addWidget(self.check_btn)
+        v.addLayout(h)
         right.addWidget(g)
 
         # les deux pages affichent la même progression, le même état, le même aperçu
@@ -815,13 +971,15 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ état
     def _refresh_tools(self) -> None:
         t = self.tools
-        ff = f"FFmpeg {t.ffmpeg.version} ✔" if t.ffmpeg.path and t.ffprobe.path and not t.missing_filters \
-            else "FFmpeg ✖ (requis)"
-        ai = "Real-ESRGAN ✔" if t.ai_available else "Real-ESRGAN non installé (facultatif)"
-        qt = f"QTGMC ✔ ({t.vspipe.version})" if t.qtgmc_available else "QTGMC non installé (facultatif)"
-        df = "DeepFilterNet ✔" if t.deepfilter_available else "DeepFilterNet non installé (facultatif)"
-        col = "Colorisation ✔" if t.colorize_available else "Colorisation non installée (facultatif)"
-        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}   ·   {df}   ·   {col}")
+        ok_ff = bool(t.ffmpeg.path and t.ffprobe.path and not t.missing_filters)
+        parts = [("FFmpeg", ok_ff, f"FFmpeg {t.ffmpeg.version}" if ok_ff else "FFmpeg manquant (requis)"),
+                 ("QTGMC", t.qtgmc_available, f"QTGMC ({t.vspipe.version})"),
+                 ("Real-ESRGAN", t.ai_available, "Real-ESRGAN"),
+                 ("DeepFilterNet", t.deepfilter_available, "DeepFilterNet"),
+                 ("Colorisation", t.colorize_available, "Colorisation (DDColor)")]
+        self.tools_label.setText("   ".join(f"{'●' if ok else '○'} {name}" for name, ok, _ in parts))
+        self.tools_label.setToolTip("● installé   ○ non installé (facultatif, sauf FFmpeg)\n"
+                                    + "\n".join(f"{'✔' if ok else '—'} {det}" for _n, ok, det in parts))
         self.s_colorize.setToolTip(
             "Photo noir et blanc seulement. L'IA (DDColor) DEVINE des couleurs plausibles : elles peuvent "
             "être fausses (vêtements, peau, objets). Une copie « …_colorisee_ia.png » est écrite en plus ; "
@@ -915,6 +1073,7 @@ class MainWindow(QMainWindow):
 
     def _profile_changed(self, key: str) -> None:
         p = PROFILES[key]
+        self.profile_desc.setText(p.description)
         self.ai_check.setChecked(p.ai_default and self.tools.ai_available)
         self.res_combo.setCurrentIndex(self.res_combo.findData(p.default_resolution))
         want = p.deinterlacer if (p.deinterlacer != "qtgmc" or self.tools.qtgmc_available) else "bwdif"

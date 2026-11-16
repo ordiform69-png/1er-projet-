@@ -484,3 +484,24 @@ qui clignotent d'une image à l'autre, calcul très long).
   gardé, original intact), sinon il écrit « non installée (facultatif) ».
 - Non testé : photos de famille réelles avec visages (teintes de peau), très grandes numérisations
   (> 6000 px, traitées par bandes de 512 lignes pour limiter la mémoire).
+
+## Interface plus futuriste, icônes pour chaque réglage (phase 16)
+
+Demande de l'utilisateur : une interface « plus futuriste et fun, avec des icônes pour les
+différents réglages ». Rien ne change dans les traitements.
+
+- `vhs_restore/icons.py` : 48 icônes au trait néon dessinées dans le code (SVG 24×24), une par
+  réglage (poussières, bande, arcs-en-ciel, stabilisation, vent, voix, ronflement…), rendues à la
+  densité de l'écran. Si QtSvg manque, l'icône est vide et rien d'autre ne change.
+- Page des options réorganisée en cartes « console » (en-tête à icône, titre néon, numéro
+  d'étape 01 à 04, coins façon HUD) : Vidéo, Caractéristiques, Profil, Image, Son, Aperçu,
+  Restauration complète. Les réglages d'image et de son ne sont plus mélangés.
+- Profils en trois tuiles (bouclier, balance, fusée) avec voyant allumé ; la description complète
+  du profil choisi s'affiche dessous.
+- Cases à cocher remplacées par des interrupteurs (SVG), fond de page avec halo cyan, flèches
+  des champs numériques recalées dans le champ (elles débordaient).
+- Barre d'état compacte : ● installé / ○ facultatif, détail dans l'infobulle.
+- Largeur : la page des options tient en 1 208 px (deux colonnes jusqu'à 1 240 px, une colonne
+  en dessous) ; les tests de défilement horizontal (1366, 1280, 1093 px) passent. Contrastes des
+  nouveaux couples (tuiles, titres, numéros) ≥ 6,3:1, listés dans `theme.CONTRASTES`.
+

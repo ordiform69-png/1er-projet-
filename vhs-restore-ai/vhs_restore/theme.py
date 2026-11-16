@@ -34,6 +34,7 @@ AMBRE_TEXTE = "#1a1206"
 AMBRE_ETEINT = "#5c4a2c"
 AMBRE_ETEINT_TEXTE = "#f3e6c8"
 PISTE = "#2a313c"
+TUILE_ACTIVE = "#123a44"      # tuile de profil choisie
 
 # Couples réellement peints. Le test de contraste lit cette liste, pas le QSS.
 CONTRASTES = (
@@ -55,6 +56,11 @@ CONTRASTES = (
     ("pastille", "#f3f6fa", "#102028"),
     ("avertissement / fond", AMBRE, FOND),
     ("avertissement / carte", AMBRE, CARTE),
+    ("tuile choisie", TEXTE, TUILE_ACTIVE),
+    ("tuile choisie, phrase", TEXTE_DOUX, TUILE_ACTIVE),
+    ("tuile, phrase", TEXTE_DOUX, CARTE_SUR),
+    ("titre de carte", ACCENT, CARTE),
+    ("numéro de carte", ACCENT_SOURD, CARTE),
 )
 
 BODY_FAMILY = ""
@@ -125,6 +131,10 @@ def _qss() -> str:
 QMainWindow, QWidget#page, QDialog, QMessageBox {{
     background: {FOND}; color: {TEXTE}; font-family: {body}; font-size: 12.5pt;
 }}
+QWidget#page {{
+    background: qradialgradient(cx:0.12, cy:0.0, radius:1.15, fx:0.12, fy:0.0,
+        stop:0 #173842, stop:0.38 {FOND}, stop:1 #0f1217);
+}}
 QWidget {{ color: {TEXTE}; font-family: {body}; }}
 QScrollArea, QScrollArea > QWidget > QWidget {{ border: none; background: {FOND}; }}
 
@@ -194,6 +204,29 @@ QPushButton#lien {{
 QPushButton#lien:hover {{ color: #b8f4ff; }}
 QPushButton#secondaire {{ font-size: 13pt; padding: 8px 12px; }}
 
+QFrame#carte {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #212833, stop:1 {CARTE});
+    border: 1px solid {BORD}; border-radius: 14px;
+}}
+QFrame#carteFilet {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 {ACCENT}, stop:0.4 #2c6f7b, stop:1 transparent);
+    border: none; min-height: 1px; max-height: 1px;
+}}
+QLabel#carteTitre {{
+    color: {ACCENT}; font-family: {display}; font-size: 15pt; font-weight: 700;
+    letter-spacing: 2px; background: transparent;
+}}
+QLabel#carteSous {{ color: {TEXTE_DOUX}; font-size: 12pt; background: transparent; }}
+QLabel#carteNumero {{
+    color: {ACCENT_SOURD}; font-family: {display}; font-size: 18pt; font-weight: 700;
+    letter-spacing: 1px; background: transparent;
+}}
+QLabel#carteIcone {{
+    background: #0e2a31; border: 1px solid #1d5c68; border-radius: 8px;
+}}
+QFrame#carte QLabel {{ background: transparent; }}
+
 QGroupBox {{
     background: {CARTE}; border: 1px solid {BORD}; border-radius: 12px;
     margin-top: 16px; padding: 16px 12px 12px 12px; font-weight: 600; font-size: 13pt;
@@ -228,15 +261,15 @@ QComboBox QAbstractItemView {{
     background: {CARTE}; color: {TEXTE}; border: 1px solid {BORD};
     selection-background-color: #164852; selection-color: {TEXTE}; outline: 0;
 }}
-QAbstractSpinBox {{ padding-right: 8px; }}
+QAbstractSpinBox {{ padding-left: 8px; padding-right: 26px; }}
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{
     subcontrol-origin: border; width: 22px; border: none; background: {CARTE};
 }}
 QAbstractSpinBox::up-button {{
-    subcontrol-position: top right; height: 16px; border-top-right-radius: 6px;
+    subcontrol-position: top right; top: 1px; right: 1px; height: 14px; border-top-right-radius: 6px;
 }}
 QAbstractSpinBox::down-button {{
-    subcontrol-position: bottom right; height: 16px; border-bottom-right-radius: 6px;
+    subcontrol-position: bottom right; bottom: 1px; right: 1px; height: 14px; border-bottom-right-radius: 6px;
 }}
 QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover {{
     background: #31404c;
@@ -245,11 +278,14 @@ QAbstractSpinBox::up-arrow {{ image: url("{up}"); width: 12px; height: 12px; }}
 QAbstractSpinBox::down-arrow {{ image: url("{down}"); width: 12px; height: 12px; }}
 
 QCheckBox, QRadioButton {{ spacing: 8px; font-size: 12.5pt; }}
-QCheckBox::indicator, QRadioButton::indicator {{ width: 20px; height: 20px; }}
-QCheckBox::indicator:unchecked {{ image: url("{_icon("check-off.svg")}"); }}
-QCheckBox::indicator:checked {{ image: url("{_icon("check-on.svg")}"); }}
-QCheckBox::indicator:disabled {{ image: url("{_icon("check-off-off.svg")}"); }}
-QCheckBox::indicator:checked:disabled {{ image: url("{_icon("check-on.svg")}"); }}
+QCheckBox {{ spacing: 10px; padding: 2px 0; }}
+QCheckBox::indicator {{ width: 40px; height: 22px; }}
+QCheckBox::indicator:unchecked {{ image: url("{_icon("switch-off.svg")}"); }}
+QCheckBox::indicator:checked {{ image: url("{_icon("switch-on.svg")}"); }}
+QCheckBox::indicator:unchecked:disabled {{ image: url("{_icon("switch-off-off.svg")}"); }}
+QCheckBox::indicator:checked:disabled {{ image: url("{_icon("switch-on-off.svg")}"); }}
+QCheckBox:hover {{ color: #ffffff; }}
+QRadioButton::indicator {{ width: 20px; height: 20px; }}
 QRadioButton::indicator:unchecked {{ image: url("{_icon("radio-off.svg")}"); }}
 QRadioButton::indicator:checked {{ image: url("{_icon("radio-on.svg")}"); }}
 QRadioButton::indicator:disabled {{ image: url("{_icon("radio-off-off.svg")}"); }}
