@@ -94,6 +94,35 @@ def autotest(folder: str) -> int:
                       f"{'noir et blanc conservé' if pafter.black_and_white else 'COULEUR AJOUTÉE'}, "
                       f"original {'intact' if hashlib.sha256(card.read_bytes()).hexdigest() == before else 'MODIFIÉ'}")
         ok = ok and photo_ok
+        # Colorisation facultative : copie colorisée EN PLUS, même taille, même luminance
+        if ts.colorize_available:
+            import dataclasses
+
+            cs = dataclasses.replace(pipeline.Settings(profile_for("equilibre")), colorize=True)
+            cres = photo.restore_photo(pinfo, cs, out / "carte postale couleur.png", ts)
+            cfile = photo.colorized_path(cres)
+
+            def yavg(f: Path) -> float:
+                r = run_capture([ts.ffmpeg.path, "-hide_banner", "-nostdin", "-i", str(f), "-vf",
+                                 "signalstats,metadata=print:key=lavfi.signalstats.YAVG", "-f", "null", "-"],
+                                timeout=60)
+                vals = [float(x.split("=")[1]) for x in r.stderr.split() if x.startswith("lavfi.signalstats.YAVG=")]
+                return vals[0] if vals else -1.0
+
+            cinfo = photo.analyze_photo(cfile, ts) if cfile.is_file() else None
+            dy = abs(yavg(cfile) - yavg(cres)) if cinfo else 99.0
+            color_ok = (cinfo is not None and (cinfo.width, cinfo.height) == (320, 240) and cres.is_file()
+                        # la colorisation garde la luminance CIE L ; la luma vidéo (YAVG) varie un peu
+                        # avec la couleur ajoutée (3,6 sur 255 mesuré) : seuil 8 (environ 3 %)
+                        and pafter.black_and_white and dy < 8.0
+                        and hashlib.sha256(card.read_bytes()).hexdigest() == before)
+            report.append(f"Colorisation : {cfile.name if cinfo else 'ABSENTE'}"
+                          + (f", {cinfo.width}x{cinfo.height}, écart de luminance {dy:.1f}, "
+                             "version noir et blanc gardée" if cinfo else ""))
+            ok = ok and color_ok
+        else:
+            report.append("Colorisation : non installée (facultatif)"
+                          + (f" — {ts.colorizer.problem}" if ts.colorizer.problem else ""))
         report.append("RÉSULTAT : OK" if ok else "RÉSULTAT : ÉCHEC (sortie inattendue)")
         code = 0 if ok else 1
     except Exception as exc:  # le rapport doit toujours être écrit

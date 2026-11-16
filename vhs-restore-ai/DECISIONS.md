@@ -456,3 +456,31 @@ l'œil sur les deux archives, et par `tests/test_plafonds.py` (dominante jamais 
   écrasement, aperçu avant/après à la même taille, dossier mixte films et photos avec relance.
 - Real-ESRGAN (facultatif) peut agrandir une photo ; décochée par défaut, car l'IA invente des
   traits sur des visages de quelques pixels. Pas de colorisation ni de retouche des visages.
+
+## Colorisation facultative des photos noir et blanc (phase 15)
+
+Demandée par l'utilisateur, alors que la règle de départ était « pas de colorisation ». Elle reste
+donc encadrée : photo noir et blanc seulement, case décochée à chaque photo, copie **en plus**
+(`…_colorisee_ia.png`), la photo restaurée en noir et blanc toujours écrite, aucun fichier existant
+écrasé, étiquette « COULEURS IA (inventées) » sur l'avant / après. Pas pour les films (couleurs
+qui clignotent d'une image à l'autre, calcul très long).
+
+- Modèle : DDColor-tiny (ICCV 2023, Apache-2.0), export ONNX 512×512 de edgetools/ddcolor,
+  révision `4755ae9f…` et SHA-256 `2653da00…` figés (vérifiés au téléchargement et au premier
+  usage). Licence dans `vhs_restore/models/DDCOLOR-LICENSE.txt`, copiée dans le zip.
+- L'IA ne fournit que la couleur (canaux a et b de Lab, à 512×512, agrandis en bilinéaire) ; la
+  luminance vient de la photo restaurée, pixel pour pixel. Mesuré : écart de L < 1,5 au 99e
+  centile (`tests/test_colorize.py`) ; le test échoue si l'on altère la luminance de 5 %.
+- Le fichier publié stocke ses poids en fp16 : onnxruntime sur processeur mettait plus de
+  3 minutes par photo (arrêté). Converti en fp32 en mémoire au chargement (paquet `onnx`) :
+  environ 1 seconde par photo sur 4 cœurs. Le fichier sur disque reste celui publié.
+- Essais réels : sur une vue de ville en couleur passée en noir et blanc, ciel bleu, tour dorée et
+  toits rouges retrouvés, mais plus saturés que l'original (couleurs plausibles, pas exactes). Sur
+  la carte postale de l'église (pierre, ciel blanc), le résultat reste presque gris : l'IA n'invente
+  pas de couleur là où elle n'en devine pas.
+- Livraison : modèle inclus dans le zip Windows (`tools/ddcolor/`, +130 Mo) pour que l'exe marche
+  sans installation ; depuis les sources, `installer.bat -AvecCouleurs`. L'autotest de l'exe
+  colorise la carte postale de synthèse quand le modèle est là (taille, luminance, noir et blanc
+  gardé, original intact), sinon il écrit « non installée (facultatif) ».
+- Non testé : photos de famille réelles avec visages (teintes de peau), très grandes numérisations
+  (> 6000 px, traitées par bandes de 512 lignes pour limiter la mémoire).

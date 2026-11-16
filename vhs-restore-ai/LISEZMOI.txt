@@ -34,6 +34,12 @@ même nettoyé par FFmpeg.
 Photos : choisissez une photo ou une carte postale numérisée (.jpg, .png…) avec le
 même bouton. La photo restaurée est enregistrée à côté de l'originale, en .png.
 
+Photo noir et blanc : la case « Coloriser aussi » demande à une intelligence
+artificielle d'AJOUTER des couleurs. Attention : elle les devine, ce ne sont pas
+les vraies couleurs (un vêtement, une voiture peuvent avoir la mauvaise teinte).
+Une copie « ..._colorisee_ia.png » est enregistrée en plus ; la version noir et
+blanc restaurée est toujours gardée.
+
 Plusieurs films d'un coup : « Restaurer tous les films d'un dossier… ».
 Ils sont rangés dans un sous-dossier « Films restaurés ».
 

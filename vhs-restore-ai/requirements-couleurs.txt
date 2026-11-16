@@ -1,0 +1,6 @@
+# Module optionnel « colorisation des photos noir et blanc » (DDColor, licence Apache-2.0).
+# onnxruntime calcule le modèle sur le processeur ; onnx le convertit en pleine précision
+# au chargement (voir vhs_restore/colorize.py). Le modèle lui-même est téléchargé par
+# installer.bat -AvecCouleurs (ou livré dans le zip Windows).
+onnxruntime==1.29.0
+onnx==1.23.2

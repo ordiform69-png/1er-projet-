@@ -1,14 +1,17 @@
 """Mode Photo : restaurer une photo ou une carte postale numérisée (JPEG, PNG, TIFF…).
 
 Mêmes principes que pour les films : l'original n'est jamais modifié, rien n'est
-inventé (pas de colorisation, pas d'IA sur les visages par défaut), le noir et blanc
-reste noir et blanc, et les corrections de contraste et de couleur passent par les
+inventé par défaut (pas d'IA sur les visages), le noir et blanc reste noir et blanc, et les corrections de contraste et de couleur passent par les
 conseils de l'analyse, avec les mêmes plafonds de fidélité (pipeline.safe_levels /
 safe_gains).
 
 Réglages choisis sur une vraie carte postale ancienne (730×1156, blocs JPEG) : un
 débruitage plus fort (nlmeans s=2,5) donnait aux pierres d'un mur un aspect d'aquarelle.
 On reste donc léger : `spp` atténue les blocs de compression, `nlmeans` le grain.
+
+Colorisation (facultative, décochée par défaut) : voir colorize.py. Elle n'est faite que pour
+une photo noir et blanc et produit une COPIE en plus (« …_colorisee_ia.png ») ; la photo
+restaurée en noir et blanc est toujours écrite.
 """
 from __future__ import annotations
 
@@ -22,7 +25,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Callable
 
-from . import pipeline
+from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
 from .tools import Cancelled, ToolError, Toolset, run, run_capture
 from .upscaler import RealEsrganUpscaler
@@ -92,22 +95,43 @@ def photo_chain(info: MediaInfo, s: pipeline.Settings, *, after_ai: bool = False
     return f
 
 
+def colorized_path(out_path: Path) -> Path:
+    """Copie colorisée, à côté de la photo restaurée : « <nom>_colorisee_ia.png »."""
+    out_path = Path(out_path)
+    return out_path.with_name(f"{out_path.stem}_colorisee_ia.png")
+
+
+def wants_color(info: MediaInfo, s: pipeline.Settings) -> bool:
+    return bool(s.colorize and info.black_and_white)
+
+
 def output_path(info: MediaInfo, s: pipeline.Settings, out_dir: Path) -> Path:
     base = f"{info.path.stem}_restaure_{s.profile.key}{'_ia' if s.use_ai else ''}"
     cand, n = out_dir / f"{base}.png", 2
-    while cand.exists() or cand.resolve() == info.path.resolve():
+    while (cand.exists() or cand.resolve() == info.path.resolve()
+           or (wants_color(info, s) and colorized_path(cand).exists())):
         cand, n = out_dir / f"{base} ({n}).png", n + 1
     return cand
 
 
 def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: Toolset, *,
                   cancel: threading.Event | None = None, progress: Progress | None = None) -> Path:
-    """Écrit la photo restaurée (PNG, sans perte). L'original n'est jamais modifié."""
+    """Écrit la photo restaurée (PNG, sans perte). L'original n'est jamais modifié.
+    Si la colorisation est demandée pour une photo noir et blanc, écrit EN PLUS la copie
+    colorisée (colorized_path) ; une copie déjà présente n'est jamais écrasée."""
     out_path = Path(out_path).resolve()
     if out_path == info.path.resolve():
         raise ToolError("Le fichier restauré ne peut pas remplacer la photo d'origine.")
     if not out_path.parent.is_dir():
         raise ToolError(f"Dossier de sortie introuvable : {out_path.parent}")
+    color_out = colorized_path(out_path) if wants_color(info, s) else None
+    if color_out is not None:
+        if not tools.colorize_available:
+            raise ToolError("La colorisation n'est pas installée"
+                            + (f" ({tools.colorizer.problem})" if tools.colorizer.problem else "")
+                            + ". Relancez installer.bat -AvecCouleurs, ou décochez « Coloriser ».")
+        if color_out.exists():
+            raise ToolError(f"Une photo colorisée porte déjà ce nom : {color_out.name}. Rien n'a été remplacé.")
     part = out_path.with_name(out_path.stem + ".partiel.png")
     ff = [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error"]
     work = Path(tempfile.mkdtemp(prefix="vhsrestore_photo_"))
@@ -130,6 +154,11 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
                       "-frames:v", "1", "-f", "image2", "-c:v", "png", str(part)],
                 cancel=cancel, what="FFmpeg (photo)")
         os.replace(part, out_path)
+        if color_out is not None:
+            if progress:
+                progress(0.6, "Colorisation par l'IA (couleurs inventées)…")
+            colorize.colorize(out_path, color_out, tools.ffmpeg.path, tools.ffprobe.path,
+                              Path(tools.colorizer.path), cancel=cancel)
     except BaseException:
         part.unlink(missing_ok=True)
         raise
@@ -145,9 +174,13 @@ def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, wo
                        progress: Progress | None = None) -> pipeline.PreviewResult:
     """Avant / après côte à côte, à la même taille (l'original est agrandi s'il le faut)."""
     workdir.mkdir(parents=True, exist_ok=True)
-    restored = restore_photo(info, s, workdir / "apercu_photo.png", tools, cancel=cancel, progress=progress)
+    target = workdir / "apercu_photo.png"
+    colorized_path(target).unlink(missing_ok=True)       # aperçu précédent
+    restored = restore_photo(info, s, target, tools, cancel=cancel, progress=progress)
+    if wants_color(info, s):                              # avant (noir et blanc) / après (colorisé)
+        restored = colorized_path(target)
     compare = workdir / "apercu_photo_comparaison.png"
-    fmt = "gray" if info.black_and_white else "rgb24"
+    fmt = "gray" if info.black_and_white and not wants_color(info, s) else "rgb24"
     r = subprocess.run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
                         "-i", str(info.path), "-i", str(restored), "-filter_complex",
                         f"[0:v][1:v]scale2ref=flags=lanczos[a][b];[a]format={fmt}[a2];[b]format={fmt}[b2];"

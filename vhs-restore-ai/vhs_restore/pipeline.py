@@ -104,6 +104,7 @@ class Settings:
     use_rnnoise: bool = False              # Équilibré / Maximum : RNNoise à la place d'afftdn
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
     mask_sides: int = 0                    # pixels noirs sur les bords, 0 = rien. Pellicule : les quatre côtés
+    colorize: bool = False                 # photo noir et blanc : copie colorisée par IA EN PLUS (couleurs inventées)
     crf: int = 18
     preset: str = "medium"
 

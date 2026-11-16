@@ -68,6 +68,11 @@ class Toolset:
     deepfilter: Tool = field(default_factory=lambda: Tool("DeepFilterNet"))
     audio_filters: frozenset[str] = frozenset()
     rnnoise_model: str | None = None     # modèle RNNoise (Xiph) pour arnndn, livré avec l'application
+    colorizer: Tool = field(default_factory=lambda: Tool("Colorisation (DDColor)"))   # photos, facultatif
+
+    @property
+    def colorize_available(self) -> bool:
+        return self.colorizer.ok
 
     @property
     def deepfilter_available(self) -> bool:
@@ -186,14 +191,14 @@ def detect_tools() -> Toolset:
     df = Tool("DeepFilterNet", _find("VHSRA_DEEPFILTER", ["deep-filter"], ["deepfilter", "DeepFilterNet"]))
     if df.path:
         df.version = "deep-filter"
-    from . import dust
+    from . import colorize, dust
     model = _rnnoise_model()
     ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available(),
-                 df, frozenset(audio_present), model)
+                 df, frozenset(audio_present), model, colorize.detect())
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s "
-             "deepfilter=%s rnnoise=%s audio=%s filtres manquants=%s",
+             "deepfilter=%s rnnoise=%s colorisation=%s %s audio=%s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem,
-             df.path, model, sorted(audio_present), missing)
+             df.path, model, ts.colorizer.path, ts.colorizer.problem, sorted(audio_present), missing)
     return ts
 
 

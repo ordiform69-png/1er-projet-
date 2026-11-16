@@ -1,6 +1,6 @@
 @echo off
 rem Installation de VHS Restore AI.
-rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair : poussières, bruit de bande)  -AvecSon (DeepFilterNet)
+rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair : poussières, bruit de bande)  -AvecSon (DeepFilterNet)  -AvecCouleurs (colorisation des photos noir et blanc, DDColor)
 chcp 65001 >nul
 cd /d "%~dp0"
 set "PY=python"
@@ -19,6 +19,11 @@ set "POUSSIERES="
 for %%a in (%*) do if /i "%%~a"=="-AvecPoussieres" set "POUSSIERES=1"
 if defined POUSSIERES (
   ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements-poussieres.txt || goto erreur
+)
+set "COULEURS="
+for %%a in (%*) do if /i "%%~a"=="-AvecCouleurs" set "COULEURS=1"
+if defined COULEURS (
+  ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements-couleurs.txt || goto erreur
 )
 for %%a in (%*) do if /i "%%~a"=="-AvecQTGMC" set "QTGMC=1"
 if defined QTGMC (

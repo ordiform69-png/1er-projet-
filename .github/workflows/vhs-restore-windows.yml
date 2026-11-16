@@ -29,10 +29,10 @@ jobs:
           python-version: "3.12"
 
       - name: Dépendances Python
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt -r requirements-poussieres.txt pyinstaller==6.22.3
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt -r requirements-poussieres.txt -r requirements-couleurs.txt pyinstaller==6.22.3
 
-      - name: FFmpeg (même script que l'installation utilisateur)
-        run: ./scripts/installer_outils.ps1
+      - name: FFmpeg et modèle de colorisation (même script que l'installation utilisateur)
+        run: ./scripts/installer_outils.ps1 -AvecCouleurs
 
       - name: Tests automatiques
         id: tests
@@ -42,6 +42,7 @@ jobs:
           PYTHONUTF8: "1"
         run: |
           $env:PATH = "$PWD\tools\ffmpeg\bin;$env:PATH"
+          $env:VHSRA_DDCOLOR = "$PWD\tools\ddcolor\ddcolor-tiny-fp16.onnx"
           python -m pytest -q -rfE tests -o faulthandler_timeout=900
 
       - name: Fabrication de l'application
@@ -54,6 +55,9 @@ jobs:
           Copy-Item tools/ffmpeg/LICENSE* dist/VHSRestoreAI/tools/ffmpeg/ -ErrorAction SilentlyContinue
           Copy-Item LISEZMOI.txt dist/VHSRestoreAI/
           New-Item -ItemType Directory -Force dist/VHSRestoreAI/licences | Out-Null
+          New-Item -ItemType Directory -Force dist/VHSRestoreAI/tools/ddcolor | Out-Null
+          Copy-Item tools/ddcolor/ddcolor-tiny-fp16.onnx dist/VHSRestoreAI/tools/ddcolor/
+          Copy-Item vhs_restore/models/DDCOLOR-LICENSE.txt dist/VHSRestoreAI/licences/
           python -c "import importlib.metadata as m; d=m.distribution('analog-repair'); f=[p for p in d.files if 'LICENSE' in p.name.upper()]; open('dist/VHSRestoreAI/licences/analog-repair-LICENSE.txt','w',encoding='utf-8').write(f[0].read_text(encoding='utf-8') if f else 'MIT - https://github.com/Bratwurstexe/ANALOG_REPAIR')"
 
       - name: Autotest de l'application fabriquée (sans Python ni FFmpeg du système)

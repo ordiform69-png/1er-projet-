@@ -85,6 +85,7 @@ class CompareView(QWidget):
         self.before: QPixmap | None = None
         self.after: QPixmap | None = None
         self.split = 0.5
+        self.after_label = "RESTAURÉ"
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
@@ -97,6 +98,11 @@ class CompareView(QWidget):
 
     def clear(self) -> None:
         self.before = self.after = None
+        self.update()
+
+    def set_after_label(self, text: str) -> None:
+        """Étiquette de droite : « RESTAURÉ », ou « COULEURS IA » pour une photo colorisée."""
+        self.after_label = text
         self.update()
 
     def mouseMoveEvent(self, e) -> None:  # noqa: N802
@@ -141,9 +147,9 @@ class CompareView(QWidget):
         p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
         fm = p.fontMetrics()
         h = fm.height() + 10
-        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", "RESTAURÉ")) + 36
+        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", self.after_label)) + 36
         etroit = r.width() < largeur    # photo en hauteur : « Restauré » passe en bas
-        for text, left in (("ORIGINAL", True), ("RESTAURÉ", False)):
+        for text, left in (("ORIGINAL", True), (self.after_label, False)):
             w = fm.horizontalAdvance(text) + 22
             y = r.bottom() - h - 12 if (etroit and not left) else r.y() + 12
             box = QRect(r.x() + 12 if left else r.right() - w - 12, y, w, h)
@@ -350,6 +356,11 @@ class MainWindow(QMainWindow):
                                  "Décochez pour garder le son tel quel.")
         self.s_advice.setVisible(False)
         v.addWidget(self.s_advice)
+        self.s_colorize = QCheckBox("🎨  Coloriser aussi — couleurs inventées par l'IA, pas les vraies "
+                                    "(copie à part, le noir et blanc est gardé)")
+        self.s_colorize.setVisible(False)
+        self.s_colorize.toggled.connect(lambda _on: self._colorize_toggled())
+        v.addWidget(self.s_colorize)
         h = QHBoxLayout()
         self.s_choose = StepButton("1", "Choisir le film ou la photo")
         self.s_choose.clicked.connect(self._choose_file)
@@ -809,7 +820,14 @@ class MainWindow(QMainWindow):
         ai = "Real-ESRGAN ✔" if t.ai_available else "Real-ESRGAN non installé (facultatif)"
         qt = f"QTGMC ✔ ({t.vspipe.version})" if t.qtgmc_available else "QTGMC non installé (facultatif)"
         df = "DeepFilterNet ✔" if t.deepfilter_available else "DeepFilterNet non installé (facultatif)"
-        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}   ·   {df}")
+        col = "Colorisation ✔" if t.colorize_available else "Colorisation non installée (facultatif)"
+        self.tools_label.setText(f"{ff}   ·   {qt}   ·   {ai}   ·   {df}   ·   {col}")
+        self.s_colorize.setToolTip(
+            "Photo noir et blanc seulement. L'IA (DDColor) DEVINE des couleurs plausibles : elles peuvent "
+            "être fausses (vêtements, peau, objets). Une copie « …_colorisee_ia.png » est écrite en plus ; "
+            "la photo restaurée en noir et blanc est toujours gardée." if t.colorize_available else
+            "Colorisation non installée : relancez installer.bat -AvecCouleurs "
+            + (f"({t.colorizer.problem})" if t.colorizer.problem else ""))
         self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
         self.stab_check.setToolTip(
             "Atténue les tremblements (vid.stab). L'image est légèrement agrandie pour masquer "
@@ -825,6 +843,13 @@ class MainWindow(QMainWindow):
                                  "Installez Real-ESRGAN : relancez installer.bat -AvecIA "
                                  + (f"({t.realesrgan.problem})" if t.realesrgan.problem else ""))
 
+    def _colorize_toggled(self) -> None:
+        """L'aperçu affiché ne correspond plus aux réglages : on l'efface."""
+        if getattr(self, "is_photo", False) and self.preview is not None:
+            self.preview = None
+            self.compare.clear()
+            self.status.setText("Réglage changé : cliquez sur « Voir l'avant / après » pour un nouvel aperçu.")
+
     def _busy(self) -> bool:
         return self.worker is not None and self.worker.isRunning()
 
@@ -838,6 +863,7 @@ class MainWindow(QMainWindow):
                       (self.s_run, loaded and not busy), (self.s_folder, not busy), (self.s_cancel, busy)):
             b.setEnabled(ok)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
+        self.s_colorize.setEnabled(self.tools.colorize_available and not busy)
         self.rnnoise_check.setEnabled(bool(self.tools.rnnoise_model) and not busy)
         if not self.tools.rnnoise_model:
             self.rnnoise_check.setChecked(False)
@@ -970,7 +996,9 @@ class MainWindow(QMainWindow):
                                  chroma_shift=int(self.chroma_spin.value()),
                                  gain_r=gains[0], gain_g=gains[1], gain_b=gains[2],
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0,
-                                 mask_sides=int(self.edge_spin.value()))
+                                 mask_sides=int(self.edge_spin.value()),
+                                 colorize=(getattr(self, "is_photo", False) and self.s_colorize.isChecked()
+                                           and self.tools.colorize_available))
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:
@@ -1019,6 +1047,8 @@ class MainWindow(QMainWindow):
         self.s_info.setText(f"<b>{info.path.name}</b> — photo de {info.width} × {info.height} pixels.{kind}{tips}")
         self.s_advice.setChecked(False)
         self.s_advice.setVisible(bool(self.advice))
+        self.s_colorize.setChecked(False)                     # jamais coché d'avance
+        self.s_colorize.setVisible(info.black_and_white)
         self.drop.setText(info.path.name)
         self._update_state()
         self._refresh_hints()
@@ -1026,6 +1056,8 @@ class MainWindow(QMainWindow):
 
     def _loaded(self, info: MediaInfo) -> None:
         self.is_photo = False
+        self.s_colorize.setChecked(False)
+        self.s_colorize.setVisible(False)
         self.info = info
         self.preview = None
         self.compare.clear()
@@ -1090,6 +1122,8 @@ class MainWindow(QMainWindow):
 
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
         self.preview = res
+        self.compare.set_after_label("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
+                                     else "RESTAURÉ")
         self.still_combo.blockSignals(True)
         self.still_combo.clear()
         for i, _ in enumerate(res.stills):
@@ -1190,8 +1224,11 @@ class MainWindow(QMainWindow):
             if side.is_file():
                 extra = f"\n\nCopie du son restauré :\n{side.name}"
         if getattr(self, "is_photo", False):
+            colored = photo.colorized_path(out)
+            more = (f"\n\nCopie colorisée par l'IA (couleurs inventées) :\n{colored.name}"
+                    if colored.is_file() else "")
             self._done_box("Votre photo restaurée est prête",
-                           f"Votre photo restaurée est prête :\n{out.name}\n\nElle se trouve dans le dossier :\n"
+                           f"Votre photo restaurée est prête :\n{out.name}{more}\n\nElle se trouve dans le dossier :\n"
                            f"{out.parent}\n\nLa photo d'origine n'a pas été modifiée.", out.parent)
             return
         self._done_box("Votre film restauré est prêt",

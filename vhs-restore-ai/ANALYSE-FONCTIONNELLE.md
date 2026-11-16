@@ -47,5 +47,7 @@ images répétées d'un transfert ; encodage GPU ; signature de l'exécutable.
 
 ## 3. Ce qu'il ne faut pas ajouter
 
-Montage, titres, musique, colorisation, interpolation d'images, partage sur Internet : hors
-sujet, et chaque fonction en plus complique le mode simple.
+Montage, titres, musique, colorisation des films, interpolation d'images, partage sur Internet :
+hors sujet, et chaque fonction en plus complique le mode simple. (Exception demandée par
+l'utilisateur : colorisation facultative des **photos** noir et blanc, en copie à part — voir
+DECISIONS.md, phase 15.)

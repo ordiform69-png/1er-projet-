@@ -51,6 +51,14 @@ noir et blanc reste noir et blanc, et le contraste ou une dominante de couleur n
 sur conseil, avec les mêmes plafonds que pour les films. « Restaurer tout un dossier » traite films
 et photos ensemble.
 
+**Coloriser une photo noir et blanc** (facultatif, décoché par défaut) : la case « Coloriser aussi »
+apparaît pour une photo noir et blanc. Une IA (DDColor, licence Apache-2.0, calcul sur le
+processeur, environ une seconde) **invente** des couleurs plausibles : ce ne sont pas les vraies.
+Elle écrit une copie en plus, `…_colorisee_ia.png`. La photo restaurée en noir et blanc est
+toujours enregistrée, et l'avant / après affiche l'étiquette « COULEURS IA (inventées) ». Le modèle
+(130 Mo) est livré dans le zip Windows ; depuis les sources : `installer.bat -AvecCouleurs`.
+Pas de colorisation des films : les couleurs clignoteraient d'une image à l'autre.
+
 **Options avancées** (lien en bas à droite) : tous les réglages ci-dessous.
 
 Pendant un traitement, le **temps restant** s'affiche sous la barre de progression (« environ
