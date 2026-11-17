@@ -27,9 +27,14 @@ def setup_logging() -> Path:
     return path
 
 
-def autotest(folder: str, progress=None) -> int:
-    """`progress(fraction, message)` facultatif : avancement affiché par « Vérifier l'installation »."""
+def autotest(folder: str, progress=None, cancel=None) -> int:
+    """`progress(fraction, message)` facultatif : avancement affiché par « Vérifier l'installation ».
+    `cancel` (threading.Event) facultatif : le bouton « Annuler » arrête la vérification."""
+    from vhs_restore.tools import Cancelled
+
     def step(frac: float, msg: str) -> None:
+        if cancel is not None and cancel.is_set():
+            raise Cancelled()
         if progress:
             progress(frac, msg)
     from vhs_restore import pipeline
@@ -65,8 +70,9 @@ def autotest(folder: str, progress=None) -> int:
         s = pipeline.Settings(profile_for("equilibre", info.suggested_source), source=info.suggested_source,
                               resolution="1080", stabilize=ts.stab_available)
         step(0.25, "Restauration de la vidéo d'essai…")
-        res = pipeline.export(info, s, out / "résultat restauré.mp4", ts,
-                              progress=lambda f, _m: step(0.25 + 0.3 * f, "Restauration de la vidéo d'essai…"))
+        res = pipeline.export(info, s, out / "résultat restauré.mp4", ts, cancel=cancel,  # suivi seul :
+                              progress=lambda f, _m: progress and progress(            # l'arrêt passe par cancel
+                                  0.25 + 0.3 * f, "Restauration de la vidéo d'essai…"))
         after = analyze(res, ts)
         report.append(f"Export : {res.name}, {after.width}x{after.height}, {float(after.fps):g} i/s, "
                       f"{after.dar.numerator}:{after.dar.denominator}, son {'oui' if after.has_audio else 'non'}")
@@ -136,6 +142,8 @@ def autotest(folder: str, progress=None) -> int:
                           + (f" — {ts.colorizer.problem}" if ts.colorizer.problem else ""))
         report.append("RÉSULTAT : OK" if ok else "RÉSULTAT : ÉCHEC (sortie inattendue)")
         code = 0 if ok else 1
+    except Cancelled:          # « Annuler » : pas de rapport d'échec, l'interface l'annonce
+        raise
     except Exception as exc:  # le rapport doit toujours être écrit
         import traceback
         report.append("RÉSULTAT : ÉCHEC\n" + "".join(traceback.format_exception(exc)))

@@ -505,3 +505,33 @@ différents réglages ». Rien ne change dans les traitements.
   en dessous) ; les tests de défilement horizontal (1366, 1280, 1093 px) passent. Contrastes des
   nouveaux couples (tuiles, titres, numéros) ≥ 6,3:1, listés dans `theme.CONTRASTES`.
 
+## Analyse de bugs de l'ensemble du logiciel (phase 17)
+
+Méthode : vérification statique (ruff : noms indéfinis, imports inutiles), robot d'interface qui
+fait passer la fenêtre par six états (vide, film chargé, aperçu, traitement en cours, photo noir
+et blanc, photo couleur) et relève pour chaque bouton et réglage s'il est actif, visible et
+branché, puis clique chaque bouton actif et vérifie qu'il se passe quelque chose ; relecture des
+parcours d'annulation et de fermeture. Aucun bouton actif sans effet. Défauts trouvés et corrigés :
+
+1. **Dossier de sortie « collant »** : après le premier fichier ouvert, tous les suivants (et les
+   séances suivantes, via les préférences) étaient enregistrés dans le dossier de ce premier
+   fichier, contrairement au mode d'emploi. Désormais : à côté de chaque original, sauf dossier
+   choisi exprès (« Dossier de sortie… » ou saisie) ; l'ancien réglage automatique mémorisé est
+   ignoré (clé `out_dir_manual`).
+2. **Réglages modifiables pendant un traitement** : profils, cases, listes, champs, « Choisir… »,
+   dossier de sortie restaient actifs alors qu'ils n'avaient plus d'effet (lus au lancement) ; un
+   fichier glissé pendant un traitement était ignoré sans message. Ils sont grisés ; un message
+   explique pourquoi un fichier glissé n'est pas pris.
+3. **Mode Photo** : le son, le désentrelaceur, la bande, la stabilisation, les masques, l'extrait,
+   le découpage… restaient affichés sans aucun effet sur une photo. Ils sont cachés (profil,
+   dominante, IA et colorisation restent).
+4. **« Écouter » actif pour un film sans son** (ou piste silencieuse) : grisé, avec une infobulle.
+5. **« Annuler » pendant « Vérifier l'installation »** n'arrêtait rien : la vérification
+   s'arrête maintenant en environ 1 s, sans rapport d'échec.
+6. **« Vérifier l'installation » semblait ne rien faire** (état figé à 10 %) : étapes affichées.
+7. Textes : « Choisir un film ou une photo », zone de dépôt et titre de la carte idem.
+8. Code : deux imports inutiles retirés.
+
+Tests ajoutés : `tests/test_etats_interface.py` (4 tests), qui échouent tous sur l'ancien code.
+Non testé : clics réels sous Windows (le robot tourne hors écran sous Linux).
+

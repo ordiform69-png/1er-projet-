@@ -88,6 +88,7 @@ def test_gui_trim_and_check(tools, samples, tmp_path, monkeypatch):
             app.processEvents()
     win = MainWindow(tools)
     win.out_edit.setText(str(tmp_path))
+    win._out_manual = True          # comme un dossier choisi exprès avec « Dossier de sortie… »
     win.load_file(str(samples["pal_tff"]))
     wait(win)
     assert win.trim_start.value() == 0 and win.trim_end.value() == 0      # tout garder par défaut

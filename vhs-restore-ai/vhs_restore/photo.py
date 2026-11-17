@@ -27,7 +27,7 @@ from typing import Callable
 
 from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
-from .tools import Cancelled, ToolError, Toolset, run, run_capture
+from .tools import ToolError, Toolset, run, run_capture
 from .upscaler import RealEsrganUpscaler
 
 PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}

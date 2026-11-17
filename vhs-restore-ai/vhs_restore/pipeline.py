@@ -45,7 +45,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Callable
 
-from .probe import MediaInfo, analyze
+from .probe import MediaInfo
 from .profiles import Profile
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run, run_capture,
                     terminate)

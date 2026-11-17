@@ -164,7 +164,7 @@ class DropZone(QLabel):
     dropped = Signal(str)
 
     def __init__(self) -> None:
-        super().__init__("Déposez une vidéo ici\nou cliquez sur « Choisir une vidéo »")
+        super().__init__("Déposez un film ou une photo ici\nou cliquez sur « Choisir un film ou une photo »")
         self.setAlignment(Qt.AlignCenter)
         self.setAcceptDrops(True)
         self.setMinimumHeight(72)
@@ -429,6 +429,14 @@ def _with_icon(widget: QAbstractButton, icon: str) -> QAbstractButton:
     return widget
 
 
+def _wrap(layout: QHBoxLayout) -> QWidget:
+    """Met une ligne de réglages dans un conteneur, pour pouvoir la cacher d'un coup."""
+    w = QWidget()
+    layout.setContentsMargins(0, 0, 0, 0)
+    w.setLayout(layout)
+    return w
+
+
 class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
@@ -443,7 +451,6 @@ class MainWindow(QMainWindow):
         self.preview: pipeline.PreviewResult | None = None
         self.preview_dir = Path(tempfile.mkdtemp(prefix="vhsrestore_apercu_"))
         self._build()
-        self._compacter_options()
         self._refresh_tools()
         self._update_state()
 
@@ -602,18 +609,18 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.pages)
 
         # Import
-        g = Carte("Vidéo numérisée", "film", "1")
+        g = self._card_media = Carte("Film ou photo", "film", "1")
         v = g.body
         self.drop = DropZone()
         self.drop.dropped.connect(self.load_file)
-        b = _with_icon(QPushButton("Choisir une vidéo…"), "dossier")
+        b = _with_icon(QPushButton("Choisir un film ou une photo…"), "dossier")
         b.clicked.connect(self._choose_file)
         v.addWidget(self.drop)
         v.addWidget(b)
         left.addWidget(g)
 
         # Caractéristiques
-        g = Carte("Caractéristiques", "info")
+        g = self._card_info = Carte("Caractéristiques", "info")
         self.info_form = QFormLayout()
         g.body.addLayout(self.info_form)
         self.info_labels: dict[str, QLabel] = {}
@@ -661,7 +668,7 @@ class MainWindow(QMainWindow):
         left.addWidget(g)
 
         # Profils : trois tuiles
-        g = Carte("Profil de restauration", "etincelle", "2")
+        g = self._card_profil = Carte("Profil de restauration", "etincelle", "2")
         self.profile_group = QButtonGroup(self)
         self.profile_buttons: dict[str, QAbstractButton] = {}
         tiles = QHBoxLayout()
@@ -683,7 +690,7 @@ class MainWindow(QMainWindow):
         left.addWidget(g)
 
         # Image
-        gi = Carte("Image", "image")
+        gi = self._card_image = Carte("Image", "image")
         vi = gi.body
         h = QHBoxLayout()
         self.res_combo = QComboBox()
@@ -693,14 +700,16 @@ class MainWindow(QMainWindow):
         self.ai_check.toggled.connect(self._ai_toggled)
         h.addWidget(_ilabel("Sortie :", "ecran"))
         h.addWidget(self.res_combo, 1)
-        vi.addLayout(h)
+        self._row_res = _wrap(h)
+        vi.addWidget(self._row_res)
         h = QHBoxLayout()
         self.deint_combo = QComboBox()
         self.deint_combo.addItem("bwdif (rapide)", "bwdif")
         self.deint_combo.addItem("QTGMC (meilleure qualité, plus lent)", "qtgmc")
         h.addWidget(_ilabel("Désentrelaceur :", "trames"))
         h.addWidget(self.deint_combo, 1)
-        vi.addLayout(h)
+        self._row_deint = _wrap(h)
+        vi.addWidget(self._row_deint)
         self.dust_check = _with_icon(QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)"),
                                      "poussiere")
         vi.addWidget(self.dust_check)
@@ -746,7 +755,8 @@ class MainWindow(QMainWindow):
         h.addWidget(self.mask_label)
         h.addWidget(self.mask_spin)
         h.addStretch(1)
-        vi.addLayout(h)
+        self._row_mask = _wrap(h)
+        vi.addWidget(self._row_mask)
         self.edge_spin = QDoubleSpinBox()
         self.edge_spin.setRange(0, 64)
         self.edge_spin.setDecimals(0)
@@ -761,7 +771,8 @@ class MainWindow(QMainWindow):
         h.addWidget(self.edge_label)
         h.addWidget(self.edge_spin)
         h.addStretch(1)
-        vi.addLayout(h)
+        self._row_edge = _wrap(h)
+        vi.addWidget(self._row_edge)
         h = QHBoxLayout()
         self.chroma_spin = QSpinBox()
         self.chroma_spin.setRange(-8, 8)
@@ -772,12 +783,13 @@ class MainWindow(QMainWindow):
         h.addWidget(_ilabel("Décalage de couleur :", "decalage"))
         h.addWidget(self.chroma_spin)
         h.addStretch(1)
-        vi.addLayout(h)
+        self._row_chroma = _wrap(h)
+        vi.addWidget(self._row_chroma)
         vi.addWidget(self.ai_check)
         left.addWidget(gi)
 
         # Son
-        gs = Carte("Son", "onde")
+        gs = self._card_son = Carte("Son", "onde")
         vs = gs.body
         self.audio_check = _with_icon(QCheckBox("Restaurer le son (souffle, clics, volume)"), "haut_parleur")
         self.audio_check.setChecked(True)
@@ -885,7 +897,8 @@ class MainWindow(QMainWindow):
         self.hear_orig_btn.clicked.connect(self._play_original)
         self.hear_new_btn = _with_icon(QPushButton("Écouter le son restauré"), "casque")
         self.hear_new_btn.clicked.connect(self._play_restored)
-        h.addWidget(_ilabel("Début de l'extrait :", "horloge"))
+        self.start_label = _ilabel("Début de l'extrait :", "horloge")
+        h.addWidget(self.start_label)
         h.addWidget(self.start_spin)
         h.addWidget(self.preview_btn)
         h.addStretch(1)
@@ -909,8 +922,9 @@ class MainWindow(QMainWindow):
         v = g.body
         h = QHBoxLayout()
         self.out_edit = QLineEdit()
-        self.out_edit.setPlaceholderText("Dossier de la vidéo d'origine")
-        bo = _with_icon(QPushButton("Dossier de sortie…"), "dossier")
+        self.out_edit.setPlaceholderText("À côté du fichier d'origine")
+        self.out_edit.textEdited.connect(lambda t: setattr(self, "_out_manual", bool(t.strip())))
+        bo = self._out_btn = _with_icon(QPushButton("Dossier de sortie…"), "dossier")
         bo.clicked.connect(self._choose_outdir)
         h.addWidget(self.out_edit, 1)
         h.addWidget(bo)
@@ -930,7 +944,8 @@ class MainWindow(QMainWindow):
         h.addWidget(QLabel("jusqu'à :"))
         h.addWidget(self.trim_end)
         h.addStretch(1)
-        v.addLayout(h)
+        self._row_trim = _wrap(h)
+        v.addWidget(self._row_trim)
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
@@ -965,7 +980,9 @@ class MainWindow(QMainWindow):
         self.compare = _Mirror(self.compare, self.s_compare)
         self.tools_label = QLabel()
         self.statusBar().addPermanentWidget(self.tools_label)
+        self._compacter_options()       # avant tout calcul de mise en page (Qt garde les tailles)
         self.profile_buttons["equilibre"].setChecked(True)
+        self._out_manual = False        # dossier de sortie choisi exprès par l'utilisateur ?
         self._load_prefs()
 
     # ------------------------------------------------------------ état
@@ -1064,12 +1081,36 @@ class MainWindow(QMainWindow):
         if not self.ai_check.isChecked() and self.res_combo.currentData() == "2160":
             self.res_combo.setCurrentIndex(self.res_combo.findData("1080"))
         has_prev = self.preview is not None
-        for b in (self.play_btn, self.hear_orig_btn, self.hear_new_btn,
-                  self.s_hear_orig, self.s_hear_new):
-            b.setEnabled(has_prev and not busy)
-            b.setVisible(not getattr(self, "is_photo", False))     # une photo n'a pas de son
-        self.s_note.setVisible(not getattr(self, "is_photo", False))
-        self.still_combo.setEnabled(has_prev)
+        photo_mode = getattr(self, "is_photo", False)
+        sound = bool(self.info is not None and self.info.has_audio and not self.info.audio_silent)
+        self.play_btn.setEnabled(has_prev and not busy)
+        self.play_btn.setVisible(not photo_mode)
+        for b in (self.hear_orig_btn, self.hear_new_btn, self.s_hear_orig, self.s_hear_new):
+            b.setEnabled(has_prev and sound and not busy)          # film muet : rien à écouter
+            b.setVisible(not photo_mode)                            # une photo n'a pas de son
+            b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
+        self.s_note.setVisible(not photo_mode)
+        self.still_combo.setEnabled(has_prev and not busy)
+        # Pendant un traitement, les réglages ne servent plus (ils ont été lus au lancement) :
+        # on les grise pour ne pas laisser croire qu'ils changent le travail en cours.
+        for card in (self._card_media, self._card_info, self._card_profil, self._card_image, self._card_son):
+            card.setEnabled(not busy)
+        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self.s_advice):
+            wd.setEnabled(not busy)
+        # Photo : seuls le profil, la dominante, l'IA et la colorisation comptent. Les réglages
+        # propres aux films sont cachés (ils n'auraient aucun effet).
+        self._card_son.setVisible(not photo_mode)
+        for wd in (self._row_res, self._row_deint, self._row_edge, self._row_chroma, self.hq_check,
+                   self.stab_check, self.start_label, self.start_spin, self._row_trim):
+            wd.setVisible(not photo_mode)
+        for box in (self.tape_check, self.chroma_check, self.dropout_check):
+            box.setVisible(src != "film" and not photo_mode)
+        self.flicker_check.setVisible(src in ("film", "transfer") and not photo_mode)
+        self.dust_check.setVisible(src == "film" and not photo_mode)
+        self._row_mask.setVisible(src == "video" and not photo_mode)
+        for combo in (self.source_combo, self.scan_combo, self.dar_combo):
+            self.info_form.setRowVisible(combo, not photo_mode)
+        self.info_form.setRowVisible(self.cadence_combo, src == "film" and not photo_mode)
 
     def _profile_changed(self, key: str) -> None:
         p = PROFILES[key]
@@ -1161,7 +1202,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ actions
     def _choose_file(self) -> None:
-        f, _ = QFileDialog.getOpenFileName(self, "Choisir une vidéo numérisée", "", VIDEO_FILTER)
+        f, _ = QFileDialog.getOpenFileName(self, "Choisir un film ou une photo", "", VIDEO_FILTER)
         if f:
             self.load_file(f)
 
@@ -1169,9 +1210,11 @@ class MainWindow(QMainWindow):
         d = QFileDialog.getExistingDirectory(self, "Dossier de sortie", self.out_edit.text())
         if d:
             self.out_edit.setText(d)
+            self._out_manual = True        # choisi exprès : gardé pour les fichiers suivants
 
     def load_file(self, path: str) -> None:
         if self._busy():
+            self.status.setText("Un traitement est en cours : attendez la fin ou cliquez sur « Arrêter ».")
             return
         self.progress.setRange(0, 0)  # animation indéterminée
         if photo.is_photo(path):
@@ -1191,7 +1234,9 @@ class MainWindow(QMainWindow):
         self.info_labels["Fichier"].setText(info.path.name)
         self.info_labels["Résolution"].setText(f"{info.width} × {info.height} (photo)")
         self.out_note = ""
-        if not self.out_edit.text() or not pipeline.is_writable(Path(self.out_edit.text())):
+        if (not self._out_manual or not self.out_edit.text()
+                or not pipeline.is_writable(Path(self.out_edit.text()))):
+            # sauf choix exprès : à côté du fichier d'origine (comme le promet le mode d'emploi)
             try:
                 out, fallback = pipeline.output_dir_for(info.path.parent)
                 self.out_edit.setText(str(out))
@@ -1240,7 +1285,9 @@ class MainWindow(QMainWindow):
         self.start_spin.setRange(0, max(0.0, info.duration - 10))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
         self.out_note = ""
-        if not self.out_edit.text() or not pipeline.is_writable(Path(self.out_edit.text())):
+        if (not self._out_manual or not self.out_edit.text()
+                or not pipeline.is_writable(Path(self.out_edit.text()))):
+            # sauf choix exprès : à côté du fichier d'origine (comme le promet le mode d'emploi)
             try:
                 out, fallback = pipeline.output_dir_for(info.path.parent)
                 self.out_edit.setText(str(out))
@@ -1355,9 +1402,12 @@ class MainWindow(QMainWindow):
 
         def job(cancel, progress):
             progress(0.02, "Vérification de l'installation…")
-            code = autotest(str(folder), progress=lambda f, m: progress(f, f"Vérification : {m}"))
-            text = (folder / "autotest.txt").read_text(encoding="utf-8", errors="replace")
-            shutil.rmtree(folder, ignore_errors=True)
+            try:
+                code = autotest(str(folder), progress=lambda f, m: progress(f, f"Vérification : {m}"),
+                                cancel=cancel)
+                text = (folder / "autotest.txt").read_text(encoding="utf-8", errors="replace")
+            finally:
+                shutil.rmtree(folder, ignore_errors=True)
             return code, text
         self.status.setText("Vérification de l'installation…")
         self.check_btn.setText("Vérification en cours…")
@@ -1543,8 +1593,9 @@ class MainWindow(QMainWindow):
             self.chroma_check.setChecked(bool(s.value("chroma_repair", False, type=bool)))
             self.dropout_check.setChecked(bool(s.value("dropouts", False, type=bool)))
         out = str(s.value("out_dir", "") or "")
-        if out:
+        if out and s.value("out_dir_manual", False, type=bool):   # ancien réglage automatique : ignoré
             self.out_edit.setText(out)
+            self._out_manual = True
 
     def _save_prefs(self) -> None:
         s = self._prefs()
@@ -1567,7 +1618,8 @@ class MainWindow(QMainWindow):
         s.setValue("tape_noise", self.tape_check.isChecked())
         s.setValue("chroma_repair", self.chroma_check.isChecked())
         s.setValue("dropouts", self.dropout_check.isChecked())
-        s.setValue("out_dir", self.out_edit.text())
+        s.setValue("out_dir", self.out_edit.text() if self._out_manual else "")
+        s.setValue("out_dir_manual", bool(self._out_manual))
 
 
 def main() -> int:
