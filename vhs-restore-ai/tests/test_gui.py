@@ -63,11 +63,12 @@ def test_window_flow(app, tools, samples, tmp_path, monkeypatch):
 def test_bad_file_shows_error(app, tools, samples, monkeypatch):
     from PySide6.QtWidgets import QMessageBox
     shown = []
-    monkeypatch.setattr(QMessageBox, "critical", lambda *a, **k: shown.append(a[2]))
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: shown.append(self.text()) or 0)
     win = MainWindow(tools)
     win.load_file(str(samples["corrupt"]))
     wait(app, win)
     assert shown and win.info is None and not win.run_btn.isEnabled()
+    assert "abîmé" in shown[0] and "Traceback" not in shown[0]
     win.close()
 
 
@@ -176,5 +177,7 @@ def test_photo_mode(app, tools, tmp_path, monkeypatch):
     assert win.s_compare.before is not None and win.status.text().startswith("Aperçu prêt")
     win.s_run.click()
     wait(app, win)
-    assert list(tmp_path.glob("carte postale_restaure_*.png")) and "photo restaurée" in shown[-1]
+    assert list(tmp_path.glob("carte postale_restaure_*.png"))
+    assert "photo restaurée" in win.s_fini_texte.text()
+    assert win.s_voir.text() == "Voir la photo" and not win.s_fini.isHidden()
     win.close()

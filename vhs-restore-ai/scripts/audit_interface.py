@@ -14,6 +14,7 @@ from vhs_restore.gui import MainWindow
 VIDEO, PHOTO_NB, PHOTO_COUL = sys.argv[1:4]
 events = []
 QMessageBox.exec = lambda self: events.append(("boîte", self.windowTitle(), self.text()[:60])) or 0
+QMessageBox.question = staticmethod(lambda *a, **k: events.append(("question", a[1], str(a[2])[:60])) or 0)
 QMessageBox.warning = staticmethod(lambda *a, **k: events.append(("avertissement", a[1], a[2][:60])) or 0)
 QMessageBox.information = staticmethod(lambda *a, **k: events.append(("info", a[1], a[2][:60])) or 0)
 QMessageBox.critical = staticmethod(lambda *a, **k: events.append(("ERREUR", a[1], a[2][:80])) or 0)
@@ -113,7 +114,11 @@ def effect_test(label):
         x.click(); pump(0.3)
         after = (len(events), w.status.text(), w.pages.currentIndex(), w._busy())
         if w._busy():
+            # PySide hors écran plante parfois dans paintEvent si on redessine
+            # pendant l'arrêt d'un vrai ffmpeg. On suspend le dessin le temps d'attendre.
+            w.setUpdatesEnabled(False)
             w.cancel(); wait_idle(60)
+            w.setUpdatesEnabled(True)
         if before == after:
             print("   ", name(x), page_of(x))
         w.pages.setCurrentIndex(0)
@@ -125,3 +130,12 @@ w.load_file(PHOTO_NB); wait_idle()
 effect_test("photo N&B")
 print("ÉVÉNEMENTS (extrait) :", events[-12:])
 print("FIN")
+# PySide plante parfois en libérant les QThread à l'arrêt de l'interpréteur,
+# après la fin réelle de l'audit. On ferme proprement, puis on sort sans ce faux échec.
+import os
+if getattr(w, "worker", None) is not None and w.worker.isRunning():
+    w.cancel()
+    w.worker.wait(8000)
+w.close()
+app.processEvents()
+os._exit(0)

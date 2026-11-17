@@ -13,11 +13,11 @@ from vhs_restore.tools import ToolError
 
 # ---------------------------------------------------------------- temps restant
 def test_describe():
-    assert describe(30) == "moins d'une minute restante"
-    assert describe(60) == "environ 1 min restante"
-    assert describe(25 * 60) == "environ 25 min restantes"
-    assert describe(80 * 60) == "environ 1 h 20 restantes"
-    assert describe(120 * 60) == "environ 2 h restantes"
+    assert describe(30) == "moins d'une minute"
+    assert describe(60) == "environ 1 minute"
+    assert describe(25 * 60) == "environ 25 minutes"
+    assert describe(80 * 60) == "environ 1 h 20"
+    assert describe(120 * 60) == "environ 2 h"
 
 
 def test_eta_waits_then_estimates():
@@ -27,7 +27,7 @@ def test_eta_waits_then_estimates():
     t[0] = 8
     assert eta.update(0.10) == ""                 # moins de 10 s : rien
     t[0] = 60
-    assert eta.update(0.25) == "environ 3 min restantes"   # 25 % en 1 min -> 3 min
+    assert eta.update(0.25) == "environ 3 minutes"   # 25 % en 1 min -> 3 min
     t[0] = 120
     assert eta.update(1.0) == ""                  # terminé : rien
 
