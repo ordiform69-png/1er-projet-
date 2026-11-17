@@ -308,6 +308,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 
 QStatusBar {{ background: {CARTE}; border-top: 1px solid {BORD}; color: {TEXTE_DOUX}; }}
+QPushButton#voyant {{
+    border: none; background: transparent; color: {TEXTE_DOUX}; padding: 2px 6px;
+    font-size: 11.5pt; border-radius: 6px;
+}}
+QPushButton#voyant:hover {{ color: {ACCENT}; background: #1b2a33; }}
 QToolTip {{
     background: {BANDEAU}; color: {TEXTE}; border: 1px solid {ACCENT};
     padding: 6px; font-size: 12pt;

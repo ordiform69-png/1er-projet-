@@ -26,10 +26,15 @@ clics et le volume). Une cassette muette reste muette. Si le son ne colle pas
 en millisecondes par minute si le décalage s'aggrave. On peut aussi demander
 une copie WAV ou FLAC du son restauré.
 
-Pour le nettoyage de voix du profil Maximum (facultatif) :
-  installer.bat -AvecSon
-Cela télécharge DeepFilterNet, un logiciel libre. Sans lui, le son est quand
-même nettoyé par FFmpeg.
+Outils facultatifs
+------------------
+En bas de la fenêtre, des voyants indiquent les outils : ● installé, ○ pas
+installé. Cliquez sur un voyant ○ : une fiche explique à quoi sert l'outil et
+propose « Installer ». Le téléchargement est vérifié, et l'outil reste installé
+après une mise à jour du logiciel. Le logiciel marche très bien sans eux.
+  - DeepFilterNet : nettoyage poussé des voix (profil Maximum).
+  - Real-ESRGAN : agrandissement par IA (demande une carte graphique récente).
+  - QTGMC : ne s'installe pas depuis le logiciel ; le désentrelaceur intégré suffit.
 
 Photos : choisissez une photo ou une carte postale numérisée (.jpg, .png…) avec le
 même bouton. La photo restaurée est enregistrée à côté de l'originale, en .png.

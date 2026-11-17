@@ -21,7 +21,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, run_capture
+from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, run_capture, user_tools_dir
 
 MODEL_NAME = "ddcolor-tiny-fp16.onnx"
 MODEL_URL = ("https://huggingface.co/edgetools/ddcolor/resolve/"
@@ -37,7 +37,8 @@ _sessions: dict[str, object] = {}
 
 def model_path() -> Path | None:
     env = os.environ.get("VHSRA_DDCOLOR")
-    for p in ([Path(env)] if env else []) + [TOOLS_DIR / "ddcolor" / MODEL_NAME]:
+    for p in ([Path(env)] if env else []) + [TOOLS_DIR / "ddcolor" / MODEL_NAME,
+                                             user_tools_dir() / "ddcolor" / MODEL_NAME]:
         if p.is_file():
             return p
     return None

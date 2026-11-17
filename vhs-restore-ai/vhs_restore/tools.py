@@ -23,6 +23,14 @@ log = logging.getLogger("vhs_restore")
 APP_DIR = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
            else Path(__file__).resolve().parent.parent)
 TOOLS_DIR = APP_DIR / "tools"
+
+
+def user_tools_dir() -> Path:
+    """Outils facultatifs installés depuis l'application (bouton « Installer ») : dans le profil
+    de l'utilisateur, pour qu'ils servent encore après une nouvelle version du logiciel."""
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.local/share")
+    return Path(base) / "VHSRestoreAI" / "tools"
+
 IS_WIN = os.name == "nt"
 EXE = ".exe" if IS_WIN else ""
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -107,16 +115,18 @@ class Toolset:
 
 def _find(env: str, names: Iterable[str], subdirs: Iterable[str],
           exts: Iterable[str] = (EXE,)) -> str | None:
-    """Ordre de recherche : variable d'environnement, dossier tools/ de l'appli, PATH."""
+    """Ordre de recherche : variable d'environnement, dossier tools/ de l'appli, outils
+    installés depuis l'application (profil de l'utilisateur), PATH."""
     value = os.environ.get(env)
     if value and Path(value).is_file():
         return value
-    for sub in subdirs:
-        for n in names:
-            for ext in exts:
-                p = (Path(sys.executable).parent if sub == "@python" else TOOLS_DIR / sub) / (n + ext)
-                if p.is_file():
-                    return str(p)
+    for base in (TOOLS_DIR, user_tools_dir()):
+        for sub in subdirs:
+            for n in names:
+                for ext in exts:
+                    p = (Path(sys.executable).parent if sub == "@python" else base / sub) / (n + ext)
+                    if p.is_file():
+                        return str(p)
     for n in names:
         p = shutil.which(n)
         if p:

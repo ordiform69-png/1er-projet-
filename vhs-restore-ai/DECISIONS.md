@@ -537,3 +537,24 @@ parcours d'annulation et de fermeture. Aucun bouton actif sans effet. Défauts t
 Tests ajoutés : `tests/test_etats_interface.py` (4 tests), qui échouent tous sur l'ancien code.
 Non testé : clics réels sous Windows (le robot tourne hors écran sous Linux).
 
+## Outils facultatifs installables depuis l'application (phase 18)
+
+Demande : cliquer sur « QTGMC », « Real-ESRGAN » ou « DeepFilterNet » ne faisait rien (simples
+voyants), et l'installation par PowerShell dans le dossier de l'exe était perdue à chaque nouvelle
+version. Désormais :
+
+- Les voyants de la barre du bas sont des boutons : une fiche explique l'outil, son état
+  (installé, inutilisable avec la raison, pas installé) et propose « Installer (taille) » ou
+  « Réinstaller ». QTGMC (Python + VapourSynth) et FFmpeg (livré) ne s'installent pas ainsi.
+- `vhs_restore/installer.py` : publications officielles à version figée (Real-ESRGAN v0.2.5.0,
+  DeepFilterNet v0.5.6, DDColor révision 4755ae9f), empreinte SHA-256 vérifiée, 3 essais,
+  progression en Mo, annulation, archive refusée si un chemin sort du dossier, rien d'installé à
+  moitié (dossier temporaire puis mise en place d'un coup). Réel vérifié ici : les trois outils
+  téléchargés, vérifiés et rangés, aucun reste temporaire.
+- Rangement : `%LOCALAPPDATA%\VHSRestoreAI\tools` (`tools.user_tools_dir()`), cherché après le
+  dossier `tools` de l'application : un outil installé sert encore après une mise à jour.
+- Tests : `tests/test_installer.py` (serveur HTTP local : mise en place, mauvaise empreinte,
+  annulation, archive piégée, outil du profil détecté, fiche avec « Installer »).
+- Non testé : l'installation réelle de Real-ESRGAN et DeepFilterNet SOUS Windows (vérifiée ici
+  en simulant Windows) et le fonctionnement de Real-ESRGAN sans carte graphique Vulkan.
+

@@ -129,7 +129,8 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
         if not tools.colorize_available:
             raise ToolError("La colorisation n'est pas installée"
                             + (f" ({tools.colorizer.problem})" if tools.colorizer.problem else "")
-                            + ". Relancez installer.bat -AvecCouleurs, ou décochez « Coloriser ».")
+                            + ". Cliquez sur « ○ Colorisation » en bas de la fenêtre pour l'installer, "
+                            "ou décochez « Coloriser ».")
         if color_out.exists():
             raise ToolError(f"Une photo colorisée porte déjà ce nom : {color_out.name}. Rien n'a été remplacé.")
     part = out_path.with_name(out_path.stem + ".partiel.png")

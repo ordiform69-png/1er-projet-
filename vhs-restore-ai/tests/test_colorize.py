@@ -128,7 +128,7 @@ def test_rien_par_defaut_ni_pour_une_photo_couleur(nb_photo, fake_model, tmp_pat
 def test_non_installee_ou_nom_pris(nb_photo, tools, fake_model, tmp_path):
     info = photo.analyze_photo(nb_photo["nb"], tools)
     absent = dataclasses.replace(tools, colorizer=Tool("Colorisation (DDColor)"))
-    with pytest.raises(ToolError, match="AvecCouleurs"):
+    with pytest.raises(ToolError, match="Colorisation"):
         photo.restore_photo(info, settings(colorize=True), tmp_path / "x.png", absent)
     assert not (tmp_path / "x.png").exists()
     pris = tmp_path / "y_colorisee_ia.png"

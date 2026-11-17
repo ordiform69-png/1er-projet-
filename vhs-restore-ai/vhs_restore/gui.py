@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QBoxLayout, QButto
                                QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from . import icons, photo, pipeline, theme
+from . import icons, installer, photo, pipeline, theme
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -404,6 +404,22 @@ class ProfileTile(QPushButton):
             p.setBrush(QColor(theme.ACCENT))
             p.drawEllipse(QPoint(r.right() - 14, r.top() + 14), 4, 4)
 
+
+TOOL_INFO = {
+    "ffmpeg": ("FFmpeg", "Moteur de traitement de l'image et du son, livré avec le logiciel. "
+                         "Indispensable."),
+    "qtgmc": ("QTGMC", "Désentrelaceur de référence pour les cassettes entrelacées : un peu plus fin que "
+                       "celui du logiciel (bwdif), mais plusieurs fois plus lent. Il demande Python et "
+                       "VapourSynth, il ne s'installe donc pas depuis cette fenêtre. Le désentrelaceur "
+                       "intégré suffit pour des films de famille."),
+    "realesrgan": ("Real-ESRGAN", "Agrandissement par intelligence artificielle (profil Maximum, photos). "
+                                  "Demande une carte graphique compatible Vulkan. L'IA peut inventer des "
+                                  "détails, surtout sur les petits visages : vérifiez toujours l'aperçu."),
+    "deepfilter": ("DeepFilterNet", "Nettoyage poussé des voix pour le profil Maximum, sur le processeur. "
+                                    "Les rires, la musique et les bruits d'ambiance restent."),
+    "colorisation": ("Colorisation", "Colorisation des photos noir et blanc par l'IA (DDColor). Les couleurs "
+                                     "sont inventées ; une copie à part est écrite, le noir et blanc est gardé."),
+}
 
 PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
                 "equilibre": ("balance", "Conseillé"),
@@ -978,7 +994,19 @@ class MainWindow(QMainWindow):
         self.status = _Mirror(self.status, self.s_status)
         self.progress = _Mirror(self.progress, self.s_progress)
         self.compare = _Mirror(self.compare, self.s_compare)
-        self.tools_label = QLabel()
+        # voyants des outils : cliquables (fiche de l'outil, bouton « Installer » si besoin)
+        self.tools_label = QWidget()
+        hb = QHBoxLayout(self.tools_label)
+        hb.setContentsMargins(0, 0, 0, 0)
+        hb.setSpacing(2)
+        self.voyants: dict[str, QPushButton] = {}
+        for key in TOOL_INFO:
+            b = QPushButton()
+            b.setObjectName("voyant")
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(lambda _=False, k=key: self.show_tool(k))
+            hb.addWidget(b)
+            self.voyants[key] = b
         self.statusBar().addPermanentWidget(self.tools_label)
         self._compacter_options()       # avant tout calcul de mise en page (Qt garde les tailles)
         self.profile_buttons["equilibre"].setChecked(True)
@@ -988,20 +1016,17 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ état
     def _refresh_tools(self) -> None:
         t = self.tools
-        ok_ff = bool(t.ffmpeg.path and t.ffprobe.path and not t.missing_filters)
-        parts = [("FFmpeg", ok_ff, f"FFmpeg {t.ffmpeg.version}" if ok_ff else "FFmpeg manquant (requis)"),
-                 ("QTGMC", t.qtgmc_available, f"QTGMC ({t.vspipe.version})"),
-                 ("Real-ESRGAN", t.ai_available, "Real-ESRGAN"),
-                 ("DeepFilterNet", t.deepfilter_available, "DeepFilterNet"),
-                 ("Colorisation", t.colorize_available, "Colorisation (DDColor)")]
-        self.tools_label.setText("   ".join(f"{'●' if ok else '○'} {name}" for name, ok, _ in parts))
-        self.tools_label.setToolTip("● installé   ○ non installé (facultatif, sauf FFmpeg)\n"
-                                    + "\n".join(f"{'✔' if ok else '—'} {det}" for _n, ok, det in parts))
+        for key, b in self.voyants.items():
+            ok = self._tool_ok(key)
+            b.setText(f"{'●' if ok else '○'} {TOOL_INFO[key][0]}")
+            b.setToolTip("Installé. Cliquez pour en savoir plus." if ok else
+                         "Pas installé. Cliquez pour l'installer." if installer.can_install(key) else
+                         "Pas installé. Cliquez pour en savoir plus.")
         self.s_colorize.setToolTip(
             "Photo noir et blanc seulement. L'IA (DDColor) DEVINE des couleurs plausibles : elles peuvent "
             "être fausses (vêtements, peau, objets). Une copie « …_colorisee_ia.png » est écrite en plus ; "
             "la photo restaurée en noir et blanc est toujours gardée." if t.colorize_available else
-            "Colorisation non installée : relancez installer.bat -AvecCouleurs "
+            "Colorisation non installée : cliquez sur « ○ Colorisation » en bas de la fenêtre "
             + (f"({t.colorizer.problem})" if t.colorizer.problem else ""))
         self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
         self.stab_check.setToolTip(
@@ -1015,8 +1040,71 @@ class MainWindow(QMainWindow):
                                       "relancez installer.bat -AvecQTGMC (Python 3.12+)."))
         self.ai_check.setToolTip("Agrandissement par IA sur carte graphique (Vulkan). "
                                  "Peut inventer des détails : vérifiez l'aperçu." if t.ai_available else
-                                 "Installez Real-ESRGAN : relancez installer.bat -AvecIA "
+                                 "Real-ESRGAN n'est pas installé : cliquez sur « ○ Real-ESRGAN » en bas "
+                                 "de la fenêtre "
                                  + (f"({t.realesrgan.problem})" if t.realesrgan.problem else ""))
+
+    def _tool_ok(self, key: str) -> bool:
+        t = self.tools
+        return {"ffmpeg": bool(t.ffmpeg.path and t.ffprobe.path and not t.missing_filters),
+                "qtgmc": t.qtgmc_available, "realesrgan": t.ai_available,
+                "deepfilter": t.deepfilter_available, "colorisation": t.colorize_available}[key]
+
+    def _tool_obj(self, key: str):
+        t = self.tools
+        return {"ffmpeg": t.ffmpeg, "qtgmc": t.vspipe, "realesrgan": t.realesrgan,
+                "deepfilter": t.deepfilter, "colorisation": t.colorizer}[key]
+
+    def show_tool(self, key: str) -> None:
+        """Fiche d'un outil : à quoi il sert, s'il est installé, et « Installer » si possible."""
+        name, what = TOOL_INFO[key]
+        tool, ok = self._tool_obj(key), self._tool_ok(key)
+        if ok:
+            state = f"✔ Installé.\n{tool.path}"
+        elif tool.problem:
+            state = f"⚠ Trouvé mais inutilisable : {tool.problem}"
+        else:
+            state = "○ Pas installé."
+        can = installer.can_install(key) and not self._busy()
+        if not ok and key in installer.PAQUETS and not installer.can_install(key):
+            state += "\nL'installation automatique n'est proposée que sous Windows."
+        box = QMessageBox(QMessageBox.Information, name, f"{what}\n\n{state}", parent=self)
+        btn = None
+        if can and not ok:
+            btn = box.addButton(f"Installer ({installer.PAQUETS[key].size_mb} Mo)", QMessageBox.AcceptRole)
+        elif can and tool.problem:
+            btn = box.addButton("Réinstaller", QMessageBox.AcceptRole)
+        box.addButton("Fermer", QMessageBox.RejectRole)
+        box.exec()
+        if btn is not None and box.clickedButton() is btn:
+            self.install_tool(key)
+
+    def install_tool(self, key: str) -> None:
+        if self._busy():
+            return
+        name = TOOL_INFO[key][0]
+        self.status.setText(f"Installation de {name}…")
+
+        def job(cancel, progress):
+            installer.install(key, cancel=cancel, progress=progress)
+            return key, detect_tools()          # l'outil est cherché à nouveau, comme au démarrage
+        self._launch(job, self._tool_installed)
+
+    def _tool_installed(self, res) -> None:
+        key, tools = res
+        self.tools = tools
+        self._refresh_tools()
+        self._update_state()
+        name = TOOL_INFO[key][0]
+        if self._tool_ok(key):
+            self.status.setText(f"Terminé : {name} est installé.")
+            QMessageBox.information(self, name, f"{name} est installé et prêt à servir.\n\n"
+                                    "Il restera installé après une mise à jour du logiciel.")
+        else:
+            prob = self._tool_obj(key).problem
+            self.status.setText(f"{name} : installation à vérifier.")
+            QMessageBox.warning(self, name, f"{name} a été téléchargé mais ne fonctionne pas sur cet "
+                                f"ordinateur.\n{prob}")
 
     def _colorize_toggled(self) -> None:
         """L'aperçu affiché ne correspond plus aux réglages : on l'efface."""
