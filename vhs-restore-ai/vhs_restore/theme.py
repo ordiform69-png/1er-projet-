@@ -20,7 +20,7 @@ CARTE_SUR = "#262e39"
 BORD = "#3c4c5e"
 TEXTE = "#f3f6fa"
 TEXTE_DOUX = "#c5d0dc"
-TEXTE_DESACTIVE = "#d5dde6"
+TEXTE_DESACTIVE = "#8e9bab"   # nettement plus terne que TEXTE : un bouton grisé doit se voir
 FOND_DESACTIVE = "#10141a"
 ACCENT = "#7ee7f7"
 ACCENT_SOURD = "#9aa7b5"
@@ -31,8 +31,8 @@ AMBRE = "#e8b15a"
 AMBRE_SURVOL = "#f0c36a"
 AMBRE_PRESSE = "#c98a32"
 AMBRE_TEXTE = "#1a1206"
-AMBRE_ETEINT = "#5c4a2c"
-AMBRE_ETEINT_TEXTE = "#f3e6c8"
+AMBRE_ETEINT = "#3d3324"     # Restaurer indisponible : terne, pas « allumé »
+AMBRE_ETEINT_TEXTE = "#c9b893"
 PISTE = "#2a313c"
 TUILE_ACTIVE = "#123a44"      # tuile de profil choisie
 
@@ -176,7 +176,7 @@ QPushButton {{
 QPushButton:hover {{ border-color: {ACCENT}; background: #24303a; }}
 QPushButton:pressed {{ background: #182026; }}
 QPushButton:disabled {{
-    color: {TEXTE_DESACTIVE}; background: {FOND_DESACTIVE}; border-color: #3a4452;
+    color: {TEXTE_DESACTIVE}; background: {FOND_DESACTIVE}; border-color: #262d37;
 }}
 QPushButton#etape {{
     font-size: 15pt; font-weight: 600; min-height: 58px; border-radius: 12px;

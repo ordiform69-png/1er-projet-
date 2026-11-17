@@ -558,3 +558,10 @@ version. Désormais :
 - Non testé : l'installation réelle de Real-ESRGAN et DeepFilterNet SOUS Windows (vérifiée ici
   en simulant Windows) et le fonctionnement de Real-ESRGAN sans carte graphique Vulkan.
 
+## Boutons désactivés bien visibles (phase 19)
+
+Sur la capture Windows de l'utilisateur, « Arrêter » et « Écouter… » (désactivés, rien de chargé)
+ressemblaient à des boutons actifs : texte #d5dde6 contre #f3f6fa. Un clic sans effet passait pour
+une panne. Texte désactivé #8e9bab (6,5:1 sur son fond, toujours lisible), bordure plus discrète ;
+« Restaurer » indisponible : ambre éteint #3d3324 / #c9b893 (6,3:1) au lieu d'un ambre presque allumé.
+
