@@ -107,9 +107,14 @@ def _ratio() -> float:
     return max(1.0, screen.devicePixelRatio() if screen else 1.0, 2.0)
 
 
+def pixmap(name: str, size: int = SIZE, color: str | None = None) -> QPixmap:
+    """Image de l'icône (vide si le nom est inconnu ou si QtSvg manque). Couleur : l'accent
+    de la palette en cours si rien n'est précisé."""
+    return _pixmap(name, size, color or theme.ACCENT)
+
+
 @lru_cache(maxsize=512)
-def pixmap(name: str, size: int = SIZE, color: str = theme.ACCENT) -> QPixmap:
-    """Image de l'icône (vide si le nom est inconnu ou si QtSvg manque)."""
+def _pixmap(name: str, size: int, color: str) -> QPixmap:
     ratio = _ratio()
     img = QImage(int(size * ratio), int(size * ratio), QImage.Format_ARGB32_Premultiplied)
     img.fill(Qt.transparent)
@@ -129,11 +134,15 @@ def pixmap(name: str, size: int = SIZE, color: str = theme.ACCENT) -> QPixmap:
     return pm
 
 
+def icon(name: str, color: str | None = None, size: int = SIZE) -> QIcon:
+    """Icône avec un état désactivé grisé et un état survolé plus contrasté."""
+    return _icon(name, color or theme.ACCENT, size)
+
+
 @lru_cache(maxsize=256)
-def icon(name: str, color: str = theme.ACCENT, size: int = SIZE) -> QIcon:
-    """Icône avec un état désactivé grisé et un état survolé plus lumineux."""
+def _icon(name: str, color: str, size: int) -> QIcon:
     ic = QIcon()
-    ic.addPixmap(pixmap(name, size, color), QIcon.Normal)
-    ic.addPixmap(pixmap(name, size, "#d7fbff" if color == theme.ACCENT else color), QIcon.Active)
-    ic.addPixmap(pixmap(name, size, "#6b7887"), QIcon.Disabled)
+    ic.addPixmap(_pixmap(name, size, color), QIcon.Normal)
+    ic.addPixmap(_pixmap(name, size, theme.ICONE_ACTIVE if color == theme.ACCENT else color), QIcon.Active)
+    ic.addPixmap(_pixmap(name, size, theme.ICONE_GRISE), QIcon.Disabled)
     return ic

@@ -15,10 +15,15 @@ def app():
     return QApplication.instance() or QApplication([])
 
 
-def test_contrastes_aa():
-    for nom, fg, bg in theme.CONTRASTES:
-        ratio = theme.contraste(fg, bg)
-        assert ratio >= 4.5, f"{nom} : {fg} sur {bg} = {ratio:.2f}"
+@pytest.mark.parametrize("mode", ["sombre", "clair"])
+def test_contrastes_aa(mode):
+    theme.set_mode(mode)
+    try:
+        for nom, fg, bg in theme.CONTRASTES:
+            ratio = theme.contraste(fg, bg)
+            assert ratio >= 4.5, f"{mode} — {nom} : {fg} sur {bg} = {ratio:.2f}"
+    finally:
+        theme.set_mode("sombre")
 
 
 def test_polices_ofl_chargees(app):

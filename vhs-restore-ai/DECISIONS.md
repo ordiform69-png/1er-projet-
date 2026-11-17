@@ -565,3 +565,31 @@ ressemblaient à des boutons actifs : texte #d5dde6 contre #f3f6fa. Un clic sans
 une panne. Texte désactivé #8e9bab (6,5:1 sur son fond, toujours lisible), bordure plus discrète ;
 « Restaurer » indisponible : ambre éteint #3d3324 / #c9b893 (6,3:1) au lieu d'un ambre presque allumé.
 
+## Pensé pour une personne âgée (phase 20)
+
+Revue « l'utilisateur a 76 ans » des captures, puis corrections :
+
+- **Mots simples** : le cadre d'information dit « Film de caméscope ou de magnétoscope,
+  31 secondes. Prêt : cliquez sur le bouton 2 » et « Défauts repérés : image un peu terne,
+  couleurs un peu tirées » ; le détail technique (niveaux, Hz, %) passe en infobulle. Case
+  « Corriger aussi ces défauts, avec prudence », toujours décochée d'avance (règle de fidélité).
+- **Étape suivante désignée** : le bouton à utiliser (1, puis 2, puis 3) a un cadre épais.
+- **Comparer sans geste précis** : sous l'aperçu, « Original », « Comparer les deux »,
+  « Restauré » (l'écran montre une seule image en entier, ou les deux avec la souris).
+- **Écran simple épuré** : plus de noms d'outils (barre du bas visible seulement dans les
+  options avancées), « Arrêter » seulement pendant un traitement, « Écouter » seulement quand il
+  y a un aperçu avec du son, « Options avancées » discret, note rassurante (« votre fichier
+  d'origine n'est jamais modifié… »).
+- **Lisibilité** : grands boutons en Inter 16 pt gras (au lieu de la police étroite Rajdhani,
+  gardée pour le bandeau et les titres de cartes), cadre d'information 15 pt, état 14,5 pt.
+- **Affichage clair** (bouton dans le bandeau) : deuxième palette, fond blanc, toutes les couleurs
+  nommées (`theme.SOMBRE` / `theme.CLAIR`), contrastes ≥ 4,5:1 testés pour les deux. Le choix est
+  mémorisé ; le logiciel redémarre pour l'appliquer.
+- **Aide** : fenêtre « Bienvenue » en trois étapes au premier lancement, rouvrable par « Aide ».
+- La case « Coloriser » reste cliquable même si la colorisation manque : elle ouvre la fiche
+  « Installer » (les voyants du bas n'étant plus visibles en mode simple).
+
+Tests : `tests/test_senior.py` ; contrastes des deux palettes dans `tests/test_theme.py`.
+Non testé : un vrai essai avec l'utilisateur final (le seul juge) et le redémarrage pour
+changer d'affichage sous Windows.
+

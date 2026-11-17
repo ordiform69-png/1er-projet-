@@ -149,7 +149,7 @@ def test_advice_checkbox(app, tools, samples, tmp_path):
     win.load_file(str(src))
     wait(app, win)
     assert win.s_advice.isVisibleTo(win) and not win.s_advice.isChecked()
-    assert "côté gauche" in win.s_info.text()
+    assert "seul côté" in win.s_info.text() and "côté gauche" in win.s_info.toolTip()   # simple / détail
     assert win.settings().audio_channel_fix == ""                 # rien sans accord
     win.s_advice.setChecked(True)
     assert win.settings().audio_channel_fix == "left"
@@ -170,7 +170,7 @@ def test_photo_mode(app, tools, tmp_path, monkeypatch):
     win.out_edit.setText(str(tmp_path))
     win.load_file(str(src))
     wait(app, win)
-    assert win.is_photo and "photo de 320 × 240" in win.s_info.text() and "Noir et blanc" in win.s_info.text()
+    assert win.is_photo and "Photo noir et blanc" in win.s_info.text()
     win.s_preview.click()
     wait(app, win)
     assert win.s_compare.before is not None and win.status.text().startswith("Aperçu prêt")

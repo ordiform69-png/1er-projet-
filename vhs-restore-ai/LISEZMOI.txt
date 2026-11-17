@@ -9,13 +9,22 @@ La première fois, Windows peut afficher « Windows a protégé votre ordinateur
 (le logiciel est gratuit et n'est pas signé par un éditeur). Cliquez sur
 « Informations complémentaires », puis sur « Exécuter quand même ».
 
+Au premier lancement, une fenêtre explique les trois étapes. Le bouton « Aide »
+(en haut à droite) la rouvre à tout moment. Le bouton « Affichage clair »
+passe à un fond blanc, si vous lisez mieux ainsi (le logiciel redémarre).
+
 Restaurer un film
 -----------------
-1. Cliquez sur « 1. Choisir le film » et sélectionnez le fichier vidéo.
-2. Cliquez sur « 2. Voir l'avant / après ». Passez la souris sur l'image :
-   à gauche l'original, à droite le film restauré.
-3. Cliquez sur « 3. Restaurer le film ». Une barre indique l'avancement.
+Le bouton à utiliser est toujours entouré d'un cadre plus épais.
+1. Cliquez sur « 1. Choisir le film ou la photo » et sélectionnez le fichier.
+2. Cliquez sur « 2. Voir l'avant / après ». Sous l'image, trois boutons :
+   « Original », « Comparer les deux » et « Restauré ».
+3. Cliquez sur « 3. Restaurer ». Une barre indique l'avancement.
    Cela peut prendre longtemps : vous pouvez laisser l'ordinateur travailler.
+
+Si des défauts sont repérés (image terne, couleurs tirées, son d'un seul
+côté…), la case « Corriger aussi ces défauts, avec prudence » les corrige.
+Elle n'est jamais cochée d'avance.
 
 Le film restauré est enregistré à côté de l'original, avec « _restaure » dans
 son nom. Le film d'origine n'est jamais modifié.

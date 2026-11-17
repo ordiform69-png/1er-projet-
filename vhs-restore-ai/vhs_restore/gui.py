@@ -85,6 +85,7 @@ class CompareView(QWidget):
         self.before: QPixmap | None = None
         self.after: QPixmap | None = None
         self.split = 0.5
+        self.mode = "split"              # split (glisser) | before (original seul) | after (restauré seul)
         self.after_label = "RESTAURÉ"
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -100,13 +101,20 @@ class CompareView(QWidget):
         self.before = self.after = None
         self.update()
 
+    def set_mode(self, mode: str) -> None:
+        """Comparer sans geste précis : original seul, restauré seul, ou les deux (souris)."""
+        self.mode = mode if mode in ("before", "after") else "split"
+        if self.mode == "split":
+            self.split = 0.5
+        self.update()
+
     def set_after_label(self, text: str) -> None:
         """Étiquette de droite : « RESTAURÉ », ou « COULEURS IA » pour une photo colorisée."""
         self.after_label = text
         self.update()
 
     def mouseMoveEvent(self, e) -> None:  # noqa: N802
-        if self.before is not None:
+        if self.before is not None and self.mode == "split":
             self.split = min(1.0, max(0.0, e.position().x() / max(1, self.width())))
             self.update()
 
@@ -134,26 +142,39 @@ class CompareView(QWidget):
         r = QRect(QPoint(0, 0), size)
         r.moveCenter(inner.center())
         p.setRenderHint(QPainter.SmoothPixmapTransform)
+        if self.mode in ("before", "after"):          # une seule image, plein cadre
+            p.drawPixmap(r, self.before if self.mode == "before" else self.after)
+            self._badges(p, r, ("ORIGINAL",) if self.mode == "before" else (self.after_label,))
+            return
         p.drawPixmap(r, self.after)
         cut = int(r.width() * self.split)
         sx = self.before.width() * self.split
         p.drawPixmap(QRect(r.x(), r.y(), cut, r.height()), self.before,
                      QRect(0, 0, int(sx), self.before.height()))
         x = r.x() + cut
-        p.setPen(QPen(QColor(theme.ACCENT), 2))
+        p.setPen(QPen(QColor(theme.MONITEUR_ACCENT), 2))
         p.drawLine(x, r.top(), x, r.bottom())
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(theme.ACCENT))
+        p.setBrush(QColor(theme.MONITEUR_ACCENT))
         p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
+        self._badges(p, r, ("ORIGINAL", self.after_label))
+
+    def _badges(self, p: QPainter, r: QRect, texts: tuple) -> None:
+        """Pastilles « ORIGINAL » (à gauche) et « RESTAURÉ » (à droite) sur l'image."""
+        f = p.font()
+        f.setPointSizeF(max(f.pointSizeF(), 13))
+        f.setBold(True)
+        p.setFont(f)
         fm = p.fontMetrics()
         h = fm.height() + 10
         largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", self.after_label)) + 36
         etroit = r.width() < largeur    # photo en hauteur : « Restauré » passe en bas
-        for text, left in (("ORIGINAL", True), (self.after_label, False)):
+        for text in texts:
+            left = text == "ORIGINAL"
             w = fm.horizontalAdvance(text) + 22
             y = r.bottom() - h - 12 if (etroit and not left) else r.y() + 12
             box = QRect(r.x() + 12 if left else r.right() - w - 12, y, w, h)
-            p.setPen(QPen(QColor(theme.ACCENT), 1))
+            p.setPen(QPen(QColor(theme.MONITEUR_ACCENT), 1))
             p.setBrush(QColor(16, 32, 40, 210))
             p.drawRoundedRect(box, 4, 4)
             p.setPen(QColor("#f3f6fa"))
@@ -234,8 +255,9 @@ class StepButton(QPushButton):
         super().__init__(text)
         self.number = number
         self.icon_name = icon
+        self.suggested = False           # étape suivante conseillée : cadre plus épais
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(58)
+        self.setMinimumHeight(64)
 
     def paintEvent(self, _e) -> None:  # noqa: N802
         p = QPainter(self)
@@ -248,13 +270,17 @@ class StepButton(QPushButton):
             bg, fg = QColor(theme.AMBRE_ETEINT), QColor(theme.AMBRE_ETEINT_TEXTE)
             border = bg
         elif on:
-            bg, fg, border = QColor(theme.CARTE), QColor(theme.TEXTE), QColor("#49c3d4")
+            bg, fg, border = QColor(theme.CARTE), QColor(theme.TEXTE), QColor(theme.ETAPE_CADRE)
             if self.underMouse():
                 border = QColor(theme.ACCENT)
-                bg = QColor("#24323a")
+                bg = QColor(theme.ETAPE_SURVOL)
         else:
-            bg, fg, border = QColor(theme.FOND_DESACTIVE), QColor(theme.TEXTE_DESACTIVE), QColor("#2a3340")
-        p.setPen(QPen(border, 1.4))
+            bg, fg, border = QColor(theme.FOND_DESACTIVE), QColor(theme.TEXTE_DESACTIVE), QColor(theme.ETAPE_ETEINT)
+        width = 1.4
+        if self.suggested and on:        # « c'est ici maintenant »
+            width = 3.2
+            border = QColor(theme.TEXTE if principal else theme.ACCENT)
+        p.setPen(QPen(border, width))
         p.setBrush(bg)
         p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 12, 12)
         cx, cy, r = 30, self.height() // 2, 15
@@ -268,7 +294,7 @@ class StepButton(QPushButton):
             p.setBrush(Qt.NoBrush)
             p.drawEllipse(QPoint(cx, cy), r, r)
             p.setPen(fg)
-        f = QFont(theme.DISPLAY_FAMILY or p.font().family())
+        f = QFont(theme.BODY_FAMILY or p.font().family())     # police large, plus lisible
         f.setPointSizeF(14)
         f.setBold(True)
         p.setFont(f)
@@ -276,11 +302,11 @@ class StepButton(QPushButton):
         x = 56
         if self.icon_name:
             col = (theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE) if principal else \
-                (theme.ACCENT if on else "#6b7887")
+                (theme.ACCENT if on else theme.ICONE_GRISE)
             p.drawPixmap(x, cy - 12, icons.pixmap(self.icon_name, 24, col))
             x += 34
-        f.setPointSizeF(15)
-        f.setBold(principal)
+        f.setPointSizeF(16)
+        f.setBold(True)
         p.setFont(f)
         p.setPen(fg)
         p.drawText(QRect(x, 0, self.width() - x - 12, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
@@ -426,6 +452,24 @@ PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
                 "maximum": ("fusee", "Nettoyage fort")}
 
 
+def _duree(sec: float) -> str:
+    """Durée lisible : « 31 secondes », « 12 min 05 s », « 1 h 04 min »."""
+    sec = max(0, int(round(sec)))
+    if sec < 60:
+        return f"{sec} seconde{'s' if sec > 1 else ''}"
+    if sec < 3600:
+        return f"{sec // 60} min {sec % 60:02d} s"
+    return f"{sec // 3600} h {sec % 3600 // 60:02d} min"
+
+
+def _en_clair(a) -> str:
+    """Un conseil de l'analyse, dit avec des mots de tous les jours."""
+    if a.key == "channel":
+        return "son qui s'annule en partie" if a.fix.get("audio_channel_fix") == "phase" else "son d'un seul côté"
+    return {"clip": "son saturé par moments", "hum": "ronflement électrique", "wind": "vent dans le micro",
+            "levels": "image un peu terne", "cast": "couleurs un peu tirées"}.get(a.key, a.text)
+
+
 def _ilabel(text: str, icon: str) -> QWidget:
     """Libellé précédé d'une petite icône néon."""
     w = QWidget()
@@ -496,20 +540,36 @@ class MainWindow(QMainWindow):
         bv.addWidget(title)
         bv.addWidget(filet)
         bh.addLayout(bv, 1)
+        coin = QVBoxLayout()                 # aide et affichage clair / sombre, toujours à portée
+        coin.setSpacing(6)
+        self.help_btn = QPushButton("Aide")
+        self.help_btn.setIcon(icons.icon("info", "#9ae7f5"))
+        self.help_btn.clicked.connect(self.show_welcome)
+        self.theme_btn = QPushButton("Affichage clair" if theme.MODE == "sombre" else "Affichage sombre")
+        self.theme_btn.setIcon(icons.icon("soleil", "#9ae7f5"))
+        self.theme_btn.setToolTip("Change les couleurs de la fenêtre (fond clair ou fond sombre). "
+                                  "Le logiciel redémarre.")
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        for b in (self.help_btn, self.theme_btn):
+            b.setObjectName("bandeauBouton")
+            b.setCursor(Qt.PointingHandCursor)
+            b.setIconSize(QSize(20, 20))
+            coin.addWidget(b)
+        bh.addLayout(coin)
         v.addWidget(band)
-        self.s_info = QLabel("Commencez par choisir le film à restaurer.")
+        self.s_info = QLabel("Pour commencer, cliquez sur le bouton 1 « Choisir le film ou la photo ».")
         self.s_info.setWordWrap(True)
         self.s_info.setObjectName("infos")
         v.addWidget(self.s_info)
         self.advice: list = []
-        self.s_advice = QCheckBox("Appliquer ces conseils")
-        self.s_advice.setToolTip("Corrige avec modération les défauts détectés par l'analyse (son, contraste, couleur). "
-                                 "Décochez pour garder le son tel quel.")
+        self.s_advice = QCheckBox("Corriger aussi ces défauts, avec prudence")
+        self.s_advice.setObjectName("caseSimple")
         self.s_advice.setVisible(False)
         _with_icon(self.s_advice, "conseil")
         v.addWidget(self.s_advice)
         self.s_colorize = QCheckBox("Coloriser aussi — couleurs inventées par l'IA, pas les vraies "
                                     "(copie à part, le noir et blanc est gardé)")
+        self.s_colorize.setObjectName("caseSimple")
         _with_icon(self.s_colorize, "palette")
         self.s_colorize.setVisible(False)
         self.s_colorize.toggled.connect(lambda _on: self._colorize_toggled())
@@ -529,13 +589,34 @@ class MainWindow(QMainWindow):
             b.installEventFilter(halo_ambre if b is self.s_run else halo_cyan)
             h.addWidget(b)
         v.addLayout(h)
-        self.s_note = note = QLabel("Le son est nettoyé avec l'image. Le film d'origine n'est pas modifié. "
-                      "Décalage, dérive et copie WAV : Options avancées.")
+        self.s_note = note = QLabel("Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
+                                    "à côté, avec « restaure » dans son nom.")
         note.setWordWrap(True)
         note.setObjectName("note")
         v.addWidget(note)
         self.s_compare = CompareView()
         v.addWidget(self.s_compare, 1)
+        # comparer sans geste précis : trois gros boutons sous l'image
+        self.s_segments = QWidget()
+        hs = QHBoxLayout(self.s_segments)
+        hs.setContentsMargins(0, 0, 0, 0)
+        hs.addStretch(1)
+        self.segment_group = QButtonGroup(self)
+        self.segments: dict[str, QPushButton] = {}
+        for mode, txt, ic in (("before", "Original", "film"), ("split", "Comparer les deux", "comparer"),
+                              ("after", "Restauré", "etincelle")):
+            b = _with_icon(QPushButton(txt), ic)
+            b.setObjectName("segment")
+            b.setCheckable(True)
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(lambda _=False, m=mode: self.compare.set_mode(m))
+            self.segment_group.addButton(b)
+            self.segments[mode] = b
+            hs.addWidget(b)
+        hs.addStretch(1)
+        self.segments["split"].setChecked(True)
+        self.s_segments.setVisible(False)
+        v.addWidget(self.s_segments)
         self.s_progress = theme.SweepBar()
         self.s_status = QLabel("Prêt.")
         self.s_status.setWordWrap(True)
@@ -558,9 +639,11 @@ class MainWindow(QMainWindow):
         _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
-        adv = QPushButton("Options avancées ▸")
+        adv = QPushButton("Options avancées")
         _with_icon(adv, "reglages")
-        adv.setObjectName("lien")
+        adv.setToolTip("Réglages détaillés de l'image et du son, pour les connaisseurs. "
+                       "« Retour au mode simple » en haut de la page.")
+        adv.setObjectName("lienDiscret")
         adv.setCursor(Qt.PointingHandCursor)
         adv.clicked.connect(lambda: self.set_advanced(True))
         h.addWidget(self.s_cancel)
@@ -574,6 +657,7 @@ class MainWindow(QMainWindow):
 
     def set_advanced(self, on: bool) -> None:
         self.pages.setCurrentIndex(1 if on else 0)
+        self.statusBar().setVisible(on)      # noms d'outils : seulement pour les connaisseurs
 
     COLONNE_UNIQUE_SOUS = 1240     # px : portable à 125 % / 150 %, ou fenêtre réduite
 
@@ -679,7 +763,7 @@ class MainWindow(QMainWindow):
         self.info_form.addRow(_ilabel("Format à utiliser :", "format"), self.dar_combo)
         self.warn_label = QLabel()
         self.warn_label.setWordWrap(True)
-        self.warn_label.setStyleSheet(f"color:{theme.AMBRE}")
+        self.warn_label.setStyleSheet(f"color:{theme.AVERT}")
         self.info_form.addRow(self.warn_label)
         left.addWidget(g)
 
@@ -1008,6 +1092,7 @@ class MainWindow(QMainWindow):
             hb.addWidget(b)
             self.voyants[key] = b
         self.statusBar().addPermanentWidget(self.tools_label)
+        self.statusBar().setVisible(False)       # mode simple : pas de noms d'outils techniques
         self._compacter_options()       # avant tout calcul de mise en page (Qt garde les tailles)
         self.profile_buttons["equilibre"].setChecked(True)
         self._out_manual = False        # dossier de sortie choisi exprès par l'utilisateur ?
@@ -1026,7 +1111,7 @@ class MainWindow(QMainWindow):
             "Photo noir et blanc seulement. L'IA (DDColor) DEVINE des couleurs plausibles : elles peuvent "
             "être fausses (vêtements, peau, objets). Une copie « …_colorisee_ia.png » est écrite en plus ; "
             "la photo restaurée en noir et blanc est toujours gardée." if t.colorize_available else
-            "Colorisation non installée : cliquez sur « ○ Colorisation » en bas de la fenêtre "
+            "Colorisation pas encore installée : cochez la case pour l'installer "
             + (f"({t.colorizer.problem})" if t.colorizer.problem else ""))
         self.deint_combo.model().item(1).setEnabled(t.qtgmc_available)
         self.stab_check.setToolTip(
@@ -1043,6 +1128,58 @@ class MainWindow(QMainWindow):
                                  "Real-ESRGAN n'est pas installé : cliquez sur « ○ Real-ESRGAN » en bas "
                                  "de la fenêtre "
                                  + (f"({t.realesrgan.problem})" if t.realesrgan.problem else ""))
+
+    def show_welcome(self) -> None:
+        """Mode d'emploi en trois étapes (au premier lancement, puis par le bouton « Aide »)."""
+        box = QMessageBox(QMessageBox.Information, "Bienvenue dans VHS Restore AI",
+                          "Restaurer un film ou une photo se fait en trois étapes :\n\n"
+                          "1.  « Choisir le film ou la photo » : sélectionnez le fichier.\n"
+                          "2.  « Voir l'avant / après » : regardez le résultat sur un petit extrait.\n"
+                          "3.  « Restaurer » : le logiciel travaille, cela peut prendre du temps. "
+                          "Vous pouvez laisser l'ordinateur faire.\n\n"
+                          "Le bouton à utiliser est entouré d'un cadre plus épais.\n\n"
+                          "Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
+                          "à côté, avec « restaure » dans son nom. À la fin, un bouton « Ouvrir le "
+                          "dossier » vous le montre.", parent=self)
+        box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
+        box.addButton("C'est parti", QMessageBox.AcceptRole)
+        box.exec()
+
+    def maybe_welcome(self) -> None:
+        """Premier lancement : montre le mode d'emploi une fois."""
+        s = self._prefs()
+        if s is None or s.value("accueil_vu", False, type=bool):
+            return
+        s.setValue("accueil_vu", True)
+        self.show_welcome()
+
+    def toggle_theme(self) -> None:
+        """Affichage clair <-> sombre : enregistré, puis le logiciel redémarre."""
+        if self._busy():
+            return
+        nouveau = "sombre" if theme.MODE == "clair" else "clair"
+        if QMessageBox.question(self, "Affichage",
+                                f"Passer à l'affichage {nouveau} ? Le logiciel va redémarrer "
+                                "(rien n'est perdu).") != QMessageBox.Yes:
+            return
+        s = self._prefs()
+        if s is not None:
+            s.setValue("affichage", nouveau)
+            s.sync()
+        from PySide6.QtCore import QProcess
+        args = [] if getattr(sys, "frozen", False) else ["-m", "vhs_restore"]
+        if QProcess.startDetached(sys.executable, args):
+            self.close()
+
+    def _set_simple_info(self, text: str) -> None:
+        """Texte du mode simple : des mots de tous les jours ; le détail technique en infobulle."""
+        if self.advice:
+            text += "<br>Défauts repérés : " + ", ".join(dict.fromkeys(_en_clair(a) for a in self.advice)) + "."
+        detail = "\n".join("• " + a.text for a in self.advice)
+        self.s_info.setText(text)
+        self.s_info.setToolTip(("Détail des défauts repérés :\n" + detail) if detail else "")
+        self.s_advice.setToolTip("Corrige les défauts repérés avec modération (jamais d'effet fort). "
+                                 "Désactivé : le film est restauré sans ces corrections.\n\n" + detail)
 
     def _tool_ok(self, key: str) -> bool:
         t = self.tools
@@ -1107,7 +1244,14 @@ class MainWindow(QMainWindow):
                                 f"ordinateur.\n{prob}")
 
     def _colorize_toggled(self) -> None:
-        """L'aperçu affiché ne correspond plus aux réglages : on l'efface."""
+        """L'aperçu affiché ne correspond plus aux réglages : on l'efface. Si la colorisation
+        n'est pas installée, la fiche « Installer » s'ouvre (pas besoin des voyants du bas)."""
+        if self.s_colorize.isChecked() and not self.tools.colorize_available:
+            self.s_colorize.blockSignals(True)
+            self.s_colorize.setChecked(False)
+            self.s_colorize.blockSignals(False)
+            self.show_tool("colorisation")
+            return
         if getattr(self, "is_photo", False) and self.preview is not None:
             self.preview = None
             self.compare.clear()
@@ -1126,7 +1270,7 @@ class MainWindow(QMainWindow):
                       (self.s_run, loaded and not busy), (self.s_folder, not busy), (self.s_cancel, busy)):
             b.setEnabled(ok)
         self.ai_check.setEnabled(self.tools.ai_available and not busy)
-        self.s_colorize.setEnabled(self.tools.colorize_available and not busy)
+        self.s_colorize.setEnabled(not busy)       # pas installée : cocher propose de l'installer
         self.rnnoise_check.setEnabled(bool(self.tools.rnnoise_model) and not busy)
         if not self.tools.rnnoise_model:
             self.rnnoise_check.setChecked(False)
@@ -1177,8 +1321,21 @@ class MainWindow(QMainWindow):
             b.setEnabled(has_prev and sound and not busy)          # film muet : rien à écouter
             b.setVisible(not photo_mode)                            # une photo n'a pas de son
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
-        self.s_note.setVisible(not photo_mode)
         self.still_combo.setEnabled(has_prev and not busy)
+        # mode simple : seulement ce qui sert maintenant
+        self.s_cancel.setVisible(busy)
+        for b in (self.s_hear_orig, self.s_hear_new):
+            b.setVisible(has_prev and sound and not photo_mode)
+        self.s_segments.setVisible(has_prev)
+        for b in self.segments.values():
+            b.setEnabled(not busy)
+        self.theme_btn.setEnabled(not busy)
+        # l'étape suivante conseillée est mise en évidence
+        nxt = None if busy else (self.s_choose if not loaded else self.s_preview if not has_prev else self.s_run)
+        for b in (self.s_choose, self.s_preview, self.s_run):
+            if b.suggested != (b is nxt):
+                b.suggested = b is nxt
+                b.update()
         # Pendant un traitement, les réglages ne servent plus (ils ont été lus au lancement) :
         # on les grise pour ne pas laisser croire qu'ils changent le travail en cours.
         for card in (self._card_media, self._card_info, self._card_profil, self._card_image, self._card_son):
@@ -1231,7 +1388,7 @@ class MainWindow(QMainWindow):
                              + (". La case « Coloriser aussi » du mode simple peut ajouter une copie "
                                 "colorisée par l'IA (couleurs inventées)." if self.tools.colorize_available else "."))
             for a in getattr(self, "advice", []):
-                notes.append(f"💡 Conseil : {a.text} (case « Appliquer ces conseils » du mode simple)")
+                notes.append(f"💡 Conseil : {a.text} (case « Corriger aussi ces défauts » du mode simple)")
             if getattr(self, "out_note", ""):
                 notes.append(self.out_note)
             self.warn_label.setText("\n".join(notes))
@@ -1247,7 +1404,7 @@ class MainWindow(QMainWindow):
         elif self.info.audio_silent:
             notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
         for a in getattr(self, "advice", []):
-            notes.append(f"💡 Conseil : {a.text} (case « Appliquer ces conseils » du mode simple, "
+            notes.append(f"💡 Conseil : {a.text} (case « Corriger aussi ces défauts » du mode simple, "
                          "ou réglages du son ci-dessous)")
         if getattr(self, "out_note", ""):
             notes.append(self.out_note)
@@ -1345,9 +1502,9 @@ class MainWindow(QMainWindow):
             except ToolError as exc:
                 self.out_note = f"⚠ {exc}"
         self.advice = advise(info)
-        tips = "".join(f"<br>💡 {a.text}" for a in self.advice)
-        kind = " Noir et blanc : elle le restera." if info.black_and_white else ""
-        self.s_info.setText(f"<b>{info.path.name}</b> — photo de {info.width} × {info.height} pixels.{kind}{tips}")
+        kind = "Photo noir et blanc (elle le restera)" if info.black_and_white else "Photo en couleur"
+        self._set_simple_info(f"<b>{info.path.name}</b><br>{kind}. Prête : cliquez sur le bouton 2 "
+                              "« Voir l'avant / après ».")
         self.s_advice.setChecked(False)
         self.s_advice.setVisible(bool(self.advice))
         self.s_colorize.setChecked(False)                     # jamais coché d'avance
@@ -1355,7 +1512,7 @@ class MainWindow(QMainWindow):
         self.drop.setText(info.path.name)
         self._update_state()
         self._refresh_hints()
-        self.status.setText("Photo analysée. Choisissez un profil puis regardez l'avant / après.")
+        self.status.setText("Photo analysée. Étape suivante : bouton 2 « Voir l'avant / après ».")
 
     def _loaded(self, info: MediaInfo) -> None:
         self.is_photo = False
@@ -1397,21 +1554,22 @@ class MainWindow(QMainWindow):
                 self.out_note = f"⚠ {exc}"
         self._refresh_hints()
         self.drop.setText(info.summary()["Fichier"])
-        src_txt = {"video": "vidéo de caméscope ou de magnétoscope", "film": "pellicule (Super 8, 8 mm…)",
-                   "transfer": "pellicule copiée sur vidéo"}[info.suggested_source]
-        extra = (" Noir et blanc." if info.black_and_white else
-                 " Couleurs très pâles." if info.pale_colors else "") + \
-                ("" if info.has_audio and not info.audio_silent else " Film muet : il restera muet.")
+        kind = {"video": "Film de caméscope ou de magnétoscope", "film": "Film sur pellicule (Super 8, 8 mm…)",
+                "transfer": "Film sur pellicule, copié sur vidéo"}[info.suggested_source]
+        traits = [_duree(info.duration)]
+        if info.black_and_white:
+            traits.append("noir et blanc")
+        if not (info.has_audio and not info.audio_silent):
+            traits.append("sans son (il restera muet)")
         self.advice = advise(info)
-        tips = "".join(f"<br>💡 {a.text}" for a in self.advice)
-        self.s_info.setText(f"<b>{info.summary()['Fichier']}</b> — {info.summary()['Durée']} — "
-                            f"semble être une {src_txt}.{extra}{tips}")
+        self._set_simple_info(f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}. "
+                              "Prêt : cliquez sur le bouton 2 « Voir l'avant / après ».")
         self.s_advice.setChecked(False)
         self.s_advice.setVisible(bool(self.advice))
         self.channel_combo.setCurrentIndex(0)
         self.declip_check.setChecked(False)
         self._refresh_hints()
-        self.status.setText("Vidéo analysée. Choisissez un profil puis générez un aperçu.")
+        self.status.setText("Vidéo analysée. Étape suivante : bouton 2 « Voir l'avant / après ».")
 
     def start_preview(self) -> None:
         if not self.info or self._busy():
@@ -1437,11 +1595,12 @@ class MainWindow(QMainWindow):
         idx = min(1, len(res.stills) - 1)
         self.still_combo.setCurrentIndex(idx)
         self._show_still(idx)
-        if getattr(self, "is_photo", False):
-            self.status.setText("Aperçu prêt. Déplacez la souris sur l'image pour comparer.")
-        else:
-            self.status.setText(f"Aperçu prêt (de {res.start:.0f} s à {res.start + res.duration:.0f} s). "
-                                "Déplacez la souris sur l'image pour comparer.")
+        self.segments["split"].setChecked(True)
+        self.compare.set_mode("split")
+        quand = "" if getattr(self, "is_photo", False) else \
+            f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
+        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
+                            "sous l'image. Si cela vous plaît : bouton 3 « Restaurer ».")
 
     def _show_still(self, idx: int) -> None:
         if self.preview and 0 <= idx < len(self.preview.stills):
@@ -1632,7 +1791,7 @@ class MainWindow(QMainWindow):
     def _on_finished(self) -> None:
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
-        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée")):
+        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée", "Photo analysée")):
             self.progress.setValue(0)
         else:
             self.progress.setValue(1000)
@@ -1725,6 +1884,7 @@ def main() -> int:
     import sys
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
+    theme.set_mode(str(QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage", "sombre") or "sombre"))
     theme.apply(app)
     win = MainWindow()
     win.show()
@@ -1736,4 +1896,7 @@ def main() -> int:
     elif win.tools.missing_filters:
         QMessageBox.critical(win, "FFmpeg trop ancien",
                              "Filtres manquants : " + ", ".join(win.tools.missing_filters))
+    else:
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(400, win.maybe_welcome)       # premier lancement : mode d'emploi
     return app.exec()
