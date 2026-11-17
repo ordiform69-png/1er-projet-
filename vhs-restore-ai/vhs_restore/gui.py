@@ -1354,12 +1354,13 @@ class MainWindow(QMainWindow):
         folder = Path(tempfile.mkdtemp(prefix="vhsrestore_verif_"))
 
         def job(cancel, progress):
-            progress(0.1, "Vérification de l'installation…")
-            code = autotest(str(folder))
+            progress(0.02, "Vérification de l'installation…")
+            code = autotest(str(folder), progress=lambda f, m: progress(f, f"Vérification : {m}"))
             text = (folder / "autotest.txt").read_text(encoding="utf-8", errors="replace")
             shutil.rmtree(folder, ignore_errors=True)
             return code, text
         self.status.setText("Vérification de l'installation…")
+        self.check_btn.setText("Vérification en cours…")
         self._launch(job, self._check_done)
 
     def _check_done(self, res) -> None:
@@ -1480,6 +1481,7 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "VHS Restore AI", msg)
 
     def _on_finished(self) -> None:
+        self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
         if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée")):
             self.progress.setValue(0)

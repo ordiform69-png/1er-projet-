@@ -27,7 +27,11 @@ def setup_logging() -> Path:
     return path
 
 
-def autotest(folder: str) -> int:
+def autotest(folder: str, progress=None) -> int:
+    """`progress(fraction, message)` facultatif : avancement affiché par « Vérifier l'installation »."""
+    def step(frac: float, msg: str) -> None:
+        if progress:
+            progress(frac, msg)
     from vhs_restore import pipeline
     from vhs_restore.probe import analyze
     from vhs_restore.profiles import profile_for
@@ -38,6 +42,7 @@ def autotest(folder: str) -> int:
     try:
         import PySide6.QtWidgets  # noqa: F401  (bibliothèques Qt présentes et chargeables)
         report.append("Qt : OK")
+        step(0.05, "Recherche des outils…")
         ts = detect_tools()
         ts.require_ffmpeg()
         report.append(f"FFmpeg {ts.ffmpeg.version} : {ts.ffmpeg.path}")
@@ -45,6 +50,7 @@ def autotest(folder: str) -> int:
                       f"QTGMC : {'oui' if ts.qtgmc_available else 'non'} ; "
                       f"IA : {'oui' if ts.ai_available else 'non'} ; "
                       f"DeepFilterNet : {'oui' if ts.deepfilter_available else 'non'}")
+        step(0.15, "Création d'une vidéo d'essai…")
         sample = out / "échantillon été 1975.avi"
         r = run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
                          "testsrc2=size=720x576:rate=50,tinterlace=mode=interleave_top,setfield=tff,"
@@ -58,13 +64,16 @@ def autotest(folder: str) -> int:
                       f"origine suggérée {info.suggested_source}, son {'oui' if info.has_audio else 'non'}")
         s = pipeline.Settings(profile_for("equilibre", info.suggested_source), source=info.suggested_source,
                               resolution="1080", stabilize=ts.stab_available)
-        res = pipeline.export(info, s, out / "résultat restauré.mp4", ts)
+        step(0.25, "Restauration de la vidéo d'essai…")
+        res = pipeline.export(info, s, out / "résultat restauré.mp4", ts,
+                              progress=lambda f, _m: step(0.25 + 0.3 * f, "Restauration de la vidéo d'essai…"))
         after = analyze(res, ts)
         report.append(f"Export : {res.name}, {after.width}x{after.height}, {float(after.fps):g} i/s, "
                       f"{after.dar.numerator}:{after.dar.denominator}, son {'oui' if after.has_audio else 'non'}")
         ok = (after.width, after.height, after.has_audio) == (1440, 1080, True) and after.fps == 50
         report.append(f"Poussières et rayures : {'oui' if ts.dust_available else 'non installé'}")
         if ts.dust_available:   # essai réel du moteur externe (sous-processus --poussieres)
+            step(0.6, "Essai du module poussières et rayures…")
             film = out / "pellicule 18 is.mkv"
             run_capture([ts.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
                          "testsrc2=size=720x540:rate=18", "-t", "2", "-c:v", "ffv1", str(film)], timeout=120)
@@ -77,6 +86,7 @@ def autotest(folder: str) -> int:
                           f"{fafter.duration:.1f} s")
             ok = ok and dust_ok
         # Mode Photo : une carte postale noir et blanc compressée en JPEG
+        step(0.8, "Essai du mode Photo…")
         import hashlib
         from vhs_restore import photo
         card = out / "carte postale été.jpg"
@@ -97,6 +107,7 @@ def autotest(folder: str) -> int:
         # Colorisation facultative : copie colorisée EN PLUS, même taille, même luminance
         if ts.colorize_available:
             import dataclasses
+            step(0.9, "Essai de la colorisation…")
 
             cs = dataclasses.replace(pipeline.Settings(profile_for("equilibre")), colorize=True)
             cres = photo.restore_photo(pinfo, cs, out / "carte postale couleur.png", ts)
