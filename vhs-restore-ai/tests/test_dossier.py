@@ -20,11 +20,13 @@ def test_folder(samples, tools, tmp_path):
     for name in ("pal_tff", "film18", "corrupt"):
         shutil.copy(samples[name], tmp_path)
     (tmp_path / "notes.txt").write_text("pas une vidéo")
-    res = pipeline.restore_folder(tmp_path, tools, auto)
+    msgs = []
+    res = pipeline.restore_folder(tmp_path, tools, auto, progress=lambda f, m: msgs.append(m))
     assert res.out_dir == tmp_path / "Films restaurés"
     names = sorted(p.name for p in res.done)
     assert len(names) == 2 and any("_film" in n for n in names)
     assert [e[0] for e in res.errors] == ["abîmé.avi"]
+    assert any(m.startswith("Film ") and " sur " in m and " : " in m for m in msgs)
     film = next(p for p in res.done if "_film" in p.name)
     v = next(x for x in probe_json(film)["streams"] if x["codec_type"] == "video")
     assert v["avg_frame_rate"] == "18/1"                     # pellicule non désentrelacée

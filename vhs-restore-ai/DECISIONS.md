@@ -593,3 +593,24 @@ Tests : `tests/test_senior.py` ; contrastes des deux palettes dans `tests/test_t
 Non testé : un vrai essai avec l'utilisateur final (le seul juge) et le redémarrage pour
 changer d'affichage sous Windows.
 
+## Ergonomie pour l'utilisateur de 76 ans (phase 21)
+
+Aucun traitement n'a changé (mêmes filtres, mêmes profils, case de conseils toujours décochée).
+
+- **Fin de travail** : écran « C'est prêt » dans le mode simple (plus une petite boîte), avec
+  « Regarder le film » ou « Voir la photo », « Ouvrir le dossier », « Restaurer un autre… ».
+  Son bref et clignotement de la barre des tâches.
+- **Pendant le travail** : temps restant en mots (« environ 25 minutes »), phrase
+  « Vous pouvez utiliser l'ordinateur ou le laisser travailler ». « Arrêter » demande
+  confirmation si le travail dure déjà (le robot d'audit, lui, annule sans boîte).
+- **Dossier** : « Film 3 sur 12 : nom… » et un résumé (réussis, déjà faits, échecs en mots simples).
+- **Erreurs** : ce qui s'est passé et quoi faire ; le détail technique est derrière
+  « Détails pour l'aide », avec « Copier ».
+- **Choisir un fichier** : la fenêtre s'ouvre dans Vidéos ou Images, puis dans le dernier
+  dossier ; glisser-déposer sur toute la page simple ; cinq derniers fichiers.
+- **Texte** : A− / A / A+ (100 / 125 / 150 %), mémorisé. À 125 % et 150 % les étapes passent
+  l'une sous l'autre, pour qu'il n'y ait pas de défilement horizontal.
+- **Clavier** : Entrée active l'étape encadrée, ordre de tabulation, noms pour le lecteur d'écran,
+  focus visible. Un bouton « ? » à côté des cases dont le détail était seulement en infobulle.
+
+

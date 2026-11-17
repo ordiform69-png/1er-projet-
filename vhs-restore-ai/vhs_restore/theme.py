@@ -306,6 +306,20 @@ QPushButton#bandeauBouton {{
 }}
 QPushButton#bandeauBouton:hover {{ background: #123b45; border-color: #9ae7f5; }}
 QPushButton#bandeauBouton:disabled {{ color: #7d98a0; border-color: #1d3d44; }}
+QPushButton#aide {{
+    min-width: 44px; max-width: 48px; min-height: 44px; max-height: 48px;
+    font-size: 16pt; font-weight: 700; padding: 0; border-radius: 22px;
+}}
+QFrame#fini {{
+    background: {CARTE}; color: {TEXTE};
+    border: 2px solid {AMBRE}; border-radius: 14px;
+}}
+QLabel#finiTitre {{
+    color: {TEXTE}; font-size: 22pt; font-weight: 700; background: transparent;
+}}
+QLabel#finiTexte {{
+    color: {TEXTE}; font-size: 16pt; background: transparent;
+}}
 QCheckBox#caseSimple {{ font-size: 14pt; }}
 
 QFrame#carte {{
@@ -349,8 +363,14 @@ QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QAbstractSpinBox {{
     background: {CARTE_SUR}; color: {TEXTE}; border: 1px solid {BORD};
     border-radius: 6px; padding: 4px 8px; min-height: 26px; font-size: 12.5pt;
 }}
+QPushButton:focus {{
+    border: 2px solid {AMBRE}; outline: none;
+}}
+QPushButton#bandeauBouton:focus, QPushButton#aide:focus {{
+    border: 2px solid #f3d7a1;
+}}
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
-    border-color: {ACCENT};
+    border: 2px solid {ACCENT};
 }}
 QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled {{
     color: {TEXTE_DESACTIVE}; background: {FOND_DESACTIVE};
