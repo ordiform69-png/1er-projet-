@@ -98,6 +98,8 @@ def test_photo_cache_les_reglages_de_film(app, tools, samples, deux_dossiers):
         assert not wd.isVisibleTo(page), wd
     for wd in (win.cast_check, win.ai_check, win.profile_buttons["fidele"], win.run_btn):
         assert wd.isVisibleTo(page), wd
+    notes = win.warn_label.text()                              # pas de messages de film
+    assert "Photo noir et blanc" in notes and "Film" not in notes and "piste son" not in notes
     win.load_file(str(samples["pal_tff"]))                   # retour à un film : tout réapparaît
     wait(app, win)
     for wd in (win._card_son, win.deint_combo, win.hq_check, win.start_spin, win.trim_start, win.source_combo):

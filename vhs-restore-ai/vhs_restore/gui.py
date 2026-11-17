@@ -1137,6 +1137,17 @@ class MainWindow(QMainWindow):
         if not self.info:
             return
         notes = ["⚠ " + w for w in self.info.warnings]
+        if getattr(self, "is_photo", False):          # une photo : pas de son, pas de « film »
+            if self.info.black_and_white:
+                notes.append("ℹ Photo noir et blanc : elle le restera"
+                             + (". La case « Coloriser aussi » du mode simple peut ajouter une copie "
+                                "colorisée par l'IA (couleurs inventées)." if self.tools.colorize_available else "."))
+            for a in getattr(self, "advice", []):
+                notes.append(f"💡 Conseil : {a.text} (case « Appliquer ces conseils » du mode simple)")
+            if getattr(self, "out_note", ""):
+                notes.append(self.out_note)
+            self.warn_label.setText("\n".join(notes))
+            return
         src = self.source()
         if src == "film" and self.info.interlaced and not self.scan_combo.currentData():
             notes.append("⚠ L'analyse mesure de l'entrelacement : s'il s'agit d'une copie sur vidéo, "

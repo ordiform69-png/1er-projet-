@@ -530,6 +530,8 @@ parcours d'annulation et de fermeture. Aucun bouton actif sans effet. Défauts t
    s'arrête maintenant en environ 1 s, sans rapport d'échec.
 6. **« Vérifier l'installation » semblait ne rien faire** (état figé à 10 %) : étapes affichées.
 7. Textes : « Choisir un film ou une photo », zone de dépôt et titre de la carte idem.
+   En mode Photo, l'encadré d'avertissements affichait des messages de film (« Film noir et blanc
+   probable : aucune colorisation », « Aucune piste son ») : remplacés par des messages de photo.
 8. Code : deux imports inutiles retirés.
 
 Tests ajoutés : `tests/test_etats_interface.py` (4 tests), qui échouent tous sur l'ancien code.
