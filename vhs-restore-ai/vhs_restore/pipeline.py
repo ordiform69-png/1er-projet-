@@ -470,6 +470,8 @@ def _edge_mask(info: MediaInfo, s: Settings) -> list[str]:
     if n < 2:
         return []
     w, h, _ = target_size(info, s)
+    if info.width:                       # réglage en pixels du film d'origine : même largeur en Full HD
+        n = int(round(n * w / info.width))
     n = min(n // 2 * 2, (min(w, h) // 4) // 2 * 2)
     if n < 2:
         return []

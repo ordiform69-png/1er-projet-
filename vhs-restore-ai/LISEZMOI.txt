@@ -22,9 +22,10 @@ Le bouton à utiliser est toujours entouré d'un cadre plus épais.
 3. Cliquez sur « 3. Restaurer ». Une barre indique l'avancement.
    Cela peut prendre longtemps : vous pouvez laisser l'ordinateur travailler.
 
-Si des défauts sont repérés (image terne, couleurs tirées, son d'un seul
-côté…), la case « Corriger aussi ces défauts, avec prudence » les corrige.
-Elle n'est jamais cochée d'avance.
+Si des défauts sont repérés (image terne, couleurs tirées, bords abîmés, son
+d'un seul côté…), la case « Corriger aussi ces défauts, avec prudence » est
+cochée d'office : ils seront corrigés, sans excès. Décochez-la si vous
+préférez garder le film exactement tel qu'il est.
 
 Le film restauré est enregistré à côté de l'original, avec « _restaure » dans
 son nom. Le film d'origine n'est jamais modifié.

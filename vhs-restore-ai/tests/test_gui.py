@@ -149,11 +149,11 @@ def test_advice_checkbox(app, tools, samples, tmp_path):
     win = MainWindow(tools)
     win.load_file(str(src))
     wait(app, win)
-    assert win.s_advice.isVisibleTo(win) and not win.s_advice.isChecked()
+    assert win.s_advice.isVisibleTo(win) and win.s_advice.isChecked()     # défauts repérés : cochée d'office
     assert "seul côté" in win.s_info.text() and "côté gauche" in win.s_info.toolTip()   # simple / détail
-    assert win.settings().audio_channel_fix == ""                 # rien sans accord
-    win.s_advice.setChecked(True)
-    assert win.settings().audio_channel_fix == "left"
+    assert win.settings().audio_channel_fix == "left"             # corrigé d'office
+    win.s_advice.setChecked(False)
+    assert win.settings().audio_channel_fix == ""                 # décochée : film tel quel
     win.load_file(str(samples["film18"]))                         # film muet : aucun conseil
     wait(app, win)
     assert not win.s_advice.isVisibleTo(win) and win.settings().audio_channel_fix == ""

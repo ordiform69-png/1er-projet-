@@ -613,4 +613,29 @@ Aucun traitement n'a changé (mêmes filtres, mêmes profils, case de conseils t
 - **Clavier** : Entrée active l'étape encadrée, ordre de tabulation, noms pour le lecteur d'écran,
   focus visible. Un bouton « ? » à côté des cases dont le détail était seulement en infobulle.
 
+## Premier vrai film de l'utilisateur : corrections d'office, bords repérés (phase 21)
+
+L'utilisateur a restauré un vrai film de famille (VHS) : « le résultat n'est pas dingue ». Sur ses
+enregistrements d'écran (avant / après), l'analyse trouve des niveaux de 39 à 172 (image terne), une
+dominante jaune-verte et des traits colorés sur les bords. Avec le réglage par défaut d'alors (case des
+corrections décochée), le profil Équilibré ne changeait presque rien : c'est ce qu'il a constaté.
+Simulation sur son film dans le vrai logiciel : avec la case cochée et les bords masqués, noirs
+profonds, voile jaune retiré, plus de relief. Décision de l'utilisateur :
+
+- **La case « Corriger aussi ces défauts » est cochée d'office** quand des défauts sont repérés (et
+  appliquée aussi aux films d'un dossier, sauf si la case a été décochée). Les plafonds de fidélité
+  (phase 12) restent : contraste ≤ 1,6, gains 0,85–1,18, rien pour une image déjà correcte.
+- **Bords abîmés repérés tout seuls** (`probe.edge_damage`) : 6 images réparties, 48 colonnes de chaque
+  côté comparées à l'intérieur ; une colonne compte si sa couleur est anormale (traits colorés, liseré)
+  ou si elle est claire et très différente (neige). Une bande noire régulière ne compte pas. Résultat
+  arrondi au pair, de 4 à 24 px, sinon rien. Conseil « bords abîmés » → `mask_sides`. Mesuré : image
+  propre 0, bande noire 0, traits colorés de 10 px → 12, VHS 1988 → 0, film de l'utilisateur → 8.
+- « Masquer les bords » compte désormais en **pixels du film d'origine** (multiplié en sortie Full HD).
+- Après la PR #11 (Grok, fusionnée) : erreurs « pas de piste vidéo », « caractéristiques illisibles »,
+  « FFprobe ne répond pas » → « fichier abîmé » ; FFmpeg absent → « réinstallez le logiciel » ; écran
+  « C'est prêt » : boutons avant le texte (visibles sur un portable à 125 %) et cadre du haut « Terminé » ;
+  bandeau sur deux lignes ; captures retirées du dépôt.
+
+Tests : `tests/test_bords_auto.py`. Non testé : d'autres vrais films (un seul film réel examiné, et
+seulement à travers un enregistrement d'écran recompressé).
 

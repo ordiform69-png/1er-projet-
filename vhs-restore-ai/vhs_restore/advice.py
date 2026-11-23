@@ -11,7 +11,7 @@ from .probe import MediaInfo, cast_gains
 
 @dataclass(frozen=True)
 class Advice:
-    key: str        # hum | channel | clip | wind
+    key: str        # hum | channel | clip | wind | levels | cast | edges
     text: str       # phrase affichée à l'utilisateur
     fix: dict       # champs de pipeline.Settings à modifier
 
@@ -45,6 +45,10 @@ def advise(info: MediaInfo) -> list[Advice]:
                           f"Les noirs sont gris et les blancs ternes (niveaux {lo:.0f} à {hi:.0f}) : "
                           "le contraste sera rehaussé avec modération, une seule fois pour tout le film.",
                           {"level_black": lo / 255.0, "level_white": hi / 255.0}))
+    if info.edge_damage:
+        out.append(Advice("edges", f"Les bords de l'image sont abîmés (traits colorés ou neige sur environ "
+                                   f"{info.edge_damage} pixels) : ils seront masqués en noir, sans changer "
+                                   "la taille ni le format de l'image.", {"mask_sides": info.edge_damage}))
     if info.cast_rgb and max(info.cast_rgb) - min(info.cast_rgb) > 15:
         gr, gg, gb = cast_gains(info.cast_rgb)
         out.append(Advice("cast", "Une dominante de couleur couvre l'image : elle sera atténuée "
@@ -58,4 +62,6 @@ def apply(settings, advice: list[Advice]):
     fix: dict = {}
     for a in advice:
         fix.update(a.fix)
+    if "mask_sides" in fix:              # un masque plus large choisi à la main est gardé
+        fix["mask_sides"] = max(int(fix["mask_sides"]), int(getattr(settings, "mask_sides", 0) or 0))
     return dataclasses.replace(settings, **fix) if fix else settings

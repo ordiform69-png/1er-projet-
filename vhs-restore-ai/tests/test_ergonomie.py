@@ -5,7 +5,7 @@ import time
 import pytest
 
 pytest.importorskip("PySide6")
-from PySide6.QtCore import QSettings, Qt, QUrl  # noqa: E402
+from PySide6.QtCore import QSettings, Qt  # noqa: E402
 from PySide6.QtGui import QKeyEvent  # noqa: E402
 from PySide6.QtCore import QEvent  # noqa: E402
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox  # noqa: E402

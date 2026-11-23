@@ -13,7 +13,11 @@ def expliquer(message: str) -> tuple[str, str]:
     """(phrase pour la personne, détail technique inchangé)."""
     brut = (message or "").strip()
     bas = brut.lower()
-    if "espace disque" in bas or "insuffisant" in bas:
+    if ("ffmpeg" in bas or "ffprobe" in bas) and ("introuvable" in bas or "filtres manquants" in bas
+                                                  or "trop ancien" in bas):
+        clair = ("Le logiciel est incomplet (un de ses outils manque). "
+                 "Réinstallez-le à partir du fichier téléchargé, puis recommencez.")
+    elif "espace disque" in bas or "insuffisant" in bas:
         clair = ("Il n'y a plus assez de place sur le disque. "
                  "Libérez de la place, ou choisissez un autre dossier, puis recommencez.")
     elif any(mot in bas for mot in ("introuvable", "n'est plus", "no such file", "errno 2",
@@ -21,7 +25,8 @@ def expliquer(message: str) -> tuple[str, str]:
         clair = ("Le fichier ou le dossier n'est plus là. "
                  "Vérifiez qu'il n'a pas été déplacé, et que la clé USB est bien branchée.")
     elif any(mot in bas for mot in ("non reconnu", "n'a pas pu être lue", "illisible",
-                                    "abîm", "corrupt", "invalid data", "moov atom")):
+                                    "abîm", "corrupt", "invalid data", "moov atom",
+                                    "pas de piste vidéo", "ffprobe ne répond pas")):
         clair = ("Ce fichier semble abîmé, ou ce n'est pas une vidéo ni une photo. "
                  "Essayez une autre copie du fichier.")
     elif "fin doit être après" in bas or "début choisi" in bas:

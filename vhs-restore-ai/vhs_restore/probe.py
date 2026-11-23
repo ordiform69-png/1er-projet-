@@ -60,6 +60,7 @@ class MediaInfo:
     level_low: float | None = None         # médiane de YLOW (percentile bas de la luminance)
     level_high: float | None = None        # médiane de YHIGH (percentile haut)
     cast_rgb: tuple[float, float, float] | None = None   # moyennes R, G, B de l'échantillon
+    edge_damage: int = 0                   # bords abîmés (traits colorés, neige) en pixels du film, 0 = aucun
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     audio_channels: int = 0
     channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
@@ -216,6 +217,64 @@ def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float,
     return (sum(data[0::3]) / n, sum(data[1::3]) / n, sum(data[2::3]) / n)
 
 
+EDGE_STRIP = 48          # pixels examinés de chaque côté (bord + intérieur de référence)
+EDGE_MAX = 24            # au-delà, ce n'est plus un défaut de bord : rien n'est proposé
+
+
+def _edge_columns(strip: list[tuple[float, float]], ref: tuple[float, float]) -> int:
+    """Largeur abîmée d'un côté, à partir des colonnes (luma, couleur) du bord vers l'intérieur.
+    Une colonne est abîmée si sa couleur est anormale (traits colorés, liseré violet) ou si elle
+    est claire mais très différente de l'image (neige). Une bande noire régulière ne compte pas."""
+    lref, cref = ref
+    last = -1
+    for c, (lum, chroma) in enumerate(strip[:EDGE_MAX + 4]):
+        noire = lum < 20 and chroma < 6
+        couleur = chroma > cref * 1.8 + 8
+        neige = lum > 20 and abs(lum - lref) > max(25.0, 0.45 * lref)
+        if (couleur or neige) and not noire:
+            last = c
+        elif c - last > 3 and last >= 0:        # le défaut s'arrête : on ne cherche pas plus loin
+            break
+    n = last + 2 if last >= 0 else 0
+    n = (n + 1) // 2 * 2
+    return 0 if n < 4 or n > EDGE_MAX else n
+
+
+def edge_damage(ffmpeg: str, path: Path, width: int, start: float = 0.0, frames: int = 6) -> int:
+    """Bords gauche et droit abîmés (VHS : traits colorés, liseré, neige), en pixels du film.
+    Mesure sur quelques images réparties, colonne par colonne ; 0 si rien de net."""
+    if width < 4 * EDGE_STRIP:
+        return 0
+    w = EDGE_STRIP
+    vf = (f"[0:v:0]select='not(mod(n\\,12))',scale={width}:144:flags=area,split[a][b];"
+          f"[a]crop={w}:144:0:0[l];[b]crop={w}:144:{width - w}:0,hflip[r];[l][r]hstack,format=rgb24")
+    try:
+        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+                            "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
+                            "-filter_complex", vf, "-frames:v", str(frames), "-an", "-f", "rawvideo", "-"],
+                           capture_output=True, timeout=120, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return 0
+    data, row = r.stdout, 2 * w * 3
+    nimg = len(data) // (row * 144)
+    if r.returncode or nimg < 1:
+        return 0
+    cols = [[0.0, 0.0] for _ in range(2 * w)]            # somme luma, somme couleur par colonne
+    for i in range(0, nimg * 144 * row, 3):
+        rr, gg, bb = data[i], data[i + 1], data[i + 2]
+        c = (i % row) // 3
+        cols[c][0] += 0.299 * rr + 0.587 * gg + 0.114 * bb
+        cols[c][1] += abs(rr - gg) + abs(bb - gg)
+    n = nimg * 144
+    res = 0
+    for side in (cols[:w], cols[w:]):                     # le côté droit est retourné : bord en 0
+        moy = [(a / n, b / n) for a, b in side]
+        inner = moy[w - 16:]
+        ref = (sum(x for x, _ in inner) / len(inner), sum(y for _, y in inner) / len(inner))
+        res = max(res, _edge_columns(moy, ref))
+    return res
+
+
 def cast_gains(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
     """Gains fixes pour ramener les trois moyennes au même niveau. 1, 1, 1 si c'est déjà le cas."""
     r, g, b = rgb
@@ -370,6 +429,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
             sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
         info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
         info.cast_rgb = rgb_mean(tools.ffmpeg.path, p, start)
+        info.edge_damage = edge_damage(tools.ffmpeg.path, p, info.width, start)
     except subprocess.TimeoutExpired:
         info.idet = {}
     info.scan, info.scan_source = decide_scan(info.idet, info.field_order_meta)

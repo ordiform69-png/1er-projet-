@@ -500,7 +500,8 @@ def _en_clair(a) -> str:
     if a.key == "channel":
         return "son qui s'annule en partie" if a.fix.get("audio_channel_fix") == "phase" else "son d'un seul côté"
     return {"clip": "son saturé par moments", "hum": "ronflement électrique", "wind": "vent dans le micro",
-            "levels": "image un peu terne", "cast": "couleurs un peu tirées"}.get(a.key, a.text)
+            "levels": "image un peu terne", "cast": "couleurs un peu tirées",
+            "edges": "bords abîmés"}.get(a.key, a.text)
 
 
 def _ilabel(text: str, icon: str) -> QWidget:
@@ -578,6 +579,9 @@ class MainWindow(QMainWindow):
         bh.addLayout(bv, 1)
         coin = QVBoxLayout()                 # aide et affichage clair / sombre, toujours à portée
         coin.setSpacing(6)
+        haut = QHBoxLayout()                 # deux lignes seulement : le bandeau laisse de la place à l'aperçu
+        haut.setSpacing(6)
+        coin.addLayout(haut)
         self.help_btn = QPushButton("Aide")
         self.help_btn.setIcon(icons.icon("info", "#9ae7f5"))
         self.help_btn.clicked.connect(self.show_welcome)
@@ -595,7 +599,7 @@ class MainWindow(QMainWindow):
             b.setCursor(Qt.PointingHandCursor)
             b.setIconSize(QSize(20, 20))
             b.setMinimumHeight(44)
-            coin.addWidget(b)
+            haut.addWidget(b)
         tailles = QHBoxLayout()
         tailles.setSpacing(4)
         self._taille_btns: dict[int, QPushButton] = {}
@@ -608,7 +612,7 @@ class MainWindow(QMainWindow):
             b.setAccessibleName(f"Taille du texte {pct} %")
             b.setAccessibleDescription("Agrandit ou réduit les textes du mode simple.")
             b.clicked.connect(lambda _=False, p=pct: self.set_taille_texte(p))
-            tailles.addWidget(b)
+            tailles.addWidget(b, 1)
             self._taille_btns[pct] = b
         coin.addLayout(tailles)
         bh.addLayout(coin)
@@ -630,7 +634,6 @@ class MainWindow(QMainWindow):
         self.s_fini_texte.setWordWrap(True)
         self.s_fini_texte.setTextInteractionFlags(Qt.TextSelectableByMouse)
         fv.addWidget(self.s_fini_titre)
-        fv.addWidget(self.s_fini_texte)
         self.s_voir = QPushButton("Regarder le film")
         self.s_voir.setObjectName("action")
         self.s_ouvrir = QPushButton("Ouvrir le dossier")
@@ -643,9 +646,14 @@ class MainWindow(QMainWindow):
         self.s_voir.clicked.connect(self._voir_resultat)
         self.s_ouvrir.clicked.connect(self._ouvrir_dossier_fini)
         self.s_autre.clicked.connect(self._restaurer_autre)
-        fv.addWidget(self.s_voir)
-        fv.addWidget(self.s_ouvrir)
-        fv.addWidget(self.s_autre)
+        # boutons avant le texte : sur un portable, « Regarder le film » reste visible sans défiler
+        self._fini_boutons = QBoxLayout(QBoxLayout.LeftToRight)
+        self._fini_boutons.setSpacing(8)
+        self._fini_boutons.addWidget(self.s_voir, 2)
+        self._fini_boutons.addWidget(self.s_ouvrir, 1)
+        self._fini_boutons.addWidget(self.s_autre, 1)
+        fv.addLayout(self._fini_boutons)
+        fv.addWidget(self.s_fini_texte)
         self.s_fini.setVisible(False)
         v.addWidget(self.s_fini)
         self._recents_box = QWidget()
@@ -1355,7 +1363,8 @@ class MainWindow(QMainWindow):
         self.s_info.setText(text)
         self.s_info.setToolTip(("Détail des défauts repérés :\n" + detail) if detail else "")
         self.s_advice.setToolTip("Corrige les défauts repérés avec modération (jamais d'effet fort). "
-                                 "Désactivé : le film est restauré sans ces corrections.\n\n" + detail)
+                                 "Cochée d'office ; décochez-la pour garder le film tel quel, "
+                                 "sans ces corrections.\n\n" + detail)
 
     def _tool_ok(self, key: str) -> bool:
         t = self.tools
@@ -1746,6 +1755,9 @@ class MainWindow(QMainWindow):
         sens = QBoxLayout.TopToBottom if empiler else QBoxLayout.LeftToRight
         if steps.direction() != sens:
             steps.setDirection(sens)
+        fini = getattr(self, "_fini_boutons", None)
+        if fini is not None and fini.direction() != sens:
+            fini.setDirection(sens)
         row = getattr(self, "_segments_row", None)
         if row is not None and self._echelle >= 1.24:
             if row.direction() != QBoxLayout.TopToBottom:
@@ -1865,7 +1877,7 @@ class MainWindow(QMainWindow):
         kind = "Photo noir et blanc (elle le restera)" if info.black_and_white else "Photo en couleur"
         self._set_simple_info(f"<b>{info.path.name}</b><br>{kind}. Prête : cliquez sur le bouton 2 "
                               "« Voir l'avant / après ».")
-        self.s_advice.setChecked(False)
+        self.s_advice.setChecked(bool(self.advice))      # défauts repérés : corrigés d'office, avec prudence
         self.s_advice.setVisible(bool(self.advice))
         self.s_colorize.setChecked(False)                     # jamais coché d'avance
         self.s_colorize.setVisible(info.black_and_white)
@@ -1929,7 +1941,7 @@ class MainWindow(QMainWindow):
         self.advice = advise(info)
         self._set_simple_info(f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}. "
                               "Prêt : cliquez sur le bouton 2 « Voir l'avant / après ».")
-        self.s_advice.setChecked(False)
+        self.s_advice.setChecked(bool(self.advice))      # défauts repérés : corrigés d'office, avec prudence
         self.s_advice.setVisible(bool(self.advice))
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(False)
@@ -2080,6 +2092,9 @@ class MainWindow(QMainWindow):
     def _montrer_fini(self, texte: str, dossier: Path, fichier: Path | None, genre: str) -> None:
         """Écran « C'est prêt », pas une petite boîte. Trois grands boutons."""
         self.s_fini_texte.setText(texte)
+        self.s_info.setText("<b>Terminé.</b> Le résultat est prêt : regardez-le ou ouvrez son dossier "
+                            "avec les boutons ci-dessous.")
+        self.s_info.setToolTip("")
         self._fini_dossier = Path(dossier)
         self._fini_fichier = Path(fichier) if fichier else None
         if genre == "photo":
@@ -2143,7 +2158,9 @@ class MainWindow(QMainWindow):
         """Réglages d'un film du dossier : options choisies, origine propre à chaque film
         (choix manuel s'il y en a un, sinon suggestion de l'analyse)."""
         base = self.settings(with_advice=False)
-        if self.s_advice.isChecked():          # conseils propres à CHAQUE film du dossier
+        # conseils propres à CHAQUE film du dossier : appliqués d'office, sauf si l'utilisateur
+        # a décoché la case pour le fichier ouvert
+        if self.s_advice.isChecked() or self.s_advice.isHidden():
             base = apply_advice(base, advise(info))
         if self.cast_check.isChecked():
             if info.cast_rgb:

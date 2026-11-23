@@ -40,9 +40,11 @@ Vous avez déjà FFmpeg ? Il suffit qu'il soit dans le PATH, ou dans les variabl
 dossier… » traite d'un coup toutes les vidéos d'un dossier et les range dans un sous-dossier
 « Films restaurés ». Un fichier illisible est signalé sans interrompre les autres.
 
-Si l'analyse détecte un défaut du son (un seul côté enregistré, côtés en opposition de phase, son
-saturé, ronflement électrique), elle l'explique en une phrase sous la description du film et propose
-une case « Appliquer ces conseils », décochée par défaut.
+Si l'analyse détecte un défaut (image terne, dominante de couleur, bords abîmés, son d'un seul côté,
+en opposition de phase, saturé, ronflement, vent), elle le dit en mots simples sous la description du
+film. La case « Corriger aussi ces défauts, avec prudence » est alors **cochée d'office** : les
+corrections restent plafonnées (contraste et gains limités, une image correcte n'est pas touchée).
+Décochez-la pour garder le film tel quel.
 
 **Photos** : le même écran accepte une photo ou une carte postale numérisée (JPEG, PNG, TIFF,
 BMP, WebP). Elle est restaurée en PNG, sans perte, à côté de l'originale : blocs de compression
