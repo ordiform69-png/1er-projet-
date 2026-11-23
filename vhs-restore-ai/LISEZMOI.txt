@@ -36,6 +36,18 @@ clics et le volume). Une cassette muette reste muette. Si le son ne colle pas
 en millisecondes par minute si le décalage s'aggrave. On peut aussi demander
 une copie WAV ou FLAC du son restauré.
 
+Passages vides et montage
+-------------------------
+Quand le film est prêt, deux boutons de plus :
+  - « Retirer les passages vides » : le logiciel repère la neige, l'écran bleu
+    et le noir (début, fin, trous entre deux enregistrements), en montre la
+    liste avec les heures, et crée une copie sans eux si vous le voulez.
+  - « Faire un montage » : ouvre le film dans un logiciel de montage gratuit.
+    « Couper ou assembler » (LosslessCut) : simple, sans perte de qualité.
+    « Montage complet » (Shotcut) : titres, fondus, musique.
+    La première fois, le logiciel propose de l'installer (un clic).
+Votre film n'est jamais modifié : ce sont toujours des copies.
+
 Outils facultatifs
 ------------------
 En bas de la fenêtre, des voyants indiquent les outils : ● installé, ○ pas

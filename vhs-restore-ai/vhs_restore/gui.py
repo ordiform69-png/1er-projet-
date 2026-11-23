@@ -25,14 +25,14 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from . import ergonomie, icons, installer, photo, pipeline, theme
+from . import ergonomie, icons, installer, photo, pipeline, theme, vides
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
 from .eta import Eta
 from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
-from .tools import Cancelled, ToolError, Toolset, detect_tools
+from .tools import Cancelled, ToolError, Toolset, detect_tools, run_capture
 
 log = logging.getLogger("vhs_restore")
 VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *.mts *.ts *.dv *.vob *.wmv *.m4v "
@@ -478,11 +478,24 @@ TOOL_INFO = {
                                     "Les rires, la musique et les bruits d'ambiance restent."),
     "colorisation": ("Colorisation", "Colorisation des photos noir et blanc par l'IA (DDColor). Les couleurs "
                                      "sont inventées ; une copie à part est écrite, le noir et blanc est gardé."),
+    "losslesscut": ("LosslessCut", "Montage simple : couper, retirer des passages, découper en morceaux et "
+                                   "assembler plusieurs films, sans perte de qualité. Logiciel libre (GPL), "
+                                   "en français, qui s'ouvre dans sa propre fenêtre avec votre film."),
+    "shotcut": ("Shotcut", "Montage complet : titres, fondus, musique, transitions. Logiciel libre (GPL), "
+                           "en français, plus riche mais plus complexe. Votre film s'y ouvre : faites-le "
+                           "glisser dans la ligne de temps pour commencer."),
 }
 
 PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
                 "equilibre": ("balance", "Conseillé"),
                 "maximum": ("fusee", "Nettoyage fort")}
+
+
+def _demarrer(programme: str, args: list[str], dossier: str) -> bool:
+    """Lance un programme séparé (logiciel de montage, redémarrage) sans l'attendre."""
+    from PySide6.QtCore import QProcess
+    res = QProcess.startDetached(programme, args, dossier)
+    return bool(res[0] if isinstance(res, tuple) else res)
 
 
 def _duree(sec: float) -> str:
@@ -653,6 +666,22 @@ class MainWindow(QMainWindow):
         self._fini_boutons.addWidget(self.s_ouvrir, 1)
         self._fini_boutons.addWidget(self.s_autre, 1)
         fv.addLayout(self._fini_boutons)
+        self.s_vides = _with_icon(QPushButton("Retirer les passages vides"), "ciseaux")
+        self.s_vides.setToolTip("Neige, écran bleu ou noir en début, en fin ou au milieu de la cassette : "
+                                "le logiciel les repère et propose une copie sans eux.")
+        self.s_montage = _with_icon(QPushButton("Faire un montage"), "film")
+        self.s_montage.setToolTip("Couper, assembler, ajouter un titre : ouvre votre film dans un "
+                                  "logiciel de montage gratuit.")
+        rangee2 = QHBoxLayout()
+        rangee2.setSpacing(8)
+        for b in (self.s_vides, self.s_montage):
+            b.setObjectName("secondaire")
+            b.setMinimumHeight(48)
+            b.setCursor(Qt.PointingHandCursor)
+            rangee2.addWidget(b, 1)
+        self.s_vides.clicked.connect(self.retirer_vides)
+        self.s_montage.clicked.connect(self.faire_montage)
+        fv.addLayout(rangee2)
         fv.addWidget(self.s_fini_texte)
         self.s_fini.setVisible(False)
         v.addWidget(self.s_fini)
@@ -1247,6 +1276,16 @@ class MainWindow(QMainWindow):
         v.addWidget(self.progress)
         v.addWidget(self.status)
         h = QHBoxLayout()
+        self.vides_btn = _with_icon(QPushButton("Retirer les passages vides…"), "ciseaux")
+        self.vides_btn.clicked.connect(self.retirer_vides)
+        self.montage_btn = _with_icon(QPushButton("Faire un montage…"), "film")
+        self.montage_btn.clicked.connect(self.faire_montage)
+        for b in (self.vides_btn, self.montage_btn):
+            b.setToolTip("Sur le dernier film restauré, ou sinon sur le film ouvert.")
+            h.addWidget(b)
+        h.addStretch(1)
+        v.addLayout(h)
+        h = QHBoxLayout()                    # ligne à part : la carte tient sur un écran de 1280 px
         h.addStretch(1)
         h.addWidget(self.check_btn)
         v.addLayout(h)
@@ -1350,9 +1389,9 @@ class MainWindow(QMainWindow):
         if s is not None:
             s.setValue("affichage", nouveau)
             s.sync()
-        from PySide6.QtCore import QProcess
         args = [] if getattr(sys, "frozen", False) else ["-m", "vhs_restore"]
-        if QProcess.startDetached(sys.executable, args):
+        dossier = str(Path(sys.executable).parent) if getattr(sys, "frozen", False) else os.getcwd()
+        if _demarrer(sys.executable, args, dossier):
             self.close()
 
     def _set_simple_info(self, text: str) -> None:
@@ -1370,12 +1409,14 @@ class MainWindow(QMainWindow):
         t = self.tools
         return {"ffmpeg": bool(t.ffmpeg.path and t.ffprobe.path and not t.missing_filters),
                 "qtgmc": t.qtgmc_available, "realesrgan": t.ai_available,
-                "deepfilter": t.deepfilter_available, "colorisation": t.colorize_available}[key]
+                "deepfilter": t.deepfilter_available, "colorisation": t.colorize_available,
+                "losslesscut": t.losslesscut.ok, "shotcut": t.shotcut.ok}[key]
 
     def _tool_obj(self, key: str):
         t = self.tools
         return {"ffmpeg": t.ffmpeg, "qtgmc": t.vspipe, "realesrgan": t.realesrgan,
-                "deepfilter": t.deepfilter, "colorisation": t.colorizer}[key]
+                "deepfilter": t.deepfilter, "colorisation": t.colorizer,
+                "losslesscut": t.losslesscut, "shotcut": t.shotcut}[key]
 
     def show_tool(self, key: str) -> None:
         """Fiche d'un outil : à quoi il sert, s'il est installé, et « Installer » si possible."""
@@ -1420,6 +1461,11 @@ class MainWindow(QMainWindow):
         name = TOOL_INFO[key][0]
         if self._tool_ok(key):
             self.status.setText(f"Terminé : {name} est installé.")
+            attente = getattr(self, "_montage_en_attente", None)
+            if attente and attente[0] == key:                # installé pour un montage : on l'ouvre
+                self._montage_en_attente = None
+                self._lancer_montage(key, attente[1])
+                return
             QMessageBox.information(self, name, f"{name} est installé et prêt à servir.\n\n"
                                     "Il restera installé après une mise à jour du logiciel.")
         else:
@@ -1427,6 +1473,106 @@ class MainWindow(QMainWindow):
             self.status.setText(f"{name} : installation à vérifier.")
             QMessageBox.warning(self, name, f"{name} a été téléchargé mais ne fonctionne pas sur cet "
                                 f"ordinateur.\n{prob}")
+
+    # ------------------------------------------------------------ montage et passages vides
+    def _cible_montage(self) -> Path | None:
+        """Le dernier film restauré, sinon le film ouvert (pas une photo)."""
+        fini = getattr(self, "_fini_fichier", None)
+        if fini and Path(fini).is_file() and not photo.is_photo(fini):
+            return Path(fini)
+        if self.info is not None and not getattr(self, "is_photo", False):
+            return Path(self.info.path)
+        return None
+
+    def retirer_vides(self) -> None:
+        """Repère neige, écran bleu et noir, puis propose une copie sans ces passages."""
+        if self._busy():
+            return
+        cible = self._cible_montage()
+        if cible is None:
+            self.status.setText("Choisissez d'abord un film (bouton 1).")
+            return
+        t = self.tools
+
+        def job(cancel, progress):
+            r = run_capture([t.ffprobe.path, "-v", "error", "-show_entries", "format=duration:stream=codec_type",
+                             "-of", "default=nw=1", str(cible)], timeout=60)
+            duree = float(next((x.split("=")[1] for x in r.stdout.split() if x.startswith("duration=")), 0) or 0)
+            son = "codec_type=audio" in r.stdout
+            return cible, duree, son, vides.detecter(t.ffmpeg.path, cible, duree, cancel=cancel, progress=progress)
+        self.status.setText("Recherche des passages vides…")
+        self._launch(job, self._vides_trouves, job="vides")
+
+    def _vides_trouves(self, res) -> None:
+        cible, duree, son, passages = res
+        if not passages:
+            self.status.setText("Aucun passage vide trouvé.")
+            QMessageBox.information(self, "Passages vides", "Aucun passage vide (neige, écran bleu ou noir) "
+                                    "n'a été trouvé. Le film est gardé tel quel.")
+            return
+        total = sum(p.duree for p in passages)
+        liste = "\n".join("•  " + vides.decrire(p) for p in passages)
+        box = QMessageBox(QMessageBox.Question, "Passages vides",
+                          f"{len(passages)} passage{'s' if len(passages) > 1 else ''} vide"
+                          f"{'s' if len(passages) > 1 else ''} trouvé{'s' if len(passages) > 1 else ''} "
+                          f"({vides._hms(total)} en tout) :\n\n{liste}\n\n"
+                          "Créer une copie du film sans ces passages ? Le film actuel n'est pas modifié.",
+                          parent=self)
+        box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 520px; font-size: 14pt; }")
+        oui = box.addButton("Créer la copie", QMessageBox.AcceptRole)
+        box.addButton("Garder le film tel quel", QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is not oui:
+            self.status.setText("Le film est gardé tel quel.")
+            return
+        dst = vides.sortie_sans_vides(cible)
+        ffmpeg = self.tools.ffmpeg.path
+        self.status.setText("Copie sans les passages vides…")
+        self._launch(lambda c, p: (vides.retirer(ffmpeg, cible, dst, passages, duree, son, cancel=c, progress=p),
+                                   total), self._vides_retires, job="export")
+
+    def _vides_retires(self, res) -> None:
+        out, total = res
+        self._montrer_fini(f"Copie sans les passages vides :\n{out.name}\n\n{vides._hms(total)} retirées "
+                           f"(neige, écran bleu ou noir).\n\nElle se trouve dans le dossier :\n{out.parent}\n\n"
+                           "Le film précédent n'a pas été modifié.", out.parent, out, "film")
+        self.status.setText(f"Terminé : {out}")
+
+    def faire_montage(self) -> None:
+        """Ouvre le film dans LosslessCut (simple) ou Shotcut (complet), installés d'un clic si besoin."""
+        cible = self._cible_montage()
+        if cible is None:
+            self.status.setText("Choisissez d'abord un film (bouton 1).")
+            return
+        box = QMessageBox(QMessageBox.Question, "Faire un montage",
+                          "Quel montage voulez-vous faire ?\n\n"
+                          "•  Couper ou assembler : retirer des moments, garder les meilleurs, mettre "
+                          "plusieurs films bout à bout. Simple, sans perte de qualité (LosslessCut).\n\n"
+                          "•  Montage complet : titres, fondus, musique (Shotcut). Plus riche, plus complexe.\n\n"
+                          "Le film s'ouvre dans un logiciel gratuit, dans sa propre fenêtre. "
+                          "Votre film n'est pas modifié tant que vous n'y enregistrez pas un nouveau fichier.",
+                          parent=self)
+        box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 560px; font-size: 14pt; }")
+        simple = box.addButton("Couper ou assembler", QMessageBox.AcceptRole)
+        complet = box.addButton("Montage complet", QMessageBox.AcceptRole)
+        box.addButton("Annuler", QMessageBox.RejectRole)
+        box.exec()
+        choix = box.clickedButton()
+        key = "losslesscut" if choix is simple else "shotcut" if choix is complet else None
+        if key:
+            self._lancer_montage(key, cible)
+
+    def _lancer_montage(self, key: str, cible: Path) -> None:
+        name = TOOL_INFO[key][0]
+        if not self._tool_ok(key):                           # pas encore installé : fiche « Installer »
+            self._montage_en_attente = (key, cible)
+            self.show_tool(key)
+            return
+        exe = Path(self._tool_obj(key).path)
+        if _demarrer(str(exe), [str(cible)], str(exe.parent)):
+            self.status.setText(f"{name} s'ouvre avec {cible.name}…")
+        else:
+            ergonomie.montrer_erreur(self, f"{name} n'a pas pu démarrer : {exe}")
 
     def _colorize_toggled(self) -> None:
         """L'aperçu affiché ne correspond plus aux réglages : on l'efface. Si la colorisation
@@ -2108,6 +2254,8 @@ class MainWindow(QMainWindow):
             self.s_voir.setText("Regarder le film")
             self.s_autre.setText("Restaurer un autre film")
             self.s_voir.setVisible(True)
+        for b in (self.s_vides, self.s_montage):          # outils de film seulement
+            b.setVisible(genre == "film")
         self.s_voir.setAccessibleName(self.s_voir.text())
         self.s_ouvrir.setAccessibleName("Ouvrir le dossier du résultat")
         self.s_autre.setAccessibleName(self.s_autre.text())

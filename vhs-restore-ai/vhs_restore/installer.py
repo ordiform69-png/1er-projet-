@@ -8,6 +8,11 @@ dans un dossier temporaire, puis le dossier final est mis en place d'un coup.
 
 QTGMC n'est pas installable ainsi (il faut Python et VapourSynth) ; FFmpeg est livré avec
 l'application.
+
+Montage : LosslessCut (GPL-2.0, couper et assembler sans perte) et Shotcut (GPL-3.0, montage
+complet) sont des programmes séparés, lancés avec le film restauré. LosslessCut n'est publié pour
+Windows qu'en archive 7z : le petit extracteur officiel de 7-Zip (7zr.exe, LGPL) est alors
+installé d'abord, de la même façon. Empreintes relevées sur les fichiers publiés (nov. 2026).
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .tools import IS_WIN, Cancelled, ToolError, user_tools_dir
+from .tools import IS_WIN, Cancelled, ToolError, run, user_tools_dir
 
 Progress = Callable[[float, str], None]
 
@@ -35,7 +40,7 @@ class Paquet:
     sha256: str
     size_mb: int
     folder: str            # sous-dossier de user_tools_dir()
-    kind: str              # "zip" (contenu extrait) ou "file" (fichier seul)
+    kind: str              # "zip" ou "7z" (contenu extrait), ou "file" (fichier seul)
     file_name: str         # fichier attendu une fois installé
     windows_only: bool = True
 
@@ -59,6 +64,20 @@ PAQUETS: dict[str, Paquet] = {
         "ddcolor-tiny-fp16.onnx",
         "2653da00dc15e54a45e5200b61dbf82ee9ceaf56b02bb9b9657569ac775e82e6", 130,
         "ddcolor", "file", "ddcolor-tiny-fp16.onnx", windows_only=False),
+    "sevenzip": Paquet(
+        "sevenzip", "7-Zip (extracteur)", "https://www.7-zip.org/a/7zr.exe",
+        "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282", 1,
+        "7zip", "file", "7zr.exe"),
+    "losslesscut": Paquet(
+        "losslesscut", "LosslessCut",
+        "https://github.com/mifi/lossless-cut/releases/download/v3.70.2/LosslessCut-win-x64.7z",
+        "1740c5f17b952c04cf1b1612cf32f56c68a88105c045199526c7ea9678d309b0", 152,
+        "losslesscut", "7z", "LosslessCut.exe"),
+    "shotcut": Paquet(
+        "shotcut", "Shotcut",
+        "https://github.com/mltframework/shotcut/releases/download/v26.8.1/shotcut-win64-26.8.1.zip",
+        "b0148856de01b39add4bf4d6a813bfbc554b4663b65e3ca25cb2589f47555a6a", 225,
+        "shotcut", "zip", "shotcut.exe"),
 }
 
 
@@ -106,6 +125,17 @@ def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event |
     raise ToolError(f"Téléchargement impossible de {label} : {last}. Vérifiez la connexion Internet.")
 
 
+def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event | None,
+                 progress: Progress | None) -> None:
+    """Extrait une archive 7z avec 7zr.exe (installé d'abord s'il manque)."""
+    outil = base / PAQUETS["sevenzip"].folder / PAQUETS["sevenzip"].file_name
+    if not outil.is_file():
+        install("sevenzip", cancel=cancel, root=base,
+                progress=(lambda f, m: progress(0.9, "Installation de l'extracteur 7-Zip…")) if progress else None)
+    run([str(outil), "x", str(archive), f"-o{dest}", "-y", "-bso0", "-bsp0"], cancel=cancel,
+        what="7-Zip (extraction)")
+
+
 def install(key: str, *, cancel: threading.Event | None = None, progress: Progress | None = None,
             root: Path | None = None) -> Path:
     """Télécharge, vérifie et installe l'outil `key`. Renvoie le chemin du fichier installé."""
@@ -119,13 +149,22 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
     final = base / p.folder
     work = Path(tempfile.mkdtemp(prefix=f"vhsra_{p.key}_", dir=base))
     try:
-        dl = work / ("paquet.zip" if p.kind == "zip" else p.file_name)
+        dl = work / ({"zip": "paquet.zip", "7z": "paquet.7z"}.get(p.kind) or p.file_name)
         _download(p.url, dl, p.sha256, cancel, progress, p.name)
         if progress:
             progress(0.93, f"Installation de {p.name}…")
         staged = work / "installe"
         staged.mkdir()
-        if p.kind == "zip":
+        if p.kind == "7z":
+            _extraire_7z(dl, staged, base, cancel, progress)
+            for f in staged.rglob("*"):                   # aucun fichier ne doit sortir du dossier
+                if not str(f.resolve()).startswith(str(staged.resolve())):
+                    raise ToolError(f"Archive de {p.name} refusée (chemin suspect).")
+            found = next(staged.rglob(p.file_name), None)
+            if found is None:
+                raise ToolError(f"{p.file_name} introuvable dans l'archive de {p.name}.")
+            staged = found.parent
+        elif p.kind == "zip":
             with zipfile.ZipFile(dl) as z:
                 for m in z.infolist():                    # pas de chemin qui sorte du dossier
                     target = (staged / m.filename).resolve()

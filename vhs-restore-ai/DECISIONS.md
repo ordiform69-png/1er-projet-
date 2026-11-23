@@ -639,3 +639,32 @@ profonds, voile jaune retiré, plus de relief. Décision de l'utilisateur :
 Tests : `tests/test_bords_auto.py`. Non testé : d'autres vrais films (un seul film réel examiné, et
 seulement à travers un enregistrement d'écran recompressé).
 
+## Montage : passages vides, LosslessCut et Shotcut (phase 22)
+
+Demande : « un menu pour faire du montage vidéo » ; décision de l'utilisateur après discussion :
+intégrer des logiciels libres existants plutôt que tout créer, et garder dans le logiciel ce qui est
+propre aux cassettes.
+
+- **Passages vides** (`vhs_restore/vides.py`) : 4 images/s réduites à 48×36, écart YHIGH − YLOW ;
+  ≤ 20 pendant au moins 2 s = passage vide (neige, écran bleu ou coloré, noir). Mesuré : neige 5 à 11
+  (capture 320 ou 720 de large), bleu et noir 0, vrais films 74 (VHS 1988) à 123 (film de
+  l'utilisateur) ; aucune fausse alerte sur ces films ni sur une image noir et blanc en mouvement.
+  La liste (heures, genre, durée) est montrée avant toute action ; une **copie** sans ces passages est
+  créée (`…_sans_vides.mp4`, x264 CRF 16, son gardé), jamais l'original. Rien n'est proposé si tout le
+  film semble vide (erreur probable).
+- **LosslessCut 3.70.2** (GPL-2.0, couper / assembler sans perte) et **Shotcut 26.8.1** (GPL-3.0,
+  montage complet) : installés d'un clic comme les autres outils (`installer.py`, version figée,
+  SHA-256 relevé sur les fichiers publiés), rangés dans le profil, lancés comme programmes séparés
+  avec le film (`QProcess.startDetached`). LosslessCut n'existe pour Windows qu'en 7z : l'extracteur
+  officiel `7zr.exe` (7-Zip, LGPL, 0,6 Mo) est installé d'abord. Contenu vérifié ici : `LosslessCut.exe`
+  à la racine de l'archive, `Shotcut/shotcut.exe` dans le zip.
+- Écran « C'est prêt » (film) : « Retirer les passages vides » et « Faire un montage » ; mêmes
+  boutons dans les options avancées (dernier film restauré, sinon le film ouvert). Choisir un montage
+  non installé ouvre la fiche « Installer », puis le logiciel s'ouvre tout seul une fois installé.
+- Au passage : le redémarrage pour changer d'affichage lisait mal la réponse de Qt (`startDetached`
+  renvoie un couple) ; fonction commune `_demarrer`.
+
+Tests : `tests/test_vides_montage.py`. Non testé : l'installation réelle de LosslessCut, de Shotcut et
+de 7zr.exe SOUS Windows (empreintes et contenus vérifiés ici) et l'ouverture du film dans ces
+logiciels ; la détection sur de vraies cassettes avec neige (seulement de la neige de synthèse).
+

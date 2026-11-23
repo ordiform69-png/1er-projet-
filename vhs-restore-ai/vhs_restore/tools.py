@@ -77,6 +77,8 @@ class Toolset:
     audio_filters: frozenset[str] = frozenset()
     rnnoise_model: str | None = None     # modèle RNNoise (Xiph) pour arnndn, livré avec l'application
     colorizer: Tool = field(default_factory=lambda: Tool("Colorisation (DDColor)"))   # photos, facultatif
+    losslesscut: Tool = field(default_factory=lambda: Tool("LosslessCut"))   # montage simple, facultatif
+    shotcut: Tool = field(default_factory=lambda: Tool("Shotcut"))           # montage complet, facultatif
 
     @property
     def colorize_available(self) -> bool:
@@ -205,6 +207,8 @@ def detect_tools() -> Toolset:
     model = _rnnoise_model()
     ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available(),
                  df, frozenset(audio_present), model, colorize.detect())
+    ts.losslesscut = Tool("LosslessCut", _find("VHSRA_LOSSLESSCUT", ["LosslessCut"], ["losslesscut"]))
+    ts.shotcut = Tool("Shotcut", _find("VHSRA_SHOTCUT", ["shotcut"], ["shotcut"]))
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s "
              "deepfilter=%s rnnoise=%s colorisation=%s %s audio=%s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem,
