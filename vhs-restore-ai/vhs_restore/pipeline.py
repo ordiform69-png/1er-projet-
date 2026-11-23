@@ -36,6 +36,7 @@ import json
 import logging
 import math
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -191,8 +192,16 @@ def _atempo_filters(info: MediaInfo, s: Settings, *, drift: bool = True) -> list
 
 
 def _ff_filter_path(path: str) -> str:
-    """Chemin dans un graphe -af : les « : » (lecteur Windows) doivent être échappés."""
-    return Path(path).as_posix().replace("\\", "/").replace(":", "\\:")
+    """Chemin comme valeur d'option dans un graphe de filtres (-af, -vf, -filter_complex).
+
+    FFmpeg lit ce texte DEUX fois : le graphe d'abord (« , ; [ ] » séparent les filtres), puis
+    les options du filtre (« : » sépare les options). Chaque lecture retire un niveau de « \\ ».
+    Un seul niveau ne suffit pas : « C\\:/Users » redevenait « C:/Users » à la première lecture,
+    puis le « : » coupait le chemin (erreur « No option name near '/Users/…' » sous Windows).
+    Apostrophes (« l'été »), virgules et crochets d'un nom de dossier sont protégés de même."""
+    p = Path(path).as_posix().replace("\\", "/")
+    option = re.sub(r"([\\':])", r"\\\1", p)              # 2e lecture : options du filtre
+    return re.sub(r"([\\'\[\],;])", r"\\\1", option)       # 1re lecture : le graphe
 
 
 def _has(present: frozenset[str] | None, name: str) -> bool:

@@ -686,3 +686,14 @@ Captures de l'utilisateur (écran 1920 × 1080 à 150 %), reproduites ici à la 
   « auto (12 px) » au lieu de « 0 px » quand les bords abîmés seront masqués.
 
 Tests : `tests/test_page_avancee.py`.
+
+## Panne « Souffle de la voix » sous Windows (phase 23, suite)
+
+Constat de l'utilisateur (n°61) : avec « Souffle de la voix (RNNoise) » coché, la restauration
+s'arrêtait : `No option name near '/Users/…/rnnoise_std.rnnn:mix=0.35'`. Le chemin du modèle
+(`C:\…`) n'était échappé qu'une fois ; FFmpeg lit un graphe de filtres en deux temps (le graphe,
+puis les options du filtre) et chaque lecture retire un niveau de « \ ». `_ff_filter_path` échappe
+maintenant les deux niveaux (`C\\:/…`), apostrophes, virgules, crochets et points-virgules compris.
+Essai réel avec FFmpeg (-af et -filter_complex) dans un dossier « C:Mes films, l'été [1988]; essai ».
+Pourquoi les essais ne l'avaient pas vu : sous Linux un chemin n'a pas de « C: », et l'essai
+automatique de l'exe Windows ne cochait pas RNNoise ; il le coche désormais (avec le filtre 50 Hz).

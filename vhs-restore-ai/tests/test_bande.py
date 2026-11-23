@@ -62,4 +62,32 @@ def test_rnnoise_is_opt_in():
                    for f in pipeline.audio_filters(info, S("maximum", use_rnnoise=True),
                                                    rnnoise=model, skip_afftdn=True)
                    if not f.startswith("adeclick") and not f.startswith("dynaudnorm"))
-    assert pipeline._ff_filter_path(r"C:\Users\a b\m.rnnn") == "C\\:/Users/a b/m.rnnn"
+    # deux niveaux d'échappement : le graphe de filtres, puis les options du filtre
+    assert pipeline._ff_filter_path(r"C:\Users\a b\m.rnnn") == "C\\\\:/Users/a b/m.rnnn"
+
+
+def test_modele_rnnoise_dans_un_dossier_windows(tools, tmp_path):
+    """Constat sous Windows (n°61) : « No option name near '/Users/…' », restauration impossible
+    dès que « Souffle de la voix (RNNoise) » était coché. Essai réel avec FFmpeg, dans un dossier
+    au nom piégeux (deux-points de lecteur, apostrophe, virgule, crochets, point-virgule)."""
+    import os
+    import shutil
+    import subprocess
+
+    from vhs_restore.tools import _rnnoise_model
+    modele = _rnnoise_model()
+    if not modele:
+        pytest.skip("modèle RNNoise absent")
+    nom = "Mes films, l'été [1988]; essai"
+    dossier = tmp_path / (nom if os.name == "nt" else "C:" + nom)   # Windows : le « C: » est dans tmp_path
+    dossier.mkdir()
+    shutil.copy(modele, dossier / "rnnoise_std.rnnn")
+    info = MediaInfo(path=Path("x.mp4"), has_audio=True, duration=2, fps=Fraction(25))
+    s = dataclasses.replace(pipeline.Settings(profile_for("equilibre", "video")), use_rnnoise=True,
+                            audio_mains_hz=50, audio_presence=True)
+    chaine = ",".join(pipeline.audio_filters(info, s, rnnoise=str(dossier / "rnnoise_std.rnnn")))
+    assert "arnndn" in chaine
+    for graphe in (["-af", chaine], ["-filter_complex", f"[0:a]{chaine}[a]", "-map", "[a]"]):
+        r = subprocess.run([tools.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-f", "lavfi",
+                            "-i", "sine=d=1", *graphe, "-f", "null", "-"], capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr[-500:]

@@ -67,8 +67,12 @@ def autotest(folder: str, progress=None, cancel=None) -> int:
         info = analyze(sample, ts)
         report.append(f"Analyse : {info.width}x{info.height}, {float(info.fps):g} i/s, balayage {info.scan}, "
                       f"origine suggérée {info.suggested_source}, son {'oui' if info.has_audio else 'non'}")
+        # RNNoise coché : son modèle est rangé dans le dossier du logiciel (C:\…), chemin à
+        # passer à FFmpeg avec ses « : » échappés (panne vue sous Windows, version n°61)
         s = pipeline.Settings(profile_for("equilibre", info.suggested_source), source=info.suggested_source,
-                              resolution="1080", stabilize=ts.stab_available)
+                              resolution="1080", stabilize=ts.stab_available,
+                              use_rnnoise=bool(ts.rnnoise_model), audio_mains_hz=50)
+        report.append(f"Souffle de la voix (RNNoise) : {'essayé' if ts.rnnoise_model else 'modèle absent'}")
         step(0.25, "Restauration de la vidéo d'essai…")
         res = pipeline.export(info, s, out / "résultat restauré.mp4", ts, cancel=cancel,  # suivi seul :
                               progress=lambda f, _m: progress and progress(            # l'arrêt passe par cancel
