@@ -29,13 +29,17 @@ def bords(tmp_path_factory):
     noire = d / "bande noire.mkv"
     ff("-f", "lavfi", "-i", "testsrc2=size=704x576:rate=25", "-vf", "pad=720:576:8:0:black",
        "-t", "2", "-c:v", "ffv1", str(noire))
-    return {"propre": propre, "abime": abime, "noire": noire}
+    douce = d / "bande noire douce.mkv"          # bord flou d'une vraie capture analogique
+    ff("-f", "lavfi", "-i", "testsrc2=size=704x576:rate=25", "-vf", "pad=720:576:8:0:black,gblur=sigma=1",
+       "-t", "2", "-c:v", "ffv1", str(douce))
+    return {"propre": propre, "abime": abime, "noire": noire, "douce": douce}
 
 
 def test_mesure_des_bords(tools, bords):
     ffmpeg = tools.ffmpeg.path
     assert edge_damage(ffmpeg, bords["propre"], 720) == 0
     assert edge_damage(ffmpeg, bords["noire"], 720) == 0          # une bande noire régulière n'est pas un défaut
+    assert edge_damage(ffmpeg, bords["douce"], 720) == 0          # ni son passage doux vers l'image
     n = edge_damage(ffmpeg, bords["abime"], 720)
     assert 10 <= n <= 16, n                                         # 10 px de traits colorés à gauche
 

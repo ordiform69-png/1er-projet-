@@ -305,6 +305,7 @@ QPushButton#bandeauBouton {{
     font-size: 12.5pt; padding: 5px 12px; text-align: left;
 }}
 QPushButton#bandeauBouton:hover {{ background: #123b45; border-color: #9ae7f5; }}
+QPushButton#bandeauBouton:checked {{ background: #123b45; border: 2px solid #9ae7f5; color: #ffffff; font-weight: bold; }}
 QPushButton#bandeauBouton:disabled {{ color: #7d98a0; border-color: #1d3d44; }}
 QPushButton#aide {{
     min-width: 44px; max-width: 48px; min-height: 44px; max-height: 48px;

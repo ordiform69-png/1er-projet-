@@ -44,7 +44,8 @@ def test_etape_suivante_designee_et_comparaison(app, tools, samples, monkeypatch
     assert win.s_run.suggested
     assert win.s_segments.isVisibleTo(win.pages.widget(0).widget())
     win.segments["after"].click()
-    assert win.s_compare.mode == "after" and win.compare.mode == "after"
+    assert win.s_compare.mode == "after"
+    assert win.compare._w[0].mode == "split"      # l'aperçu des options avancées garde la comparaison
     win.segments["before"].click()
     assert win.s_compare.mode == "before"
     win.set_advanced(True)

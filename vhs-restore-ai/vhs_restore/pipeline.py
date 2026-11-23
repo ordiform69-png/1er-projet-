@@ -48,7 +48,8 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
-from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, ToolError, Toolset, run, run_capture,
+from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
+                    finaliser, run, run_capture, verifier_chemin,
                     terminate)
 from .dvd import input_args as dvd_input
 from .dvd import is_menu, open_media, titles_in
@@ -576,10 +577,32 @@ def is_writable(folder: Path) -> bool:
         return False
 
 
+def _dossier_videos_windows() -> Path | None:
+    """Vrai dossier « Vidéos » de Windows : il peut avoir été déplacé, par OneDrive notamment."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        import uuid
+        guid = (ctypes.c_byte * 16).from_buffer_copy(uuid.UUID("18989B1D-99B5-455B-841C-AB7C74E4DDFC").bytes_le)
+        chemin = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(guid), 0, None, ctypes.byref(chemin)):
+            return None
+        try:
+            return Path(chemin.value) if chemin.value else None
+        finally:
+            ctypes.windll.ole32.CoTaskMemFree(chemin)
+    except Exception:            # API absente ou refusée : chemin habituel
+        return None
+
+
 def fallback_dir() -> Path:
     """« Vidéos\\Films restaurés » de l'utilisateur (VHSRA_SORTIE pour les tests)."""
     if os.environ.get("VHSRA_SORTIE"):
         return Path(os.environ["VHSRA_SORTIE"])
+    videos = _dossier_videos_windows()
+    if videos is not None and videos.is_dir():
+        return videos / BATCH_DIR
     home = Path(os.environ.get("USERPROFILE") or Path.home())
     videos = home / "Videos"            # nom réel du dossier « Vidéos » de Windows
     return (videos if videos.is_dir() else home) / BATCH_DIR
@@ -645,6 +668,33 @@ def check_disk_space(info: MediaInfo, s: Settings, out_dir: Path, start: float |
                             "ou choisissez un autre dossier de sortie (disque externe, par exemple).")
 
 
+def systeme_de_fichiers(path: Path) -> str:
+    """« NTFS », « FAT32 », « exFAT »… du disque qui contient `path` (Windows seulement, sinon "")."""
+    if os.name != "nt":
+        return ""
+    try:
+        import ctypes
+        racine = os.path.splitdrive(str(Path(path).resolve()))[0] + "\\"
+        nom = ctypes.create_unicode_buffer(64)
+        ok = ctypes.windll.kernel32.GetVolumeInformationW(ctypes.c_wchar_p(racine), None, 0, None, None,
+                                                          None, nom, len(nom))
+        return nom.value if ok else ""
+    except Exception:            # lecteur réseau, ctypes indisponible : on ne bloque pas
+        return ""
+
+
+def check_fat32(info: MediaInfo, s: Settings, out_dir: Path, start: float | None = None,
+                duration: float | None = None) -> None:
+    """Clé USB ou carte SD en FAT32 : un fichier ne peut pas y dépasser 4 Go. On le dit avant
+    des heures de travail (taille estimée sans la marge de prudence)."""
+    final, _ = disk_needs(info, s, start, duration)
+    if final / 1.5 > 3.6 * GB and systeme_de_fichiers(out_dir).upper().startswith("FAT"):
+        raise ToolError(f"Le dossier de sortie est sur une clé USB ou une carte au format FAT32, qui n'accepte "
+                        f"pas de fichier de plus de 4 Go ; le film restauré devrait faire environ "
+                        f"{final / 1.5 / GB:.1f} Go".replace(".", ",") + ". Choisissez un dossier sur l'ordinateur (par exemple "
+                        "« Vidéos ») avec « Dossier de sortie », puis recommencez.")
+
+
 def output_base(info: MediaInfo, s: Settings) -> str:
     res = effective_resolution(s)
     tag = ({"video": "", "film": "_film", "transfer": "_transfert"}.get(s.source, "")
@@ -689,6 +739,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            start: float | None = None, duration: float | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet."""
     tools.require_ffmpeg()
+    check_fat32(info, s, Path(out_path).parent, start, duration)
     if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
         check_disk_space(info, s, Path(out_path).parent, start, duration)
     if s.dust or _tape_job(s):
@@ -702,6 +753,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         raise ToolError("La stabilisation demande un FFmpeg compilé avec libvidstab "
                         "(filtres vidstabdetect/vidstabtransform), absent de votre FFmpeg.")
     part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    verifier_chemin(part)
     total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
     work: Path | None = None
     df_owned = False
@@ -735,10 +787,11 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                    "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
-        os.replace(part, out_path)
+        finaliser(part, out_path)
         _write_audio_copy(out_path, info, s, tools, cancel, progress)
-    except BaseException:
-        part.unlink(missing_ok=True)
+    except BaseException as exc:
+        if not isinstance(exc, FichierOccupe):
+            effacer(part)
         raise
     finally:
         if work is not None and (df_owned or s.stabilize):
@@ -767,9 +820,10 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
              "-i", str(out_path), "-vn", "-map", "0:a:0", *codec, str(part)],
             cancel=cancel, what="FFmpeg (copie du son)")
-        os.replace(part, dest)
-    except BaseException:
-        part.unlink(missing_ok=True)
+        finaliser(part, dest)
+    except BaseException as exc:
+        if not isinstance(exc, FichierOccupe):
+            effacer(part)
         raise
     log.info("Copie du son : %s", dest)
 
@@ -949,8 +1003,8 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             ss = ["-ss", f"{v_off + (done - 0.5) / float(fps):.6f}"] if done else []
             run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "warning",
                  *ss, "-i", str(inter), "-map", "0:v:0", "-frames:v", str(cnt),
-                 "-pix_fmt", "rgb24", "-start_number", "0", str(d_in / "%08d.png")],
-                cancel=cancel, what="FFmpeg (extraction d'images)")
+                 "-pix_fmt", "rgb24", "-start_number", "0", "%08d.png"],     # motif relatif : un « % »
+                cancel=cancel, what="FFmpeg (extraction d'images)", cwd=d_in)   # du dossier ne gêne pas
 
             def on_count(k: int, done=done) -> None:
                 if progress:
@@ -1052,7 +1106,10 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             if photo.is_photo(f):
                 pinfo = photo.analyze_photo(f, tools)
                 ps = settings_for(pinfo)
-                if (out_dir / f"{pinfo.path.stem}_restaure_{ps.profile.key}{'_ia' if ps.use_ai else ''}.png").exists():
+                # dossier de secours (DVD, CD photo) : partagé par tous les disques, dont les noms
+                # se répètent (VTS_01, IMG_0001) : « déjà fait » n'y veut rien dire
+                if not fallback and (out_dir / f"{pinfo.path.stem}_restaure_{ps.profile.key}"
+                                                f"{'_ia' if ps.use_ai else ''}.png").exists():
                     res.skipped.append(f.name)
                     continue
                 res.done.append(photo.restore_photo(pinfo, ps, photo.output_path(pinfo, ps, out_dir), tools,
@@ -1060,7 +1117,7 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                 continue
             info = open_media(f, tools)
             s = settings_for(info)
-            if (out_dir / f"{output_base(info, s)}.mp4").exists():
+            if not fallback and (out_dir / f"{output_base(info, s)}.mp4").exists():
                 # déjà restauré avec les mêmes réglages (relance après une coupure)
                 res.skipped.append(f.name)
                 continue
@@ -1068,9 +1125,9 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                                    cancel=cancel, progress=sub))
         except Cancelled:
             raise
-        except ToolError as exc:
+        except (ToolError, OSError, ValueError) as exc:     # un fichier bloqué n'arrête pas les autres
             log.warning("Dossier : %s ignoré : %s", f.name, exc)
-            res.errors.append((f.name, str(exc).splitlines()[0]))
+            res.errors.append((f.name, (str(exc).splitlines() or [type(exc).__name__])[0]))
     if progress:
         progress(1.0, "Terminé")
     return res
@@ -1098,7 +1155,7 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     workdir.mkdir(parents=True, exist_ok=True)
     for old in workdir.glob("*"):
         if old.is_file():
-            old.unlink()
+            effacer(old)          # encore ouvert dans le lecteur (« Écouter ») : il reste, sans gêner
     sp = dataclasses.replace(s, preset="veryfast")
     restored = workdir / "apercu_restaure.mp4"
 

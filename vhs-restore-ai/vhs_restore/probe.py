@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from pathlib import Path
 
-from .tools import ToolError, Toolset, run_capture
+from .tools import _NO_WINDOW, ToolError, Toolset, ff_input, run_capture
 
 SD_SIZES = {(720, 576), (704, 576), (720, 480), (704, 480), (720, 486), (352, 288), (352, 240)}
 IDET_FRAMES = 600
@@ -204,10 +204,11 @@ def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float,
     """Moyenne R, G, B sur quelques images réduites. Une seule lecture courte."""
     try:
         r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
-                            "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
+                            "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
                             "-map", "0:v:0", "-vf", "scale=32:32,format=rgb24",
                             "-frames:v", "8", "-an", "-f", "rawvideo", "-"],
-                           capture_output=True, timeout=60, stdin=subprocess.DEVNULL)
+                           capture_output=True, timeout=60, stdin=subprocess.DEVNULL,
+                           creationflags=_NO_WINDOW)
     except (OSError, subprocess.TimeoutExpired):
         return None
     data = r.stdout
@@ -227,10 +228,15 @@ def _edge_columns(strip: list[tuple[float, float]], ref: tuple[float, float]) ->
     est claire mais très différente de l'image (neige). Une bande noire régulière ne compte pas."""
     lref, cref = ref
     last = -1
+    rampe, prec = True, 0.0     # bande noire au flou analogique : du noir, puis une montée régulière
     for c, (lum, chroma) in enumerate(strip[:EDGE_MAX + 4]):
         noire = lum < 20 and chroma < 6
         couleur = chroma > cref * 1.8 + 8
-        neige = lum > 20 and abs(lum - lref) > max(25.0, 0.45 * lref)
+        # passage doux du noir à l'image (de plus en plus clair, jamais plus clair que l'image) :
+        # c'est le bord de la bande noire, pas de la neige
+        rampe = rampe and not couleur and (noire or (lum >= prec - 2 and lum <= lref + 10))
+        prec = lum
+        neige = lum > 20 and abs(lum - lref) > max(25.0, 0.45 * lref) and not rampe
         if (couleur or neige) and not noire:
             last = c
         elif c - last > 3 and last >= 0:        # le défaut s'arrête : on ne cherche pas plus loin
@@ -252,7 +258,8 @@ def edge_damage(ffmpeg: str, path: Path, width: int, start: float = 0.0, frames:
         r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
                             "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
                             "-filter_complex", vf, "-frames:v", str(frames), "-an", "-f", "rawvideo", "-"],
-                           capture_output=True, timeout=120, stdin=subprocess.DEVNULL)
+                           capture_output=True, timeout=120, stdin=subprocess.DEVNULL,
+                           creationflags=_NO_WINDOW)
     except (OSError, subprocess.TimeoutExpired):
         return 0
     data, row = r.stdout, 2 * w * 3

@@ -119,11 +119,17 @@ def test_bouton_montage(fenetre, tools, cassette, tmp_path, monkeypatch):
     monkeypatch.setattr(gui, "_demarrer", lambda prog, args, dossier: lances.append((prog, args)) or True)
     sans = dataclasses.replace(tools, losslesscut=Tool("LosslessCut"))
     win = MainWindow(sans)
-    monkeypatch.setattr(win, "show_tool", lambda key: fiches.append(key))
     win.load_file(str(cassette))
     attendre(win)
+    monkeypatch.setattr(win, "show_tool", lambda key: fiches.append(key))   # fiche fermée sans installer
+    win.faire_montage()
+    assert fiches == ["losslesscut"] and win._montage_en_attente is None and not lances
+    occupe = []                                         # « Installer » cliqué : téléchargement en cours
+    monkeypatch.setattr(win, "show_tool", lambda key: fiches.append(key) or occupe.append(1))
+    monkeypatch.setattr(win, "_busy", lambda: bool(occupe))
     win.faire_montage()                                 # pas installé : la fiche « Installer » s'ouvre
-    assert fiches == ["losslesscut"] and win._montage_en_attente[0] == "losslesscut" and not lances
+    assert fiches == ["losslesscut"] * 2 and win._montage_en_attente[0] == "losslesscut" and not lances
+    occupe.clear()
     exe = tmp_path / "LosslessCut"
     exe.write_text("")
     win.tools = dataclasses.replace(sans, losslesscut=Tool("LosslessCut", str(exe)))

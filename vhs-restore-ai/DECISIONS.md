@@ -697,3 +697,58 @@ maintenant les deux niveaux (`C\\:/…`), apostrophes, virgules, crochets et poi
 Essai réel avec FFmpeg (-af et -filter_complex) dans un dossier « C:Mes films, l'été [1988]; essai ».
 Pourquoi les essais ne l'avaient pas vu : sous Linux un chemin n'a pas de « C: », et l'essai
 automatique de l'exe Windows ne cochait pas RNNoise ; il le coche désormais (avec le filtre 50 Hz).
+
+## Vérification complète par trois relecteurs automatiques (phase 24)
+
+À la demande de l'utilisateur, trois assistants ont vérifié tout le logiciel en parallèle, sans rien
+modifier : relecture du code récent, pièges de Windows, parcours de l'interface écran par écran
+(environ 330 captures, 1280 × 720 à 150 %, 1366 × 768, 1920 × 1040, thèmes sombre et clair, texte
+100 et 150 %). Chaque problème retenu a été reproduit ; les corrections ont chacune un test.
+
+Passages vides et montage :
+- Durée annoncée absente (« N/A ») ou fausse (VOB aux horodatages qui repartent à zéro) : la durée
+  est mesurée en lisant le film ; le dernier morceau gardé va « jusqu'au bout » ; une copie plus
+  courte que prévu est refusée (rien n'est retiré) au lieu de perdre des minutes en silence.
+- DVD en plusieurs morceaux : refusé tant qu'il n'est pas restauré (seul le premier morceau était pris).
+- L'écran « C'est prêt » ne disparaît plus quand la recherche ne trouve rien, est refusée, annulée,
+  ou quand une installation échoue ; un autre film ouvert n'hérite plus du film restauré précédent ;
+  le nom du film est dans la question ; copie dans le dossier de secours si le dossier est protégé.
+- Montage en attente oublié si la fiche d'installation est fermée sans installer.
+Autres : téléchargement coupé en route réessayé (au lieu de « fichier pas bon ») ; bande noire au
+bord flou (capture analogique) plus prise pour un bord abîmé ; « Arrêter » pendant que le travail
+finit ; temps « encore environ … » ; dossier déposé sur la fenêtre = restaurer le dossier (après
+question) ; réglages d'un dossier lus dans le fil de l'interface, plus dans le fil de travail.
+
+Windows :
+- Plus de fenêtre noire qui clignote (trois appels de FFmpeg sans CREATE_NO_WINDOW).
+- Photo au nom avec « %20d » (nom venu d'Internet) : lue comme une suite numérotée ; corrigé
+  (`-pattern_type none`, `-update 1`).
+- Fichier ouvert dans un lecteur vidéo : nouvel essai, puis message clair, et le résultat terminé
+  est gardé (« renommez … ») ; aperçu dans un dossier neuf à chaque fois ; « permission denied » dit
+  « utilisé par un autre programme ou dossier protégé » (plus « la clé USB n'est plus là »).
+- Clé USB ou carte en FAT32 : prévenu AVANT si le film dépasserait 4 Go.
+- Deux DVD protégés (VTS_01 tous les deux) : le second n'est plus dit « déjà fait ».
+- Un fichier bloqué n'arrête plus tout le dossier ; chemin de plus de 250 caractères dit avant ;
+  « % » dans le dossier temporaire (mode IA) ; « & » dans un nom de fichier récent ; journal à part
+  pour le sous-processus « poussières » ; vrai dossier « Vidéos » (déplacé par OneDrive).
+
+Interface :
+- Pendant une restauration, la barre, l'état et « Arrêter » étaient sous le bas de l'écran (150 %) :
+  ils sont juste sous les boutons 1-2-3 et la page y défile toute seule ; après l'aperçu, l'image
+  (à la taille de la fenêtre, plus 260 px de large) et ses boutons sont amenés à l'écran.
+- « Derniers fichiers » sous les étapes (ils les poussaient hors de l'écran).
+- Entrée sur « C'est prêt » relançait la même restauration : elle ouvre maintenant le film.
+- Questions en français (« Oui, arrêter » / « Non, continuer ») au lieu de « Yes / No » ; Qt traduit.
+- Libellés coupés (« Pellicule cinéma numéris… », « 25 images/ ») raccourcis ; case « Coloriser
+  aussi (IA) » courte, l'explication en dessous (plus de défilement horizontal).
+- Boutons qui suivent la taille du texte ; A− / A / A+ montrent la taille choisie ; boutons
+  Original / Comparer / Restauré côte à côte tant qu'ils tiennent.
+- Texte du haut toujours juste (aperçu prêt, travail en cours, arrêté, échec) ; les boutons du mode
+  simple ne figent plus l'aperçu des options avancées ; « Arrêter » sur les deux pages.
+- Options avancées : réglages corrigés d'office marqués (« · corrigé d'office », « Automatique :
+  ronflement 50 Hz filtré ») ; boutons de montage grisés pendant un travail et cachés pour une photo ;
+  photo : plus de lignes « — » ni « extrait de 10 s ».
+- Dossier où tout a échoué : plus d'écran « C'est prêt ».
+
+Tests : `tests/test_pieges_windows.py`, ajouts dans `test_installer.py`, `test_bords_auto.py`,
+`test_vides_montage.py`.

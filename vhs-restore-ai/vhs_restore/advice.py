@@ -29,7 +29,8 @@ def advise(info: MediaInfo) -> list[Advice]:
             out.append(Advice("channel", "Les deux côtés du son s'annulent en partie (opposition de phase) : "
                                          "ils seront remis en accord.", {"audio_channel_fix": "phase"}))
         if info.clipped >= 0.0005:
-            out.append(Advice("clip", f"Le son sature par moments ({info.clipped:.1%} des échantillons) : "
+            part = f"{info.clipped * 100:.1f}".replace(".", ",")
+            out.append(Advice("clip", f"Le son sature par moments ({part} % des échantillons) : "
                                       "les crêtes coupées seront reconstruites.", {"audio_declip": True}))
         if info.hum_hz:
             out.append(Advice("hum", f"Un ronflement électrique à {info.hum_hz} Hz est audible : il sera filtré.",
@@ -43,7 +44,9 @@ def advise(info: MediaInfo) -> list[Advice]:
     if lo is not None and hi is not None and hi - lo < 140 and lo > 35 and hi < 190:
         out.append(Advice("levels",
                           f"Les noirs sont gris et les blancs ternes (niveaux {lo:.0f} à {hi:.0f}) : "
-                          "le contraste sera rehaussé avec modération, une seule fois pour tout le film.",
+                          "le contraste sera rehaussé avec modération"
+                          + (" pour toute la photo." if info.container == "image"
+                             else ", une seule fois pour tout le film."),
                           {"level_black": lo / 255.0, "level_white": hi / 255.0}))
     if info.edge_damage:
         out.append(Advice("edges", f"Les bords de l'image sont abîmés (traits colorés ou neige sur environ "

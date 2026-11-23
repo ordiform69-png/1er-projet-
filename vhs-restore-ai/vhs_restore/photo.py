@@ -16,7 +16,6 @@ restaurée en noir et blanc est toujours écrite.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import tempfile
@@ -27,7 +26,8 @@ from typing import Callable
 
 from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
-from .tools import ToolError, Toolset, run, run_capture
+from .tools import (_NO_WINDOW, FichierOccupe, ToolError, Toolset, effacer, ff_input, finaliser, run,
+                    run_capture, verifier_chemin)
 from .upscaler import RealEsrganUpscaler
 
 PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
@@ -54,7 +54,7 @@ def analyze_photo(path: str | Path, tools: Toolset) -> MediaInfo:
     if not p.is_file():
         raise ToolError(f"Fichier introuvable : {p}")
     r = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0", "-show_entries",
-                     "stream=width,height,codec_name", "-of", "json", str(p)], timeout=60)
+                     "stream=width,height,codec_name", "-of", "json", *ff_input(p)[:-2], str(p)], timeout=60)
     streams = json.loads(r.stdout or "{}").get("streams") or []
     if r.returncode or not streams or not streams[0].get("width"):
         raise ToolError("Cette image n'a pas pu être lue (fichier abîmé ou format inconnu).")
@@ -62,7 +62,7 @@ def analyze_photo(path: str | Path, tools: Toolset) -> MediaInfo:
     info = MediaInfo(path=p, width=int(st["width"]), height=int(st["height"]), codec=st.get("codec_name", ""),
                      container="image", fps=Fraction(1), scan="progressive", sar=Fraction(1),
                      dar=Fraction(int(st["width"]), int(st["height"])), dar_source="photo")
-    stats = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-i", str(p), "-vf",
+    stats = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", *ff_input(p), "-vf",
                          "signalstats,metadata=print:key=lavfi.signalstats.SATHIGH,"
                          "metadata=print:key=lavfi.signalstats.SATAVG,"
                          "metadata=print:key=lavfi.signalstats.YLOW,"
@@ -134,6 +134,7 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
         if color_out.exists():
             raise ToolError(f"Une photo colorisée porte déjà ce nom : {color_out.name}. Rien n'a été remplacé.")
     part = out_path.with_name(out_path.stem + ".partiel.png")
+    verifier_chemin(part)
     ff = [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error"]
     work = Path(tempfile.mkdtemp(prefix="vhsrestore_photo_"))
     try:
@@ -145,23 +146,24 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
             src.mkdir()
             base, _, _ = PHOTO_FILTERS[s.profile.key]
             pre = base + [x for x in (pipeline._cast_filter(s), pipeline._levels_filter(s)) if x]
-            run(ff + ["-i", str(info.path), "-vf", ",".join(pre + ["format=rgb24"]),
+            run(ff + [*ff_input(info.path), "-vf", ",".join(pre + ["format=rgb24"]),
                       str(src / "photo.png")], cancel=cancel, what="FFmpeg (photo)")
             up.upscale_dir(src, dst, cancel=cancel)
             run(ff + ["-i", str(dst / "photo.png"), "-vf", ",".join(photo_chain(info, s, after_ai=True)),
-                      "-f", "image2", str(part)], cancel=cancel, what="FFmpeg (photo)")
+                      "-f", "image2", "-update", "1", str(part)], cancel=cancel, what="FFmpeg (photo)")
         else:
-            run(ff + ["-i", str(info.path), "-vf", ",".join(photo_chain(info, s)),
-                      "-frames:v", "1", "-f", "image2", "-c:v", "png", str(part)],
+            run(ff + [*ff_input(info.path), "-vf", ",".join(photo_chain(info, s)),
+                      "-frames:v", "1", "-f", "image2", "-update", "1", "-c:v", "png", str(part)],
                 cancel=cancel, what="FFmpeg (photo)")
-        os.replace(part, out_path)
+        finaliser(part, out_path)
         if color_out is not None:
             if progress:
                 progress(0.6, "Colorisation par l'IA (couleurs inventées)…")
             colorize.colorize(out_path, color_out, tools.ffmpeg.path, tools.ffprobe.path,
                               Path(tools.colorizer.path), cancel=cancel)
-    except BaseException:
-        part.unlink(missing_ok=True)
+    except BaseException as exc:
+        if not isinstance(exc, FichierOccupe):
+            effacer(part)
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -183,10 +185,11 @@ def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, wo
     compare = workdir / "apercu_photo_comparaison.png"
     fmt = "gray" if info.black_and_white and not wants_color(info, s) else "rgb24"
     r = subprocess.run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-                        "-i", str(info.path), "-i", str(restored), "-filter_complex",
+                        *ff_input(info.path), "-i", str(restored), "-filter_complex",
                         f"[0:v][1:v]scale2ref=flags=lanczos[a][b];[a]format={fmt}[a2];[b]format={fmt}[b2];"
                         "[a2][b2]hstack=inputs=2", "-frames:v", "1", str(compare)],
-                       capture_output=True, text=True, timeout=120)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                       stdin=subprocess.DEVNULL, creationflags=_NO_WINDOW)
     if r.returncode:
         raise ToolError("Comparaison impossible : " + r.stderr.strip()[-300:])
     return pipeline.PreviewResult(0.0, 0.0, restored, compare, [compare], info.path)

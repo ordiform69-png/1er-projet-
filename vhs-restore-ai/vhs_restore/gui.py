@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
-                            QUrl, Signal)
+                            QTimer, QUrl, Signal)
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QBoxLayout, QButtonGroup,
                                QCheckBox, QComboBox, QDoubleSpinBox,
@@ -94,17 +94,22 @@ class CompareView(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
         self._proportion = False
+        self._plafond: Callable[[], int] | None = None
 
-    def garder_proportions(self) -> None:
+    def garder_proportions(self, plafond: Callable[[], int] | None = None) -> None:
         """Hauteur réglée sur la largeur (image 4:3) : le cadre ne s'étire pas en un grand
-        rectangle noir quand la colonne voisine est très haute."""
+        rectangle noir quand la colonne voisine est très haute. `plafond` : hauteur maximale
+        (mode simple : la fenêtre visible, pour voir l'image ET ses boutons sans défiler)."""
         self._proportion = True
+        self._plafond = plafond
         self._ajuster_hauteur()
 
     def _ajuster_hauteur(self) -> None:
         if not self._proportion:
             return
         h = min(900, max(240, (self.width() - 22) * 3 // 4 + 22))
+        if self._plafond is not None:
+            h = min(h, max(240, self._plafond()))
         if abs(self.minimumHeight() - h) > 2 or self.maximumHeight() != h:
             self.setMinimumHeight(h)
             self.setMaximumHeight(h)
@@ -223,6 +228,11 @@ class DropZone(QLabel):
             self.dropped.emit(urls[0].toLocalFile())
 
 
+def _insecables(texte: str) -> str:
+    """Espaces insécables dans « … » : le guillemet ne se retrouve jamais seul en bout de ligne."""
+    return texte.replace("« ", "«\u00a0").replace(" »", "\u00a0»")
+
+
 class _Mirror:
     """Relaie les appels à plusieurs widgets identiques (page simple + page avancée) ;
     les lectures (text(), maximum(), attributs) viennent du premier."""
@@ -236,6 +246,8 @@ class _Mirror:
             return first
 
         def call(*a: Any, **k: Any) -> Any:
+            if name == "setText" and a and isinstance(a[0], str):
+                a = (_insecables(a[0]), *a[1:])
             out = first(*a, **k)
             for w in self._w[1:]:
                 getattr(w, name)(*a, **k)
@@ -406,8 +418,9 @@ class Carte(QFrame):
         t.setObjectName("carteTitre")
         head.addWidget(ic)
         head.addWidget(t)
+        self.sous: QLabel | None = None
         if subtitle:
-            st = QLabel(subtitle)
+            st = self.sous = QLabel(subtitle)
             st.setObjectName("carteSous")
             head.addWidget(st)
         head.addStretch(1)
@@ -643,6 +656,8 @@ class MainWindow(QMainWindow):
             b.setCursor(Qt.PointingHandCursor)
             b.setAccessibleName(f"Taille du texte {pct} %")
             b.setAccessibleDescription("Agrandit ou réduit les textes du mode simple.")
+            b.setCheckable(True)
+            b.setAutoExclusive(True)
             b.clicked.connect(lambda _=False, p=pct: self.set_taille_texte(p))
             tailles.addWidget(b, 1)
             self._taille_btns[pct] = b
@@ -713,7 +728,6 @@ class MainWindow(QMainWindow):
         self._recents_lay.addWidget(rec_titre)
         self._recent_btns: list[QPushButton] = []
         self._recents_box.setVisible(False)
-        v.addWidget(self._recents_box)
         self.advice: list = []
         self.s_advice = QCheckBox("Corriger aussi ces défauts, avec prudence")
         self.s_advice.setObjectName("caseSimple")
@@ -732,8 +746,7 @@ class MainWindow(QMainWindow):
         conseil_l.addWidget(self.s_advice, 1)
         conseil_l.addWidget(self.s_aide_conseil, 0, Qt.AlignTop)
         v.addLayout(conseil_l)
-        self.s_colorize = QCheckBox("Coloriser aussi — couleurs inventées par l'IA, pas les vraies "
-                                    "(copie à part, le noir et blanc est gardé)")
+        self.s_colorize = QCheckBox("Coloriser aussi (IA)")
         self.s_colorize.setObjectName("caseSimple")
         _with_icon(self.s_colorize, "palette")
         self.s_colorize.setVisible(False)
@@ -752,6 +765,12 @@ class MainWindow(QMainWindow):
         couleur_l.addWidget(self.s_colorize, 1)
         couleur_l.addWidget(self.s_aide_couleur, 0, Qt.AlignTop)
         v.addLayout(couleur_l)
+        self.s_colorize_note = QLabel("Couleurs inventées par l'IA, pas les vraies. Une copie à part est créée : "
+                                      "la photo en noir et blanc est gardée.")
+        self.s_colorize_note.setObjectName("note")
+        self.s_colorize_note.setWordWrap(True)
+        self.s_colorize_note.setVisible(False)
+        v.addWidget(self.s_colorize_note)
         self._steps = QBoxLayout(QBoxLayout.LeftToRight)
         self._steps.setSpacing(8)
         self.s_choose = StepButton("1", "Choisir le film ou la photo", "dossier")
@@ -775,13 +794,33 @@ class MainWindow(QMainWindow):
         self.s_run.setAccessibleName("Étape 3, restaurer")
         self.s_run.setAccessibleDescription("Lance la restauration. Le fichier d'origine n'est pas modifié.")
         v.addLayout(self._steps)
+        # pendant le travail : la progression, l'état et « Arrêter » juste sous les étapes, visibles
+        # sans défiler (écran de 1920 x 1080 à 150 % : 641 px de haut seulement)
+        self.s_progress = theme.SweepBar()
+        self.s_status = QLabel("Prêt.")
+        self.s_status.setWordWrap(True)
+        self.s_status.setObjectName("statut")
+        v.addWidget(self.s_progress)
+        v.addWidget(self.s_status)
+        self.s_cancel = QPushButton("Arrêter")
+        self.s_cancel.setObjectName("secondaire")
+        self.s_cancel.clicked.connect(lambda: self.cancel(confirmer=True))
+        self.s_cancel.setMinimumHeight(44)
+        self.s_cancel.setAccessibleName("Arrêter le travail en cours")
+        self.s_cancel.setAccessibleDescription("Demande confirmation si le travail a déjà commencé depuis un moment.")
+        _with_icon(self.s_cancel, "stop")
+        rangee_arret = QHBoxLayout()
+        rangee_arret.addWidget(self.s_cancel)
+        rangee_arret.addStretch(1)
+        v.addLayout(rangee_arret)
         self.s_note = note = QLabel("Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
                                     "à côté, avec « restaure » dans son nom.")
         note.setWordWrap(True)
         note.setObjectName("note")
         v.addWidget(note)
         self.s_compare = CompareView()
-        v.addWidget(self.s_compare, 1)
+        self.s_compare.garder_proportions(self._hauteur_apercu_simple)
+        v.addWidget(self.s_compare)
         # comparer sans geste précis : trois gros boutons sous l'image
         self.s_segments = QWidget()
         hs = self._segments_row = QHBoxLayout(self.s_segments)
@@ -807,19 +846,7 @@ class MainWindow(QMainWindow):
         self.segments["split"].setChecked(True)
         self.s_segments.setVisible(False)
         v.addWidget(self.s_segments)
-        self.s_progress = theme.SweepBar()
-        self.s_status = QLabel("Prêt.")
-        self.s_status.setWordWrap(True)
-        self.s_status.setObjectName("statut")
-        v.addWidget(self.s_progress)
-        v.addWidget(self.s_status)
         h = QHBoxLayout()
-        self.s_cancel = QPushButton("Arrêter")
-        self.s_cancel.setObjectName("secondaire")
-        self.s_cancel.clicked.connect(lambda: self.cancel(confirmer=True))
-        self.s_cancel.setMinimumHeight(44)
-        self.s_cancel.setAccessibleName("Arrêter le travail en cours")
-        self.s_cancel.setAccessibleDescription("Demande confirmation si le travail a déjà commencé depuis un moment.")
         self.s_folder = QPushButton("Restaurer tout un dossier (films et photos)…")
         self.s_folder.setObjectName("secondaire")
         self.s_folder.clicked.connect(self.start_folder)
@@ -836,7 +863,6 @@ class MainWindow(QMainWindow):
             _with_icon(b, "casque")
         self.s_hear_orig.setAccessibleName("Écouter le son d'origine")
         self.s_hear_new.setAccessibleName("Écouter le son restauré")
-        _with_icon(self.s_cancel, "stop")
         _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
@@ -849,13 +875,14 @@ class MainWindow(QMainWindow):
         adv.setObjectName("lienDiscret")
         adv.setCursor(Qt.PointingHandCursor)
         adv.clicked.connect(lambda: self.set_advanced(True))
-        h.addWidget(self.s_cancel)
         h.addWidget(self.s_hear_orig)
         h.addWidget(self.s_hear_new)
         h.addStretch(1)
         v.addLayout(h)
+        v.addWidget(self._recents_box)          # sous les étapes : ils ne les poussent plus hors de l'écran
         v.addWidget(self.s_folder)
         v.addWidget(adv, 0, Qt.AlignLeft)
+        v.addStretch(1)
         return page
 
     def set_advanced(self, on: bool) -> None:
@@ -863,6 +890,10 @@ class MainWindow(QMainWindow):
         deja = self.pages.currentIndex() == idx
         self.pages.setCurrentIndex(idx)
         self.statusBar().setVisible(on)      # noms d'outils : seulement pour les connaisseurs
+        if not on:                           # tailles recalculées (boutons écrasés sinon)
+            page = self.pages.widget(0).widget()
+            page.layout().invalidate()
+            page.updateGeometry()
         if deja:
             self.status.setText("Options avancées." if on else "Mode simple.")
 
@@ -870,6 +901,8 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, e) -> None:  # noqa: N802
         super().resizeEvent(e)
+        if hasattr(self, "s_compare"):
+            self.s_compare._ajuster_hauteur()
         cols = getattr(self, "_colonnes", None)
         if cols is not None:
             sens = (QBoxLayout.TopToBottom if self.width() < self.COLONNE_UNIQUE_SOUS
@@ -963,11 +996,14 @@ class MainWindow(QMainWindow):
         for txt, val in (("Automatique (analyse)", None), ("4:3", Fraction(4, 3)), ("16:9", Fraction(16, 9))):
             self.dar_combo.addItem(txt, val)
         self.source_combo = QComboBox()
-        for txt, val, ic in (("Automatique (analyse)", None, "info"),
-                             ("Vidéo analogique (VHS, Video8, Hi8, Betamax…)", "video", "bande"),
-                             ("Pellicule cinéma numérisée (Super 8, 8 mm, 16 mm…)", "film", "film"),
-                             ("Pellicule transférée sur vidéo (film copié sur VHS, DVD…)", "transfer", "pile")):
+        for txt, val, ic, aide in (
+                ("Automatique (analyse)", None, "info", "L'analyse propose l'origine (ligne du dessus)."),
+                ("Vidéo (VHS, Video8, Hi8…)", "video", "bande", "Vidéo analogique : VHS, Video8, Hi8, Betamax…"),
+                ("Pellicule (Super 8, 8 mm…)", "film", "film", "Pellicule cinéma numérisée : Super 8, 8 mm, 16 mm…"),
+                ("Pellicule copiée sur vidéo", "transfer", "pile",
+                 "Pellicule transférée sur vidéo : film copié sur VHS, DVD…")):
             self.source_combo.addItem(icons.icon(ic), txt, val)
+            self.source_combo.setItemData(self.source_combo.count() - 1, aide, Qt.ToolTipRole)
         self.source_combo.setToolTip("L'origine change les réglages appliqués (grain du film préservé, "
                                      "pas de désentrelacement automatique d'une pellicule…).")
         self.source_combo.currentIndexChanged.connect(lambda _i: self._update_state())
@@ -1068,6 +1104,7 @@ class MainWindow(QMainWindow):
             QCheckBox("Stabiliser l'image (tremblements, 2 passes)"), "viseur")
         vi.addWidget(self.stab_check)
         self.cast_check = _with_icon(QCheckBox("Corriger la dominante de couleur"), "goutte")
+        self.cast_check.toggled.connect(lambda _c: self._marquer_auto())
         self.cast_check.setToolTip(
             "Retire une teinte qui couvre tout le film (vert de VHS, par exemple). "
             "Les trois gains sont calculés une seule fois, pour tout le film. "
@@ -1141,6 +1178,7 @@ class MainWindow(QMainWindow):
             "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
         vs.addWidget(self.rnnoise_check)
         self.wind_check = _with_icon(QCheckBox("Réduire le vent et les grondements"), "vent")
+        self.wind_check.toggled.connect(lambda _c: self._marquer_auto())
         self.wind_check.setToolTip(
             "Passe-haut doux à 80 Hz (6 dB par octave). Coupe le vent sur le micro et les "
             "grondements graves. Une voix à partir de 300 Hz n'est presque pas touchée. "
@@ -1152,6 +1190,7 @@ class MainWindow(QMainWindow):
             "Désactivé par défaut : rien n'est ajouté si la case n'est pas cochée.")
         vs.addWidget(self.presence_check)
         self.declip_check = _with_icon(QCheckBox("Réparer le son saturé"), "sature")
+        self.declip_check.toggled.connect(lambda _c: self._marquer_auto())
         self.declip_check.setToolTip("Reconstruit les crêtes coupées d'un son enregistré trop fort "
                                      "(cris, fêtes, vent). L'analyse le détecte et le conseille.")
         vs.addWidget(self.declip_check)
@@ -1210,7 +1249,7 @@ class MainWindow(QMainWindow):
         left.addStretch(1)
 
         # Aperçu
-        g = Carte("Aperçu avant / après", "comparer", "3", "extrait de 10 s")
+        g = self._card_apercu = Carte("Aperçu avant / après", "comparer", "3", "extrait de 10 s")
         v = g.body
         h = QHBoxLayout()
         self.start_spin = QDoubleSpinBox()
@@ -1287,7 +1326,7 @@ class MainWindow(QMainWindow):
         self.run_btn.setIconSize(QSize(24, 24))
         self.run_btn.clicked.connect(self.start_export)
         self.run_btn.installEventFilter(self._halos[1])
-        self.cancel_btn = _with_icon(QPushButton("Annuler"), "stop")
+        self.cancel_btn = _with_icon(QPushButton("Arrêter"), "stop")
         self.cancel_btn.clicked.connect(lambda: self.cancel(confirmer=True))
         self.cancel_btn.setMinimumHeight(44)
         self.cancel_btn.setAccessibleName("Arrêter le travail en cours")
@@ -1409,12 +1448,9 @@ class MainWindow(QMainWindow):
         if self._busy():
             return
         nouveau = "sombre" if theme.MODE == "clair" else "clair"
-        box = QMessageBox(QMessageBox.Question, "Affichage",
-                          f"Passer à l'affichage {nouveau} ? Le logiciel va redémarrer "
-                          "(rien n'est perdu).",
-                          QMessageBox.Yes | QMessageBox.No, self)
-        box.setDefaultButton(QMessageBox.No)
-        if box.exec() != QMessageBox.Yes:
+        if not self._question("Affichage", f"Passer à l'affichage {nouveau} ?\n\nLe logiciel va redémarrer. "
+                              "Vos réglages sont gardés ; le film ouvert sera à rouvrir (bouton 1).",
+                              f"Oui, affichage {nouveau}", "Non"):
             return
         s = self._prefs()
         if s is not None:
@@ -1425,12 +1461,36 @@ class MainWindow(QMainWindow):
         if _demarrer(sys.executable, args, dossier):
             self.close()
 
+    def _question(self, titre: str, texte: str, oui: str, non: str, oui_par_defaut: bool = False) -> bool:
+        """Question à deux boutons écrits en français (Qt afficherait « Yes / No »)."""
+        box = QMessageBox(QMessageBox.Question, titre, texte, parent=self)
+        b_oui = box.addButton(oui, QMessageBox.YesRole)
+        b_non = box.addButton(non, QMessageBox.NoRole)
+        box.setDefaultButton(b_oui if oui_par_defaut else b_non)
+        box.setEscapeButton(b_non)
+        r = box.exec()
+        clique = box.clickedButton()
+        if clique is not None:
+            return clique is b_oui
+        return r == QMessageBox.Yes             # exec remplacé dans les tests
+
+    def _info_suite(self, prefixe: str = "") -> None:
+        """Texte du haut selon l'état : rien d'ouvert, prêt pour l'aperçu, ou aperçu prêt."""
+        if self.info is None or not getattr(self, "_info_debut", ""):
+            self.s_info.setText(prefixe + "Pour commencer, cliquez sur le bouton 1 « Choisir le film ou la photo ».")
+            return
+        if self.preview is not None:
+            suite = " Aperçu prêt : comparez avec les boutons sous l'image, puis bouton 3 « Restaurer » si cela vous plaît."
+        else:
+            suite = " Prêt : cliquez sur le bouton 2 « Voir l'avant / après »."
+        self._set_simple_info(prefixe + self._info_debut + suite)
+
     def _set_simple_info(self, text: str) -> None:
         """Texte du mode simple : des mots de tous les jours ; le détail technique en infobulle."""
         if self.advice:
             text += "<br>Défauts repérés : " + ", ".join(dict.fromkeys(_en_clair(a) for a in self.advice)) + "."
         detail = "\n".join("• " + a.text for a in self.advice)
-        self.s_info.setText(text)
+        self.s_info.setText(_insecables(text))
         self.s_info.setToolTip(("Détail des défauts repérés :\n" + detail) if detail else "")
         self.s_advice.setToolTip("Corrige les défauts repérés avec modération (jamais d'effet fort). "
                                  "Cochée d'office ; décochez-la pour garder le film tel quel, "
@@ -1482,7 +1542,7 @@ class MainWindow(QMainWindow):
         def job(cancel, progress):
             installer.install(key, cancel=cancel, progress=progress)
             return key, detect_tools()          # l'outil est cherché à nouveau, comme au démarrage
-        self._launch(job, self._tool_installed)
+        self._launch(job, self._tool_installed, job="installation")
 
     def _tool_installed(self, res) -> None:
         key, tools = res
@@ -1507,11 +1567,19 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ montage et passages vides
     def _cible_montage(self) -> Path | None:
-        """Le dernier film restauré, sinon le film ouvert (pas une photo)."""
+        """Le dernier film restauré, sinon le film ouvert (pas une photo). Un DVD en plusieurs
+        morceaux n'est pas proposé tel quel : seul le premier morceau serait pris."""
         fini = getattr(self, "_fini_fichier", None)
         if fini and Path(fini).is_file() and not photo.is_photo(fini):
             return Path(fini)
         if self.info is not None and not getattr(self, "is_photo", False):
+            if len(self.info.parts) > 1:
+                QMessageBox.information(
+                    self, "DVD en plusieurs morceaux",
+                    f"Ce DVD est en {len(self.info.parts)} morceaux.\n\nRestaurez-le d'abord (bouton « Restaurer ») : "
+                    "le film restauré est d'un seul tenant. Les passages vides et le montage se feront ensuite "
+                    "sur ce film restauré.")
+                return None
             return Path(self.info.path)
         return None
 
@@ -1521,16 +1589,21 @@ class MainWindow(QMainWindow):
             return
         cible = self._cible_montage()
         if cible is None:
-            self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
+            if self.info is None or getattr(self, "is_photo", False):
+                self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
             return
         t = self.tools
 
         def job(cancel, progress):
             r = run_capture([t.ffprobe.path, "-v", "error", "-show_entries", "format=duration:stream=codec_type",
                              "-of", "default=nw=1", str(cible)], timeout=60)
-            duree = float(next((x.split("=")[1] for x in r.stdout.split() if x.startswith("duration=")), 0) or 0)
+            try:                                        # « N/A » : durée inconnue, mesurée en lisant
+                duree = float(next((x.split("=")[1] for x in r.stdout.split() if x.startswith("duration=")), 0))
+            except ValueError:
+                duree = 0.0
             son = "codec_type=audio" in r.stdout
-            return cible, duree, son, vides.detecter(t.ffmpeg.path, cible, duree, cancel=cancel, progress=progress)
+            passages, duree = vides.detecter_tout(t.ffmpeg.path, cible, duree, cancel=cancel, progress=progress)
+            return cible, duree, son, passages
         self.status.setText("Recherche des passages vides…")
         self._launch(job, self._vides_trouves, job="vides")
 
@@ -1539,14 +1612,14 @@ class MainWindow(QMainWindow):
         if not passages:
             self.status.setText("Aucun passage vide trouvé.")
             QMessageBox.information(self, "Passages vides", "Aucun passage vide (neige, écran bleu ou noir) "
-                                    "n'a été trouvé. Le film est gardé tel quel.")
+                                    f"n'a été trouvé dans « {cible.name} ». Le film est gardé tel quel.")
             return
         total = sum(p.duree for p in passages)
         liste = "\n".join("•  " + vides.decrire(p) for p in passages)
         box = QMessageBox(QMessageBox.Question, "Passages vides",
                           f"{len(passages)} passage{'s' if len(passages) > 1 else ''} vide"
                           f"{'s' if len(passages) > 1 else ''} trouvé{'s' if len(passages) > 1 else ''} "
-                          f"({vides._hms(total)} en tout) :\n\n{liste}\n\n"
+                          f"dans « {cible.name} » ({vides._hms(total)} en tout) :\n\n{liste}\n\n"
                           "Créer une copie du film sans ces passages ? Le film actuel n'est pas modifié.",
                           parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 520px; font-size: 14pt; }")
@@ -1556,18 +1629,23 @@ class MainWindow(QMainWindow):
         if box.clickedButton() is not oui:
             self.status.setText("Le film est gardé tel quel.")
             return
-        dst = vides.sortie_sans_vides(cible)
+        try:
+            dossier, _secours = pipeline.output_dir_for(cible.parent)   # DVD, clé protégée : dossier de secours
+        except ToolError as exc:
+            ergonomie.montrer_erreur(self, str(exc))
+            return
+        dst = vides.sortie_sans_vides(cible, dossier)
         ffmpeg = self.tools.ffmpeg.path
         self.status.setText("Copie sans les passages vides…")
         self._launch(lambda c, p: (vides.retirer(ffmpeg, cible, dst, passages, duree, son, cancel=c, progress=p),
-                                   total), self._vides_retires, job="export")
+                                   total), self._vides_retires, job="vides_copie")
 
     def _vides_retires(self, res) -> None:
         out, total = res
         self._montrer_fini(f"Copie sans les passages vides :\n{out.name}\n\n{vides._hms(total)} retirées "
                            f"(neige, écran bleu ou noir).\n\nElle se trouve dans le dossier :\n{out.parent}\n\n"
                            "Le film précédent n'a pas été modifié.", out.parent, out, "film")
-        self.status.setText(f"Terminé : {out}")
+        self.status.setText(f"Terminé : {out.name}")
 
     def faire_montage(self) -> None:
         """Ouvre le film dans LosslessCut (simple) ou Shotcut (complet), installés d'un clic si besoin."""
@@ -1598,6 +1676,8 @@ class MainWindow(QMainWindow):
         if not self._tool_ok(key):                           # pas encore installé : fiche « Installer »
             self._montage_en_attente = (key, cible)
             self.show_tool(key)
+            if not self._busy():                             # fiche fermée sans installer : on oublie
+                self._montage_en_attente = None
             return
         exe = Path(self._tool_obj(key).path)
         if _demarrer(str(exe), [str(cible)], str(exe.parent)):
@@ -1684,7 +1764,16 @@ class MainWindow(QMainWindow):
             b.setVisible(not photo_mode)                            # une photo n'a pas de son
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
         self.still_combo.setEnabled(has_prev and not busy)
-        self.still_combo.setVisible(self.still_combo.count() > 0)      # vide avant l'aperçu : caché
+        self.still_combo.setVisible(self.still_combo.count() > 1)      # vide ou une seule image : caché
+        self.s_colorize_note.setVisible(not self.s_colorize.isHidden())
+        for lab in self.info_labels.values():                            # photo : pas de lignes « — »
+            self.info_form.setRowVisible(lab, not (photo_mode and lab.text() == "—"))
+        if self._card_apercu.sous is not None:                           # « extrait de 10 s » : pas
+            self._card_apercu.sous.setVisible(not photo_mode)            # pour une photo
+        cible = loaded or bool(getattr(self, "_fini_fichier", None))
+        for b in (self.vides_btn, self.montage_btn):                     # pendant un travail ou pour une
+            b.setEnabled(cible and not busy)                             # photo : sans objet
+            b.setVisible(not photo_mode)
         self.a_advice.setVisible(not self.s_advice.isHidden())
         # mode simple : seulement ce qui sert maintenant
         self.s_cancel.setVisible(busy)
@@ -1697,7 +1786,9 @@ class MainWindow(QMainWindow):
             b.setEnabled(not busy)
         self.theme_btn.setEnabled(not busy)
         # l'étape suivante conseillée est mise en évidence
-        nxt = None if busy else (self.s_choose if not loaded else self.s_preview if not has_prev else self.s_run)
+        fini = not self.s_fini.isHidden()           # « C'est prêt » : Entrée ne relance rien
+        nxt = None if busy or fini else (self.s_choose if not loaded else self.s_preview if not has_prev
+                                         else self.s_run)
         for b in (self.s_choose, self.s_preview, self.s_run):
             if b.suggested != (b is nxt):
                 b.suggested = b is nxt
@@ -1764,7 +1855,25 @@ class MainWindow(QMainWindow):
             return [f"💡 Corrigé d'office : {a.text}" for a in self.advice]
         return [f"💡 Repéré, pas corrigé (case décochée) : {a.text.split(' : ')[0]}." for a in self.advice]
 
+    def _marquer_auto(self) -> None:
+        """Défauts corrigés d'office : les réglages concernés l'affichent au lieu de « rien »."""
+        actifs = {a.key: a for a in self.advice} if (self.info is not None and self.s_advice.isChecked()) else {}
+        for case, cle, texte in ((self.declip_check, "clip", "Réparer le son saturé"),
+                                 (self.wind_check, "wind", "Réduire le vent et les grondements"),
+                                 (self.cast_check, "cast", "Corriger la dominante de couleur")):
+            case.setText(texte + ("  · corrigé d'office" if cle in actifs and not case.isChecked() else ""))
+        hum = actifs.get("hum")
+        self.mains_combo.setItemText(0, f"Automatique : ronflement {hum.fix['audio_mains_hz']} Hz filtré" if hum
+                                     else "Pas de ronflement à enlever")
+        ch = actifs.get("channel")
+        self.channel_combo.setItemText(0, {"left": "Automatique : son de gauche des deux côtés",
+                                           "right": "Automatique : son de droite des deux côtés",
+                                           "phase": "Automatique : côtés remis en accord"}
+                                       .get(ch.fix["audio_channel_fix"], "Automatique") if ch
+                                       else "Canaux du son inchangés")
+
     def _refresh_hints(self) -> None:
+        self._marquer_auto()
         # bords abîmés repérés : la case « Masquer les bords » dit ce qui sera fait (pas « 0 px »)
         bords = next((a.fix["mask_sides"] for a in self.advice if a.key == "edges"), 0) if self.info else 0
         self.edge_spin.setSpecialValueText(f"auto ({bords} px)" if bords and self.s_advice.isChecked() else "")
@@ -1843,9 +1952,9 @@ class MainWindow(QMainWindow):
                                            and self.tools.colorize_available))
 
     def _choisir_comparaison(self, mode: str) -> None:
-        self.compare.set_mode(mode)
-        noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}
-        self.status.setText(f"Affichage : {noms.get(mode, mode)}.")
+        self.s_compare.set_mode(mode)          # le mode simple seulement : l'aperçu avancé se compare
+        noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}   # à la souris
+        self.status._w[1].setText(f"Affichage : {noms.get(mode, mode)}.")
 
     def _dossier_depart(self, images: bool = False) -> str:
         """Dernier dossier utilisé, sinon Vidéos ou Images."""
@@ -1865,6 +1974,15 @@ class MainWindow(QMainWindow):
             s.setValue("dernier_dossier", dossier)
 
     def _deposer(self, path: str) -> None:
+        if Path(path).is_dir():                 # un dossier déposé : tous ses films et photos
+            if self._busy():
+                return
+            if self._question("Dossier", f"Restaurer tous les films et photos du dossier "
+                              f"« {Path(path).name} » ?\n\nLes originaux ne sont pas modifiés.",
+                              "Oui, tout restaurer", "Non", oui_par_defaut=True):
+                self._retenir_dossier(path)
+                self.restore_folder(Path(path))
+            return
         self._retenir_dossier(str(Path(path).parent))
         self.load_file(path)
 
@@ -1907,7 +2025,7 @@ class MainWindow(QMainWindow):
                     meme = False
                 nom = Path(chemin).name
                 b.setProperty("chemin", chemin)
-                b.setText(nom)
+                b.setText(nom.replace("&", "&&"))      # « Papa & Maman.avi » : le « & » reste visible
                 b.setAccessibleName(f"Rouvrir {nom}")
                 b.setVisible(not meme)
             else:
@@ -1943,12 +2061,19 @@ class MainWindow(QMainWindow):
         fini = getattr(self, "_fini_boutons", None)
         if fini is not None and fini.direction() != sens:
             fini.setDirection(sens)
+        # Original / Comparer / Restauré : côte à côte tant qu'ils tiennent (empilés, ils poussaient
+        # l'image hors de l'écran)
         row = getattr(self, "_segments_row", None)
-        if row is not None and self._echelle >= 1.24:
-            if row.direction() != QBoxLayout.TopToBottom:
-                row.setDirection(QBoxLayout.TopToBottom)
-        elif row is not None and row.direction() != QBoxLayout.LeftToRight:
-            row.setDirection(QBoxLayout.LeftToRight)
+        if row is not None:
+            for b in self.segments.values():         # marge : le texte en gras (bouton choisi) est plus large
+                b.setMinimumWidth(0)
+                b.setMinimumWidth(b.sizeHint().width() + 30)
+            besoin = sum(b.minimumWidth() for b in self.segments.values()) + 60
+            pages = getattr(self, "pages", None)
+            dispo = pages.widget(0).viewport().width() - 40 if pages is not None else self.width()
+            sens_seg = QBoxLayout.TopToBottom if besoin > dispo else QBoxLayout.LeftToRight
+            if row.direction() != sens_seg:
+                row.setDirection(sens_seg)
 
     def set_taille_texte(self, pct: int, annoncer: bool = True) -> None:
         """100, 125 ou 150 %. Mémorisé. N'agrandit que le mode simple."""
@@ -1959,8 +2084,16 @@ class MainWindow(QMainWindow):
         page = self.pages.widget(0).widget()
         page.setStyleSheet("" if pct == 100 else self._feuille_simple(self._echelle))
         for valeur, bouton in self._taille_btns.items():
+            bouton.setChecked(valeur == pct)
             bouton.setAccessibleDescription("Taille actuelle." if valeur == pct
                                             else "Changer la taille du texte du mode simple.")
+        # les hauteurs minimales des boutons suivent la taille du texte (plus de « Oriqinal » rogné)
+        if not hasattr(self, "_hauteurs_base"):
+            self._hauteurs_base = [(b, b.minimumHeight()) for b in (
+                self.s_cancel, self.s_hear_orig, self.s_hear_new, self.s_folder, self.s_voir, self.s_ouvrir,
+                self.s_autre, self.s_vides, self.s_montage, *self.segments.values())]
+        for b, base in self._hauteurs_base:
+            b.setMinimumHeight(int(base * self._echelle))
         self._ranger_etapes()
         s = self._prefs()
         if s is not None:
@@ -2002,6 +2135,10 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, e) -> None:  # noqa: N802
         if e.key() in (Qt.Key_Return, Qt.Key_Enter) and self.pages.currentIndex() == 0:
             focus = QApplication.focusWidget()
+            if not self.s_fini.isHidden() and not self._busy():   # « C'est prêt » : Entrée = regarder
+                if self.s_voir.isVisible():
+                    self.s_voir.click()
+                return
             if not isinstance(focus, (QLineEdit, QAbstractSpinBox, QComboBox)):
                 for b in (self.s_choose, self.s_preview, self.s_run):
                     if b.suggested and b.isEnabled():
@@ -2029,6 +2166,8 @@ class MainWindow(QMainWindow):
             self.status.setText("Un traitement est en cours : attendez la fin ou cliquez sur « Arrêter ».")
             return
         self.s_fini.setVisible(False)
+        self._fini_fichier = None              # montage / passages vides : sur ce nouveau film
+        self._montage_en_attente = None
         self.progress.setRange(0, 0)  # animation indéterminée
         if photo.is_photo(path):
             self.status.setText("Analyse de la photo…")
@@ -2046,6 +2185,8 @@ class MainWindow(QMainWindow):
             lab.setText("—")
         self.info_labels["Fichier"].setText(info.path.name)
         self.info_labels["Résolution"].setText(f"{info.width} × {info.height} (photo)")
+        if "Couleur" in self.info_labels:
+            self.info_labels["Couleur"].setText("Noir et blanc" if info.black_and_white else "Couleur")
         self.out_note = ""
         if (not self._out_manual or not self.out_edit.text()
                 or not pipeline.is_writable(Path(self.out_edit.text()))):
@@ -2059,9 +2200,9 @@ class MainWindow(QMainWindow):
             except ToolError as exc:
                 self.out_note = f"⚠ {exc}"
         self.advice = advise(info)
-        kind = "Photo noir et blanc (elle le restera)" if info.black_and_white else "Photo en couleur"
-        self._set_simple_info(f"<b>{info.path.name}</b><br>{kind}. Prête : cliquez sur le bouton 2 "
-                              "« Voir l'avant / après ».")
+        kind = "Photo noir et blanc" if info.black_and_white else "Photo en couleur"
+        self._info_debut = f"<b>{info.path.name}</b><br>{kind}."
+        self._info_suite()
         self.s_advice.setChecked(bool(self.advice))      # défauts repérés : corrigés d'office, avec prudence
         self.s_advice.setVisible(bool(self.advice))
         self.s_colorize.setChecked(False)                     # jamais coché d'avance
@@ -2090,10 +2231,10 @@ class MainWindow(QMainWindow):
         self.dar_combo.setCurrentIndex(0)
         self.source_combo.setItemText(0, "Automatique : "
                                       + {"video": "vidéo", "film": "pellicule",
-                                         "transfer": "transfert"}[info.suggested_source])
+                                         "transfer": "copie"}[info.suggested_source])
         self.source_combo.setCurrentIndex(0)
         fps = f"{float(info.fps):.3f}".rstrip("0").rstrip(".")
-        self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} images/s)")
+        self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} i/s)")
         self.cadence_combo.setCurrentIndex(0)
         self._update_state()
         for sp in (self.trim_start, self.trim_end):     # tout garder par défaut
@@ -2124,8 +2265,8 @@ class MainWindow(QMainWindow):
         if not (info.has_audio and not info.audio_silent):
             traits.append("sans son (il restera muet)")
         self.advice = advise(info)
-        self._set_simple_info(f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}. "
-                              "Prêt : cliquez sur le bouton 2 « Voir l'avant / après ».")
+        self._info_debut = f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}."
+        self._info_suite()
         self.s_advice.setChecked(bool(self.advice))      # défauts repérés : corrigés d'office, avec prudence
         self.s_advice.setVisible(bool(self.advice))
         self.s_aide_conseil.setVisible(bool(self.advice))
@@ -2141,11 +2282,16 @@ class MainWindow(QMainWindow):
             return
         info, s, start = self.info, self.settings(), self.start_spin.value()
         self.status.setText("Préparation de l'aperçu…")
+        # un dossier neuf à chaque aperçu : l'aperçu précédent peut être encore ouvert dans le
+        # lecteur vidéo (« Écouter »), et Windows refuse alors de l'effacer
+        for vieux in self.preview_dir.glob("*"):
+            shutil.rmtree(vieux, ignore_errors=True)
+        travail = Path(tempfile.mkdtemp(prefix="apercu_", dir=self.preview_dir))
         if getattr(self, "is_photo", False):
-            self._launch(lambda c, p: photo.make_photo_preview(info, s, self.tools, self.preview_dir / "photo",
+            self._launch(lambda c, p: photo.make_photo_preview(info, s, self.tools, travail / "photo",
                                                                cancel=c, progress=p), self._preview_done)
             return
-        self._launch(lambda c, p: pipeline.make_preview(info, s, self.tools, self.preview_dir, start,
+        self._launch(lambda c, p: pipeline.make_preview(info, s, self.tools, travail, start,
                                                         cancel=c, progress=p), self._preview_done)
 
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
@@ -2164,10 +2310,33 @@ class MainWindow(QMainWindow):
         self.compare.set_mode("split")
         quand = "" if getattr(self, "is_photo", False) else \
             f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
+        self._info_suite()
+        self._apercu_a_montrer = True           # une fois les boutons sous l'image affichés (_on_finished)
         self._etat(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
                    "sous l'image. Si cela vous plaît : bouton 3 « Restaurer ».",
                    f"Aperçu prêt{quand}. Déplacez la souris sur l'image pour comparer. "
                    "Si cela vous plaît : « Lancer la restauration ».")
+
+    def _hauteur_apercu_simple(self) -> int:
+        """Hauteur visible de la page simple, moins la place des boutons sous l'image."""
+        pages = getattr(self, "pages", None)
+        zone = pages.widget(0) if pages is not None else None
+        return 900 if zone is None else zone.viewport().height() - 150
+
+    def _montrer_apercu(self) -> None:
+        """Mode simple : l'image et ses boutons sont amenés à l'écran (sinon hors de vue à 150 %)."""
+        if self.pages.currentIndex() == 0:
+            zone = self.pages.widget(0)
+            zone.widget().layout().activate()
+            zone.ensureWidgetVisible(self.s_compare, 0, 0)
+            zone.ensureWidgetVisible(self.s_segments, 0, 10)
+
+    def _montrer_progression(self) -> None:
+        if self.pages.currentIndex() == 0 and self._busy():
+            zone = self.pages.widget(0)
+            zone.widget().layout().activate()
+            zone.ensureWidgetVisible(self.s_cancel, 0, 20)       # « Arrêter », puis la barre et l'état
+            zone.ensureWidgetVisible(self.s_progress, 0, 20)     # juste au-dessus
 
     def _etat(self, simple: str, avance: str) -> None:
         """Message propre à chaque page : les boutons n'ont pas le même nom dans les deux."""
@@ -2280,7 +2449,7 @@ class MainWindow(QMainWindow):
                 f"Il se trouve dans le dossier :\n{out.parent}{extra}\n\n"
                 "Le film d'origine n'a pas été modifié.",
                 out.parent, out, "film")
-        self.status.setText(f"Terminé : {out}")
+        self.status.setText(f"Terminé : {out.name}")
 
     def _montrer_fini(self, texte: str, dossier: Path, fichier: Path | None, genre: str) -> None:
         """Écran « C'est prêt », pas une petite boîte. Trois grands boutons."""
@@ -2343,6 +2512,9 @@ class MainWindow(QMainWindow):
             self.start_folder()
         else:
             self._choose_file()
+        if self.s_fini.isHidden() and not self._busy():   # fenêtre de choix fermée sans rien choisir
+            self._info_suite()
+        self._update_state()
 
     def _done_box(self, title: str, text: str, folder: Path) -> None:
         """Ancien nom : l'écran « C'est prêt » remplace la boîte."""
@@ -2352,26 +2524,38 @@ class MainWindow(QMainWindow):
     def settings_for(self, info: MediaInfo) -> pipeline.Settings:
         """Réglages d'un film du dossier : options choisies, origine propre à chaque film
         (choix manuel s'il y en a un, sinon suggestion de l'analyse)."""
+        return self._reglages_dossier()(info)
+
+    def _reglages_dossier(self) -> Callable[[MediaInfo], pipeline.Settings]:
+        """Les cases sont lues ici, dans le fil de l'interface ; la fonction rendue sert ensuite
+        dans le fil de travail sans toucher aux widgets (Qt ne le permet pas)."""
         base = self.settings(with_advice=False)
         # conseils propres à CHAQUE film du dossier : appliqués d'office, sauf si l'utilisateur
         # a décoché la case pour le fichier ouvert
-        if self.s_advice.isChecked() or self.s_advice.isHidden():
-            base = apply_advice(base, advise(info))
-        if self.cast_check.isChecked():
-            if info.cast_rgb:
-                gr, gg, gb = cast_gains(info.cast_rgb)
-                base = dataclasses.replace(base, gain_r=gr, gain_g=gg, gain_b=gb)
-            else:
-                base = dataclasses.replace(base, gain_r=1.0, gain_g=1.0, gain_b=1.0)
-        src = self.source_combo.currentData() or info.suggested_source
-        return dataclasses.replace(base, profile=profile_for(base.profile.key, src), source=src,
-                                   scan=None, dar=None, playback_fps=None,
-                                   deflicker=self.flicker_check.isChecked() and src != "video",
-                                   dust=self.dust_check.isChecked() and src == "film",
-                                   tape_noise=self.tape_check.isChecked() and src != "film",
-                                   chroma_repair=self.chroma_check.isChecked() and src != "film",
-                                   dropouts=self.dropout_check.isChecked() and src != "film",
-                                   mask_bottom=base.mask_bottom if src == "video" else 0)
+        conseils = self.s_advice.isChecked() or self.s_advice.isHidden()
+        dominante = self.cast_check.isChecked()
+        choix = self.source_combo.currentData()
+        cases = {k: getattr(self, k).isChecked() for k in ("flicker_check", "dust_check", "tape_check",
+                                                           "chroma_check", "dropout_check")}
+
+        def pour(info: MediaInfo) -> pipeline.Settings:
+            s = apply_advice(base, advise(info)) if conseils else base
+            if dominante:
+                if info.cast_rgb:
+                    gr, gg, gb = cast_gains(info.cast_rgb)
+                    s = dataclasses.replace(s, gain_r=gr, gain_g=gg, gain_b=gb)
+                else:
+                    s = dataclasses.replace(s, gain_r=1.0, gain_g=1.0, gain_b=1.0)
+            src = choix or info.suggested_source
+            return dataclasses.replace(s, profile=profile_for(s.profile.key, src), source=src,
+                                       scan=None, dar=None, playback_fps=None,
+                                       deflicker=cases["flicker_check"] and src != "video",
+                                       dust=cases["dust_check"] and src == "film",
+                                       tape_noise=cases["tape_check"] and src != "film",
+                                       chroma_repair=cases["chroma_check"] and src != "film",
+                                       dropouts=cases["dropout_check"] and src != "film",
+                                       mask_bottom=s.mask_bottom if src == "video" else 0)
+        return pour
 
     def start_folder(self) -> None:
         if self._busy():
@@ -2385,30 +2569,37 @@ class MainWindow(QMainWindow):
     def restore_folder(self, folder: Path) -> None:
         self.s_fini.setVisible(False)
         self.status.setText("Restauration du dossier…")
-        self._launch(lambda c, p: pipeline.restore_folder(folder, self.tools, self.settings_for,
+        reglages = self._reglages_dossier()
+        self._launch(lambda c, p: pipeline.restore_folder(folder, self.tools, reglages,
                                                           cancel=c, progress=p), self._folder_done,
                      job="dossier")
 
     def _folder_done(self, res: pipeline.BatchResult) -> None:
         n = len(res.done)
         texte = ergonomie.resume_dossier(n, len(res.skipped), list(res.errors))
+        if n == 0 and not res.skipped:          # rien de fait : pas d'écran « C'est prêt »
+            self.status.setText("Aucun fichier du dossier n'a pu être restauré.")
+            self._info_suite("<b>Aucun fichier du dossier n'a pu être restauré.</b> ")
+            QMessageBox.warning(self, "Dossier", texte)
+            return
         if res.fallback:
             texte += "\nLe dossier d'origine ne pouvait pas être modifié : le résultat est ailleurs."
         self._montrer_fini(texte, res.out_dir, None, "dossier")
-        self.status.setText(f"Terminé : {n} film{'s' if n != 1 else ''} restauré{'s' if n != 1 else ''} "
-                            f"dans {res.out_dir}")
+        self.status.setText(f"Terminé : {n} fichier{'s' if n != 1 else ''} restauré{'s' if n != 1 else ''} "
+                            f"dans « {res.out_dir.name} ».")
 
     def cancel(self, confirmer: bool = False) -> None:
         if not self._busy():
             return
         if confirmer and self._travail_long():
-            box = QMessageBox(QMessageBox.Question, "Arrêter",
-                              "Arrêter maintenant ?\n\nLe travail déjà fait sur ce film sera perdu.\n"
-                              "Les films déjà terminés, eux, restent.",
-                              QMessageBox.Yes | QMessageBox.No, self)
-            box.setDefaultButton(QMessageBox.No)
-            if box.exec() != QMessageBox.Yes:
-                self.status.setText("Le travail continue.")
+            texte = "Arrêter maintenant ?\n\nLe travail déjà fait sur ce film sera perdu."
+            if getattr(self, "_job", "") == "dossier":
+                texte += "\nLes films déjà terminés, eux, restent."
+            if not self._question("Arrêter", texte, "Oui, arrêter", "Non, continuer"):
+                if self._busy():
+                    self.status.setText("Le travail continue.")
+                return
+            if not self._busy():                    # fini pendant la question : rien à arrêter
                 return
         self.worker.cancel_event.set()
         self.status.setText("Annulation en cours…")
@@ -2419,14 +2610,15 @@ class MainWindow(QMainWindow):
         ecoule = 0.0 if debut is None else time.monotonic() - debut
         if ecoule >= 20:
             return True
-        return getattr(self, "_job", "") in ("export", "dossier") and ecoule >= 8
+        return getattr(self, "_job", "") in ("export", "dossier", "vides_copie") and ecoule >= 8
 
     # ------------------------------------------------------------ worker
     def _launch(self, fn: Callable, on_success: Callable[[Any], None], job: str = "") -> None:
         self._job = job
         self._debut_travail = time.monotonic()
-        if job:
-            self.s_fini.setVisible(False)
+        self._fini_a_rendre = job in ("vides", "vides_copie", "installation") and self.s_fini.isVisible()
+        if job and job not in ("vides", "installation"):    # ni l'un ni l'autre ne change le film :
+            self.s_fini.setVisible(False)                   # l'écran « C'est prêt » reste
         self.worker = w = Worker(fn)
         # On garde les fils terminés : PySide plante si le QThread est détruit
         # pendant que l'interface traite encore ses signaux.
@@ -2435,21 +2627,25 @@ class MainWindow(QMainWindow):
         w.progressed.connect(self._on_progress)
         w.succeeded.connect(on_success)
         w.failed.connect(self._on_failed)
-        w.cancelled.connect(lambda: self.status.setText("Opération annulée. Fichiers temporaires supprimés."))
+        w.cancelled.connect(self._on_cancelled)
         w.finished.connect(self._on_finished)
         if self.progress.maximum() != 0:
             self.progress.setValue(0)
         self.eta = Eta()
         w.start()
+        if job in ("export", "dossier", "vides_copie"):
+            self.s_info.setText("<b>Travail en cours.</b> L'avancement s'affiche juste sous les boutons. "
+                                + ergonomie.PHRASE_PATIENCE)
         self._update_state()
+        QTimer.singleShot(0, self._montrer_progression)
 
     def _on_progress(self, frac: float, msg: str) -> None:
         if self.progress.maximum() == 0:
             self.progress.setRange(0, 1000)
         self.progress.setValue(int(frac * 1000))
         left = self.eta.update(frac) if getattr(self, "eta", None) else ""
-        texte = f"{msg} — {left}" if left else f"{msg} {frac * 100:.0f} %"
-        if getattr(self, "_job", "") in ("export", "dossier"):
+        texte = f"{msg} — encore {left}" if left else f"{msg} {frac * 100:.0f} %"
+        if getattr(self, "_job", "") in ("export", "dossier", "vides_copie"):
             texte += "\n" + ergonomie.PHRASE_PATIENCE
         self.status.setText(texte)
 
@@ -2457,9 +2653,31 @@ class MainWindow(QMainWindow):
         clair, _ = ergonomie.expliquer(msg)
         self.status.setText(clair)
         self.s_fini.setVisible(False)
+        self._rendre_fini()
+        self._montage_en_attente = None
+        if self.s_fini.isHidden():
+            self._info_suite("<b>Cela n'a pas abouti.</b> ")
         ergonomie.montrer_erreur(self, msg)
 
+    def _on_cancelled(self) -> None:
+        self.status.setText("Opération annulée. Fichiers temporaires supprimés.")
+        self._rendre_fini()
+        self._montage_en_attente = None
+        if self.s_fini.isHidden():
+            self._info_suite("<b>Arrêté.</b> Rien n'a été modifié. ")
+
+    def _rendre_fini(self) -> None:
+        """Copie sans passages vides annulée ou impossible : l'écran « C'est prêt » du film revient
+        (ses boutons Regarder, Ouvrir le dossier, Montage restent utiles)."""
+        fini = getattr(self, "_fini_fichier", None)
+        if getattr(self, "_fini_a_rendre", False) and fini and Path(fini).is_file():
+            self.s_fini.setVisible(True)
+        self._fini_a_rendre = False
+
     def _on_finished(self) -> None:
+        if getattr(self, "_apercu_a_montrer", False):
+            self._apercu_a_montrer = False
+            QTimer.singleShot(120, self._montrer_apercu)     # après la remise en page de la zone
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
         if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée", "Photo analysée")):
@@ -2470,14 +2688,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, e) -> None:  # noqa: N802
         if self._busy():
-            box = QMessageBox(QMessageBox.Question, "Quitter",
-                              "Un traitement est en cours. L'annuler et quitter ?",
-                              QMessageBox.Yes | QMessageBox.No, self)
-            if box.exec() != QMessageBox.Yes:
+            if not self._question("Quitter", "Un travail est en cours. L'arrêter et quitter ?",
+                                  "Oui, arrêter et quitter", "Non, continuer"):
                 e.ignore()
                 return
-            self.worker.cancel_event.set()
-            self.worker.wait(15000)
+            if self._busy():                        # le travail a pu finir pendant la question
+                self.worker.cancel_event.set()
+                self.worker.wait(15000)
         self._save_prefs()
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
@@ -2566,6 +2783,11 @@ def main() -> int:
     import sys
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
+    from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
+    traduction = QTranslator(app)           # textes standard de Qt en français (« Annuler », « Ouvrir »…)
+    if traduction.load(QLocale(QLocale.French, QLocale.France), "qtbase", "_",
+                       QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
+        app.installTranslator(traduction)
     theme.set_mode(str(QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage", "sombre") or "sombre"))
     theme.apply(app)
     win = MainWindow()
@@ -2579,6 +2801,5 @@ def main() -> int:
         QMessageBox.critical(win, "FFmpeg trop ancien",
                              "Filtres manquants : " + ", ".join(win.tools.missing_filters))
     else:
-        from PySide6.QtCore import QTimer
         QTimer.singleShot(400, win.maybe_welcome)       # premier lancement : mode d'emploi
     return app.exec()

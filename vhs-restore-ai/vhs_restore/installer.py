@@ -109,6 +109,8 @@ def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event |
                     if progress and total:
                         progress(0.9 * done / total, f"Téléchargement de {label} "
                                                      f"({done // 1_000_000} / {total // 1_000_000} Mo)…")
+            if total and done != total:       # connexion coupée en route : on réessaie (OSError)
+                raise ConnectionError(f"téléchargement interrompu ({done // 1_000_000} / {total // 1_000_000} Mo)")
             if h.hexdigest() != expected_sha:
                 raise ToolError(f"Le fichier téléchargé pour {label} n'est pas le bon (empreinte différente). "
                                 "Rien n'a été installé. Réessayez plus tard.")

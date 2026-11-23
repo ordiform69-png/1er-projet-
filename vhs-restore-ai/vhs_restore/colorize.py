@@ -21,7 +21,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, run_capture, user_tools_dir
+from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, ff_input, run_capture, user_tools_dir
 
 MODEL_NAME = "ddcolor-tiny-fp16.onnx"
 MODEL_URL = ("https://huggingface.co/edgetools/ddcolor/resolve/"
@@ -160,7 +160,7 @@ def lab_to_rgb(L, a, b):
 def _read_gray(ffmpeg: str, src: Path, size: tuple[int, int] | None = None):
     import numpy as np
     vf = [f"scale={size[0]}:{size[1]}:flags=area"] if size else []
-    cmd = [ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error", "-i", str(src)]
+    cmd = [ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error", *ff_input(src)]
     cmd += (["-vf", ",".join(vf)] if vf else []) + ["-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", "-"]
     r = subprocess.run(cmd, capture_output=True, timeout=300, stdin=subprocess.DEVNULL,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -171,7 +171,7 @@ def _read_gray(ffmpeg: str, src: Path, size: tuple[int, int] | None = None):
 
 def _size(ffprobe: str, src: Path) -> tuple[int, int]:
     r = run_capture([ffprobe, "-v", "error", "-select_streams", "v:0", "-show_entries",
-                     "stream=width,height", "-of", "csv=p=0:s=x", str(src)], timeout=60)
+                     "stream=width,height", "-of", "csv=p=0:s=x", *ff_input(src)[:-2], str(src)], timeout=60)
     try:
         w, h = (int(v) for v in r.stdout.strip().split("x")[:2])
     except ValueError as exc:
@@ -208,7 +208,7 @@ def colorize(src: Path, dst: Path, ffmpeg: str, ffprobe: str, model: Path, *,
     part_path = dst.with_name(dst.stem + ".partiel.png")
     r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
                         "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
-                        "-frames:v", "1", "-c:v", "png", "-f", "image2", str(part_path)],
+                        "-frames:v", "1", "-c:v", "png", "-f", "image2", "-update", "1", str(part_path)],
                        input=out.tobytes(), capture_output=True, timeout=300,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode:

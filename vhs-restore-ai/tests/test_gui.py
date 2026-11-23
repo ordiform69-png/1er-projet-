@@ -117,7 +117,7 @@ def test_simple_mode(app, tools, samples, tmp_path, monkeypatch):
     assert win.s_status.text().startswith("Terminé") and len(list(src.glob("*_film.mp4"))) == 1
     win.restore_folder(src)
     wait(app, win)
-    assert win.s_status.text().startswith("Terminé : 1 film")
+    assert win.s_status.text().startswith("Terminé : 1 fichier")
     assert len(list((src / "Films restaurés").glob("*.mp4"))) == 1
     win.set_advanced(True)
     assert win.pages.currentIndex() == 1

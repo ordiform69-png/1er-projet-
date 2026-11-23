@@ -17,11 +17,20 @@ def expliquer(message: str) -> tuple[str, str]:
                                                   or "trop ancien" in bas):
         clair = ("Le logiciel est incomplet (un de ses outils manque). "
                  "Réinstallez-le à partir du fichier téléchargé, puis recommencez.")
+    elif "renommez ce fichier" in bas or "chemin du fichier à créer est trop long" in bas \
+            or "fat32" in bas:
+        clair = brut                        # message déjà écrit pour la personne : il dit quoi faire
+    elif any(mot in bas for mot in ("permission denied", "errno 13", "winerror 32", "winerror 5",
+                                    "used by another process", "read-only file system", "lecture seule",
+                                    "accès refusé", "access is denied")):
+        clair = ("Le fichier est utilisé par un autre programme (un lecteur vidéo ?), ou le dossier est "
+                 "protégé contre l'écriture. Fermez les autres programmes, ou choisissez un autre dossier, "
+                 "puis recommencez.")
     elif "espace disque" in bas or "insuffisant" in bas:
         clair = ("Il n'y a plus assez de place sur le disque. "
                  "Libérez de la place, ou choisissez un autre dossier, puis recommencez.")
     elif any(mot in bas for mot in ("introuvable", "n'est plus", "no such file", "errno 2",
-                                    "device or resource", "i/o error", "permission denied")):
+                                    "device or resource", "i/o error")):
         clair = ("Le fichier ou le dossier n'est plus là. "
                  "Vérifiez qu'il n'a pas été déplacé, et que la clé USB est bien branchée.")
     elif any(mot in bas for mot in ("non reconnu", "n'a pas pu être lue", "illisible",
@@ -47,7 +56,7 @@ def expliquer(message: str) -> tuple[str, str]:
 def resume_dossier(reussis: int, deja: int, erreurs: list[tuple[str, str]]) -> str:
     """Résumé final d'un dossier, en mots simples."""
     lignes = [
-        "C'est prêt.",
+        "C'est prêt." if reussis or deja else "Aucun fichier n'a pu être restauré.",
         f"Réussis : {reussis}.",
         f"Déjà faits, laissés tels quels : {deja}.",
         f"En échec : {len(erreurs)}.",

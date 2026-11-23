@@ -17,8 +17,10 @@ def log_dir() -> Path:
     return d
 
 
-def setup_logging() -> Path:
-    path = log_dir() / "vhs_restore.log"
+def setup_logging(nom: str = "vhs_restore.log") -> Path:
+    # le sous-processus « poussières » a son propre journal : sous Windows, deux processus qui
+    # écrivent le même fichier empêchent son renouvellement (fichier verrouillé)
+    path = log_dir() / nom
     h = RotatingFileHandler(path, maxBytes=2_000_000, backupCount=3, encoding="utf-8")
     h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     root = logging.getLogger("vhs_restore")
@@ -156,7 +158,7 @@ def autotest(folder: str, progress=None, cancel=None) -> int:
 
 
 def run() -> int:
-    p = setup_logging()
+    p = setup_logging("poussieres.log" if sys.argv[1:2] == ["--poussieres"] else "vhs_restore.log")
     logging.getLogger("vhs_restore").info("Démarrage, journal : %s", p)
     if len(sys.argv) >= 3 and sys.argv[1] == "--autotest":
         return autotest(sys.argv[2])

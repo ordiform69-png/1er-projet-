@@ -137,6 +137,55 @@ def _find(env: str, names: Iterable[str], subdirs: Iterable[str],
 
 
 
+class FichierOccupe(ToolError):
+    """Le résultat est fini, mais un autre programme garde le fichier ouvert : il est laissé en place."""
+
+
+def finaliser(part: Path, final: Path, essais: int = 10) -> None:
+    """Met le résultat terminé à sa place. Sous Windows, un lecteur vidéo ou l'antivirus peut garder
+    le fichier ouvert quelques instants : on réessaie, puis on explique au lieu de tout perdre."""
+    import time
+    for n in range(essais):
+        try:
+            os.replace(part, final)
+            return
+        except PermissionError:
+            if n == essais - 1:
+                raise FichierOccupe(
+                    f"Le travail est terminé, mais le fichier « {Path(part).name} » est ouvert dans un autre "
+                    "programme (un lecteur vidéo ?). Fermez ce programme, puis renommez ce fichier en "
+                    f"« {Path(final).name} ». Il se trouve dans le dossier {Path(part).parent}.") from None
+            time.sleep(1)
+
+
+def effacer(path: Path) -> None:
+    """Supprime un fichier inachevé sans masquer l'erreur d'origine (dossier protégé, fichier ouvert)."""
+    try:
+        Path(path).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def verifier_chemin(path: Path) -> None:
+    """Windows refuse souvent les chemins de plus de 260 caractères : on le dit AVANT de travailler."""
+    if IS_WIN and len(str(Path(path).resolve())) >= 250:
+        raise ToolError(f"Le chemin du fichier à créer est trop long pour Windows ({len(str(path))} caractères). "
+                        "Choisissez un dossier de sortie plus court (par exemple « Vidéos »), ou raccourcissez "
+                        "le nom du film, puis recommencez.")
+
+
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
+
+
+def ff_input(path: str | Path) -> list[str]:
+    """« -i fichier » pour FFmpeg. Une image dont le chemin contient « % » (ex. « Photo%20dimanche.jpg »,
+    nom venu d'Internet) serait lue comme une suite numérotée (%20d) : on l'interdit."""
+    p = str(path)
+    if "%" in p and Path(p).suffix.lower() in IMAGE_EXTS:
+        return ["-f", "image2", "-pattern_type", "none", "-i", p]
+    return ["-i", p]
+
+
 def run_capture(cmd: list[str], timeout: float = 60) -> subprocess.CompletedProcess:
     """Commande courte : renvoie stdout/stderr séparés (UTF-8)."""
     log.debug("exec: %s", cmd)

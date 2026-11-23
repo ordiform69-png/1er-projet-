@@ -148,3 +148,36 @@ def test_voyant_cliquable_propose_installer(paquets, tools, monkeypatch):
     win.voyants["qtgmc"].click()                          # QTGMC : explication, pas d'installation
     assert not any(b.startswith("Installer") for b in vus[-1][1])
     win.close()
+
+
+def test_telechargement_coupe_reessaye(tmp_path, monkeypatch):
+    """Connexion coupée au milieu (gros paquets de 150 à 225 Mo) : nouvel essai, pas « fichier pas bon »."""
+    for var in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(installer.time, "sleep", lambda _s: None)
+    data = os.urandom(300_000)
+    essais = []
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            essais.append(1)
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            if len(essais) == 1:
+                self.wfile.write(data[:100_000])
+                self.wfile.flush()
+                self.connection.shutdown(2)
+                return
+            self.wfile.write(data)
+
+        def log_message(self, *a):
+            pass
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        installer._download(f"http://127.0.0.1:{srv.server_address[1]}/x", tmp_path / "x",
+                            hashlib.sha256(data).hexdigest(), None, None, "Essai")
+    finally:
+        srv.shutdown()
+    assert len(essais) == 2 and (tmp_path / "x").read_bytes() == data
