@@ -31,11 +31,11 @@ class Eta:
 
 
 def describe(seconds: float) -> str:
-    """Durée arrondie, en mots simples."""
+    """Durée arrondie, en mots simples (« environ 25 minutes »)."""
     if seconds < 60:
-        return "moins d'une minute restante"
+        return "moins d'une minute"
     minutes = int(round(seconds / 60))
     if minutes < 60:
-        return f"environ {minutes} min restante{'s' if minutes > 1 else ''}"
+        return f"environ {minutes} minute" if minutes == 1 else f"environ {minutes} minutes"
     h, m = divmod(int(round(seconds / 300)) * 5, 60)     # par tranches de 5 min au-delà d'une heure
-    return f"environ {h} h {m:02d} restantes" if m else f"environ {h} h restantes"
+    return f"environ {h} h {m:02d}" if m else f"environ {h} h"

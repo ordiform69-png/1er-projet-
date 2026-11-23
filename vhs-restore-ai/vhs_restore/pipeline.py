@@ -1032,9 +1032,10 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
         if cancel is not None and cancel.is_set():
             raise Cancelled()
 
-        def sub(frac: float, msg: str, k=k, name=f.name) -> None:
+        def sub(frac: float, msg: str, k=k, name=f.name, est_photo=photo.is_photo(f)) -> None:
             if progress:
-                progress((k + frac) / n, f"Film {k + 1}/{n} ({name}) : {msg}")
+                mot = "Photo" if est_photo else "Film"
+                progress((k + frac) / n, f"{mot} {k + 1} sur {n} : {name} — {msg}")
         try:
             sub(0.0, "analyse…")
             if photo.is_photo(f):
