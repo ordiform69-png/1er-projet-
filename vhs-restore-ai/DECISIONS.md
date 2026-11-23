@@ -668,3 +668,21 @@ Tests : `tests/test_vides_montage.py`. Non testé : l'installation réelle de Lo
 de 7zr.exe SOUS Windows (empreintes et contenus vérifiés ici) et l'ouverture du film dans ces
 logiciels ; la détection sur de vraies cassettes avec neige (seulement de la neige de synthèse).
 
+## Options avancées remises d'aplomb (phase 23)
+
+Captures de l'utilisateur (écran 1920 × 1080 à 150 %), reproduites ici à la même échelle :
+
+- L'aperçu s'étirait sur toute la hauteur de la colonne de gauche : un rectangle noir de 1 300 px.
+  Sa hauteur suit maintenant sa largeur (image 4:3, entre 240 et 900 px) et la carte **Son** passe à
+  droite, sous les boutons « Écouter » : les deux colonnes ont la même hauteur (page de 2 025 à 1 627 px).
+- La liste des images de l'aperçu (vide avant le premier aperçu) est cachée tant qu'elle est vide.
+- Libellés coupés : « Je ne sais pas — suggestion : v… » devient « Automatique : vidéo » (la suggestion
+  détaillée est sur la ligne du dessus) ; les listes du son sont une par ligne, textes entiers.
+- Le bouton « Générer l'aperçu » s'appelle comme en mode simple, « Voir l'avant / après » ; les messages
+  ne parlent plus du « bouton 2 » ou du « bouton 3 » dans les options avancées (message propre à chaque page).
+- Défauts repérés : la case « Corriger aussi ces défauts » est aussi dans les options avancées (la même,
+  synchronisée) ; les lignes disent « Corrigé d'office » ou « Repéré, pas corrigé (case décochée) » au
+  lieu de renvoyer au mode simple « ou réglages du son ci-dessous » ; « Masquer les bords » affiche
+  « auto (12 px) » au lieu de « 0 px » quand les bords abîmés seront masqués.
+
+Tests : `tests/test_page_avancee.py`.

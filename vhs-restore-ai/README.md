@@ -78,7 +78,7 @@ bouton **« Vérifier l'installation »**, qui restaure une vidéo d'essai et af
 2. **Choisir un profil** : Fidèle, Équilibré ou Maximum. Choisissez aussi la résolution de sortie
    et, en option, le débruitage haute qualité (plus lent), la stabilisation (caméra tenue à la
    main) et l'IA.
-3. **Générer l'aperçu** d'un extrait de 10 s. Passez la souris sur l'image pour déplacer le rideau
+3. **Voir l'avant / après** sur un extrait de 10 s. Passez la souris sur l'image pour déplacer le rideau
    avant/après. « Lire la comparaison vidéo » ouvre l'extrait côte à côte dans votre lecteur.
 4. **Lancer la restauration.** Le fichier `<nom>_restaure_<profil>.mp4` est créé dans le dossier
    choisi. L'original n'est jamais modifié, et vous pouvez annuler à tout moment.

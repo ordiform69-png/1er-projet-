@@ -93,6 +93,25 @@ class CompareView(QWidget):
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
+        self._proportion = False
+
+    def garder_proportions(self) -> None:
+        """Hauteur réglée sur la largeur (image 4:3) : le cadre ne s'étire pas en un grand
+        rectangle noir quand la colonne voisine est très haute."""
+        self._proportion = True
+        self._ajuster_hauteur()
+
+    def _ajuster_hauteur(self) -> None:
+        if not self._proportion:
+            return
+        h = min(900, max(240, (self.width() - 22) * 3 // 4 + 22))
+        if abs(self.minimumHeight() - h) > 2 or self.maximumHeight() != h:
+            self.setMinimumHeight(h)
+            self.setMaximumHeight(h)
+
+    def resizeEvent(self, e) -> None:  # noqa: N802
+        super().resizeEvent(e)
+        self._ajuster_hauteur()
 
     def set_still(self, path: Path) -> None:
         pm = QPixmap(str(path))
@@ -139,7 +158,7 @@ class CompareView(QWidget):
             p.setFont(f)
             p.drawText(inner, Qt.AlignCenter,
                        "L'avant / après apparaîtra ici\n\n"
-                       "(choisissez un film ou une photo, puis « 2. Voir l'avant / après »)")
+                       "(choisissez un film ou une photo, puis « Voir l'avant / après »)")
             return
         size = self.before.size().scaled(inner.size(), Qt.KeepAspectRatio)
         r = QRect(QPoint(0, 0), size)
@@ -944,7 +963,7 @@ class MainWindow(QMainWindow):
         for txt, val in (("Automatique (analyse)", None), ("4:3", Fraction(4, 3)), ("16:9", Fraction(16, 9))):
             self.dar_combo.addItem(txt, val)
         self.source_combo = QComboBox()
-        for txt, val, ic in (("Je ne sais pas — suivre l'analyse", None, "info"),
+        for txt, val, ic in (("Automatique (analyse)", None, "info"),
                              ("Vidéo analogique (VHS, Video8, Hi8, Betamax…)", "video", "bande"),
                              ("Pellicule cinéma numérisée (Super 8, 8 mm, 16 mm…)", "film", "film"),
                              ("Pellicule transférée sur vidéo (film copié sur VHS, DVD…)", "transfer", "pile")):
@@ -969,6 +988,15 @@ class MainWindow(QMainWindow):
         self.warn_label.setWordWrap(True)
         self.warn_label.setStyleSheet(f"color:{theme.AVERT}")
         self.info_form.addRow(self.warn_label)
+        self.a_advice = QCheckBox("Corriger aussi ces défauts, avec prudence")
+        _with_icon(self.a_advice, "conseil")
+        self.a_advice.setVisible(False)
+        self.a_advice.setToolTip("La même case que dans le mode simple. Cochée d'office quand l'analyse "
+                                 "repère des défauts ; décochez-la pour garder le film tel quel.")
+        self.a_advice.toggled.connect(self.s_advice.setChecked)
+        self.s_advice.toggled.connect(self.a_advice.setChecked)
+        self.s_advice.toggled.connect(lambda _c: self._refresh_hints())
+        self.info_form.addRow(self.a_advice)
         left.addWidget(g)
 
         # Profils : trois tuiles
@@ -1069,7 +1097,8 @@ class MainWindow(QMainWindow):
         self.edge_spin.setToolTip(
             "Bords abîmés, remplacés par du noir. Cassette : gauche et droite. "
             "Pellicule : un cadre des quatre côtés. L'image garde la même taille "
-            "et le même format (4:3 inchangé). 0 = ne rien masquer.")
+            "et le même format (4:3 inchangé). 0 = ne rien masquer. « auto » : bords abîmés "
+            "repérés par l'analyse, masqués d'office (la plus grande des deux largeurs compte).")
         self.edge_label = _ilabel("Masquer les bords :", "cadre")
         h = QHBoxLayout()
         h.addWidget(self.edge_label)
@@ -1169,9 +1198,8 @@ class MainWindow(QMainWindow):
         self.copy_combo.setToolTip(
             "Enregistre le son restauré à côté du film, sans modifier l'original. "
             "C'est le même son que dans la vidéo.")
-        h.addWidget(self.mains_combo, 1)
-        h.addWidget(self.copy_combo, 1)
-        vs.addLayout(h)
+        vs.addWidget(self.mains_combo)
+        vs.addWidget(self.copy_combo)
         self.channel_combo = QComboBox()
         for txt, val in (("Canaux du son inchangés", ""), ("Son gauche mis des deux côtés", "left"),
                          ("Son droit mis des deux côtés", "right"), ("Remettre les deux côtés en phase", "phase")):
@@ -1179,7 +1207,6 @@ class MainWindow(QMainWindow):
         self.channel_combo.setToolTip("Pour un son enregistré d'un seul côté, ou dont les deux côtés "
                                       "s'annulent. L'analyse le détecte et le conseille.")
         vs.addWidget(self.channel_combo)
-        left.addWidget(gs)
         left.addStretch(1)
 
         # Aperçu
@@ -1190,10 +1217,11 @@ class MainWindow(QMainWindow):
         self.start_spin.setDecimals(0)
         self.start_spin.setSuffix(" s")
         self.start_spin.setRange(0, 0)
-        self.preview_btn = _with_icon(QPushButton("Générer l'aperçu"), "oeil")
+        self.preview_btn = _with_icon(QPushButton("Voir l'avant / après"), "oeil")
         self.preview_btn.clicked.connect(self.start_preview)
         self.still_combo = QComboBox()
         self.still_combo.setMinimumContentsLength(9)
+        self.still_combo.setToolTip("Image de l'extrait à comparer.")
         self.still_combo.currentIndexChanged.connect(self._show_still)
         self.play_btn = _with_icon(QPushButton("Lire la comparaison"), "jouer")
         self.play_btn.clicked.connect(self._play_compare)
@@ -1218,8 +1246,10 @@ class MainWindow(QMainWindow):
         h.addStretch(1)
         v.addLayout(h)
         self.compare = CompareView()
-        v.addWidget(self.compare, 1)
-        right.addWidget(g, 1)
+        self.compare.garder_proportions()
+        v.addWidget(self.compare)
+        right.addWidget(g)
+        right.addWidget(gs)             # le son, juste sous les boutons « Écouter »
 
         # Export
         g = Carte("Restauration complète", "export", "4")
@@ -1290,6 +1320,7 @@ class MainWindow(QMainWindow):
         h.addWidget(self.check_btn)
         v.addLayout(h)
         right.addWidget(g)
+        right.addStretch(1)
 
         # les deux pages affichent la même progression, le même état, le même aperçu
         self.status = _Mirror(self.status, self.s_status)
@@ -1490,7 +1521,7 @@ class MainWindow(QMainWindow):
             return
         cible = self._cible_montage()
         if cible is None:
-            self.status.setText("Choisissez d'abord un film (bouton 1).")
+            self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
             return
         t = self.tools
 
@@ -1542,7 +1573,7 @@ class MainWindow(QMainWindow):
         """Ouvre le film dans LosslessCut (simple) ou Shotcut (complet), installés d'un clic si besoin."""
         cible = self._cible_montage()
         if cible is None:
-            self.status.setText("Choisissez d'abord un film (bouton 1).")
+            self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
             return
         box = QMessageBox(QMessageBox.Question, "Faire un montage",
                           "Quel montage voulez-vous faire ?\n\n"
@@ -1653,6 +1684,8 @@ class MainWindow(QMainWindow):
             b.setVisible(not photo_mode)                            # une photo n'a pas de son
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
         self.still_combo.setEnabled(has_prev and not busy)
+        self.still_combo.setVisible(self.still_combo.count() > 0)      # vide avant l'aperçu : caché
+        self.a_advice.setVisible(not self.s_advice.isHidden())
         # mode simple : seulement ce qui sert maintenant
         self.s_cancel.setVisible(busy)
         self.s_aide_conseil.setVisible(not self.s_advice.isHidden())
@@ -1725,7 +1758,16 @@ class MainWindow(QMainWindow):
             return chosen
         return self.info.suggested_source if self.info else "video"
 
+    def _lignes_conseils(self) -> list[str]:
+        """Défauts repérés, dits selon la case : corrigés d'office, ou seulement signalés."""
+        if self.s_advice.isChecked():
+            return [f"💡 Corrigé d'office : {a.text}" for a in self.advice]
+        return [f"💡 Repéré, pas corrigé (case décochée) : {a.text.split(' : ')[0]}." for a in self.advice]
+
     def _refresh_hints(self) -> None:
+        # bords abîmés repérés : la case « Masquer les bords » dit ce qui sera fait (pas « 0 px »)
+        bords = next((a.fix["mask_sides"] for a in self.advice if a.key == "edges"), 0) if self.info else 0
+        self.edge_spin.setSpecialValueText(f"auto ({bords} px)" if bords and self.s_advice.isChecked() else "")
         if not self.info:
             return
         notes = ["⚠ " + w for w in self.info.warnings]
@@ -1734,8 +1776,7 @@ class MainWindow(QMainWindow):
                 notes.append("ℹ Photo noir et blanc : elle le restera"
                              + (". La case « Coloriser aussi » du mode simple peut ajouter une copie "
                                 "colorisée par l'IA (couleurs inventées)." if self.tools.colorize_available else "."))
-            for a in getattr(self, "advice", []):
-                notes.append(f"💡 Conseil : {a.text} (case « Corriger aussi ces défauts » du mode simple)")
+            notes += self._lignes_conseils()
             if getattr(self, "out_note", ""):
                 notes.append(self.out_note)
             self.warn_label.setText("\n".join(notes))
@@ -1750,9 +1791,7 @@ class MainWindow(QMainWindow):
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
         elif self.info.audio_silent:
             notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
-        for a in getattr(self, "advice", []):
-            notes.append(f"💡 Conseil : {a.text} (case « Corriger aussi ces défauts » du mode simple, "
-                         "ou réglages du son ci-dessous)")
+        notes += self._lignes_conseils()
         if getattr(self, "out_note", ""):
             notes.append(self.out_note)
         if self.info.pale_colors:
@@ -2034,7 +2073,7 @@ class MainWindow(QMainWindow):
         self._update_state()
         self._refresh_hints()
         self.status.setText(f"Photo analysée : {info.path.name}. "
-                            "Étape suivante : bouton 2 « Voir l'avant / après ».")
+                            "Étape suivante : « Voir l'avant / après ».")
 
     def _loaded(self, info: MediaInfo) -> None:
         self.is_photo = False
@@ -2049,9 +2088,9 @@ class MainWindow(QMainWindow):
         self.info_labels["Norme probable"].setToolTip(info.standard_reason)
         self.scan_combo.setCurrentIndex(0)
         self.dar_combo.setCurrentIndex(0)
-        self.source_combo.setItemText(0, "Je ne sais pas — suggestion : "
+        self.source_combo.setItemText(0, "Automatique : "
                                       + {"video": "vidéo", "film": "pellicule",
-                                         "transfer": "pellicule transférée"}[info.suggested_source])
+                                         "transfer": "transfert"}[info.suggested_source])
         self.source_combo.setCurrentIndex(0)
         fps = f"{float(info.fps):.3f}".rstrip("0").rstrip(".")
         self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} images/s)")
@@ -2095,7 +2134,7 @@ class MainWindow(QMainWindow):
         self.declip_check.setChecked(False)
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
-                            "Étape suivante : bouton 2 « Voir l'avant / après ».")
+                            "Étape suivante : « Voir l'avant / après ».")
 
     def start_preview(self) -> None:
         if not self.info or self._busy():
@@ -2125,8 +2164,16 @@ class MainWindow(QMainWindow):
         self.compare.set_mode("split")
         quand = "" if getattr(self, "is_photo", False) else \
             f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
-        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
-                            "sous l'image. Si cela vous plaît : bouton 3 « Restaurer ».")
+        self._etat(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
+                   "sous l'image. Si cela vous plaît : bouton 3 « Restaurer ».",
+                   f"Aperçu prêt{quand}. Déplacez la souris sur l'image pour comparer. "
+                   "Si cela vous plaît : « Lancer la restauration ».")
+
+    def _etat(self, simple: str, avance: str) -> None:
+        """Message propre à chaque page : les boutons n'ont pas le même nom dans les deux."""
+        page_avancee, page_simple = self.status._w
+        page_avancee.setText(avance)
+        page_simple.setText(simple)
 
     def _show_still(self, idx: int) -> None:
         if self.preview and 0 <= idx < len(self.preview.stills):
