@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import hashlib
 import logging
 import math
 import os
@@ -1309,26 +1310,50 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                 progress((k + frac) / n, f"{mot} {k + 1} sur {n} : {name} — {msg}")
         try:
             sub(0.0, "analyse…")
-            if photo.is_photo(f):
-                pinfo = photo.analyze_photo(f, tools)
-                ps = settings_for(pinfo)
-                # dossier de secours (DVD, CD photo) : partagé par tous les disques, dont les noms
-                # se répètent (VTS_01, IMG_0001) : « déjà fait » n'y veut rien dire
-                if not fallback and (out_dir / f"{pinfo.path.stem}_restaure_{ps.profile.key}"
-                                                f"{'_ia' if ps.use_ai else ''}.png").exists():
-                    res.skipped.append(f.name)
-                    continue
-                res.done.append(photo.restore_photo(pinfo, ps, photo.output_path(pinfo, ps, out_dir), tools,
-                                                    cancel=cancel, progress=sub))
-                continue
-            info = open_media(f, tools)
+            image = photo.is_photo(f)
+            info = photo.analyze_photo(f, tools) if image else open_media(f, tools)
             s = settings_for(info)
-            if not fallback and (out_dir / f"{output_base(info, s)}.mp4").exists():
-                # déjà restauré avec les mêmes réglages (relance après une coupure)
+            sources = []
+            for source in info.parts or (f,):
+                stat = source.stat()
+                sources.append((str(source.resolve()), stat.st_size, stat.st_mtime_ns))
+            identite = json.dumps([sources, dataclasses.asdict(s)], sort_keys=True, default=str)
+            cle = hashlib.sha256(identite.encode()).hexdigest()
+            registre = out_dir / ".restaurations"
+            recu = registre / cle
+            principal = None
+            try:
+                nom = recu.read_text(encoding="utf-8")
+                if Path(nom).name == nom:
+                    principal = out_dir / nom
+            except FileNotFoundError:
+                pass
+
+            def sorties(p):
+                chemins = [p]
+                if image and photo.wants_color(info, s):
+                    chemins.append(photo.colorized_path(p))
+                elif not image and info.has_audio and s.audio_copy in ("wav", "flac"):
+                    chemins.append(p.with_suffix("." + s.audio_copy))
+                return chemins
+
+            if principal and all(p.is_file() for p in sorties(principal)):
                 res.skipped.append(f.name)
                 continue
-            res.done.append(export(info, s, unique_output_path(info, s, out_dir), tools,
-                                   cancel=cancel, progress=sub))
+            if image:
+                cible = photo.output_path(info, s, out_dir)
+                principal = photo.restore_photo(info, s, cible, tools, cancel=cancel, progress=sub)
+            else:
+                cible = unique_output_path(info, s, out_dir)
+                principal = export(info, s, cible, tools, cancel=cancel, progress=sub)
+            registre.mkdir(exist_ok=True)
+            temporaire = partiel_unique(recu)
+            try:
+                temporaire.write_text(principal.name, encoding="utf-8")
+                os.replace(temporaire, recu)  # reçu interne, version la plus récente
+            finally:
+                effacer(temporaire)
+            res.done.append(principal)
         except Cancelled:
             raise
         except (ToolError, OSError, ValueError) as exc:     # un fichier bloqué n'arrête pas les autres
