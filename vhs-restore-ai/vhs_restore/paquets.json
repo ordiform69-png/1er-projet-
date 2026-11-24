@@ -1,0 +1,79 @@
+[
+  {
+    "key": "realesrgan",
+    "name": "Real-ESRGAN",
+    "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip",
+    "sha256": "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d",
+    "size_mb": 45,
+    "folder": "realesrgan",
+    "kind": "zip",
+    "file_name": "realesrgan-ncnn-vulkan.exe",
+    "windows_only": true
+  },
+  {
+    "key": "deepfilter",
+    "name": "DeepFilterNet",
+    "url": "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",
+    "sha256": "75e11fa16445f560cb6b021521ddb89e89270d13b83089705d98776f58fd7915",
+    "size_mb": 27,
+    "folder": "deepfilter",
+    "kind": "file",
+    "file_name": "deep-filter.exe",
+    "windows_only": true
+  },
+  {
+    "key": "colorisation",
+    "name": "Colorisation (DDColor)",
+    "url": "https://huggingface.co/edgetools/ddcolor/resolve/4755ae9f1f7a35a9e7693b96c2a88f3432cb6ab0/ddcolor-tiny-fp16.onnx",
+    "sha256": "2653da00dc15e54a45e5200b61dbf82ee9ceaf56b02bb9b9657569ac775e82e6",
+    "size_mb": 130,
+    "folder": "ddcolor",
+    "kind": "file",
+    "file_name": "ddcolor-tiny-fp16.onnx",
+    "windows_only": false
+  },
+  {
+    "key": "sevenzip",
+    "name": "7-Zip (extracteur)",
+    "url": "https://www.7-zip.org/a/7zr.exe",
+    "sha256": "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282",
+    "size_mb": 1,
+    "folder": "7zip",
+    "kind": "file",
+    "file_name": "7zr.exe",
+    "windows_only": true
+  },
+  {
+    "key": "losslesscut",
+    "name": "LosslessCut",
+    "url": "https://github.com/mifi/lossless-cut/releases/download/v3.70.2/LosslessCut-win-x64.7z",
+    "sha256": "1740c5f17b952c04cf1b1612cf32f56c68a88105c045199526c7ea9678d309b0",
+    "size_mb": 152,
+    "folder": "losslesscut",
+    "kind": "7z",
+    "file_name": "LosslessCut.exe",
+    "windows_only": true
+  },
+  {
+    "key": "shotcut",
+    "name": "Shotcut",
+    "url": "https://github.com/mltframework/shotcut/releases/download/v26.8.1/shotcut-win64-26.8.1.zip",
+    "sha256": "b0148856de01b39add4bf4d6a813bfbc554b4663b65e3ca25cb2589f47555a6a",
+    "size_mb": 225,
+    "folder": "shotcut",
+    "kind": "zip",
+    "file_name": "shotcut.exe",
+    "windows_only": true
+  },
+  {
+    "key": "ffmpeg",
+    "name": "FFmpeg",
+    "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.1-essentials_build.zip",
+    "sha256": "b9bbbb3acece000cbeec994f856649354e52c773807841e78908374b24d658fd",
+    "size_mb": 0,
+    "folder": "ffmpeg",
+    "kind": "zip",
+    "file_name": "bin/ffmpeg.exe",
+    "windows_only": true
+  }
+]

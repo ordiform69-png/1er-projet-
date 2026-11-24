@@ -72,3 +72,74 @@ def test_disk_space_checked_before_starting(samples, tools, tmp_path, monkeypatc
     with pytest.raises(ToolError, match="Espace disque insuffisant"):
         pipeline.export(info, s, tmp_path / "o.mp4", tools)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_delai_deuxieme_photo(tmp_path, tools, monkeypatch):
+    import subprocess
+    from vhs_restore import photo
+    from vhs_restore.probe import MediaInfo
+    def lire(path, _):
+        if path.stem == "2":
+            raise subprocess.TimeoutExpired("lecture", 1)
+        return MediaInfo(path=path)
+    for nom in ("1.png", "2.png", "3.png"):
+        (tmp_path / nom).touch()
+    monkeypatch.setattr(photo, "analyze_photo", lire)
+    monkeypatch.setattr(photo, "restore_photo", lambda i,s,p,t,**kw: p)
+    res = pipeline.restore_folder(tmp_path, tools, lambda i: pipeline.Settings(profile_for("fidele")))
+    assert len(res.done) == 2 and res.done[-1].name.startswith("3")
+    assert res.errors == [("2.png", "La lecture de ce fichier a pris trop de temps.")]
+
+
+def test_espace_ia_sur_destination_avant_traitement(samples, tools, tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    info = analyze(samples["prog"], tools)
+    s = pipeline.Settings(profile_for("fidele"), use_ai=True)
+    temp = tmp_path / "travail"
+    temp.mkdir()
+    monkeypatch.setenv("VHSRA_TMP", str(temp))
+    # Deux identifiants de volume, indépendants du montage réel du répertoire de test.
+    original = pipeline.os
+    class Volumes:
+        def __getattr__(self, key):
+            return getattr(original, key)
+        def stat(self, path):
+            return SimpleNamespace(st_dev=2 if Path(path) == temp else 1)
+    monkeypatch.setattr(pipeline, "os", Volumes())
+    monkeypatch.setattr(shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(
+        10**12, 0, 10**12 if Path(p) == temp else 1))
+    with pytest.raises(ToolError, match="Espace disque insuffisant"):
+        pipeline.export(info, s, tmp_path / "sortie.mp4", tools)
+    assert not list(temp.iterdir())
+
+
+def test_dossier_ia_une_seule_question(samples, tools, tmp_path, monkeypatch):
+    """Trois films, agrandisseur lent : une question, les trois suivent le choix."""
+    for name in ("pal_tff", "prog", "long"):
+        shutil.copy(samples[name], tmp_path / f"{name}.mpg")
+    questions = []
+
+    class Moteur:
+        scale = 4
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            import time
+            # assez lent pour dépasser 3 × la durée totale du dossier
+            time.sleep(0.4 * max(1, len(list(Path(src).glob("*.png")))))
+
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+
+    def demander(secondes, en_4k, inconnue):
+        questions.append(secondes)
+        return "sans"
+
+    def reglages(info):
+        return pipeline.Settings(profile_for("equilibre", "video"), use_ai=True, resolution="1080")
+
+    res = pipeline.restore_folder(tmp_path, tools, reglages, demander=demander)
+    assert len(questions) == 1, questions
+    assert res.errors == []
+    assert len(res.done) == 3
+    assert not any(p.name.endswith("_ia.mp4") or "_ia" in p.stem for p in res.done)
+    assert not (res.out_dir / ".restaurations").exists()

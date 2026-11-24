@@ -170,6 +170,11 @@ def test_installation_7z(tmp_path, monkeypatch):
 
     def faux_run(cmd, **k):                             # 7zr.exe x archive -o<dossier> : on décompresse
         commandes.append(cmd)
+        if cmd[1] == "l":
+            for nom in ("LosslessCut.exe", "resources/ffmpeg.exe"):
+                k["on_line"]("Path = " + nom)
+                k["on_line"]("")
+            return []
         dest = Path(next(a[2:] for a in cmd if a.startswith("-o")))
         with zipfile.ZipFile(cmd[2]) as f:
             f.extractall(dest)
@@ -181,5 +186,5 @@ def test_installation_7z(tmp_path, monkeypatch):
         srv.shutdown()
     assert exe == tmp_path / "profil" / "losslesscut" / "LosslessCut.exe" and exe.is_file()
     assert (tmp_path / "profil" / "7zip" / "7zr.exe").is_file()          # extracteur installé d'abord
-    assert commandes and commandes[0][0].endswith("7zr.exe") and commandes[0][1] == "x"
+    assert commandes and commandes[0][0].endswith("7zr.exe") and [c[1] for c in commandes] == ["l", "x"]
     assert sorted(x.name for x in (tmp_path / "profil").iterdir()) == ["7zip", "losslesscut"]

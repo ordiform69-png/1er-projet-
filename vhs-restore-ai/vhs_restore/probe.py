@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from pathlib import Path
 
-from .tools import _NO_WINDOW, ToolError, Toolset, ff_input, run_capture
+from .tools import capture, _NO_WINDOW, ToolError, Toolset, ff_input, run_capture
 
 SD_SIZES = {(720, 576), (704, 576), (720, 480), (704, 480), (720, 486), (352, 288), (352, 240)}
 IDET_FRAMES = 600
@@ -51,6 +51,9 @@ class MediaInfo:
     standard_reason: str = ""
     has_audio: bool = False
     audio_desc: str = ""
+    color_primaries: str = ""
+    color_transfer: str = ""
+    color_range: str = ""
     color_space: str = ""
     video_offset: float = 0.0        # début vidéo - début du fichier (s)
     repeated_fields: float | None = None   # part de champs répétés (idet)
@@ -106,7 +109,7 @@ class MediaInfo:
             "Format d'affichage": f"{self.dar.numerator}:{self.dar.denominator} ({self.dar_source})",
             "Balayage": f"{scan_txt} [{self.scan_source}]",
             "Norme probable": std,
-            "Audio": (self.audio_desc + (" — silencieuse (aucun son enregistré)" if self.audio_silent else "")
+            "Audio": (self.audio_desc + (" — Aucun son entendu dans les extraits analysés" if self.audio_silent else "")
                       if self.audio_desc else "aucune piste audio (film muet ?)"),
             "Couleur": ("Noir et blanc probable" if self.black_and_white else
                         "Couleurs très pâles (film décoloré ou noir et blanc teinté)" if self.pale_colors else
@@ -203,7 +206,7 @@ def parse_signals(text: str) -> dict[str, float | None]:
 def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float, float] | None:
     """Moyenne R, G, B sur quelques images réduites. Une seule lecture courte."""
     try:
-        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
                             "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
                             "-map", "0:v:0", "-vf", "scale=32:32,format=rgb24",
                             "-frames:v", "8", "-an", "-f", "rawvideo", "-"],
@@ -255,7 +258,7 @@ def edge_damage(ffmpeg: str, path: Path, width: int, start: float = 0.0, frames:
     vf = (f"[0:v:0]select='not(mod(n\\,12))',scale={width}:144:flags=area,split[a][b];"
           f"[a]crop={w}:144:0:0[l];[b]crop={w}:144:{width - w}:0,hflip[r];[l][r]hstack,format=rgb24")
     try:
-        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
                             "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
                             "-filter_complex", vf, "-frames:v", str(frames), "-an", "-f", "rawvideo", "-"],
                            capture_output=True, timeout=120, stdin=subprocess.DEVNULL,
@@ -381,6 +384,9 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
     info.width, info.height = int(v.get("width", 0)), int(v.get("height", 0))
     info.codec = v.get("codec_name", "")
     info.pix_fmt = v.get("pix_fmt", "")
+    info.color_primaries = v.get("color_primaries", "")
+    info.color_transfer = v.get("color_transfer", "")
+    info.color_range = v.get("color_range", "")
     info.color_space = v.get("color_space", "")
     info.fps = _frac(v.get("avg_frame_rate")) or _frac(v.get("r_frame_rate")) or Fraction(0)
     info.field_order_meta = v.get("field_order", "unknown")
@@ -461,13 +467,23 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
     if info.has_audio:
         # Piste vide ajoutée lors de la numérisation (constaté sur une archive réelle) :
         # on la garde (rien n'est supprimé), mais on l'annonce.
-        try:
-            r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-i", str(p), "-map", "0:a:0",
-                             "-t", "300", "-af", "volumedetect", "-f", "null", "-"], timeout=300)
-            m = re.search(r"max_volume:\s*(-?[\d.]+|-inf) dB", r.stderr)
-            info.audio_silent = bool(m) and (m.group(1) == "-inf" or float(m.group(1)) < -60)
-        except subprocess.TimeoutExpired:
-            pass
+        longueur = 12.0
+        positions = sorted({0.0, max(0.0, (info.duration - longueur) / 2),
+                            max(0.0, info.duration - longueur)})
+        silencieux = []
+        for position in positions:
+            try:
+                r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-ss", str(position),
+                                 "-i", str(p), "-map", "0:a:0", "-t", str(longueur),
+                                 "-af", "volumedetect", "-f", "null", "-"], timeout=60)
+                m = re.search(r"max_volume:\s*(-?[\d.]+|-inf) dB", r.stderr)
+                silencieux.append(r.returncode == 0 and bool(m) and float(m.group(1)) < -60)
+                if not silencieux[-1]:
+                    break
+            except subprocess.TimeoutExpired:
+                silencieux.append(False)
+                break
+        info.audio_silent = info.duration > 0 and all(silencieux)
         if not info.audio_silent:
             from .audio_check import measure
             chk = measure(tools.ffmpeg.path, p, info.audio_channels)

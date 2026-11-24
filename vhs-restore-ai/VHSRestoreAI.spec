@@ -11,7 +11,8 @@ except Exception:
 
 a = Analysis(
     ["VHSRestoreAI.py"],
-    datas=[("vhs_restore/qtgmc.vpy", "vhs_restore"),
+    datas=[("vhs_restore/paquets.json", "vhs_restore"),
+           ("vhs_restore/qtgmc.vpy", "vhs_restore"),
            ("vhs_restore/models/rnnoise_std.rnnn", "vhs_restore/models"),
            ("vhs_restore/models/RNNOISE-LICENSE.txt", "vhs_restore/models"),
            ("vhs_restore/assets/fonts", "vhs_restore/assets/fonts"),

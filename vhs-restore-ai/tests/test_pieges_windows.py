@@ -46,7 +46,7 @@ def test_resultat_ouvert_dans_un_lecteur(tmp_path, monkeypatch):
     def refuse(a, b):
         essais.append(1)
         raise PermissionError(32, "Le processus ne peut pas accéder au fichier")
-    monkeypatch.setattr(tools_mod.os, "replace", refuse)
+    monkeypatch.setattr(tools_mod, "_publier", refuse)
     monkeypatch.setattr("time.sleep", lambda _s: None)
     with pytest.raises(tools_mod.FichierOccupe) as e:
         tools_mod.finaliser(part, final, essais=3)

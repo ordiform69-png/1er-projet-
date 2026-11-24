@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from .tools import partiel_unique, reserver_sorties
 from .tools import Cancelled, FichierOccupe, ToolError, effacer, finaliser, run, verifier_chemin
 
 Progress = Callable[[float, str], None]
@@ -198,8 +199,6 @@ def retirer(ffmpeg: str, src: Path, dst: Path, passages: list[Passage], duree: f
         raise ToolError("Il ne resterait rien du film : rien n'a été retiré.")
     total = sum((b if b is not None else max(duree, a)) - a for a, b in garde)
     verifier_chemin(src, origine=True)
-    partiel = dst.with_name(dst.stem + ".partiel.mp4")
-    verifier_chemin(partiel)
     verifier_place(dst, total)
     parts, labels = [], ""
     for i, (a, b) in enumerate(garde):
@@ -226,6 +225,7 @@ def retirer(ffmpeg: str, src: Path, dst: Path, passages: list[Passage], duree: f
            "-nostats", "-i", str(src), "-filter_complex", ";".join(parts), "-map", "[v]"]
     if avec_son:
         cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"]
+    partiel = partiel_unique(dst)
     cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p",
             "-movflags", "+faststart", str(partiel)]
     try:

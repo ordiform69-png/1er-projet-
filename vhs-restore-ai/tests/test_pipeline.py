@@ -178,3 +178,87 @@ def test_preview_aligned_when_video_starts_after_audio(tools, tmp_path):
                           "[0:v]split[a][b];[a]crop=iw/2:ih:0:0[l];[b]crop=iw/2:ih:iw/2:0[r];[l][r]psnr",
                           "-f", "null", "-"], capture_output=True, text=True).stderr
     assert float(re.findall(r"average:([\d.]+)", out)[-1]) > 30
+
+
+def test_exports_concurrents_et_temoins(pal, tools, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from dataclasses import replace
+    dst = tmp_path / "famille.mp4"
+    temoins = [dst.with_suffix(".wav"), tmp_path / "famille.partiel.mp4"]
+    for path in temoins:
+        path.write_bytes(b"archive")
+    s = replace(S(), audio_copy="wav")
+    with ThreadPoolExecutor(2) as pool:
+        jobs = [pool.submit(pipeline.export, pal, s, dst, tools, duration=0.5) for _ in range(2)]
+        films = {job.result() for job in jobs}
+    assert len(films) == 2
+    assert all(p.is_file() and p.with_suffix(".wav").is_file() for p in films)
+    assert all(p.read_bytes() == b"archive" for p in temoins)
+
+
+def test_vitesse_ia_mesuree_avant_choix(pal, tools, tmp_path, monkeypatch):
+    from dataclasses import replace
+    import threading
+    horloge = [0.0]
+    class Moteur:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel):
+            horloge[0] += 4 + 30 * len(list(src.glob("*.png")))
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+    from types import SimpleNamespace
+    monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: horloge[0]))
+    estimations = []
+    def choisir(secondes, en_4k, inconnue):
+        estimations.append(secondes)
+        return "sans"
+    s = replace(S(), use_ai=True)
+    choix = pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None)
+    assert s.use_ai and not choix.use_ai
+    attendu = 10 * float(pipeline.output_fps(pal, s)) * 30
+    assert abs(estimations[0] / attendu - 1) < 0.2
+
+
+def test_apercu_ia_seuil_deux_minutes(pal, tools, monkeypatch):
+    """Aperçu : question seulement au-delà de 2 minutes. Restauration : seuil inchangé."""
+    from types import SimpleNamespace
+    horloge = [0.0]
+
+    class Moteur:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            # 1 image : 4 s de démarrage + 9 s ; 2 images : encore 9 s -> 9 s/image
+            n = len(list(src.glob("*.png")))
+            horloge[0] += 4 + 9 * n
+
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+    monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: horloge[0]))
+    from dataclasses import replace
+    s = replace(S(), use_ai=True)
+    vus = []
+
+    def choisir(secondes, en_4k, inconnue):
+        vus.append(secondes)
+        return "avec"
+
+    # 10 s d'aperçu à 9 s/image * 50 i/s = 4500 s, mais on force le coût :
+    # 9 s/image * fps(25 ou 50) * 10 s dépasse 2 min. On vérifie les deux seuils
+    # en contrôlant la durée passée.
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=True)
+    assert vus, "un aperçu long doit poser la question"
+    long = vus[-1]
+    vus.clear()
+    # 0,1 s/image : sous 2 min pour un aperçu de 10 s, au-dessus de 3 × la durée
+    horloge[0] = 0
+    class MoteurCourt:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            n = len(list(src.glob("*.png")))
+            horloge[0] += 0.9 + 0.1 * n
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", MoteurCourt)
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=True)
+    assert vus == [], vus
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=False)
+    assert vus, "la restauration garde le seuil 3 × durée"

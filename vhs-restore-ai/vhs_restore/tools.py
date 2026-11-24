@@ -5,6 +5,10 @@ Toutes les commandes sont lancées sous forme de liste d'arguments
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
+import time
+from contextlib import contextmanager
+import tempfile
 import collections
 import logging
 import os
@@ -141,14 +145,94 @@ class FichierOccupe(ToolError):
     """Le résultat est fini, mais un autre programme garde le fichier ouvert : il est laissé en place."""
 
 
+class CopieIncomplete(ToolError):
+    """Le principal est déjà publié. Seule la copie facultative reste à faire."""
+    def __init__(self, principal, message, interrompue):
+        super().__init__(message)
+        self.principal = principal
+        self.interrompue = interrompue
+
+
+@contextmanager
+def copie_annexe(principal, libelle):
+    try:
+        yield
+    except (Cancelled, ToolError, OSError, subprocess.TimeoutExpired) as exc:
+        fin = "a été interrompue." if isinstance(exc, Cancelled) else "a échoué."
+        raise CopieIncomplete(principal, f"{libelle} {fin}", isinstance(exc, Cancelled)) from exc
+
+
+def cacher(chemin: Path) -> None:
+    """Sous Windows, un point au début ne cache rien : on pose l'attribut caché."""
+    if os.name != "nt":
+        return
+    import ctypes
+    ctypes.windll.kernel32.SetFileAttributesW(str(chemin), 0x2)  # FILE_ATTRIBUTE_HIDDEN
+
+
+def partiel_unique(final: Path) -> Path:
+    verifier_chemin(final)
+    verifier_chemin(final.parent / ("vhs-XXXXXXXX.partiel" + final.suffix))
+    fd, nom = tempfile.mkstemp(prefix="vhs-", suffix=".partiel" + final.suffix, dir=final.parent)
+    os.close(fd)
+    return Path(nom)
+
+
+@contextmanager
+def reserver_sorties(principal, annexes):
+    """Un verrou exclusif par sortie, partagé entre instances, sur le disque cible."""
+    if not principal.parent.is_dir():
+        raise ToolError(f"Dossier de sortie introuvable : {principal.parent}")
+    numero = 1
+    while True:
+        candidat = principal if numero == 1 else principal.with_name(
+            f"{principal.stem} ({numero}){principal.suffix}")
+        verrous = []
+        try:
+            for cible in [candidat, *annexes(candidat)]:
+                verrou = cible.with_name("." + cible.name + ".reserve")
+                verifier_chemin(verrou)
+                verrou.touch(exist_ok=False)
+                cacher(verrou)
+                verrous.append(verrou)
+                if cible.exists():
+                    raise FileExistsError(cible)
+        except FileExistsError:
+            numero += 1
+        except BaseException:
+            for verrou in verrous:
+                effacer(verrou)
+            raise
+        else:
+            try:
+                yield candidat
+            finally:
+                for verrou in verrous:
+                    effacer(verrou)
+            return
+        for verrou in verrous:
+            effacer(verrou)
+
+
+def _publier(part, final):
+    if IS_WIN:
+        os.rename(part, final)  # Windows refuse une destination existante, y compris sur FAT32.
+    else:
+        os.link(part, final)
+        effacer(part)
+
+
 def finaliser(part: Path, final: Path, essais: int = 10) -> None:
     """Met le résultat terminé à sa place. Sous Windows, un lecteur vidéo ou l'antivirus peut garder
     le fichier ouvert quelques instants : on réessaie, puis on explique au lieu de tout perdre."""
     import time
     for n in range(essais):
         try:
-            os.replace(part, final)
+            _publier(part, final)
             return
+        except FileExistsError:
+            raise FichierOccupe(f"Un fichier porte déjà ce nom. Le résultat est dans {part}. "
+                                "Choisissez un autre nom pour le conserver.") from None
         except PermissionError:
             if n == essais - 1:
                 raise FichierOccupe(
@@ -191,10 +275,48 @@ def ff_input(path: str | Path) -> list[str]:
     return ["-i", p]
 
 
+_arret = ContextVar("arret_sondage", default=None)
+
+
+@contextmanager
+def sondages_annulables(event):
+    jeton = _arret.set(event)
+    try:
+        yield
+    finally:
+        _arret.reset(jeton)
+
+
+def capture(cmd, *, timeout, **options):
+    event = _arret.get()
+    if event is None:
+        return subprocess.run(cmd, timeout=timeout, **options)
+    if event.is_set():
+        raise Cancelled()
+    options.pop("capture_output")
+    limite = time.monotonic() + timeout
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **options) as proc:
+        try:
+            while not event.is_set():
+                reste = limite - time.monotonic()
+                if reste <= 0:
+                    raise subprocess.TimeoutExpired(cmd, timeout)
+                try:
+                    stdout, stderr = proc.communicate(timeout=min(0.15, reste))
+                    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+                except subprocess.TimeoutExpired:
+                    continue
+            raise Cancelled()
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.communicate()
+
+
 def run_capture(cmd: list[str], timeout: float = 60) -> subprocess.CompletedProcess:
     """Commande courte : renvoie stdout/stderr séparés (UTF-8)."""
     log.debug("exec: %s", cmd)
-    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+    return capture(cmd, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", timeout=timeout, stdin=subprocess.DEVNULL,
                           creationflags=_NO_WINDOW)
 

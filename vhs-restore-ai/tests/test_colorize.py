@@ -133,8 +133,8 @@ def test_non_installee_ou_nom_pris(nb_photo, tools, fake_model, tmp_path):
     assert not (tmp_path / "x.png").exists()
     pris = tmp_path / "y_colorisee_ia.png"
     pris.write_bytes(b"photo de l'utilisateur")
-    with pytest.raises(ToolError, match="Rien n'a été remplacé"):
-        photo.restore_photo(info, settings(colorize=True), tmp_path / "y.png", fake_model)
+    out = photo.restore_photo(info, settings(colorize=True), tmp_path / "y.png", fake_model)
+    assert out.name == "y (2).png" and photo.colorized_path(out).is_file()
     assert pris.read_bytes() == b"photo de l'utilisateur"
 
 
@@ -165,3 +165,22 @@ def test_vrai_modele_ajoute_de_la_couleur(tmp_path, tools):
     rgb = raw(out, "rgb24").reshape(480, 640, 3).astype(int)
     sat = (rgb.max(axis=2) - rgb.min(axis=2)).mean()
     assert sat > 8, f"pas de couleur ajoutée (écart moyen {sat:.1f})"
+
+
+def test_reprendre_uniquement_la_couleur(nb_photo, fake_model, tmp_path, monkeypatch):
+    from vhs_restore.tools import Cancelled
+    import shutil
+    shutil.copy(nb_photo["nb"], tmp_path)
+    original = colorize.colorize
+    def interrompre(*args, **kw):
+        raise Cancelled()
+    monkeypatch.setattr(colorize, "colorize", interrompre)
+    def lot():
+        return pipeline.restore_folder(tmp_path, fake_model, lambda _: settings(colorize=True))
+    premier = lot()
+    p, = premier.done
+    avant = p.stat().st_mtime_ns
+    assert "La copie en couleur a été interrompue" in premier.errors[0][1]
+    monkeypatch.setattr(colorize, "colorize", original)
+    assert lot().done == [p]
+    assert photo.colorized_path(p).is_file() and p.stat().st_mtime_ns == avant

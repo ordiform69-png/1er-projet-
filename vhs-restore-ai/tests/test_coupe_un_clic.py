@@ -26,7 +26,7 @@ def test_export_ne_traite_pas_le_trou(samples, tools, tmp_path, monkeypatch):
     s = pipeline.Settings(profile_for("equilibre", "video"), deinterlacer="bwdif")
     assert s.profile.key == "equilibre" and s.deinterlacer == "bwdif" and not s.use_ai
 
-    origine = pipeline.export
+    origine = pipeline._export
     vus: list[tuple] = []
 
     def espion(*args, **kwargs):
@@ -38,7 +38,7 @@ def test_export_ne_traite_pas_le_trou(samples, tools, tmp_path, monkeypatch):
         vus.append((kwargs.get("start"), kwargs.get("duration")))
         return origine(*args, **kwargs)
 
-    monkeypatch.setattr("vhs_restore.pipeline.export", espion)
+    monkeypatch.setattr("vhs_restore.pipeline._export", espion)
     out = pipeline.export(info, s, tmp_path / "sans-trou.mp4", tools,
                           passages=[(0.0, 1.0), (2.0, 4.0)])
 

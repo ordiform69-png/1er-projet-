@@ -33,12 +33,14 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import hashlib
 import logging
 import math
 import os
 import re
 import shutil
 import subprocess
+import time
 import tempfile
 import threading
 from dataclasses import dataclass
@@ -48,11 +50,13 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
+from .tools import CopieIncomplete, copie_annexe
+from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
 from .dvd import input_args as dvd_input
-from .dvd import is_menu, open_media, titles_in
+from .dvd import lecture_dvd, is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
 
 log = logging.getLogger("vhs_restore")
@@ -340,7 +344,9 @@ def target_size(info: MediaInfo, s: Settings) -> tuple[int, int, Fraction]:
 
 
 def _in_matrix(info: MediaInfo) -> str:
-    return "bt709" if info.color_space == "bt709" else "bt601"
+    return {"bt709": "bt709", "fcc": "fcc", "smpte240m": "smpte240m",
+            "bt2020nc": "bt2020", "bt470bg": "bt601", "smpte170m": "bt601"}.get(
+                info.color_space, "bt601")
 
 
 def _base_filters(info: MediaInfo, s: Settings) -> list[str]:
@@ -451,12 +457,17 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
     f: list[str] = []
     if effective_resolution(s) != "source":
         src_m = "" if from_rgb else f":in_color_matrix={_in_matrix(info)}"
-        f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709")
+        plage = ""
+        if info.color_range == "pc":
+            plage = ("" if from_rgb else f":in_range={info.color_range}") + ":out_range=tv"
+        f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709{plage}")
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
     f += _bottom_mask(info, s)
     f += _edge_mask(info, s)
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
+    if effective_resolution(s) == "source" and info.color_range == "pc":
+        f.append(f"scale=iw:ih:out_color_matrix={_in_matrix(info)}:out_range=pc")
     f.append("format=yuv420p")
     return f
 
@@ -501,12 +512,20 @@ def filter_chain(info: MediaInfo, s: Settings) -> str:
 
 
 def encode_args(info: MediaInfo, s: Settings) -> list[str]:
-    if effective_resolution(s) != "source":
-        color = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
-    elif info.standard == "525/30":
-        color = ["-colorspace", "smpte170m", "-color_primaries", "smpte170m", "-color_trc", "smpte170m"]
-    else:
-        color = ["-colorspace", "bt470bg", "-color_primaries", "bt470bg", "-color_trc", "bt709"]
+    hd = effective_resolution(s) != "source"
+    ntsc = info.standard == "525/30"
+    matrice_sd = "smpte170m" if ntsc else "bt470bg"
+    def connue(valeur, defaut):
+        return defaut if valeur in ("", "unknown", "unspecified", "reserved") else valeur
+    # RGB devient YUV420 lors de l’encodage : le tag de matrice RGB ne peut pas être recopié.
+    source = "" if info.color_space in ("gbr", "rgb") else info.color_space
+    matrice = "bt709" if hd else connue(source, matrice_sd)
+    # scale convertit la matrice, sans changer les primaires ni la courbe de transfert.
+    primaires = connue(info.color_primaries, "bt709" if hd else matrice_sd)
+    transfert = connue(info.color_transfer, "bt709" if hd or not ntsc else "smpte170m")
+    color = ["-colorspace", matrice, "-color_primaries", primaires, "-color_trc", transfert]
+    if info.color_range in ("pc", "tv"):
+        color += ["-color_range", "tv" if hd else info.color_range]
     return ["-c:v", "libx264", "-preset", s.preset, "-crf", str(s.crf), "-pix_fmt", "yuv420p",
             *color, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]
 
@@ -641,6 +660,11 @@ def disk_needs(info: MediaInfo, s: Settings, start: float | None = None,
             # désentrelacement ffv1 avant Analog Repair (vidéo : une image par trame)
             frames = 2 if s.source == "video" else 1
             temp += info.width * info.height * float(info.fps) * frames * dur
+    if s.use_ai:
+        images = int(dur * output_fps(info, s)) + 1
+        pixels = info.width * info.height
+        temp += images * pixels * 1.5 * 0.7
+        temp += min(images, AI_CHUNK_FRAMES) * pixels * 3 * (1 + RealEsrganUpscaler.scale ** 2)
     if s.restore_audio and s.profile.deepfilter and info.has_audio:
         temp += dur * 48000 * 2 * 2 * 2   # WAV source + WAV nettoyé
     return final, temp
@@ -665,7 +689,7 @@ def check_disk_space(info: MediaInfo, s: Settings, out_dir: Path, start: float |
             continue
         free = shutil.disk_usage(path).free
         prev = roots.get(dev, (path, 0.0, free))
-        roots[dev] = (prev[0], prev[1] + need, free)
+        roots[dev] = (prev[0], prev[1] + need, min(prev[2], free))
     for path, need, free in roots.values():
         if free < need * 1.1:
             raise ToolError(f"Espace disque insuffisant dans {path} : il faut environ "
@@ -725,6 +749,8 @@ def trim_window(info: MediaInfo, begin: float, end: float) -> tuple[float | None
         raise ToolError("Le début choisi est après la fin du film.")
     if begin <= 0 and not end:
         return None, None
+    if not info.duration and not end:
+        return begin or None, None
     length = (end or info.duration) - begin
     return (begin or None), length
 
@@ -792,6 +818,8 @@ def bornes_a_exporter(duree: float, debut: float, fin: float,
     que le film (coupe collée au début ou à la fin) : (début, durée) comme trim_window,
     sinon le film entier partirait alors que l'écran annonce un temps plus court.
     """
+    if not duree and not fin and not coupes:
+        return [], max(0.0, debut) or None, None
     gardes = passages_gardes(duree, debut, fin, coupes)
     if len(gardes) >= 2:
         return gardes, None, None
@@ -838,9 +866,24 @@ def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     return cand
 
 
+@lecture_dvd
 def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
+           passages: list[tuple[float, float]] | None = None) -> Path:
+    cible = Path(out_path).resolve()
+    if cible == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas remplacer le fichier original.")
+    def annexes(p):
+        return [p.with_suffix("." + s.audio_copy)] if info.has_audio and s.audio_copy in ("wav", "flac") else []
+    with reserver_sorties(cible, annexes) as libre:
+        return _export(info, s, libre, tools, cancel=cancel, progress=progress, start=start, duration=duration, passages=passages)
+
+
+def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
+           cancel: threading.Event | None = None, progress: Progress | None = None,
+           start: float | None = None, duration: float | None = None,
+           morceau: bool = False,
            passages: list[tuple[float, float]] | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
 
@@ -861,8 +904,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         check_fat32(info, s, Path(out_path).parent, None, sum(max(0.0, b - a) for a, b in passages))
         return _export_morceaux(info, s, out_path, tools, cancel, progress, passages)
     check_fat32(info, s, Path(out_path).parent, start, duration)
-    if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
-        check_disk_space(info, s, Path(out_path).parent, start, duration)
+    check_disk_space(info, s, Path(out_path).parent, start, duration)
     if s.dust or _tape_job(s):
         return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
     out_path = Path(out_path).resolve()
@@ -873,7 +915,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     if s.stabilize and not tools.stab_available:
         raise ToolError("La stabilisation demande un FFmpeg compilé avec libvidstab "
                         "(filtres vidstabdetect/vidstabtransform), absent de votre FFmpeg.")
-    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    part = partiel_unique(out_path)
     verifier_chemin(part)
     total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
     work: Path | None = None
@@ -883,7 +925,21 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 and not info.audio_silent:
             work = Path(tempfile.mkdtemp(prefix="vhsrestore_son_", dir=_work_root()))
             df_owned = True
-        df_wav = _try_deepfilter(info, s, tools, work, start, duration, cancel) if work else None
+        son_debut, son_duree = start, duration
+        manque = 0.0
+        vide = False
+        if morceau and info.has_audio:
+            vitesse = _tempo_factor(info, s, drift=True)
+            premier = ((start or 0) - s.audio_offset_ms / 1000) * vitesse
+            dernier = premier + duration * vitesse
+            son_debut = max(0.0, premier)
+            son_fin = min(info.duration, dernier) if info.duration else dernier
+            son_duree = son_fin - son_debut
+            manque = max(0.0, -premier / vitesse)
+            if son_duree <= 0:
+                vide = True
+                son_debut, son_duree = 0, 0.1
+        df_wav = _try_deepfilter(info, s, tools, work, son_debut, son_duree, cancel) if work and not vide else None
         present = frozenset(tools.audio_filters)
         if s.use_ai:
             _export_ai(info, s, part, tools, cancel, progress, start, duration, total,
@@ -899,18 +955,35 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             if df_wav is not None:
                 args = args + ["-i", str(df_wav)]
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
+            elif morceau and info.has_audio:
+                args += _seek(son_debut, son_duree) + dvd_input(info)
+                amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             vf = filter_chain(info, s)
-            sons = audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
-                              rnnoise=tools.rnnoise_model)
+            chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
+                                       apply_offset=not morceau, rnnoise=tools.rnnoise_model)
+            if morceau and info.has_audio:
+                if vide:
+                    chaine_son.append("volume=0")
+                if manque and not vide:
+                    chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
+                chaine_son += ["apad", f"atrim=duration={duration:.9f}"]
+            sons = ["-af", ",".join(chaine_son)] if chaine_son else []
+            # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
+            # avec -t seul. Même résultat en 6.1 et en 7.x.
+            limite = []
+            if duration:
+                n = max(1, round(float(duration) * float(output_fps(info, s))))
+                limite = ["-frames:v", str(n)]
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
-                   *sons, "-f", "mp4", str(part)])
+                   *sons, *limite, "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         finaliser(part, out_path)
-        _write_audio_copy(out_path, info, s, tools, cancel, progress)
+        with copie_annexe(out_path, "La copie du son"):
+            _write_audio_copy(out_path, info, s, tools, cancel, progress)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -932,6 +1005,10 @@ def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
     for morceau in morceaux:
         nom = morceau.resolve().as_posix().replace("'", "'\\''")
         lignes.append(f"file '{nom}'")
+        # La durée AAC du conteneur inclut parfois le délai de l’encodeur.
+        r = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
+                         "-show_entries", "stream=duration", "-of", "csv=p=0", str(morceau)])
+        lignes.append(f"duration {float(r.stdout.strip()):.9f}")
     liste.write_text("\n".join(lignes) + "\n", encoding="utf-8")
     try:
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
@@ -957,7 +1034,7 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
         final, _ = disk_needs(info, s, None, somme)
         # Les morceaux restaurés sont sur le disque temporaire en même temps que le résultat.
         check_disk_space(info, s, out_path.parent, None, somme, extra_temp=final)
-    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    part = partiel_unique(out_path)
     verifier_chemin(part)                   # chemin trop long pour Windows : dit avant de travailler
     travail = Path(tempfile.mkdtemp(prefix="vhsrestore_morceaux_", dir=_work_root()))
     try:
@@ -973,7 +1050,8 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
                     progress((faits + max(0.0, min(1.0, f)) * duree) / somme,
                              f"Morceau {i} sur {len(gardes)} — {m}")
 
-            export(info, s, dest, tools, cancel=cancel, progress=sous,
+            _export(info, dataclasses.replace(s, audio_copy=""), dest, tools, morceau=True,
+                    cancel=cancel, progress=sous,
                    start=a or None, duration=duree)
             fichiers.append(dest)
             faits += duree
@@ -981,7 +1059,8 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
             progress(0.98, "Assemblage des morceaux…")
         _concat_sans_recompression(tools, fichiers, part, cancel)
         finaliser(part, out_path)           # lecteur vidéo qui garde le fichier : réessai, rien de perdu
-        _write_audio_copy(out_path, info, s, tools, cancel, progress)
+        with copie_annexe(out_path, "La copie du son"):
+            _write_audio_copy(out_path, info, s, tools, cancel, progress)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -1003,7 +1082,7 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
     dest = out_path.with_suffix(".wav" if kind == "wav" else ".flac")
     if dest.resolve() == info.path.resolve():
         raise ToolError("La copie du son ne peut pas remplacer le fichier original.")
-    part = dest.with_name(dest.stem + ".partiel" + dest.suffix)
+    part = partiel_unique(dest)
     codec = (["-c:a", "pcm_s16le"] if kind == "wav"
              else ["-c:a", "flac", "-compression_level", "8"])
     if progress:
@@ -1079,7 +1158,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
             # fichier lu change. Le rapport de pixel d'origine est donc conservé.
             cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0,
                                           parts=(), concat_list=None)
-            return export(cleaned, dataclasses.replace(s, dust=False, constant_rate=True), out_path, tools,
+            return _export(cleaned, dataclasses.replace(s, dust=False, constant_rate=True), out_path, tools,
                           cancel=cancel, progress=sub(0.5, 1.0))
         src, seek_start, seek_len = info, start, duration
         deinterlaced = effective_scan(info, s) in ("tff", "bff")
@@ -1100,7 +1179,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
         quiet = dataclasses.replace(s, dust=False, tape_noise=False, chroma_repair=False, dropouts=False,
                                     constant_rate=True,
                                     scan="progressive" if deinterlaced else s.scan)
-        return export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
+        return _export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -1128,20 +1207,58 @@ def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
         raise ToolError("L'analyse de stabilisation n'a produit aucun résultat.")
 
 
+@lecture_dvd
+def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=False):
+    """Mesure le coût fixe de lancement et le coût par image sur la machine locale.
+
+    apercu : ne demander que si l'attente estimée dépasse 2 minutes.
+    La restauration garde le seuil actuel (3 × la durée, ou 2 h).
+    """
+    if not s.use_ai:
+        return s
+    from .tools import ff_input
+    photo = info.container == "image"
+    images = 1 if photo else max(1, math.ceil(duree * time_ratio(info, s) * output_fps(info, s)))
+    moteur = RealEsrganUpscaler(tools.realesrgan)
+    if progress:
+        progress(0, "Mesure de la vitesse de l’amélioration IA…")
+    with tempfile.TemporaryDirectory(prefix="vhsrestore_vitesse_", dir=_work_root()) as tmp:
+        racine = Path(tmp)
+        entree = racine / "images"
+        entree.mkdir()
+        run([tools.ffmpeg.path, "-nostdin", "-loglevel", "error",
+             *(ff_input(info.path) if photo else dvd_input(info)), "-frames:v", "1",
+             "-pix_fmt", "rgb24", "image.png"], cwd=entree, cancel=cancel, what="Lecture d’une image")
+        temps = []
+        for nombre in (1, 2):
+            if nombre == 2:
+                shutil.copyfile(entree / "image.png", entree / "autre.png")
+            debut = time.monotonic()
+            moteur.upscale_dir(entree, racine / str(nombre), cancel=cancel)
+            temps.append(time.monotonic() - debut)
+    par_image = max(0.0, temps[1] - temps[0])
+    if par_image <= 0 or par_image > temps[0]:
+        par_image = temps[1] / 2
+    demarrage = max(0.0, temps[0] - par_image)
+    estimation = images * par_image + math.ceil(images / AI_CHUNK_FRAMES) * demarrage
+    trop_long = estimation > 120 if apercu else (
+        estimation > 7200 or (not photo and (not duree or estimation > 3 * duree)))
+    if trop_long:
+        choix = demander(estimation, s.resolution == "2160", not photo and not duree)
+        if choix == "annuler":
+            raise Cancelled()
+        if choix == "sans":
+            return dataclasses.replace(s, use_ai=False, resolution="1080" if s.resolution == "2160" else s.resolution)
+    return s
+
+
 def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                cancel: threading.Event | None, progress: Progress | None,
                start: float | None, duration: float | None, total: float,
                df_wav: Path | None = None, present: frozenset[str] | None = None) -> None:
     upscaler = RealEsrganUpscaler(tools.realesrgan)
     fps = output_fps(info, s)
-    frames_est = int(total * fps) + 1
-    px = info.width * info.height
-    need = frames_est * px * 1.5 * 0.7 + AI_CHUNK_FRAMES * px * 3 * (1 + upscaler.scale ** 2)
     root = _work_root()
-    free = shutil.disk_usage(root).free
-    if free < need * 1.2:
-        raise ToolError(f"Espace disque insuffisant dans {root} : environ {need / 1e9:.1f} Go "
-                        f"nécessaires, {free / 1e9:.1f} Go libres.")
     tmp = Path(tempfile.mkdtemp(prefix="vhsrestore_", dir=root))
     enc: subprocess.Popen | None = None
     try:
@@ -1163,10 +1280,11 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
-        meta = run_capture([tools.ffprobe.path, "-v", "error", "-count_packets",
-                            "-show_entries", "stream=codec_type,start_time,nb_read_packets:format=start_time",
-                            "-of", "json", str(inter)])
-        d = json.loads(meta.stdout)
+        lignes = []
+        run([tools.ffprobe.path, "-v", "error", "-count_packets", "-show_entries",
+             "stream=codec_type,start_time,nb_read_packets:format=start_time", "-of", "json", str(inter)],
+            cancel=cancel, on_line=lignes.append, what="Comptage des images")
+        d = json.loads("\n".join(lignes))
         vst = next(x for x in d["streams"] if x["codec_type"] == "video")
         n = int(vst["nb_read_packets"])
         v_off = float(vst.get("start_time", 0) or 0) - float(d["format"].get("start_time", 0) or 0)
@@ -1253,9 +1371,34 @@ class BatchResult:
     fallback: bool = False             # dossier source non modifiable : sortie de secours
 
 
+def dossier_recus() -> Path:
+    """Reçus « déjà fait » : dans le profil, pas à côté des films (Windows montre les dossiers pointés)."""
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.local/state")
+    d = Path(base) / "VHSRestoreAI" / "recus"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _duree_totale(files: list[Path], tools: Toolset) -> float:
+    """Somme des durées des films du dossier (une photo compte une image)."""
+    from . import photo
+    total = 0.0
+    for f in files:
+        if photo.is_photo(f):
+            total += 1 / 25
+            continue
+        try:
+            info = open_media(f, tools)
+        except (ToolError, OSError, ValueError):
+            continue
+        total += float(info.duration or 0)
+    return total
+
+
 def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaInfo], Settings], *,
                    cancel: threading.Event | None = None,
-                   progress: Progress | None = None) -> BatchResult:
+                   progress: Progress | None = None,
+                   demander=None) -> BatchResult:
     """Restaure toutes les vidéos d'un dossier (sans sous-dossiers) dans
     « Films restaurés ». Un fichier en erreur n'arrête pas les suivants ;
     une annulation arrête tout (les films déjà terminés restent)."""
@@ -1285,6 +1428,27 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
     out_dir.mkdir(exist_ok=True)
     res = BatchResult(out_dir, [], [], fallback=fallback)
     n = len(files)
+    # Une seule mesure et une seule question pour tout le dossier.
+    decision: dict = {"fait": False, "sans": False, "resolution": None}
+    duree_totale = _duree_totale(files, tools) if demander is not None else 0.0
+
+    def reglages_pour(info: MediaInfo) -> Settings:
+        s = settings_for(info)
+        if not s.use_ai or demander is None:
+            return s
+        if not decision["fait"]:
+            choisi = essayer_ia(info, s, tools, duree_totale or info.duration, demander,
+                                cancel, progress)
+            decision["fait"] = True
+            decision["sans"] = not choisi.use_ai
+            decision["resolution"] = choisi.resolution
+            return choisi
+        if decision["sans"]:
+            return dataclasses.replace(
+                s, use_ai=False,
+                resolution=decision["resolution"] or s.resolution)
+        return s
+
     for k, f in enumerate(files):
         if cancel is not None and cancel.is_set():
             raise Cancelled()
@@ -1295,28 +1459,70 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
                 progress((k + frac) / n, f"{mot} {k + 1} sur {n} : {name} — {msg}")
         try:
             sub(0.0, "analyse…")
-            if photo.is_photo(f):
-                pinfo = photo.analyze_photo(f, tools)
-                ps = settings_for(pinfo)
-                # dossier de secours (DVD, CD photo) : partagé par tous les disques, dont les noms
-                # se répètent (VTS_01, IMG_0001) : « déjà fait » n'y veut rien dire
-                if not fallback and (out_dir / f"{pinfo.path.stem}_restaure_{ps.profile.key}"
-                                                f"{'_ia' if ps.use_ai else ''}.png").exists():
-                    res.skipped.append(f.name)
-                    continue
-                res.done.append(photo.restore_photo(pinfo, ps, photo.output_path(pinfo, ps, out_dir), tools,
-                                                    cancel=cancel, progress=sub))
-                continue
-            info = open_media(f, tools)
-            s = settings_for(info)
-            if not fallback and (out_dir / f"{output_base(info, s)}.mp4").exists():
-                # déjà restauré avec les mêmes réglages (relance après une coupure)
+            image = photo.is_photo(f)
+            info = photo.analyze_photo(f, tools) if image else open_media(f, tools)
+            s = reglages_pour(info)
+            sources = []
+            for source in info.parts or (f,):
+                stat = source.stat()
+                sources.append((str(source.resolve()), stat.st_size, stat.st_mtime_ns))
+            identite = json.dumps(
+                [str(out_dir.resolve()), sources, dataclasses.asdict(s)],
+                sort_keys=True, default=str)
+            cle = hashlib.sha256(identite.encode()).hexdigest()
+            registre = dossier_recus()
+            recu = registre / cle
+            principal = None
+            try:
+                nom = recu.read_text(encoding="utf-8")
+                if Path(nom).name == nom:
+                    principal = out_dir / nom
+            except FileNotFoundError:
+                pass
+
+            def sorties(p):
+                chemins = [p]
+                if image and photo.wants_color(info, s):
+                    chemins.append(photo.colorized_path(p))
+                elif not image and info.has_audio and s.audio_copy in ("wav", "flac"):
+                    chemins.append(p.with_suffix("." + s.audio_copy))
+                return chemins
+
+            if principal and all(p.is_file() for p in sorties(principal)):
                 res.skipped.append(f.name)
                 continue
-            res.done.append(export(info, s, unique_output_path(info, s, out_dir), tools,
-                                   cancel=cancel, progress=sub))
+            arrete = False
+            try:
+                if principal and principal.is_file():
+                    if image:
+                        photo.copie_couleur(principal, tools, cancel)
+                    else:
+                        with copie_annexe(principal, "La copie du son"):
+                            _write_audio_copy(principal, info, s, tools, cancel, sub)
+                elif image:
+                    cible = photo.output_path(info, s, out_dir)
+                    principal = photo.restore_photo(info, s, cible, tools, cancel=cancel, progress=sub)
+                else:
+                    cible = unique_output_path(info, s, out_dir)
+                    principal = export(info, s, cible, tools, cancel=cancel, progress=sub)
+            except CopieIncomplete as exc:
+                principal = exc.principal
+                res.errors.append((f.name, str(exc)))
+                arrete = exc.interrompue
+            registre.mkdir(exist_ok=True)
+            temporaire = partiel_unique(recu)
+            try:
+                temporaire.write_text(principal.name, encoding="utf-8")
+                os.replace(temporaire, recu)  # reçu interne, version la plus récente
+            finally:
+                effacer(temporaire)
+            res.done.append(principal)
+            if arrete:
+                break
         except Cancelled:
             raise
+        except subprocess.TimeoutExpired:
+            res.errors.append((f.name, "La lecture de ce fichier a pris trop de temps."))
         except (ToolError, OSError, ValueError) as exc:     # un fichier bloqué n'arrête pas les autres
             log.warning("Dossier : %s ignoré : %s", f.name, exc)
             res.errors.append((f.name, (str(exc).splitlines() or [type(exc).__name__])[0]))
@@ -1336,6 +1542,7 @@ class PreviewResult:
     original: Path | None = None
 
 
+@lecture_dvd
 def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, start: float,
                  duration: float = 10.0, *, cancel: threading.Event | None = None,
                  progress: Progress | None = None) -> PreviewResult:

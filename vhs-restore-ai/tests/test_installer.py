@@ -181,3 +181,18 @@ def test_telechargement_coupe_reessaye(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
     assert len(essais) == 2 and (tmp_path / "x").read_bytes() == data
+
+
+def test_installation_script_et_interface_partagent_le_manifeste():
+    script = (Path(__file__).resolve().parents[1] / "scripts/installer_outils.ps1").read_text(encoding="utf-8-sig")
+    assert "-m vhs_restore.installer" in script
+    assert "Invoke-WebRequest" not in script
+    for p in installer.PAQUETS.values():
+        assert len(bytes.fromhex(p.sha256)) == 32
+
+
+def test_validation_des_membres_avant_extraction(tmp_path):
+    with pytest.raises(ToolError, match="suspect"):
+        installer._membre(tmp_path / "installe", "../installe-voisin/hors.txt")
+    with pytest.raises(ToolError, match="lien suspect"):
+        installer._verifier_liste_7z("Path = fichier\nSymbolic Link = voisin", tmp_path)

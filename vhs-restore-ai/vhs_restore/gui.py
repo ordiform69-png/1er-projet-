@@ -40,11 +40,16 @@ VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *
                 "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp);;Tous les fichiers (*)")
 
 
+from .tools import CopieIncomplete, sondages_annulables
+
+
 class Worker(QThread):
     """Exécute fn(cancel, progress) hors du thread graphique."""
     progressed = Signal(float, str)
     succeeded = Signal(object)
     failed = Signal(str)
+    copie_incomplete = Signal(object)
+    choix_ia = Signal(object)
     cancelled = Signal()
 
     def __init__(self, fn: Callable[[threading.Event, Callable[[float, str], None]], Any]):
@@ -52,10 +57,22 @@ class Worker(QThread):
         self.fn = fn
         self.cancel_event = threading.Event()
 
+    def demander_ia(self, duree, en_4k, inconnue):
+        reponse = []
+        pret = threading.Event()
+        self.choix_ia.emit((duree, en_4k, inconnue, reponse, pret))
+        while not pret.wait(0.1):
+            if self.cancel_event.is_set():
+                raise Cancelled()
+        return reponse[0]
+
     def run(self) -> None:
         _keep_awake(True)
         try:
-            res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
+            with sondages_annulables(self.cancel_event):
+                res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
+        except CopieIncomplete as exc:
+            self.copie_incomplete.emit(exc)
         except Cancelled:
             self.cancelled.emit()
         except ToolError as exc:
@@ -2283,7 +2300,7 @@ class MainWindow(QMainWindow):
             self.res_combo.setCurrentIndex(self.res_combo.findData("1080"))
         has_prev = self.preview is not None
         photo_mode = getattr(self, "is_photo", False)
-        sound = bool(self.info is not None and self.info.has_audio and not self.info.audio_silent)
+        sound = bool(self.info is not None and self.info.has_audio)
         self.play_btn.setEnabled(has_prev and not busy)
         self.play_btn.setVisible(not photo_mode)
         for b in (self.hear_orig_btn, self.hear_new_btn, self.s_hear_orig, self.s_hear_new):
@@ -2429,7 +2446,7 @@ class MainWindow(QMainWindow):
         if not self.info.has_audio:
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
         elif self.info.audio_silent:
-            notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
+            notes.append("ℹ Aucun son entendu dans les extraits analysés.")
         notes += self._lignes_conseils()
         if getattr(self, "out_note", ""):
             notes.append(self.out_note)
@@ -2790,7 +2807,7 @@ class MainWindow(QMainWindow):
         traits = [_duree(info.duration)]
         if info.black_and_white:
             traits.append("noir et blanc")
-        if not (info.has_audio and not info.audio_silent):
+        if not info.has_audio:
             traits.append("sans son (il restera muet)")
         self.advice = advise(info)
         self._info_debut = f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}."
@@ -2805,6 +2822,27 @@ class MainWindow(QMainWindow):
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
 
+    def _question_vitesse(self, demande):
+        from .eta import describe
+        secondes, en_4k, inconnue, reponse, pret = demande
+        texte = ("La durée du film est inconnue." if inconnue else
+                 f"L’amélioration IA prendra {describe(secondes)}.")
+        if en_4k:
+            texte += " Sans l’IA, le film sera en Full HD."
+        box = QMessageBox(QMessageBox.Question, "Amélioration IA", texte, parent=self)
+        sans = box.addButton("Continuer sans l'IA", QMessageBox.ActionRole)
+        avec = box.addButton("Continuer avec l'IA", QMessageBox.AcceptRole)
+        annuler = box.addButton("Annuler", QMessageBox.RejectRole)
+        box.setDefaultButton(annuler)
+        box.exec()
+        bouton = box.clickedButton()
+        reponse.append("sans" if bouton is sans else "avec" if bouton is avec else "annuler")
+        pret.set()
+
+    def _choix_ia(self, info, s, duree, c, p, apercu=False):
+        return pipeline.essayer_ia(info, s, self.tools, duree, self.worker.demander_ia, c, p,
+                                   apercu=apercu)
+
     def start_preview(self) -> None:
         if not self.info or self._busy():
             return
@@ -2816,10 +2854,10 @@ class MainWindow(QMainWindow):
             shutil.rmtree(vieux, ignore_errors=True)
         travail = Path(tempfile.mkdtemp(prefix="apercu_", dir=self.preview_dir))
         if getattr(self, "is_photo", False):
-            self._launch(lambda c, p: photo.make_photo_preview(info, s, self.tools, travail / "photo",
+            self._launch(lambda c, p: photo.make_photo_preview(info, self._choix_ia(info, s, 1, c, p, apercu=True), self.tools, travail / "photo",
                                                                cancel=c, progress=p), self._preview_done)
             return
-        self._launch(lambda c, p: pipeline.make_preview(info, s, self.tools, travail, start,
+        self._launch(lambda c, p: pipeline.make_preview(info, self._choix_ia(info, s, min(info.duration or 10, 10), c, p, apercu=True), self.tools, travail, start,
                                                         cancel=c, progress=p), self._preview_done)
 
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
@@ -3240,7 +3278,11 @@ class MainWindow(QMainWindow):
         if getattr(self, "is_photo", False):
             out = photo.output_path(info, s, out_dir)
             self.status.setText(f"Restauration vers {out.name}…")
-            self._launch(lambda c, p: photo.restore_photo(info, s, out, self.tools, cancel=c, progress=p),
+            def restaurer_photo(c, p):
+                choix = self._choix_ia(info, s, 1, c, p)
+                return photo.restore_photo(info, choix, photo.output_path(info, choix, out_dir),
+                                           self.tools, cancel=c, progress=p)
+            self._launch(restaurer_photo,
                          self._export_done, job="export")
             return
         try:
@@ -3252,14 +3294,13 @@ class MainWindow(QMainWindow):
             ergonomie.montrer_erreur(self, str(exc))
             return
         self.status.setText(f"Restauration vers {out.name}…")
-        if len(gardes) >= 2:
-            self._launch(lambda c, p, g=list(gardes): pipeline.export(
-                info, s, out, self.tools, cancel=c, progress=p, passages=g),
-                self._export_done, job="export")
-        else:
-            self._launch(lambda c, p, st=start, ln=length: pipeline.export(
-                info, s, out, self.tools, cancel=c, progress=p, start=st, duration=ln),
-                self._export_done, job="export")
+        def restaurer(c, p):
+            duree = sum(b - a for a, b in gardes) if gardes else info.duration
+            choix = self._choix_ia(info, s, duree, c, p)
+            cible = pipeline.unique_output_path(info, choix, out_dir)
+            return pipeline.export(info, choix, cible, self.tools, cancel=c, progress=p,
+                                   start=start, duration=length, passages=gardes if len(gardes) > 1 else None)
+        self._launch(restaurer, self._export_done, job="export")
 
     def check_install(self) -> None:
         """Lance l'autotest (le même que celui de la fabrication Windows) et montre le rapport."""
@@ -3292,6 +3333,13 @@ class MainWindow(QMainWindow):
                           parent=self)
         box.setDetailedText(text)
         box.exec()
+
+    def _annexe_interrompue(self, exc):
+        photo = getattr(self, "is_photo", False)
+        texte = "Votre photo restaurée est prête." if photo else "Votre film restauré est prêt."
+        p = exc.principal
+        self._montrer_fini(f"{texte} {exc}\n\n{p.name}", p.parent, p, "photo" if photo else "film")
+        self.status.setText(texte)
 
     def _export_done(self, out: Path) -> None:
         extra = ""
@@ -3441,8 +3489,10 @@ class MainWindow(QMainWindow):
         self._remarque_dossier = ergonomie.PHRASE_COUPES_DOSSIER if coupes else ""
         self.status.setText(ergonomie.PHRASE_COUPES_DOSSIER if coupes else "Restauration du dossier…")
         reglages = self._reglages_dossier()
-        self._launch(lambda c, p: pipeline.restore_folder(folder, self.tools, reglages,
-                                                          cancel=c, progress=p), self._folder_done,
+        self._launch(lambda c, p: pipeline.restore_folder(
+                            folder, self.tools, reglages,
+                            demander=self.worker.demander_ia,
+                            cancel=c, progress=p), self._folder_done,
                      job="dossier")
         if coupes:
             self.s_info.setText(_insecables(f"<b>Travail en cours.</b> {ergonomie.PHRASE_COUPES_DOSSIER} "
@@ -3499,8 +3549,13 @@ class MainWindow(QMainWindow):
         # pendant que l'interface traite encore ses signaux.
         self._fils = getattr(self, "_fils", [])
         self._fils.append(w)
+        w.choix_ia.connect(self._question_vitesse)
         w.progressed.connect(self._on_progress)
         w.succeeded.connect(on_success)
+        if job == "export":
+            w.copie_incomplete.connect(self._annexe_interrompue)
+        else:
+            w.copie_incomplete.connect(lambda exc: self._on_failed(str(exc)))
         w.failed.connect(self._on_failed)
         w.cancelled.connect(self._on_cancelled)
         w.finished.connect(self._on_finished)
@@ -3563,6 +3618,15 @@ class MainWindow(QMainWindow):
         self._fini_a_rendre = False
 
     def _on_finished(self) -> None:
+        fini = self.sender()
+        if fini in self._fils:
+            self._fils.remove(fini)
+            fini.fn = None  # libère les médias et les fonctions capturés
+        if fini is not self.worker:
+            return
+        if getattr(self, "_fermeture_demandee", False):
+            QTimer.singleShot(0, self.close)
+            return
         if getattr(self, "_apercu_a_montrer", False):
             self._apercu_a_montrer = False
             QTimer.singleShot(120, self._montrer_apercu)     # après la remise en page de la zone
@@ -3576,13 +3640,19 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, e) -> None:  # noqa: N802
         if self._busy():
+            if getattr(self, "_fermeture_demandee", False):
+                e.ignore()
+                return
             if not self._question("Quitter", "Un travail est en cours. L'arrêter et quitter ?",
                                   "Oui, arrêter et quitter", "Non, continuer"):
                 e.ignore()
                 return
             if self._busy():                        # le travail a pu finir pendant la question
+                self._fermeture_demandee = True
                 self.worker.cancel_event.set()
-                self.worker.wait(15000)
+                self.status.setText("Arrêt en cours. La fenêtre va se fermer.")
+                e.ignore()
+                return
         self._save_prefs()
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()

@@ -16,7 +16,11 @@ installé d'abord, de la même façon. Empreintes relevées sur les fichiers pub
 """
 from __future__ import annotations
 
+import json
 import hashlib
+import re
+import stat
+from pathlib import PureWindowsPath
 import shutil
 import tempfile
 import threading
@@ -45,45 +49,13 @@ class Paquet:
     windows_only: bool = True
 
 
-PAQUETS: dict[str, Paquet] = {
-    "realesrgan": Paquet(
-        "realesrgan", "Real-ESRGAN",
-        "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
-        "realesrgan-ncnn-vulkan-20220424-windows.zip",
-        "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d", 45,
-        "realesrgan", "zip", "realesrgan-ncnn-vulkan.exe"),
-    "deepfilter": Paquet(
-        "deepfilter", "DeepFilterNet",
-        "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/"
-        "deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",
-        "75e11fa16445f560cb6b021521ddb89e89270d13b83089705d98776f58fd7915", 27,
-        "deepfilter", "file", "deep-filter.exe"),
-    "colorisation": Paquet(
-        "colorisation", "Colorisation (DDColor)",
-        "https://huggingface.co/edgetools/ddcolor/resolve/4755ae9f1f7a35a9e7693b96c2a88f3432cb6ab0/"
-        "ddcolor-tiny-fp16.onnx",
-        "2653da00dc15e54a45e5200b61dbf82ee9ceaf56b02bb9b9657569ac775e82e6", 130,
-        "ddcolor", "file", "ddcolor-tiny-fp16.onnx", windows_only=False),
-    "sevenzip": Paquet(
-        "sevenzip", "7-Zip (extracteur)", "https://www.7-zip.org/a/7zr.exe",
-        "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282", 1,
-        "7zip", "file", "7zr.exe"),
-    "losslesscut": Paquet(
-        "losslesscut", "LosslessCut",
-        "https://github.com/mifi/lossless-cut/releases/download/v3.70.2/LosslessCut-win-x64.7z",
-        "1740c5f17b952c04cf1b1612cf32f56c68a88105c045199526c7ea9678d309b0", 152,
-        "losslesscut", "7z", "LosslessCut.exe"),
-    "shotcut": Paquet(
-        "shotcut", "Shotcut",
-        "https://github.com/mltframework/shotcut/releases/download/v26.8.1/shotcut-win64-26.8.1.zip",
-        "b0148856de01b39add4bf4d6a813bfbc554b4663b65e3ca25cb2589f47555a6a", 225,
-        "shotcut", "zip", "shotcut.exe"),
-}
+_manifeste = Path(__file__).with_name("paquets.json")
+PAQUETS = {p["key"]: Paquet(**p) for p in json.loads(_manifeste.read_text(encoding="utf-8"))}
 
 
 def can_install(key: str) -> bool:
     p = PAQUETS.get(key)
-    return p is not None and (IS_WIN or not p.windows_only)
+    return key != "ffmpeg" and p is not None and (IS_WIN or not p.windows_only)
 
 
 def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event | None,
@@ -127,6 +99,34 @@ def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event |
     raise ToolError(f"Téléchargement impossible de {label} : {last}. Vérifiez la connexion Internet.")
 
 
+def _membre(dest, nom):
+    relatif = PureWindowsPath(nom)
+    if (not relatif.parts or relatif.anchor or ".." in relatif.parts
+            or any(":" in p or p.rstrip(" .") != p or PureWindowsPath(p).is_reserved()
+                   for p in relatif.parts)):
+        raise ToolError("Archive refusée (chemin suspect).")
+    cible = dest.joinpath(*relatif.parts).resolve()
+    if not cible.is_relative_to(dest.resolve()):
+        raise ToolError("Archive refusée (chemin suspect).")
+
+
+def _verifier_liste_7z(texte, dest):
+    membres = 0
+    for bloc in re.split(r"\n\s*\n", texte.strip()):
+        champs = dict(l.split(" = ", 1) for l in bloc.splitlines() if " = " in l)
+        if "Path" not in champs:
+            raise ToolError("Impossible de vérifier le contenu de l’archive.")
+        _membre(dest, champs["Path"])
+        attributs = champs.get("Attributes", "")
+        if (any(champs.get(k) for k in ("Symbolic Link", "Hard Link", "Reparse Point"))
+                or re.search(r"(?:^|\s)l[rwx-]{9}", attributs)
+                or "L" in attributs.split(" ")[0]):
+            raise ToolError("Archive refusée (lien suspect).")
+        membres += 1
+    if not membres:
+        raise ToolError("L’archive est vide.")
+
+
 def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event | None,
                  progress: Progress | None) -> None:
     """Extrait une archive 7z avec 7zr.exe (installé d'abord s'il manque)."""
@@ -134,6 +134,10 @@ def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event 
     if not outil.is_file():
         install("sevenzip", cancel=cancel, root=base,
                 progress=(lambda f, m: progress(0.9, "Installation de l'extracteur 7-Zip…")) if progress else None)
+    lignes = []
+    run([str(outil), "l", "-slt", "-ba", "-sccUTF-8", str(archive)], cancel=cancel,
+        on_line=lignes.append, what="Vérification de l’archive")
+    _verifier_liste_7z("\n".join(lignes), dest)
     run([str(outil), "x", str(archive), f"-o{dest}", "-y", "-bso0", "-bsp0"], cancel=cancel,
         what="7-Zip (extraction)")
 
@@ -187,7 +191,7 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
         if p.kind == "7z":
             _extraire_7z(dl, staged, base, cancel, progress)
             for f in staged.rglob("*"):                   # aucun fichier ne doit sortir du dossier
-                if not str(f.resolve()).startswith(str(staged.resolve())):
+                if f.is_symlink() or not f.resolve().is_relative_to(staged.resolve()):
                     raise ToolError(f"Archive de {p.name} refusée (chemin suspect).")
             found = next(staged.rglob(p.file_name), None)
             if found is None:
@@ -196,14 +200,16 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
         elif p.kind == "zip":
             with zipfile.ZipFile(dl) as z:
                 for m in z.infolist():                    # pas de chemin qui sorte du dossier
-                    target = (staged / m.filename).resolve()
-                    if not str(target).startswith(str(staged.resolve())):
-                        raise ToolError(f"Archive de {p.name} refusée (chemin suspect).")
+                    _membre(staged, m.filename)
+                    if stat.S_ISLNK(m.external_attr >> 16) or m.external_attr & 0x400:
+                        raise ToolError(f"Archive de {p.name} refusée (lien suspect).")
                 z.extractall(staged)
             found = next(staged.rglob(p.file_name), None)
             if found is None:
                 raise ToolError(f"{p.file_name} introuvable dans l'archive de {p.name}.")
-            staged = found.parent
+            staged = found.parents[len(Path(p.file_name).parts) - 1]
+            if key == "ffmpeg" and not (staged / "bin/ffprobe.exe").is_file():
+                raise ToolError("FFprobe manque dans le paquet téléchargé.")
         else:
             shutil.move(str(dl), staged / p.file_name)
         if cancel is not None and cancel.is_set():
@@ -214,3 +220,14 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
     if progress:
         progress(1.0, f"{p.name} installé.")
     return final / p.file_name
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Installer les outils vérifiés de VHS Restore AI.")
+    parser.add_argument("dossier", type=Path)
+    parser.add_argument("outils", nargs="+", choices=PAQUETS)
+    args = parser.parse_args()
+    for cle in args.outils:
+        print(f"Installation de {PAQUETS[cle].name}…", flush=True)
+        print(install(cle, root=args.dossier.resolve()))
