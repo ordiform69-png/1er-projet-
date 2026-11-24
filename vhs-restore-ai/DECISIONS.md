@@ -839,3 +839,20 @@ pour le lecteur d'écran et en infobulle). Aperçu plafonné à 620 px de haut s
 le bas des deux colonnes : 107 px (1280 × 720 à 150 %), 40 px (1366 × 768), 65 px (1920 × 1040), au lieu
 de 533. Le mode simple garde ses gros boutons. Tests : `test_page_avancee.py`
 (`test_decoupage_hors_de_restauration_complete`, `test_colonnes_equilibrees`).
+
+## Timeline (phase 29)
+
+La barre montrait un ruban bleu et doré, sans image : pour savoir où couper, il fallait
+relancer un aperçu de 10 secondes. Elle montre maintenant de petites images du film
+(environ une tous les 90 pixels), et l'image du moment au-dessus, avec l'heure en clair.
+
+- FFmpeg seulement, `-ss` avant `-i`, une image, fil à part (pas le fil de restauration).
+  Dossier temporaire `vhsrestore_vignettes_`, jamais à côté du film, effacé au changement
+  de film et à la fermeture. DVD en plusieurs VOB : tout le titre (`dvd.input_args`).
+- Désentrelacement `bwdif` seulement si le balayage est tff ou bff. Le 4:3 VHS (pixels 16/15) est gardé.
+- Les deux barres (page simple et carte « Enlever un passage ») partagent les coupes,
+  le curseur et les images. Un clic près d'un bord doré place toujours le curseur.
+- Aucun filtre de restauration n'a été modifié. L'interdiction du banc de montage tient
+  (pas de titres, de musique, de plans déplacés). La règle « pas de vignettes » est levée :
+  c'est la demande.
+

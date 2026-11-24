@@ -18,3 +18,11 @@ Branche d'intégration : `grok/equipe` (partie de `ccr-5856e8d6-8xt8uh`, commit 
 | 12 | Montage | Coupe au bord, curseur, Entrée, prise 44 px, 8e coupe | gui.py, pipeline.py | fini | grok/equipe |
 | 13 | Contrôle | `test_photo_au_nom_avec_pourcent` rouge ici (FFmpeg `scale2ref`) | photo / aperçu | à relire | — |
 | 14 | Montage | Décalage du son rejoué à chaque morceau | pipeline.py | écarté | — |
+| 15 | Montage | Barre avec petites images, image du moment, deux barres liées | gui.py, vignettes.py | fini | grok/timeline |
+| 16 | Windows | Fil d'extraction, dossier temporaire, DVD, annulation | vignettes.py, gui.py | fini | grok/timeline |
+| 17 | Image et son | Format 4:3, bwdif seulement si entrelacé, mesures | vignettes.py | fini | grok/timeline |
+| 18 | Parcours senior | Trio visible à 1280×641, heure en clair | gui.py | fini | grok/timeline |
+| 19 | Aide et textes | Légende, LISEZMOI, Bienvenue | LISEZMOI.txt, gui.py | fini | grok/timeline |
+| 20 | Contrôle | tests/test_timeline.py | tests | fini | grok/timeline |
+| 21 | Chef | Fiches des six bots (`bots/`) | partage-grok/equipe/bots/ | fini | grok/timeline |
+
