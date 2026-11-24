@@ -713,6 +713,9 @@ class BarreFilm(QWidget):
         self.coupes: list[tuple[float, float]] = []
         self._glisse_bord: tuple[int, bool] | None = None
         self._glisse_piste = False
+        # bord doré saisi mais pas encore tiré : un simple clic ne doit pas modifier la coupe
+        self._bord_saisi: tuple[int, bool] | None = None
+        self._x_appui = 0.0
         self.setMinimumHeight(56)
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -753,16 +756,19 @@ class BarreFilm(QWidget):
             return 0.0
         return max(0.0, min(self.duree, (float(x) - float(r.left())) / float(r.width()) * self.duree))
 
+    PRISE_BORD = 22.0      # px de chaque côté du bord : une prise de 44 px en tout
+    SEUIL_GLISSER = 4.0    # px : en dessous, c'est un clic (le curseur se place), pas un glisser
+
     def _bord_sous(self, x: float) -> tuple[int, bool] | None:
-        """Bord doré : zone cliquable d'au moins 44 px. Le plus proche l'emporte."""
+        """Bord doré : prise de 44 px en tout (22 de chaque côté). Le plus proche l'emporte."""
         if self.duree <= 0 or not self.coupes:
             return None
         choisi: tuple[int, bool] | None = None
-        ecart = 45.0
+        ecart = self.PRISE_BORD + 1.0
         for i, (a, b) in enumerate(self.coupes):
             for est_fin, moment in ((False, a), (True, b)):
                 d = abs(float(x) - self._x_de(moment))
-                if d <= 44.0 and d < ecart:
+                if d <= self.PRISE_BORD and d < ecart:
                     choisi = (i, est_fin)
                     ecart = d
         return choisi
@@ -776,9 +782,12 @@ class BarreFilm(QWidget):
             self._curseur_pour(x)
             bord = self._bord_sous(x)
             if bord is not None:
-                self._glisse_bord = bord
+                # le bord ne bouge qu'une fois vraiment tiré : un clic près d'une coupe la
+                # rallongeait sans prévenir (des minutes sur une longue cassette)
+                self._bord_saisi = bord
+                self._x_appui = x
+                self._glisse_bord = None
                 self._glisse_piste = False
-                self.borde.emit(bord[0], bord[1], self._temps(x))
             else:
                 self._glisse_bord = None
                 self._glisse_piste = True
@@ -789,6 +798,8 @@ class BarreFilm(QWidget):
         x = float(event.position().x())
         self._curseur_pour(x)
         if self.duree > 0 and (event.buttons() & Qt.LeftButton):
+            if self._bord_saisi is not None and abs(x - self._x_appui) >= self.SEUIL_GLISSER:
+                self._glisse_bord, self._bord_saisi = self._bord_saisi, None
             if self._glisse_bord is not None:
                 indice, est_fin = self._glisse_bord
                 self.borde.emit(indice, est_fin, self._temps(x))
@@ -799,10 +810,14 @@ class BarreFilm(QWidget):
     def mouseReleaseEvent(self, event) -> None:  # noqa: N802
         if event.button() == Qt.LeftButton:
             bord = self._glisse_bord
+            saisi = self._bord_saisi
             self._glisse_bord = None
+            self._bord_saisi = None
             self._glisse_piste = False
             if bord is not None:
                 self.borde_fini.emit()
+            elif saisi is not None and self.duree > 0:      # simple clic près d'un bord : se placer
+                self.clique.emit(self._temps(float(event.position().x())))
             self._curseur_pour(float(event.position().x()))
         super().mouseReleaseEvent(event)
 
@@ -3488,8 +3503,20 @@ class MainWindow(QMainWindow):
         ergonomie.montrer_erreur(self, msg)
 
     def _on_cancelled(self) -> None:
-        self.status.setText("Arrêté. Votre film n'a pas été modifié. "
-                             "Pour recommencer, cliquez sur « Restaurer ».")
+        job = getattr(self, "_job", "")
+        if job == "export":                     # « Restaurer » ne vaut que pour une restauration
+            quoi = "Votre photo n'a pas été modifiée." if getattr(self, "is_photo", False) \
+                else "Votre film n'a pas été modifié."
+            texte = f"Arrêté. {quoi} Pour recommencer, cliquez sur « Restaurer »."
+        elif job == "dossier":
+            texte = "Arrêté. Les originaux n'ont pas été modifiés ; les fichiers déjà terminés restent."
+        elif job in ("vides", "vides_copie"):
+            texte = "Arrêté. Votre film n'a pas été modifié."
+        elif job == "installation":
+            texte = "Arrêté. Rien n'a été installé."
+        else:                                   # aperçu, analyse, vérification
+            texte = "Arrêté. Rien n'a été modifié."
+        self.status.setText(texte)
         self._rendre_fini()
         self._montage_en_attente = None
         if self.s_fini.isHidden():

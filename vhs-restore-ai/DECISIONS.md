@@ -823,3 +823,7 @@ Toujours aucun filtre modifié.
   Réinstaller LosslessCut ou Shotcut pendant qu'il est ouvert ne l'efface plus.
 - Le décalage son / image n'est pas retiré des morceaux : chaque morceau repart à zéro.
 
+
+Relecture de grok/equipe (f4cba42, 252 tests verts) puis fusion, avec deux corrections :
+- Barre du film : un simple clic près d'un bord doré rallongeait la coupe jusqu'au clic (prise de 44 px de chaque côté, bord déplacé dès l'appui) ; désormais la prise fait 44 px en tout (22 de chaque côté), le bord ne bouge qu'après un vrai glisser (4 px), et un simple clic place le curseur.
+- Après « Arrêter », « Pour recommencer, cliquez sur Restaurer » seulement après une restauration ; aperçu, recherche de passages vides, installation et dossier ont chacun leur phrase.

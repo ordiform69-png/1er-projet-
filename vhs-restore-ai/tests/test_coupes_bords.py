@@ -139,12 +139,53 @@ def test_huitieme_coupe_et_annulation_du_geste(tools, samples):
 
 
 def test_bord_dore_pris_a_44_px():
+    """Prise de 44 px en tout (22 de chaque côté), pas 44 de chaque côté : sinon un clic à
+    quatre centimètres d'une coupe la saisissait."""
     app = QApplication.instance() or QApplication([])
     barre = BarreFilm()
     barre.resize(400, 56)
     barre.definir(120, 0, 0, 0, [(10, 40)])
     x = barre._x_de(10)
-    assert barre._bord_sous(x + 40) == (0, False)
-    assert barre._bord_sous(x + 50) is None
+    assert barre._bord_sous(x + 20) == (0, False)
+    assert barre._bord_sous(x - 20) == (0, False)
+    assert barre._bord_sous(x + 30) is None
     assert barre.minimumHeight() <= 56
+    app.processEvents()
+
+
+def test_clic_pres_d_une_coupe_ne_la_change_pas():
+    """Relecture de la branche grok/equipe : un simple clic près d'un bord doré rallongeait la
+    coupe jusqu'au clic (sur une cassette de 2 h, plusieurs minutes enlevées sans le savoir).
+    Un clic place le curseur ; seul un vrai glisser tire le bord."""
+    app = QApplication.instance() or QApplication([])
+    barre = BarreFilm()
+    barre.resize(400, 88)
+    barre.definir(600, 0, 0, 0, [(100, 130)])
+    tirs, places = [], []
+    barre.borde.connect(lambda i, fin, t: tirs.append((i, fin, t)))
+    barre.clique.connect(places.append)
+    x = int(round(barre._x_de(130)))
+    QTest.mouseClick(barre, Qt.LeftButton, Qt.NoModifier, QPoint(x + 15, 44))
+    assert not tirs                                       # la coupe ne bouge pas…
+    assert places and places[-1] == pytest.approx(barre._temps(x + 15), abs=0.01)   # …le curseur, si
+    QTest.mousePress(barre, Qt.LeftButton, Qt.NoModifier, QPoint(x + 2, 44))
+    QTest.mouseMove(barre, QPoint(x + 30, 44))
+    QTest.mouseRelease(barre, Qt.LeftButton, Qt.NoModifier, QPoint(x + 30, 44))
+    assert tirs and tirs[-1][0] == 0 and tirs[-1][1] is True and tirs[-1][2] > 130   # glisser : oui
+    app.processEvents()
+
+
+@pytest.mark.parametrize("job,attendu,pas", [
+    ("export", "cliquez sur", None), ("", "Rien n'a été modifié", "Restaurer"),
+    ("installation", "Rien n'a été installé", "Restaurer"), ("vides_copie", "film n'a pas été modifié", "Restaurer"),
+    ("dossier", "déjà terminés restent", "Restaurer")])
+def test_message_apres_arreter(tools, job, attendu, pas):
+    """« Pour recommencer, cliquez sur Restaurer » seulement après une restauration arrêtée."""
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    win._job = job
+    win._on_cancelled()
+    assert win.status.text().startswith("Arrêté") and attendu in win.status.text()
+    assert pas is None or pas not in win.status.text()
+    win.close()
     app.processEvents()
