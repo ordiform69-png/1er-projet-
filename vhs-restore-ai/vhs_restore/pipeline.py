@@ -342,7 +342,9 @@ def target_size(info: MediaInfo, s: Settings) -> tuple[int, int, Fraction]:
 
 
 def _in_matrix(info: MediaInfo) -> str:
-    return "bt709" if info.color_space == "bt709" else "bt601"
+    return {"bt709": "bt709", "fcc": "fcc", "smpte240m": "smpte240m",
+            "bt2020nc": "bt2020", "bt470bg": "bt601", "smpte170m": "bt601"}.get(
+                info.color_space, "bt601")
 
 
 def _base_filters(info: MediaInfo, s: Settings) -> list[str]:
@@ -453,12 +455,17 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
     f: list[str] = []
     if effective_resolution(s) != "source":
         src_m = "" if from_rgb else f":in_color_matrix={_in_matrix(info)}"
-        f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709")
+        plage = ""
+        if info.color_range == "pc":
+            plage = ("" if from_rgb else f":in_range={info.color_range}") + ":out_range=tv"
+        f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709{plage}")
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
     f += _bottom_mask(info, s)
     f += _edge_mask(info, s)
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
+    if effective_resolution(s) == "source" and info.color_range == "pc":
+        f.append(f"scale=iw:ih:out_color_matrix={_in_matrix(info)}:out_range=pc")
     f.append("format=yuv420p")
     return f
 
@@ -503,12 +510,20 @@ def filter_chain(info: MediaInfo, s: Settings) -> str:
 
 
 def encode_args(info: MediaInfo, s: Settings) -> list[str]:
-    if effective_resolution(s) != "source":
-        color = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
-    elif info.standard == "525/30":
-        color = ["-colorspace", "smpte170m", "-color_primaries", "smpte170m", "-color_trc", "smpte170m"]
-    else:
-        color = ["-colorspace", "bt470bg", "-color_primaries", "bt470bg", "-color_trc", "bt709"]
+    hd = effective_resolution(s) != "source"
+    ntsc = info.standard == "525/30"
+    matrice_sd = "smpte170m" if ntsc else "bt470bg"
+    def connue(valeur, defaut):
+        return defaut if valeur in ("", "unknown", "unspecified", "reserved") else valeur
+    # RGB devient YUV420 lors de l’encodage : le tag de matrice RGB ne peut pas être recopié.
+    source = "" if info.color_space in ("gbr", "rgb") else info.color_space
+    matrice = "bt709" if hd else connue(source, matrice_sd)
+    # scale convertit la matrice, sans changer les primaires ni la courbe de transfert.
+    primaires = connue(info.color_primaries, "bt709" if hd else matrice_sd)
+    transfert = connue(info.color_transfer, "bt709" if hd or not ntsc else "smpte170m")
+    color = ["-colorspace", matrice, "-color_primaries", primaires, "-color_trc", transfert]
+    if info.color_range in ("pc", "tv"):
+        color += ["-color_range", "tv" if hd else info.color_range]
     return ["-c:v", "libx264", "-preset", s.preset, "-crf", str(s.crf), "-pix_fmt", "yuv420p",
             *color, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]
 

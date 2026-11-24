@@ -172,3 +172,24 @@ def test_deflicker_option(A, tools, tmp_path):
 def test_output_names(A, tmp_path):
     assert "_film" in pipeline.unique_output_path(A("film18"), S(source="film"), tmp_path).name
     assert "_transfert" in pipeline.unique_output_path(A("transfert"), S(source="transfer"), tmp_path).name
+
+
+def test_couleur_declaree_et_mire_rgb(tmp_path, tools):
+    from conftest import ff, probe_json
+    import numpy as np
+    src = tmp_path / "plage.mkv"
+    ff("-f", "lavfi", "-i", "color=c=0x995544:s=144x108:r=25,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=limited", "-t", "0.25",
+       "-c:v", "ffv1", "-colorspace", "bt709", "-color_primaries", "bt709",
+       "-color_trc", "bt709", "-color_range", "tv", str(src))
+    info = analyze(src, tools)
+    def centre(path):
+        data = subprocess.check_output([tools.ffmpeg.path, "-v", "error", "-i", str(path),
+              "-vf", "format=rgb24,crop=2:2", "-frames:v", "1", "-f", "rawvideo", "-"])
+        return np.frombuffer(data, np.uint8).astype(int)
+    for taille in ("source", "1080"):
+        dst = pipeline.export(info, pipeline.Settings(PROFILES["fidele"], resolution=taille),
+                              tmp_path / (taille + ".mp4"), tools)
+        v = probe_json(dst)["streams"][0]
+        assert [v[k] for k in ("color_space", "color_primaries", "color_transfer", "color_range")] == [
+            "bt709", "bt709", "bt709", "tv"]
+        assert abs(centre(src) - centre(dst)).max() <= 4
