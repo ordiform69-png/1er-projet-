@@ -68,10 +68,20 @@ jobs:
           Get-Content (Join-Path $dir "autotest.txt") -Encoding utf8
           if ($p.ExitCode -ne 0) { throw "Autotest en échec (code $($p.ExitCode))" }
 
+      - name: Préparer le paquet vérifié
+        if: success() && steps.tests.outcome == 'success'
+        run: |
+          $nom = "VHSRestoreAI-Windows-${{ github.run_number }}-${{ github.sha }}"
+          New-Item -ItemType Directory -Force livraison | Out-Null
+          Compress-Archive dist/VHSRestoreAI "livraison/$nom.zip"
+          $sha = (Get-FileHash "livraison/$nom.zip" -Algorithm SHA256).Hash
+          "$sha  $nom.zip" | Set-Content "livraison/$nom.sha256" -Encoding ascii
+
       - uses: actions/upload-artifact@v4
+        if: success() && steps.tests.outcome == 'success'
         with:
-          name: VHSRestoreAI-Windows
-          path: vhs-restore-ai/dist/VHSRestoreAI
+          name: VHSRestoreAI-Windows-${{ github.run_number }}-${{ github.sha }}
+          path: vhs-restore-ai/livraison
           retention-days: 90
 
       - name: Bilan des tests
