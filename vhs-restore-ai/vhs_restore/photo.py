@@ -26,6 +26,7 @@ from typing import Callable
 
 from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
+from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, FichierOccupe, ToolError, Toolset, effacer, ff_input, finaliser, run,
                     run_capture, verifier_chemin)
 from .upscaler import RealEsrganUpscaler
@@ -116,6 +117,16 @@ def output_path(info: MediaInfo, s: pipeline.Settings, out_dir: Path) -> Path:
 
 def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: Toolset, *,
                   cancel: threading.Event | None = None, progress: Progress | None = None) -> Path:
+    cible = Path(out_path).resolve()
+    if cible == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas remplacer le fichier original.")
+    annexes = lambda p: [colorized_path(p)] if wants_color(info, s) else []
+    with reserver_sorties(cible, annexes) as libre:
+        return _restore_photo(info, s, libre, tools, cancel=cancel, progress=progress)
+
+
+def _restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: Toolset, *,
+                  cancel: threading.Event | None = None, progress: Progress | None = None) -> Path:
     """Écrit la photo restaurée (PNG, sans perte). L'original n'est jamais modifié.
     Si la colorisation est demandée pour une photo noir et blanc, écrit EN PLUS la copie
     colorisée (colorized_path) ; une copie déjà présente n'est jamais écrasée."""
@@ -133,7 +144,7 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
                             "ou décochez « Coloriser ».")
         if color_out.exists():
             raise ToolError(f"Une photo colorisée porte déjà ce nom : {color_out.name}. Rien n'a été remplacé.")
-    part = out_path.with_name(out_path.stem + ".partiel.png")
+    part = partiel_unique(out_path)
     verifier_chemin(part)
     ff = [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error"]
     work = Path(tempfile.mkdtemp(prefix="vhsrestore_photo_"))
@@ -178,6 +189,7 @@ def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, wo
     """Avant / après côte à côte, à la même taille (l'original est agrandi s'il le faut)."""
     workdir.mkdir(parents=True, exist_ok=True)
     target = workdir / "apercu_photo.png"
+    effacer(target)
     colorized_path(target).unlink(missing_ok=True)       # aperçu précédent
     restored = restore_photo(info, s, target, tools, cancel=cancel, progress=progress)
     if wants_color(info, s):                              # avant (noir et blanc) / après (colorisé)

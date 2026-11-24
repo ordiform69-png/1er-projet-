@@ -48,6 +48,7 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
+from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
@@ -842,6 +843,19 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
            passages: list[tuple[float, float]] | None = None) -> Path:
+    cible = Path(out_path).resolve()
+    if cible == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas remplacer le fichier original.")
+    def annexes(p):
+        return [p.with_suffix("." + s.audio_copy)] if info.has_audio and s.audio_copy in ("wav", "flac") else []
+    with reserver_sorties(cible, annexes) as libre:
+        return _export(info, s, libre, tools, cancel=cancel, progress=progress, start=start, duration=duration, passages=passages)
+
+
+def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
+           cancel: threading.Event | None = None, progress: Progress | None = None,
+           start: float | None = None, duration: float | None = None,
+           passages: list[tuple[float, float]] | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
 
     passages : deux intervalles [début, fin] ou plus, en secondes absolues, à garder.
@@ -873,7 +887,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     if s.stabilize and not tools.stab_available:
         raise ToolError("La stabilisation demande un FFmpeg compilé avec libvidstab "
                         "(filtres vidstabdetect/vidstabtransform), absent de votre FFmpeg.")
-    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    part = partiel_unique(out_path)
     verifier_chemin(part)
     total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
     work: Path | None = None
@@ -957,7 +971,7 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
         final, _ = disk_needs(info, s, None, somme)
         # Les morceaux restaurés sont sur le disque temporaire en même temps que le résultat.
         check_disk_space(info, s, out_path.parent, None, somme, extra_temp=final)
-    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    part = partiel_unique(out_path)
     verifier_chemin(part)                   # chemin trop long pour Windows : dit avant de travailler
     travail = Path(tempfile.mkdtemp(prefix="vhsrestore_morceaux_", dir=_work_root()))
     try:
@@ -1003,7 +1017,7 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
     dest = out_path.with_suffix(".wav" if kind == "wav" else ".flac")
     if dest.resolve() == info.path.resolve():
         raise ToolError("La copie du son ne peut pas remplacer le fichier original.")
-    part = dest.with_name(dest.stem + ".partiel" + dest.suffix)
+    part = partiel_unique(dest)
     codec = (["-c:a", "pcm_s16le"] if kind == "wav"
              else ["-c:a", "flac", "-compression_level", "8"])
     if progress:
@@ -1079,7 +1093,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
             # fichier lu change. Le rapport de pixel d'origine est donc conservé.
             cleaned = dataclasses.replace(info, path=inter, duration=length, video_offset=0.0,
                                           parts=(), concat_list=None)
-            return export(cleaned, dataclasses.replace(s, dust=False, constant_rate=True), out_path, tools,
+            return _export(cleaned, dataclasses.replace(s, dust=False, constant_rate=True), out_path, tools,
                           cancel=cancel, progress=sub(0.5, 1.0))
         src, seek_start, seek_len = info, start, duration
         deinterlaced = effective_scan(info, s) in ("tff", "bff")
@@ -1100,7 +1114,7 @@ def _export_with_dust(info: MediaInfo, s: Settings, out_path: Path, tools: Tools
         quiet = dataclasses.replace(s, dust=False, tape_noise=False, chroma_repair=False, dropouts=False,
                                     constant_rate=True,
                                     scan="progressive" if deinterlaced else s.scan)
-        return export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
+        return _export(cleaned, quiet, out_path, tools, cancel=cancel, progress=sub(0.55, 1.0))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

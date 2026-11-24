@@ -178,3 +178,19 @@ def test_preview_aligned_when_video_starts_after_audio(tools, tmp_path):
                           "[0:v]split[a][b];[a]crop=iw/2:ih:0:0[l];[b]crop=iw/2:ih:iw/2:0[r];[l][r]psnr",
                           "-f", "null", "-"], capture_output=True, text=True).stderr
     assert float(re.findall(r"average:([\d.]+)", out)[-1]) > 30
+
+
+def test_exports_concurrents_et_temoins(pal, tools, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from dataclasses import replace
+    dst = tmp_path / "famille.mp4"
+    temoins = [dst.with_suffix(".wav"), tmp_path / "famille.partiel.mp4"]
+    for path in temoins:
+        path.write_bytes(b"archive")
+    s = replace(S(), audio_copy="wav")
+    with ThreadPoolExecutor(2) as pool:
+        jobs = [pool.submit(pipeline.export, pal, s, dst, tools, duration=0.5) for _ in range(2)]
+        films = {job.result() for job in jobs}
+    assert len(films) == 2
+    assert all(p.is_file() and p.with_suffix(".wav").is_file() for p in films)
+    assert all(p.read_bytes() == b"archive" for p in temoins)

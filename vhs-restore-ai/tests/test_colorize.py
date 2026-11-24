@@ -133,8 +133,8 @@ def test_non_installee_ou_nom_pris(nb_photo, tools, fake_model, tmp_path):
     assert not (tmp_path / "x.png").exists()
     pris = tmp_path / "y_colorisee_ia.png"
     pris.write_bytes(b"photo de l'utilisateur")
-    with pytest.raises(ToolError, match="Rien n'a été remplacé"):
-        photo.restore_photo(info, settings(colorize=True), tmp_path / "y.png", fake_model)
+    out = photo.restore_photo(info, settings(colorize=True), tmp_path / "y.png", fake_model)
+    assert out.name == "y (2).png" and photo.colorized_path(out).is_file()
     assert pris.read_bytes() == b"photo de l'utilisateur"
 
 

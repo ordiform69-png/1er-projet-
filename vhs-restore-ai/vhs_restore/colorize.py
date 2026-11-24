@@ -21,6 +21,8 @@ import subprocess
 import threading
 from pathlib import Path
 
+from .tools import partiel_unique, reserver_sorties
+from .tools import FichierOccupe, effacer, finaliser
 from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, ff_input, run_capture, user_tools_dir
 
 MODEL_NAME = "ddcolor-tiny-fp16.onnx"
@@ -205,17 +207,22 @@ def colorize(src: Path, dst: Path, ffmpeg: str, ffprobe: str, model: Path, *,
         ab_band = _band(ab, h, w, y, y2)
         rgb = lab_to_rgb(gray_to_L(full[y:y2]), ab_band[0], ab_band[1])
         out[y:y2] = np.round(rgb * 255.0).astype(np.uint8)
-    part_path = dst.with_name(dst.stem + ".partiel.png")
-    r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-                        "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
-                        "-frames:v", "1", "-c:v", "png", "-f", "image2", "-update", "1", str(part_path)],
-                       input=out.tobytes(), capture_output=True, timeout=300,
-                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if r.returncode:
-        part_path.unlink(missing_ok=True)
-        raise ToolError("Écriture de la photo colorisée impossible : "
-                        + r.stderr.decode("utf-8", "replace")[-300:])
-    os.replace(part_path, dst)
+    part_path = partiel_unique(dst)
+    try:
+        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+                            "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
+                            "-frames:v", "1", "-c:v", "png", "-f", "image2", "-update", "1", str(part_path)],
+                           input=out.tobytes(), capture_output=True, timeout=300,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if r.returncode:
+            raise ToolError("Écriture de la photo colorisée impossible : "
+                            + r.stderr.decode("utf-8", "replace")[-300:])
+        finaliser(part_path, dst)
+    except FichierOccupe:
+        raise
+    except BaseException:
+        effacer(part_path)
+        raise
     return dst
 
 

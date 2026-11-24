@@ -5,6 +5,8 @@ Toutes les commandes sont lancées sous forme de liste d'arguments
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+import tempfile
 import collections
 import logging
 import os
@@ -141,14 +143,68 @@ class FichierOccupe(ToolError):
     """Le résultat est fini, mais un autre programme garde le fichier ouvert : il est laissé en place."""
 
 
+def partiel_unique(final: Path) -> Path:
+    verifier_chemin(final)
+    verifier_chemin(final.parent / ("vhs-XXXXXXXX.partiel" + final.suffix))
+    fd, nom = tempfile.mkstemp(prefix="vhs-", suffix=".partiel" + final.suffix, dir=final.parent)
+    os.close(fd)
+    return Path(nom)
+
+
+@contextmanager
+def reserver_sorties(principal, annexes):
+    """Un verrou exclusif par sortie, partagé entre instances, sur le disque cible."""
+    if not principal.parent.is_dir():
+        raise ToolError(f"Dossier de sortie introuvable : {principal.parent}")
+    numero = 1
+    while True:
+        candidat = principal if numero == 1 else principal.with_name(
+            f"{principal.stem} ({numero}){principal.suffix}")
+        verrous = []
+        try:
+            for cible in [candidat, *annexes(candidat)]:
+                verrou = cible.with_name("." + cible.name + ".reserve")
+                verifier_chemin(verrou)
+                verrou.touch(exist_ok=False)
+                verrous.append(verrou)
+                if cible.exists():
+                    raise FileExistsError(cible)
+        except FileExistsError:
+            numero += 1
+        except BaseException:
+            for verrou in verrous:
+                effacer(verrou)
+            raise
+        else:
+            try:
+                yield candidat
+            finally:
+                for verrou in verrous:
+                    effacer(verrou)
+            return
+        for verrou in verrous:
+            effacer(verrou)
+
+
+def _publier(part, final):
+    if IS_WIN:
+        os.rename(part, final)  # Windows refuse une destination existante, y compris sur FAT32.
+    else:
+        os.link(part, final)
+        effacer(part)
+
+
 def finaliser(part: Path, final: Path, essais: int = 10) -> None:
     """Met le résultat terminé à sa place. Sous Windows, un lecteur vidéo ou l'antivirus peut garder
     le fichier ouvert quelques instants : on réessaie, puis on explique au lieu de tout perdre."""
     import time
     for n in range(essais):
         try:
-            os.replace(part, final)
+            _publier(part, final)
             return
+        except FileExistsError:
+            raise FichierOccupe(f"Un fichier porte déjà ce nom. Le résultat est dans {part}. "
+                                "Choisissez un autre nom pour le conserver.") from None
         except PermissionError:
             if n == essais - 1:
                 raise FichierOccupe(
