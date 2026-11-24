@@ -860,6 +860,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
 def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
+           morceau: bool = False,
            passages: list[tuple[float, float]] | None = None) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
 
@@ -902,7 +903,21 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 and not info.audio_silent:
             work = Path(tempfile.mkdtemp(prefix="vhsrestore_son_", dir=_work_root()))
             df_owned = True
-        df_wav = _try_deepfilter(info, s, tools, work, start, duration, cancel) if work else None
+        son_debut, son_duree = start, duration
+        manque = 0.0
+        vide = False
+        if morceau and info.has_audio:
+            vitesse = _tempo_factor(info, s, drift=True)
+            premier = ((start or 0) - s.audio_offset_ms / 1000) * vitesse
+            dernier = premier + duration * vitesse
+            son_debut = max(0.0, premier)
+            son_fin = min(info.duration, dernier) if info.duration else dernier
+            son_duree = son_fin - son_debut
+            manque = max(0.0, -premier / vitesse)
+            if son_duree <= 0:
+                vide = True
+                son_debut, son_duree = 0, 0.1
+        df_wav = _try_deepfilter(info, s, tools, work, son_debut, son_duree, cancel) if work and not vide else None
         present = frozenset(tools.audio_filters)
         if s.use_ai:
             _export_ai(info, s, part, tools, cancel, progress, start, duration, total,
@@ -918,11 +933,21 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             if df_wav is not None:
                 args = args + ["-i", str(df_wav)]
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
+            elif morceau and info.has_audio:
+                args += _seek(son_debut, son_duree) + dvd_input(info)
+                amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
             vf = filter_chain(info, s)
-            sons = audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
-                              rnnoise=tools.rnnoise_model)
+            chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
+                                       apply_offset=not morceau, rnnoise=tools.rnnoise_model)
+            if morceau and info.has_audio:
+                if vide:
+                    chaine_son.append("volume=0")
+                if manque and not vide:
+                    chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
+                chaine_son += ["apad", f"atrim=duration={duration:.9f}"]
+            sons = ["-af", ",".join(chaine_son)] if chaine_son else []
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
                    *sons, "-f", "mp4", str(part)])
@@ -951,6 +976,10 @@ def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
     for morceau in morceaux:
         nom = morceau.resolve().as_posix().replace("'", "'\\''")
         lignes.append(f"file '{nom}'")
+        # La durée AAC du conteneur inclut parfois le délai de l’encodeur.
+        r = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
+                         "-show_entries", "stream=duration", "-of", "csv=p=0", str(morceau)])
+        lignes.append(f"duration {float(r.stdout.strip()):.9f}")
     liste.write_text("\n".join(lignes) + "\n", encoding="utf-8")
     try:
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
@@ -992,7 +1021,8 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
                     progress((faits + max(0.0, min(1.0, f)) * duree) / somme,
                              f"Morceau {i} sur {len(gardes)} — {m}")
 
-            export(info, s, dest, tools, cancel=cancel, progress=sous,
+            _export(info, dataclasses.replace(s, audio_copy=""), dest, tools, morceau=True,
+                    cancel=cancel, progress=sous,
                    start=a or None, duration=duree)
             fichiers.append(dest)
             faits += duree

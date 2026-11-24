@@ -92,8 +92,12 @@ def test_export_passages_milieu(samples, tools, tmp_path):
     out = pipeline.export(info, s, tmp_path / "milieu.mp4", tools,
                           passages=[(0, 1), (2, 4)])
     v, a = _v_a(out)
-    assert abs(float(v["duration"]) - 3.0) < 0.15
-    assert len(a) == 1 and abs(float(a[0]["duration"]) - float(v["duration"])) < 0.15
+    # Les pistes du PAL de test commencent à des dates différentes. Comparer leurs fins.
+    fin_image = float(v["start_time"]) + float(v["duration"])
+    assert abs(fin_image - 3.0) < 0.04
+    assert len(a) == 1
+    fin_son = float(a[0]["start_time"]) + float(a[0]["duration"])
+    assert abs(fin_image - fin_son) < 0.04
 
 
 def test_export_milieu_refuse_les_options(tools, tmp_path):
@@ -117,3 +121,38 @@ def test_fin_inconnue():
     _, debut, longueur = pipeline.bornes_a_exporter(0, 5, 0, [])
     assert debut == 5 and longueur is None
     assert pipeline._seek(debut, longueur) == ["-ss", "5.000"]
+
+
+@pytest.mark.parametrize("offset,derive", [(400, 0), (-400, 0), (0, 600)])
+def test_clap_apres_raccord(tmp_path, tools, offset, derive):
+    from conftest import ff
+    from vhs_restore.probe import analyze
+    import subprocess
+    import numpy as np
+    # La piste source comporte deux bips dont l'avance reproduit le défaut à réparer.
+    facteur = 1 / (1 - derive / 60000)
+    bips = [(t - offset / 1000) * facteur for t in (1, 5)]
+    signal = "+".join(f"between(t,{t},{t+0.08})" for t in bips)
+    src = tmp_path / "clap.mkv"
+    ff("-f", "lavfi", "-i", "color=black:s=128x96:r=25:d=6,"
+       "drawbox=color=white:t=fill:enable='eq(n,25)+eq(n,125)'",
+       "-f", "lavfi", "-i", f"aevalsrc='0.5*sin(2*PI*440*t)*({signal})':s=48000:d=6",
+       "-c:v", "ffv1", "-c:a", "flac", str(src))
+    info = analyze(src, tools)
+    s = pipeline.Settings(profile_for("fidele"), restore_audio=False, scan="progressive",
+                          audio_offset_ms=offset, audio_drift_ms_per_min=derive)
+    dst = pipeline.export(info, s, tmp_path / "coupe.mp4", tools, passages=[(0, 2), (4, 6)])
+    def lire(*args):
+        return subprocess.check_output([tools.ffmpeg.path, "-v", "error", "-i", str(dst), *args, "-"])
+    niveaux = np.frombuffer(lire("-an", "-vf", "scale=1:1,format=gray", "-f", "rawvideo"), np.uint8)
+    son = np.frombuffer(lire("-vn", "-ac", "1", "-ar", "48000", "-f", "f32le"), "<f4")
+    flashs = np.flatnonzero(niveaux > 160) / 25
+    assert len(flashs) == 2
+    for flash in flashs:
+        debut = int((flash - 0.15) * 48000)
+        attaque = np.flatnonzero(abs(son[debut:debut + 14400]) > 0.1)[0]
+        assert abs((debut + attaque) / 48000 - flash) <= 0.04
+    pts = subprocess.check_output([tools.ffprobe.path, "-v", "error", "-select_streams", "v",
+          "-show_entries", "packet=pts_time", "-of", "csv=p=0", str(dst)], text=True)
+    assert np.diff(sorted(map(float, pts.split()))).max() <= 0.040001
+    assert abs(float(probe_json(dst)["format"]["duration"]) - 4.02) < 0.04
