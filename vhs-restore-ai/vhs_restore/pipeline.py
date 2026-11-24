@@ -968,7 +968,10 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                     chaine_son.append("volume=0")
                 if manque and not vide:
                     chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
-                chaine_son += ["apad", f"atrim=duration={duration:.9f}"]
+                # apad seul ajoute du silence sans fin et -frames:v ne coupe que l'image :
+                # avec FFmpeg 9.1 (Windows) la commande ne se terminait jamais. whole_dur borne
+                # le silence, atrim garde la durée exacte du morceau.
+                chaine_son += [f"apad=whole_dur={duration:.9f}", f"atrim=duration={duration:.9f}"]
             sons = ["-af", ",".join(chaine_son)] if chaine_son else []
             # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
             # avec -t seul. Même résultat en 6.1 et en 7.x.
