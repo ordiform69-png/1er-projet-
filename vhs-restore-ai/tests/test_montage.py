@@ -111,3 +111,9 @@ def test_export_milieu_refuse_les_options(tools, tmp_path):
     for s in cas:
         with pytest.raises(ToolError, match="passage au milieu"):
             pipeline.export(info, s, tmp_path / "out.mp4", tools, passages=passages)
+
+
+def test_fin_inconnue():
+    _, debut, longueur = pipeline.bornes_a_exporter(0, 5, 0, [])
+    assert debut == 5 and longueur is None
+    assert pipeline._seek(debut, longueur) == ["-ss", "5.000"]

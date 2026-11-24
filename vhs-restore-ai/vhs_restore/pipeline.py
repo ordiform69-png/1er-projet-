@@ -727,6 +727,8 @@ def trim_window(info: MediaInfo, begin: float, end: float) -> tuple[float | None
         raise ToolError("Le début choisi est après la fin du film.")
     if begin <= 0 and not end:
         return None, None
+    if not info.duration and not end:
+        return begin or None, None
     length = (end or info.duration) - begin
     return (begin or None), length
 
@@ -794,6 +796,8 @@ def bornes_a_exporter(duree: float, debut: float, fin: float,
     que le film (coupe collée au début ou à la fin) : (début, durée) comme trim_window,
     sinon le film entier partirait alors que l'écran annonce un temps plus court.
     """
+    if not duree and not fin and not coupes:
+        return [], max(0.0, debut) or None, None
     gardes = passages_gardes(duree, debut, fin, coupes)
     if len(gardes) >= 2:
         return gardes, None, None
