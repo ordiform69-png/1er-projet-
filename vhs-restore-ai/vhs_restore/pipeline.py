@@ -40,6 +40,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import tempfile
 import threading
 from dataclasses import dataclass
@@ -1199,6 +1200,44 @@ def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
         raise ToolError("L'analyse de stabilisation n'a produit aucun résultat.")
 
 
+def essayer_ia(info, s, tools, duree, demander, cancel, progress):
+    """Mesure le coût fixe de lancement et le coût par image sur la machine locale."""
+    if not s.use_ai:
+        return s
+    from .tools import ff_input
+    photo = info.container == "image"
+    images = 1 if photo else max(1, math.ceil(duree * time_ratio(info, s) * output_fps(info, s)))
+    moteur = RealEsrganUpscaler(tools.realesrgan)
+    if progress:
+        progress(0, "Mesure de la vitesse de l’amélioration IA…")
+    with tempfile.TemporaryDirectory(prefix="vhsrestore_vitesse_", dir=_work_root()) as tmp:
+        racine = Path(tmp)
+        entree = racine / "images"
+        entree.mkdir()
+        run([tools.ffmpeg.path, "-nostdin", "-loglevel", "error",
+             *(ff_input(info.path) if photo else dvd_input(info)), "-frames:v", "1",
+             "-pix_fmt", "rgb24", "image.png"], cwd=entree, cancel=cancel, what="Lecture d’une image")
+        temps = []
+        for nombre in (1, 2):
+            if nombre == 2:
+                shutil.copyfile(entree / "image.png", entree / "autre.png")
+            debut = time.monotonic()
+            moteur.upscale_dir(entree, racine / str(nombre), cancel=cancel)
+            temps.append(time.monotonic() - debut)
+    par_image = max(0.0, temps[1] - temps[0])
+    if par_image <= 0 or par_image > temps[0]:
+        par_image = temps[1] / 2
+    demarrage = max(0.0, temps[0] - par_image)
+    estimation = images * par_image + math.ceil(images / AI_CHUNK_FRAMES) * demarrage
+    if estimation > 7200 or (not photo and (not duree or estimation > 3 * duree)):
+        choix = demander(estimation, s.resolution == "2160", not photo and not duree)
+        if choix == "annuler":
+            raise Cancelled()
+        if choix == "sans":
+            return dataclasses.replace(s, use_ai=False, resolution="1080" if s.resolution == "2160" else s.resolution)
+    return s
+
+
 def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                cancel: threading.Event | None, progress: Progress | None,
                start: float | None, duration: float | None, total: float,
@@ -1227,10 +1266,11 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
-        meta = run_capture([tools.ffprobe.path, "-v", "error", "-count_packets",
-                            "-show_entries", "stream=codec_type,start_time,nb_read_packets:format=start_time",
-                            "-of", "json", str(inter)])
-        d = json.loads(meta.stdout)
+        lignes = []
+        run([tools.ffprobe.path, "-v", "error", "-count_packets", "-show_entries",
+             "stream=codec_type,start_time,nb_read_packets:format=start_time", "-of", "json", str(inter)],
+            cancel=cancel, on_line=lignes.append, what="Comptage des images")
+        d = json.loads("\n".join(lignes))
         vst = next(x for x in d["streams"] if x["codec_type"] == "video")
         n = int(vst["nb_read_packets"])
         v_off = float(vst.get("start_time", 0) or 0) - float(d["format"].get("start_time", 0) or 0)

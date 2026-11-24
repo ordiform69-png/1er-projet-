@@ -194,3 +194,26 @@ def test_exports_concurrents_et_temoins(pal, tools, tmp_path):
     assert len(films) == 2
     assert all(p.is_file() and p.with_suffix(".wav").is_file() for p in films)
     assert all(p.read_bytes() == b"archive" for p in temoins)
+
+
+def test_vitesse_ia_mesuree_avant_choix(pal, tools, tmp_path, monkeypatch):
+    from dataclasses import replace
+    import threading
+    horloge = [0.0]
+    class Moteur:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel):
+            horloge[0] += 4 + 30 * len(list(src.glob("*.png")))
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+    from types import SimpleNamespace
+    monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: horloge[0]))
+    estimations = []
+    def choisir(secondes, en_4k, inconnue):
+        estimations.append(secondes)
+        return "sans"
+    s = replace(S(), use_ai=True)
+    choix = pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None)
+    assert s.use_ai and not choix.use_ai
+    attendu = 10 * float(pipeline.output_fps(pal, s)) * 30
+    assert abs(estimations[0] / attendu - 1) < 0.2
