@@ -16,6 +16,7 @@ installé d'abord, de la même façon. Empreintes relevées sur les fichiers pub
 """
 from __future__ import annotations
 
+import json
 import hashlib
 import shutil
 import tempfile
@@ -45,45 +46,13 @@ class Paquet:
     windows_only: bool = True
 
 
-PAQUETS: dict[str, Paquet] = {
-    "realesrgan": Paquet(
-        "realesrgan", "Real-ESRGAN",
-        "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
-        "realesrgan-ncnn-vulkan-20220424-windows.zip",
-        "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d", 45,
-        "realesrgan", "zip", "realesrgan-ncnn-vulkan.exe"),
-    "deepfilter": Paquet(
-        "deepfilter", "DeepFilterNet",
-        "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/"
-        "deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",
-        "75e11fa16445f560cb6b021521ddb89e89270d13b83089705d98776f58fd7915", 27,
-        "deepfilter", "file", "deep-filter.exe"),
-    "colorisation": Paquet(
-        "colorisation", "Colorisation (DDColor)",
-        "https://huggingface.co/edgetools/ddcolor/resolve/4755ae9f1f7a35a9e7693b96c2a88f3432cb6ab0/"
-        "ddcolor-tiny-fp16.onnx",
-        "2653da00dc15e54a45e5200b61dbf82ee9ceaf56b02bb9b9657569ac775e82e6", 130,
-        "ddcolor", "file", "ddcolor-tiny-fp16.onnx", windows_only=False),
-    "sevenzip": Paquet(
-        "sevenzip", "7-Zip (extracteur)", "https://www.7-zip.org/a/7zr.exe",
-        "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282", 1,
-        "7zip", "file", "7zr.exe"),
-    "losslesscut": Paquet(
-        "losslesscut", "LosslessCut",
-        "https://github.com/mifi/lossless-cut/releases/download/v3.70.2/LosslessCut-win-x64.7z",
-        "1740c5f17b952c04cf1b1612cf32f56c68a88105c045199526c7ea9678d309b0", 152,
-        "losslesscut", "7z", "LosslessCut.exe"),
-    "shotcut": Paquet(
-        "shotcut", "Shotcut",
-        "https://github.com/mltframework/shotcut/releases/download/v26.8.1/shotcut-win64-26.8.1.zip",
-        "b0148856de01b39add4bf4d6a813bfbc554b4663b65e3ca25cb2589f47555a6a", 225,
-        "shotcut", "zip", "shotcut.exe"),
-}
+_manifeste = Path(__file__).with_name("paquets.json")
+PAQUETS = {p["key"]: Paquet(**p) for p in json.loads(_manifeste.read_text(encoding="utf-8"))}
 
 
 def can_install(key: str) -> bool:
     p = PAQUETS.get(key)
-    return p is not None and (IS_WIN or not p.windows_only)
+    return key != "ffmpeg" and p is not None and (IS_WIN or not p.windows_only)
 
 
 def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event | None,
@@ -203,7 +172,9 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
             found = next(staged.rglob(p.file_name), None)
             if found is None:
                 raise ToolError(f"{p.file_name} introuvable dans l'archive de {p.name}.")
-            staged = found.parent
+            staged = found.parents[len(Path(p.file_name).parts) - 1]
+            if key == "ffmpeg" and not (staged / "bin/ffprobe.exe").is_file():
+                raise ToolError("FFprobe manque dans le paquet téléchargé.")
         else:
             shutil.move(str(dl), staged / p.file_name)
         if cancel is not None and cancel.is_set():
@@ -214,3 +185,14 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
     if progress:
         progress(1.0, f"{p.name} installé.")
     return final / p.file_name
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Installer les outils vérifiés de VHS Restore AI.")
+    parser.add_argument("dossier", type=Path)
+    parser.add_argument("outils", nargs="+", choices=PAQUETS)
+    args = parser.parse_args()
+    for cle in args.outils:
+        print(f"Installation de {PAQUETS[cle].name}…", flush=True)
+        print(install(cle, root=args.dossier.resolve()))
