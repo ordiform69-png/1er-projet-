@@ -56,7 +56,7 @@ from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolErro
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
 from .dvd import input_args as dvd_input
-from .dvd import is_menu, open_media, titles_in
+from .dvd import lecture_dvd, is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
 
 log = logging.getLogger("vhs_restore")
@@ -866,6 +866,7 @@ def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     return cand
 
 
+@lecture_dvd
 def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
@@ -1200,6 +1201,7 @@ def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
         raise ToolError("L'analyse de stabilisation n'a produit aucun résultat.")
 
 
+@lecture_dvd
 def essayer_ia(info, s, tools, duree, demander, cancel, progress):
     """Mesure le coût fixe de lancement et le coût par image sur la machine locale."""
     if not s.use_ai:
@@ -1480,6 +1482,7 @@ class PreviewResult:
     original: Path | None = None
 
 
+@lecture_dvd
 def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, start: float,
                  duration: float = 10.0, *, cancel: threading.Event | None = None,
                  progress: Progress | None = None) -> PreviewResult:
