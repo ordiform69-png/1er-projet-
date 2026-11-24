@@ -898,3 +898,14 @@ de 3 heures mélangeait Noël, des vacances et un anniversaire dans un seul fich
   vérification du nom et de la date, copie légère, séparation par les deux chemins, photo).
 - Non testé : lecture des copies sur un vrai téléviseur et sur un téléphone ; envoi réel par
   e-mail ou WhatsApp.
+
+## Son AAC avec FFmpeg 9.1 (Windows)
+
+Les fabrications Windows ne finissaient plus depuis la fenêtre de son des morceaux (lot 2
+d'Astra) : FFmpeg 9.1, celui que le logiciel installe, tournait sans fin. Quatre diagnostics sur
+le Windows de la fabrication l'ont isolé : l'encodeur AAC, méthode par défaut (« twoloop »), sur un
+son bref suivi d'un silence parfait (mono 192 kbit/s) ; silence pur, son continu, stéréo, débit
+plus bas ou méthode « fast » finissent. Un raccord de coupe ou une cassette presque muette crée ce
+cas chez l'utilisateur. Tous les encodages AAC passent par `tools.AAC` (« -aac_coder fast »).
+Le silence ajouté au bout d'un morceau est aussi borné (`apad=whole_dur`). Test :
+`tests/test_aac_ffmpeg9.py` (échoue en 60 s au lieu de bloquer).

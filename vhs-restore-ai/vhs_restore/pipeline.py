@@ -50,7 +50,7 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
-from .tools import CopieIncomplete, copie_annexe
+from .tools import AAC, CopieIncomplete, copie_annexe
 from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
@@ -527,7 +527,7 @@ def encode_args(info: MediaInfo, s: Settings) -> list[str]:
     if info.color_range in ("pc", "tv"):
         color += ["-color_range", "tv" if hd else info.color_range]
     return ["-c:v", "libx264", "-preset", s.preset, "-crf", str(s.crf), "-pix_fmt", "yuv420p",
-            *color, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]
+            *color, *AAC, "-b:a", "192k", "-movflags", "+faststart"]
 
 
 def _ff_base(tools: Toolset) -> list[str]:
@@ -1585,7 +1585,7 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     reference = workdir / "apercu_original.mp4"
     run(_ff_base(tools) + _seek(start, duration) + [
         *dvd_input(info), "-map", "0:v:0", "-map", "0:a:0?", "-vf", ",".join(ref_vf),
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-c:a", "aac", "-b:a", "160k",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", *AAC, "-b:a", "160k",
         *retime_args(info, s),
         *audio_args(info, s, restore=False, apply_offset=False, apply_drift=False), "-f", "mp4", str(reference)],
         cancel=cancel, what="FFmpeg (aperçu de l'original)",

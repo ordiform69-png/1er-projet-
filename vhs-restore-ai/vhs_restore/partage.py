@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import vides
-from .tools import (Cancelled, FichierOccupe, ToolError, effacer, finaliser, partiel_unique, reserver_sorties,
+from .tools import (AAC, Cancelled, FichierOccupe, ToolError, effacer, finaliser, partiel_unique, reserver_sorties,
                     run, run_capture, verifier_chemin)
 
 Progress = Callable[[float, str], None]
@@ -180,7 +180,7 @@ def commande_copie(ffmpeg: str, src: Path, partiel: Path, infos: InfosVideo, gen
            "-c:v", "libx264", "-preset", "medium", "-crf", str(genre.crf), "-profile:v", genre.profil,
            "-level", genre.niveau, "-maxrate", str(debit), "-bufsize", str(2 * debit), "-pix_fmt", "yuv420p"]
     if infos.son:
-        cmd += ["-map", "0:a:0", "-c:a", "aac", "-b:a", genre.son, "-ac", "2", "-ar", "48000"]
+        cmd += ["-map", "0:a:0", *AAC, "-b:a", genre.son, "-ac", "2", "-ar", "48000"]
     return cmd + ["-map_metadata", "0", "-movflags", "+faststart", "-f", "mp4", str(partiel)]
 
 
@@ -274,7 +274,7 @@ def separer(ffmpeg: str, src: Path, films: list[tuple[float, float | None]], nom
                 cmd += ["-t", f"{b - a:.3f}"]
             cmd += ["-map", "0:v:0", "-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p"]
             if avec_son:
-                cmd += ["-map", "0:a:0", "-c:a", "aac", "-b:a", "192k"]
+                cmd += ["-map", "0:a:0", *AAC, "-b:a", "192k"]
             cmd += ["-metadata", f"title={nom.strip() or propre}", "-movflags", "+faststart", "-f", "mp4",
                     str(partiel)]
             try:

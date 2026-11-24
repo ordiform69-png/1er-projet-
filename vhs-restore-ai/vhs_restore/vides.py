@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .tools import partiel_unique, reserver_sorties
+from .tools import AAC, partiel_unique, reserver_sorties
 from .tools import Cancelled, FichierOccupe, ToolError, effacer, finaliser, run, verifier_chemin
 
 Progress = Callable[[float, str], None]
@@ -224,7 +224,7 @@ def retirer(ffmpeg: str, src: Path, dst: Path, passages: list[Passage], duree: f
     cmd = [ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "warning", "-progress", "pipe:1",
            "-nostats", "-i", str(src), "-filter_complex", ";".join(parts), "-map", "[v]"]
     if avec_son:
-        cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"]
+        cmd += ["-map", "[a]", *AAC, "-b:a", "192k"]
     partiel = partiel_unique(dst)
     cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p",
             "-movflags", "+faststart", str(partiel)]

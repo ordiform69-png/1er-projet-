@@ -38,6 +38,10 @@ def user_tools_dir() -> Path:
 IS_WIN = os.name == "nt"
 EXE = ".exe" if IS_WIN else ""
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+# Son AAC : méthode « fast » de l'encodeur. La méthode par défaut (« twoloop ») de FFmpeg 9.1,
+# celui que le logiciel installe sous Windows, tourne sans fin sur un son bref suivi d'un silence
+# parfait (mesuré : mono 192 kbit/s figé, « fast » fini en 0,1 s). Un raccord de coupe en crée.
+AAC = ("-c:a", "aac", "-aac_coder", "fast")
 
 # Filtres FFmpeg indispensables à la chaîne de restauration.
 QTGMC_SCRIPT = Path(__file__).resolve().parent / "qtgmc.vpy"
