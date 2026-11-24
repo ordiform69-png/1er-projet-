@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -495,6 +496,52 @@ def _duree(sec: float) -> str:
     return f"{sec // 3600} h {sec % 3600 // 60:02d} min"
 
 
+def _lire_temps(text: str) -> float:
+    """« 1 min 05 s », « 1:05 », « 90 » ou « 1 h 04 min » → secondes. Sans chiffre : 0."""
+    brut = text.strip().lower().replace(",", ".")
+    if not any(c.isdigit() for c in brut):
+        return 0.0
+    if ":" in brut:
+        try:
+            nums = [float(p) for p in brut.split(":")]
+        except ValueError:
+            return 0.0
+        if len(nums) == 2:
+            return nums[0] * 60 + nums[1]
+        if len(nums) == 3:
+            return nums[0] * 3600 + nums[1] * 60 + nums[2]
+    m = re.search(r"(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?\s*(?:(\d+(?:\.\d+)?)\s*(?:s|sec|seconde|secondes)?)?",
+                  brut)
+    if m and any(m.groups()):
+        h, mi, s = m.group(1), m.group(2), m.group(3)
+        return (int(h) * 3600 if h else 0) + (int(mi) * 60 if mi else 0) + (float(s) if s else 0)
+    nombre = "".join(ch for ch in brut if ch.isdigit() or ch == ".")
+    try:
+        return float(nombre) if nombre else 0.0
+    except ValueError:
+        return 0.0
+
+
+class TempsSpin(QDoubleSpinBox):
+    """Secondes en interne (`.value()`), affichage « 1 min 05 s ». Les flèches avancent d'une seconde."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setDecimals(0)
+        self.setSingleStep(1)
+        self.setAccelerated(True)
+        self.setAlignment(Qt.AlignRight)
+        self.setMinimumHeight(44)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    def textFromValue(self, value: float) -> str:  # noqa: N802
+        return _duree(value)
+
+    def valueFromText(self, text: str) -> float:  # noqa: N802
+        return _lire_temps(text)
+
+
 def _en_clair(a) -> str:
     """Un conseil de l'analyse, dit avec des mots de tous les jours."""
     if a.key == "channel":
@@ -530,6 +577,235 @@ def _wrap(layout: QHBoxLayout) -> QWidget:
     return w
 
 
+_MAX_COUPES = 8
+_MIN_COUPE = 0.5
+
+
+def _bouton_secondaire(texte: str, accessible: str, *, elargi: bool = True) -> QPushButton:
+    """Gros bouton lisible, qui peut rétrécir : pas de défilement horizontal."""
+    b = QPushButton(texte)
+    b.setObjectName("secondaire")
+    b.setMinimumHeight(44)
+    b.setMinimumWidth(0)
+    b.setSizePolicy(QSizePolicy.Expanding if elargi else QSizePolicy.Minimum, QSizePolicy.Fixed)
+    b.setCursor(Qt.PointingHandCursor)
+    b.setAccessibleName(accessible)
+    return b
+
+
+def _fusionner_coupes(coupes: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Passages à enlever, du plus tôt au plus tard.
+
+    Ce qui se recouvre, se touche, ou laisse moins d'une demi-seconde entre les deux
+    devient un seul passage.
+    """
+    ordre: list[tuple[float, float]] = []
+    for a, b in coupes:
+        a, b = float(a), float(b)
+        if b < a:
+            a, b = b, a
+        if b - a < _MIN_COUPE:
+            continue
+        ordre.append((a, b))
+    ordre.sort()
+    if not ordre:
+        return []
+    fusion: list[tuple[float, float]] = [ordre[0]]
+    for a, b in ordre[1:]:
+        pa, pb = fusion[-1]
+        if a - pb < _MIN_COUPE:
+            fusion[-1] = (pa, max(pb, b))
+        else:
+            fusion.append((a, b))
+    return fusion
+
+
+def _coupes_depuis_gardes(duree: float, gardes: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Inverse les intervalles gardés : ce qu'il faut enlever, pas ce qu'il faut garder."""
+    trous: list[tuple[float, float]] = []
+    curseur = 0.0
+    for a, b in gardes:
+        if a - curseur >= _MIN_COUPE:
+            trous.append((float(curseur), float(a)))
+        curseur = float(b)
+    if duree - curseur >= _MIN_COUPE:
+        trous.append((float(curseur), float(duree)))
+    return trous
+
+
+def _memes_coupes(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> bool:
+    def cle(xs: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        return sorted((round(x, 3), round(y, 3)) for x, y in xs)
+    return cle(a) == cle(b)
+
+
+class BarreFilm(QWidget):
+    """Barre du film, dessinée pour cet écran. Un clic ou un glisser place l'extrait.
+
+    En doré : ce qui ne sera pas restauré. Le curseur est le moment choisi.
+    Les bords dorés se tirent pour ajuster un passage.
+    """
+
+    clique = Signal(float)
+    borde = Signal(int, bool, float)
+    borde_fini = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.duree = 0.0
+        self.position = 0.0
+        self.debut = 0.0
+        self.fin = 0.0
+        self.coupes: list[tuple[float, float]] = []
+        self._glisse_bord: tuple[int, bool] | None = None
+        self._glisse_piste = False
+        self.setMinimumHeight(56)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setMouseTracking(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAccessibleName("Barre du film")
+        self.setAccessibleDescription(
+            "Faites glisser pour vous placer. Tirez les bords dorés pour ajuster un passage enlevé.")
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(400, 88)
+
+    def definir(self, duree: float, position: float, debut: float, fin: float,
+                coupes: list[tuple[float, float]]) -> None:
+        # Ne pas interrompre un glisser : cette méthode est rappelée pendant qu'on tire un bord.
+        self.duree = max(0.0, float(duree or 0))
+        self.position = float(position or 0)
+        self.debut = float(debut or 0)
+        self.fin = float(fin or 0)
+        self.coupes = list(coupes)
+        self.update()
+
+    def _zone(self):
+        bas = 22 if self.height() >= 80 else 10
+        return self.rect().adjusted(1, 16, -1, -bas)
+
+    def _x_de(self, t: float) -> float:
+        r = self._zone()
+        if self.duree <= 0 or r.width() <= 0:
+            return float(r.left())
+        borne = max(0.0, min(self.duree, float(t)))
+        return float(r.left()) + (borne / self.duree) * float(r.width())
+
+    def _temps(self, x: float) -> float:
+        r = self._zone()
+        if self.duree <= 0 or r.width() <= 0:
+            return 0.0
+        return max(0.0, min(self.duree, (float(x) - float(r.left())) / float(r.width()) * self.duree))
+
+    def _bord_sous(self, x: float) -> tuple[int, bool] | None:
+        """Bord doré à 10 px près. Le plus proche l'emporte. None si la piste est vide."""
+        if self.duree <= 0 or not self.coupes:
+            return None
+        choisi: tuple[int, bool] | None = None
+        ecart = 11.0
+        for i, (a, b) in enumerate(self.coupes):
+            for est_fin, moment in ((False, a), (True, b)):
+                d = abs(float(x) - self._x_de(moment))
+                if d <= 10.0 and d < ecart:
+                    choisi = (i, est_fin)
+                    ecart = d
+        return choisi
+
+    def _curseur_pour(self, x: float) -> None:
+        self.setCursor(Qt.SizeHorCursor if self._bord_sous(x) is not None else Qt.PointingHandCursor)
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.LeftButton and self.duree > 0:
+            x = float(event.position().x())
+            self._curseur_pour(x)
+            bord = self._bord_sous(x)
+            if bord is not None:
+                self._glisse_bord = bord
+                self._glisse_piste = False
+                self.borde.emit(bord[0], bord[1], self._temps(x))
+            else:
+                self._glisse_bord = None
+                self._glisse_piste = True
+                self.clique.emit(self._temps(x))
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:  # noqa: N802
+        x = float(event.position().x())
+        self._curseur_pour(x)
+        if self.duree > 0 and (event.buttons() & Qt.LeftButton):
+            if self._glisse_bord is not None:
+                indice, est_fin = self._glisse_bord
+                self.borde.emit(indice, est_fin, self._temps(x))
+            elif self._glisse_piste:
+                self.clique.emit(self._temps(x))
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.LeftButton:
+            bord = self._glisse_bord
+            self._glisse_bord = None
+            self._glisse_piste = False
+            if bord is not None:
+                self.borde_fini.emit()
+            self._curseur_pour(float(event.position().x()))
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802
+        if self.duree <= 0:
+            super().keyPressEvent(event)
+            return
+        if event.key() == Qt.Key_Left:
+            self.clique.emit(max(0.0, self.position - 1.0))
+        elif event.key() == Qt.Key_Right:
+            self.clique.emit(min(self.duree, self.position + 1.0))
+        else:
+            super().keyPressEvent(event)
+
+    def paintEvent(self, _event) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        r = self._zone()
+        p.setPen(QPen(QColor(theme.BORD), 1))
+        p.setBrush(QColor(theme.PISTE))
+        p.drawRoundedRect(r, 6, 6)
+        if self.duree <= 0:
+            p.end()
+            return
+
+        fin = self.fin if self.fin > 0 else self.duree
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.ACCENT))
+        x0, x1 = self._x_de(self.debut), self._x_de(fin)
+        p.drawRect(int(x0), r.top() + 4, max(2, int(x1 - x0)), r.height() - 8)
+        p.setBrush(QColor(theme.AMBRE))
+        for a, b in self.coupes:
+            xa, xb = self._x_de(a), self._x_de(b)
+            p.drawRect(int(xa), r.top() + 4, max(2, int(xb - xa)), r.height() - 8)
+        xp = int(self._x_de(self.position))
+        p.setPen(QPen(QColor(theme.TEXTE), 3))
+        p.drawLine(xp, r.top(), xp, r.bottom())
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.TEXTE))
+        p.drawPolygon([QPoint(xp, r.top() - 1), QPoint(xp - 7, r.top() - 12), QPoint(xp + 7, r.top() - 12)])
+        cote = 12
+        milieu = r.top() + 4 + (r.height() - 8) / 2.0
+        p.setPen(QPen(QColor("#1a1206"), 1))
+        p.setBrush(QColor("#ffffff"))
+        for a, b in self.coupes:
+            for moment in (a, b):
+                cx = self._x_de(moment)
+                p.drawRoundedRect(int(round(cx - cote / 2)), int(round(milieu - cote / 2)), cote, cote, 2, 2)
+        if self.height() >= 80:
+            p.setPen(QColor(theme.TEXTE_DOUX))
+            bas = QRect(4, self.height() - 18, max(0, self.width() - 8), 16)
+            p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, _duree(0))
+            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree(self.duree / 2))
+            p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(self.duree))
+        p.end()
+
+
 class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
@@ -543,6 +819,8 @@ class MainWindow(QMainWindow):
         self.worker: Worker | None = None
         self.preview: pipeline.PreviewResult | None = None
         self.preview_dir = Path(tempfile.mkdtemp(prefix="vhsrestore_apercu_"))
+        self._coupes: list[tuple[float, float]] = []
+        self._coupe_ouverte: float | None = None
         self._build()
         self._refresh_tools()
         self._update_state()
@@ -724,6 +1002,127 @@ class MainWindow(QMainWindow):
         note.setWordWrap(True)
         note.setObjectName("note")
         v.addWidget(note)
+        self.s_coupe = QWidget()
+        coupe = QVBoxLayout(self.s_coupe)
+        coupe.setContentsMargins(0, 8, 0, 0)
+        coupe.setSpacing(6)
+        cadre = QFrame()
+        cadre.setObjectName("carte")
+        cadre.setMinimumWidth(0)
+        dans = QVBoxLayout(cadre)
+        dans.setContentsMargins(12, 10, 12, 10)
+        dans.setSpacing(6)
+        titre = QLabel("Enlever une scène")
+        titre.setObjectName("carteTitre")
+        titre.setWordWrap(True)
+        dans.addWidget(titre)
+        self.barre = BarreFilm()
+        self.barre.clique.connect(self._barre_cliquee)
+        self.barre.borde.connect(self._bord_bouge)
+        self.barre.borde_fini.connect(self._bord_fini)
+        dans.addWidget(self.barre)
+        legende = QLabel("Bleu : ce qui sera restauré. Doré : ce qui est enlevé.")
+        legende.setWordWrap(True)
+        legende.setMinimumWidth(0)
+        legende.setObjectName("note")
+        dans.addWidget(legende)
+        aide_barre = QLabel("Glissez le curseur, puis « Couper ici ». Une seconde fois quand le film reprend. "
+                            "Les carrés blancs se tirent.")
+        aide_barre.setWordWrap(True)
+        aide_barre.setMinimumWidth(0)
+        aide_barre.setObjectName("note")
+        dans.addWidget(aide_barre)
+        self.s_couper = _bouton_secondaire("Couper ici", "Couper ici")
+        self.s_couper.setObjectName("action")
+        self.s_couper.clicked.connect(self._couper_ici)
+        dans.addWidget(self.s_couper)
+        for texte, sec in (("Enlever 10 secondes ici", 10),
+                           ("Enlever 30 secondes ici", 30),
+                           ("Enlever 1 minute ici", 60)):
+            b = _bouton_secondaire(texte, texte)
+            b.clicked.connect(lambda _=False, s=sec: self._passage_duree(s))
+            dans.addWidget(b)
+        self.s_passage_annuler = _bouton_secondaire(
+            "Annuler la dernière coupe", "Annuler la dernière coupe")
+        self.s_passage_annuler.clicked.connect(self._passage_annuler)
+        dans.addWidget(self.s_passage_annuler)
+        coupe.addWidget(cadre)
+        entete = QLabel("Couper la neige du début ou la fin")
+        entete.setObjectName("note")
+        entete.setWordWrap(True)
+        coupe.addWidget(entete)
+        self.s_trim_start = TempsSpin()
+        self.s_trim_end = TempsSpin()
+        self.s_trim_start.setSpecialValueText("dès le début")
+        self.s_trim_end.setSpecialValueText("à la fin")
+        self.s_trim_start.setAccessibleName("Le film commence à")
+        self.s_trim_start.setAccessibleDescription(
+            "Ce qui est avant ce moment ne sera pas dans la copie. « dès le début » garde le début.")
+        self.s_trim_end.setAccessibleName("Le film s'arrête à")
+        self.s_trim_end.setAccessibleDescription(
+            "Ce qui est après ce moment ne sera pas dans la copie. « à la fin » garde jusqu'au bout.")
+        self.s_trim_start.setToolTip("Neige ou écran bleu du début, à ne pas mettre dans la copie.")
+        self.s_trim_end.setToolTip("Fin de bande à ne pas mettre dans la copie. « à la fin » = tout garder.")
+        for libelle, spin in (("Le film commence à", self.s_trim_start),
+                              ("Le film s'arrête à", self.s_trim_end)):
+            lab = QLabel(libelle)
+            lab.setWordWrap(True)
+            coupe.addWidget(lab)
+            coupe.addWidget(spin)
+        self.s_trim_note = QLabel()
+        self.s_trim_note.setWordWrap(True)
+        self.s_trim_note.setObjectName("note")
+        coupe.addWidget(self.s_trim_note)
+        self.s_trim_voir = QPushButton("Montrer ce début dans l'aperçu")
+        self.s_trim_tout = QPushButton("Tout garder")
+        for b in (self.s_trim_voir, self.s_trim_tout):
+            b.setObjectName("secondaire")
+            b.setMinimumHeight(44)
+            b.setMinimumWidth(0)
+            b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            b.setCursor(Qt.PointingHandCursor)
+        self.s_trim_voir.setAccessibleName("Placer l'aperçu au début choisi")
+        self.s_trim_tout.setAccessibleName("Garder le film en entier")
+        self.s_trim_voir.clicked.connect(self._montrer_debut_garde)
+        self.s_trim_tout.clicked.connect(self._coupe_tout)
+        coupe.addWidget(self.s_trim_voir)
+        coupe.addWidget(self.s_trim_tout)
+        autre = QLabel("Autre façon, en deux temps")
+        autre.setObjectName("note")
+        autre.setWordWrap(True)
+        coupe.addWidget(autre)
+        self.s_passage_deb = _bouton_secondaire(
+            "Ce passage inutile commence ici", "Ce passage inutile commence ici")
+        self.s_passage_fin = _bouton_secondaire(
+            "Le film reprend ici", "Le film reprend ici")
+        self.s_passage_deb.clicked.connect(self._passage_commence)
+        self.s_passage_fin.clicked.connect(self._passage_reprend)
+        coupe.addWidget(self.s_passage_deb)
+        coupe.addWidget(self.s_passage_fin)
+        self.s_passages_note = QLabel("Aucun passage du milieu n'est enlevé.")
+        self.s_passages_note.setWordWrap(True)
+        self.s_passages_note.setObjectName("note")
+        coupe.addWidget(self.s_passages_note)
+        self._passage_lignes: list[tuple[QLabel, QPushButton, QWidget]] = []
+        for i in range(_MAX_COUPES):
+            ligne = QWidget()
+            ligne.setMinimumWidth(0)
+            hl = QHBoxLayout(ligne)
+            hl.setContentsMargins(0, 0, 0, 0)
+            hl.setSpacing(8)
+            lab = QLabel("")
+            lab.setWordWrap(True)
+            lab.setMinimumWidth(0)
+            lab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            btn = _bouton_secondaire("Remettre", f"Remettre le passage {i + 1}", elargi=False)
+            btn.setProperty("indice", i)
+            btn.clicked.connect(self._remettre_depuis_bouton)
+            hl.addWidget(lab, 1)
+            hl.addWidget(btn, 0)
+            ligne.setVisible(False)
+            coupe.addWidget(ligne)
+            self._passage_lignes.append((lab, btn, ligne))
+        v.addWidget(self.s_coupe)
         self.s_compare = CompareView()
         v.addWidget(self.s_compare, 1)
         # comparer sans geste précis : trois gros boutons sous l'image
@@ -1149,10 +1548,11 @@ class MainWindow(QMainWindow):
         g = Carte("Aperçu avant / après", "comparer", "3", "extrait de 10 s")
         v = g.body
         h = QHBoxLayout()
-        self.start_spin = QDoubleSpinBox()
-        self.start_spin.setDecimals(0)
-        self.start_spin.setSuffix(" s")
+        self.start_spin = TempsSpin()
         self.start_spin.setRange(0, 0)
+        self.start_spin.setAccessibleName("Début de l'extrait à regarder")
+        self.start_spin.setToolTip("Moment du film montré dans l'aperçu de 10 secondes.")
+        self.start_spin.valueChanged.connect(lambda _v: self._rafraichir_barre())
         self.preview_btn = _with_icon(QPushButton("Générer l'aperçu"), "oeil")
         self.preview_btn.clicked.connect(self.start_preview)
         self.still_combo = QComboBox()
@@ -1196,22 +1596,77 @@ class MainWindow(QMainWindow):
         h.addWidget(self.out_edit, 1)
         h.addWidget(bo)
         v.addLayout(h)
-        h = QHBoxLayout()
-        self.trim_start = QDoubleSpinBox()
-        self.trim_end = QDoubleSpinBox()
-        for sp in (self.trim_start, self.trim_end):
-            sp.setDecimals(1)
-            sp.setRange(0, 0)
-            sp.setSuffix(" s")
-        self.trim_end.setSpecialValueText("jusqu'au bout")
+        bloc = QWidget()
+        bv = QVBoxLayout(bloc)
+        bv.setContentsMargins(0, 4, 0, 0)
+        bv.setSpacing(6)
+        titre = QLabel("Couper le début et la fin")
+        titre.setObjectName("note")
+        titre.setWordWrap(True)
+        bv.addWidget(titre)
+        self.trim_start = TempsSpin()
+        self.trim_end = TempsSpin()
+        self.trim_start.setSpecialValueText("dès le début")
+        self.trim_end.setSpecialValueText("à la fin")
+        self.trim_start.setAccessibleName("Le film commence à")
+        self.trim_end.setAccessibleName("Le film s'arrête à")
         self.trim_start.setToolTip("Pour ne pas garder la neige ou l'écran bleu du début.")
-        self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « jusqu'au bout » = tout garder.")
-        h.addWidget(_ilabel("Garder du début à :", "ciseaux"))
-        h.addWidget(self.trim_start)
-        h.addWidget(QLabel("jusqu'à :"))
-        h.addWidget(self.trim_end)
-        h.addStretch(1)
-        self._row_trim = _wrap(h)
+        self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « à la fin » = tout garder.")
+        for libelle, spin in (("Le film commence à", self.trim_start), ("Le film s'arrête à", self.trim_end)):
+            lab = QLabel(libelle)
+            lab.setWordWrap(True)
+            bv.addWidget(lab)
+            bv.addWidget(spin)
+        self.trim_note = QLabel()
+        self.trim_note.setWordWrap(True)
+        self.trim_note.setObjectName("note")
+        bv.addWidget(self.trim_note)
+        self.trim_ici_debut = QPushButton("Commencer à cet extrait")
+        self.trim_ici_fin = QPushButton("Arrêter après cet extrait")
+        self.trim_tout = QPushButton("Tout garder")
+        for b, ic in ((self.trim_ici_debut, "ciseaux"), (self.trim_ici_fin, "ciseaux"),
+                      (self.trim_tout, "film")):
+            _with_icon(b, ic)
+            b.setMinimumHeight(44)
+            b.setMinimumWidth(0)
+            b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            b.setCursor(Qt.PointingHandCursor)
+        self.trim_ici_debut.setToolTip("Le moment « Début de l'extrait » devient le début de la copie.")
+        self.trim_ici_fin.setToolTip("La copie s'arrête à la fin de cet extrait de 10 secondes.")
+        self.trim_ici_debut.setAccessibleName("Faire commencer le film au début de l'extrait")
+        self.trim_ici_fin.setAccessibleName("Faire arrêter le film après l'extrait")
+        self.trim_tout.setAccessibleName("Garder le film en entier")
+        self.trim_ici_debut.clicked.connect(lambda: self._coupe_depuis_extrait(False))
+        self.trim_ici_fin.clicked.connect(lambda: self._coupe_depuis_extrait(True))
+        self.trim_tout.clicked.connect(self._coupe_tout)
+        for b in (self.trim_ici_debut, self.trim_ici_fin, self.trim_tout):
+            bv.addWidget(b)
+        self.trim_couper = _bouton_secondaire("Couper ici", "Couper ici")
+        self.trim_couper.clicked.connect(self._couper_ici)
+        bv.addWidget(self.trim_couper)
+        for texte, sec in (("Enlever 10 secondes ici", 10),
+                           ("Enlever 30 secondes ici", 30),
+                           ("Enlever 1 minute ici", 60)):
+            b = _bouton_secondaire(texte, texte)
+            b.clicked.connect(lambda _=False, s=sec: self._passage_duree(s))
+            bv.addWidget(b)
+        self.trim_passage_deb = _bouton_secondaire(
+            "Ce passage inutile commence ici", "Ce passage inutile commence ici")
+        self.trim_passage_fin = _bouton_secondaire(
+            "Le film reprend ici", "Le film reprend ici")
+        self.trim_passage_annuler = _bouton_secondaire(
+            "Annuler la dernière coupe", "Annuler la dernière coupe")
+        self.trim_passage_deb.clicked.connect(self._passage_commence)
+        self.trim_passage_fin.clicked.connect(self._passage_reprend)
+        self.trim_passage_annuler.clicked.connect(self._passage_annuler)
+        for b in (self.trim_passage_deb, self.trim_passage_fin, self.trim_passage_annuler):
+            bv.addWidget(b)
+        self.trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_start,)))
+        self.s_trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_start,)))
+        self.trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_end,)))
+        self.s_trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_end,)))
+        self._dire_coupe()
+        self._row_trim = bloc
         v.addWidget(self._row_trim)
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
@@ -1313,6 +1768,8 @@ class MainWindow(QMainWindow):
                           "Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
                           "à côté, avec « restaure » dans son nom. À la fin, l'écran « C'est prêt » "
                           "propose de le regarder ou d'ouvrir le dossier.\n\n"
+                          "Pour enlever la neige du début ou la fin de bande : « Le film commence à » "
+                          "et « Le film s'arrête à », sous les trois boutons. Seule la copie est découpée.\n\n"
                           "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
         box.addButton("C'est parti", QMessageBox.AcceptRole)
@@ -1522,11 +1979,13 @@ class MainWindow(QMainWindow):
         # on les grise pour ne pas laisser croire qu'ils changent le travail en cours.
         for card in (self._card_media, self._card_info, self._card_profil, self._card_image, self._card_son):
             card.setEnabled(not busy)
-        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self.s_advice):
+        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self.s_advice,
+                   self.s_coupe):
             wd.setEnabled(not busy)
         # Photo : seuls le profil, la dominante, l'IA et la colorisation comptent. Les réglages
         # propres aux films sont cachés (ils n'auraient aucun effet).
         self._card_son.setVisible(not photo_mode)
+        self.s_coupe.setVisible(not photo_mode)
         for wd in (self._row_res, self._row_deint, self._row_edge, self._row_chroma, self.hq_check,
                    self.stab_check, self.start_label, self.start_spin, self._row_trim):
             wd.setVisible(not photo_mode)
@@ -1899,9 +2358,7 @@ class MainWindow(QMainWindow):
         self.cadence_combo.setItemText(0, f"Celle du fichier ({fps} images/s)")
         self.cadence_combo.setCurrentIndex(0)
         self._update_state()
-        for sp in (self.trim_start, self.trim_end):     # tout garder par défaut
-            sp.setRange(0, max(0.0, info.duration))
-            sp.setValue(0)
+        self._plage_coupe(info.duration)
         self.start_spin.setRange(0, max(0.0, info.duration - 10))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
         self.out_note = ""
@@ -1986,6 +2443,296 @@ class MainWindow(QMainWindow):
         if self.preview:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.restored)))
 
+    def _plage_coupe(self, duree: float) -> None:
+        """Tout garder, et la même plage sur les deux pages. Un nouveau film repart sans coupe."""
+        self._coupes = []
+        self._coupe_ouverte = None
+        self._texte_couper("Couper ici")
+        for sp in (self.trim_start, self.trim_end, self.s_trim_start, self.s_trim_end):
+            sp.blockSignals(True)
+            sp.setRange(0, max(0.0, duree))
+            sp.setValue(0)
+            sp.blockSignals(False)
+        self._dire_coupe()
+
+    def _propager_coupe(self, valeur: float, cibles: tuple) -> None:
+        for sp in cibles:
+            if abs(sp.value() - valeur) > 0.01:
+                sp.blockSignals(True)
+                sp.setValue(valeur)
+                sp.blockSignals(False)
+        self._dire_coupe()
+
+    def _dire_coupe(self) -> None:
+        if not getattr(self, "info", None) or getattr(self, "is_photo", False):
+            texte = ("Pour enlever la neige du début ou la fin de bande. "
+                     "L'original n'est pas modifié : seule la copie est découpée.")
+        else:
+            debut, fin = self.trim_start.value(), self.trim_end.value()
+            duree = self.info.duration
+            if debut <= 0 and fin <= 0:
+                texte = f"Tout le film est gardé ({_duree(duree)}). L'original n'est pas modifié."
+            else:
+                fin_eff = fin if fin > 0 else duree
+                garde = max(0.0, fin_eff - debut)
+                morceaux = [f"La copie gardera {_duree(garde)}."]
+                if debut > 0:
+                    morceaux.append(f"Les {_duree(debut)} du début ne seront pas dedans.")
+                if fin > 0 and (not duree or fin < duree - 0.5):
+                    morceaux.append(f"Après {_duree(fin)}, la fin ne sera pas dedans.")
+                morceaux.append("L'original n'est pas modifié.")
+                texte = " ".join(morceaux)
+        self.trim_note.setText(texte)
+        self.s_trim_note.setText(texte)
+        self._rafraichir_passages()
+
+    def _rafraichir_barre(self) -> None:
+        barre = getattr(self, "barre", None)
+        if barre is None:
+            return
+        if not self._film_pour_coupe() or not hasattr(self, "start_spin") or not hasattr(self, "trim_start"):
+            barre.definir(0, 0, 0, 0, [])
+            return
+        barre.definir(self.info.duration, self.start_spin.value(),
+                      self.trim_start.value(), self.trim_end.value(), self._coupes)
+
+    def _barre_cliquee(self, secondes: float) -> None:
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        self.start_spin.setValue(float(secondes))
+        self.status.setText(
+            f"Vous êtes à {_duree(secondes)}. Pour enlever un passage : "
+            "« Ce passage inutile commence ici », puis « Le film reprend ici ».")
+        self._rafraichir_barre()
+
+    def _texte_couper(self, texte: str) -> None:
+        for nom in ("s_couper", "trim_couper"):
+            bouton = getattr(self, nom, None)
+            if bouton is not None:
+                bouton.setText(texte)
+
+    def _couper_ici(self) -> None:
+        """Un clic : le passage commence. Le clic suivant : le film reprend."""
+        if self._coupe_ouverte is None:
+            self._passage_commence()
+            if self._coupe_ouverte is not None:
+                self._texte_couper("Le film reprend ici")
+            return
+        self._passage_reprend()
+        if self._coupe_ouverte is None:
+            self._texte_couper("Couper ici")
+
+    def _bord_bouge(self, index: int, est_fin: bool, temps: float) -> None:
+        """Déplace un seul bord, sans fusionner tant que la souris n'est pas relâchée."""
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        if index < 0 or index >= len(self._coupes):
+            return
+        duree = float(self.info.duration or 0.0)
+        a, b = self._coupes[index]
+        if est_fin:
+            b = max(a + _MIN_COUPE, min(float(temps), duree))
+        else:
+            a = min(b - _MIN_COUPE, max(float(temps), 0.0))
+        self._coupes[index] = (a, b)
+        self._rafraichir_passages()
+        self.status.setText(f"Ce passage va de {_duree(a)} à {_duree(b)}.")
+
+    def _bord_fini(self) -> None:
+        self._coupes = self._coupes_normalisees(self._coupes)
+        self._rafraichir_passages()
+        self.status.setText("Le passage est ajusté. Ce temps ne sera pas restauré.")
+
+    def _film_pour_coupe(self) -> bool:
+        return self.info is not None and not getattr(self, "is_photo", False)
+
+    def _passage_commence(self) -> None:
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        ici = float(self.start_spin.value())
+        self._coupe_ouverte = ici
+        self.status.setText(
+            f"Le passage inutile commence à {_duree(ici)}. "
+            "Placez l'extrait là où le film reprend, puis cliquez sur « Le film reprend ici ».")
+
+    def _passage_reprend(self) -> None:
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        if self._coupe_ouverte is None:
+            self.status.setText("Indiquez d'abord où le passage inutile commence.")
+            return
+        debut = float(self._coupe_ouverte)
+        fin = float(self.start_spin.value())
+        if fin < debut + _MIN_COUPE:
+            self.status.setText("Avancez un peu : un passage doit durer au moins une demi-seconde.")
+            return
+        nouveau = self._avec_nouvelle_coupe(debut, fin)
+        if nouveau is None:
+            self.status.setText(
+                "Huit passages suffisent. Restaurez cette copie, puis recommencez dessus si besoin.")
+            return
+        self._coupes = nouveau
+        self._coupe_ouverte = None
+        self._rafraichir_passages()
+        self.status.setText(f"De {_duree(debut)} à {_duree(fin)} ne sera pas dans la copie.")
+
+    def _passage_duree(self, secondes: float) -> None:
+        """Enlève d'un coup quelques secondes à partir de l'endroit choisi sur la barre."""
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        debut = float(self.start_spin.value())
+        fin = min(debut + float(secondes), float(self.info.duration))
+        if fin < debut + 0.5:
+            self.status.setText("Vous êtes trop près de la fin. Reculez un peu sur la barre.")
+            return
+        nouveau = self._avec_nouvelle_coupe(debut, fin)
+        if nouveau is None:
+            self.status.setText(
+                "Huit passages suffisent. Restaurez cette copie, puis recommencez dessus si besoin.")
+            return
+        self._coupes = nouveau
+        self._coupe_ouverte = None
+        self._rafraichir_passages()
+        self.status.setText(
+            f"De {_duree(debut)} à {_duree(fin)} ne sera pas restauré. "
+            "Le travail sera plus court d'autant.")
+
+    def _passage_annuler(self) -> None:
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        if not self._coupes:
+            self.status.setText("Aucun passage à remettre.")
+            return
+        self._coupes.pop()
+        self._rafraichir_passages()
+        self.status.setText("Le dernier passage est remis dans la copie.")
+
+    def _remettre_depuis_bouton(self) -> None:
+        btn = self.sender()
+        valeur = btn.property("indice") if btn is not None else 0
+        self._passage_remettre(int(valeur) if valeur is not None else 0)
+
+    def _passage_remettre(self, index: int) -> None:
+        if not self._film_pour_coupe():
+            self.status.setText("Choisissez d'abord un film.")
+            return
+        if index < 0 or index >= len(self._coupes):
+            self.status.setText("Aucun passage à remettre.")
+            return
+        del self._coupes[index]
+        self._rafraichir_passages()
+        self.status.setText("Ce passage est remis dans la copie.")
+
+    def _coupes_normalisees(self, coupes: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        """Les passages à enlever, fusionnés. On ne stocke pas les morceaux gardés."""
+        info = self.info if self._film_pour_coupe() else None
+        duree = float(info.duration) if info is not None else 0.0
+        if duree <= 0:
+            return _fusionner_coupes(coupes)
+        try:
+            gardes = pipeline.passages_gardes(duree, 0, 0, coupes)
+        except ToolError:
+            return _fusionner_coupes(coupes)
+        return _coupes_depuis_gardes(duree, gardes)
+
+    def _avec_nouvelle_coupe(self, debut: float, fin: float) -> list[tuple[float, float]] | None:
+        avant = list(self._coupes)
+        apres = self._coupes_normalisees([*avant, (debut, fin)])
+        if len(apres) > _MAX_COUPES:
+            return None
+        if _memes_coupes(avant, apres):
+            return avant
+        cible = next((iv for iv in apres if iv[0] <= debut + 1e-3 and iv[1] >= fin - 1e-3), None)
+        if cible is None:
+            return apres
+        return [iv for iv in apres if iv != cible] + [cible]
+
+    def _phrase_passages(self) -> str:
+        n = len(self._coupes)
+        if n == 0:
+            return "Aucun passage du milieu n'est enlevé."
+        base = ("1 passage ne sera pas dans la copie." if n == 1
+                else f"{n} passages ne seront pas dans la copie.")
+        if not self._film_pour_coupe() or not hasattr(self, "trim_start"):
+            phrase = base
+        else:
+            try:
+                gardes = pipeline.passages_gardes(
+                    self.info.duration, self.trim_start.value(), self.trim_end.value(), self._coupes)
+            except ToolError as exc:
+                phrase = f"{base} {ergonomie.expliquer(str(exc))[0]}"
+            else:
+                reste = sum(max(0.0, fin - debut) for debut, fin in gardes)
+                phrase = f"{base} La copie gardera {_duree(reste)}."
+        return f"{phrase} Ce temps ne sera pas restauré."
+
+    def _rafraichir_passages(self) -> None:
+        note = getattr(self, "s_passages_note", None)
+        if note is not None:
+            note.setText(self._phrase_passages())
+        lignes = getattr(self, "_passage_lignes", None)
+        if not lignes:
+            return
+        for i, (lab, btn, row) in enumerate(lignes):
+            if i < len(self._coupes):
+                a, b = self._coupes[i]
+                lab.setText(f"De {_duree(a)} à {_duree(b)}")
+                btn.setAccessibleName(f"Remettre le passage {i + 1}")
+                row.setVisible(True)
+            else:
+                row.setVisible(False)
+        self._rafraichir_barre()
+
+    def _coupe_tout(self) -> None:
+        self._coupes = []
+        self._coupe_ouverte = None
+        self._texte_couper("Couper ici")
+        for sp in (self.trim_start, self.trim_end):
+            sp.setValue(0)
+        self._rafraichir_passages()
+        self.status.setText("Tout le film sera gardé. L'original n'est pas modifié.")
+
+    def _coupe_depuis_extrait(self, fin: bool) -> None:
+        """Le début de l'aperçu (ou sa fin, 10 s plus loin) devient le début ou la fin de la copie."""
+        if not self.info or getattr(self, "is_photo", False):
+            self.status.setText("Choisissez d'abord un film, puis placez l'extrait.")
+            return
+        ici = self.start_spin.value()
+        if not fin:
+            if self.trim_end.value() and ici >= self.trim_end.value() - 0.5:
+                self.status.setText("Ce moment est après la fin choisie. Reculez l'extrait, ou repoussez la fin.")
+                return
+            self.trim_start.setValue(ici)
+            if ici <= 0:
+                self.status.setText("Le film commencera dès le début. Avancez « Début de l'extrait » pour couper la neige.")
+            else:
+                self.status.setText(f"Le film commencera à {_duree(ici)}.")
+            return
+        stop = min(self.info.duration or ici + 10, ici + 10)
+        if stop <= self.trim_start.value() + 0.5:
+            self.status.setText("Placez l'extrait plus loin : la fin doit être après le début.")
+            return
+        if self.info.duration and stop >= self.info.duration - 0.5:
+            self.trim_end.setValue(0)
+            self.status.setText("Le film ira jusqu'à la fin. Reculez l'extrait pour enlever la fin de bande.")
+            return
+        self.trim_end.setValue(stop)
+        self.status.setText(f"Le film s'arrêtera à {_duree(stop)}.")
+
+    def _montrer_debut_garde(self) -> None:
+        if not self.info or getattr(self, "is_photo", False):
+            self.status.setText("Choisissez d'abord un film pour placer l'aperçu.")
+            return
+        self.start_spin.setValue(min(self.trim_start.value(), self.start_spin.maximum()))
+        self.status.setText(f"L'aperçu partira à {_duree(self.start_spin.value())}. "
+                            "Cliquez sur « Voir l'avant / après ».")
+
     def start_export(self) -> None:
         if not self.info or self._busy():
             return
@@ -2011,15 +2758,23 @@ class MainWindow(QMainWindow):
             return
         try:
             out = pipeline.unique_output_path(info, s, out_dir)
-            start, length = pipeline.trim_window(info, self.trim_start.value(), self.trim_end.value())
+            gardes = pipeline.passages_gardes(
+                info.duration, self.trim_start.value(), self.trim_end.value(), self._coupes)
+            if len(gardes) < 2:
+                start, length = pipeline.trim_window(info, self.trim_start.value(), self.trim_end.value())
         except ToolError as exc:
             self.status.setText(ergonomie.expliquer(str(exc))[0])
             ergonomie.montrer_erreur(self, str(exc))
             return
         self.status.setText(f"Restauration vers {out.name}…")
-        self._launch(lambda c, p: pipeline.export(info, s, out, self.tools, cancel=c, progress=p,
-                                                  start=start, duration=length),
-                     self._export_done, job="export")
+        if len(gardes) >= 2:
+            self._launch(lambda c, p, g=list(gardes): pipeline.export(
+                info, s, out, self.tools, cancel=c, progress=p, passages=g),
+                self._export_done, job="export")
+        else:
+            self._launch(lambda c, p, st=start, ln=length: pipeline.export(
+                info, s, out, self.tools, cancel=c, progress=p, start=st, duration=ln),
+                self._export_done, job="export")
 
     def check_install(self) -> None:
         """Lance l'autotest (le même que celui de la fabrication Windows) et montre le rapport."""

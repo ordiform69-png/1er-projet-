@@ -26,6 +26,12 @@ def expliquer(message: str) -> tuple[str, str]:
                  "Essayez une autre copie du fichier.")
     elif "fin doit être après" in bas or "début choisi" in bas:
         clair = "Le début et la fin ne vont pas ensemble. La fin doit être après le début."
+    elif "ne resterait plus rien" in bas or "au moins un passage" in bas:
+        clair = "Il ne resterait plus rien du film. Laissez au moins un passage."
+    elif "passage au milieu" in bas:
+        clair = ("Enlever un passage au milieu ne va pas avec l'option choisie. "
+                 "Décochez l'amélioration par l'IA, les poussières ou la réparation de bande, "
+                 "ou n'enlevez que le début et la fin.")
     elif "ne peut pas être le fichier" in bas or "ne peut pas remplacer" in bas:
         clair = ("Le résultat ne peut pas remplacer le fichier d'origine. "
                  "Rien n'a été écrasé. Choisissez un autre dossier si besoin.")

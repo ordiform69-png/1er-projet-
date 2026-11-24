@@ -103,3 +103,53 @@ def test_gui_trim_and_check(tools, samples, tmp_path, monkeypatch):
     wait(win)
     assert win.status.text().startswith("Installation vérifiée") and "RÉSULTAT : OK" in shown[-1]
     win.close()
+
+
+def test_lire_temps():
+    from vhs_restore.gui import _lire_temps
+    assert _lire_temps("à la fin") == 0
+    assert _lire_temps("1:05") == 65
+    assert _lire_temps("1 min 05 s") == 65
+    assert _lire_temps("1 h 04 min") == 3600 + 4 * 60
+    assert _lire_temps("90") == 90
+
+
+def test_coupe_lisible(tools, samples):
+    """Le découpage se lit en minutes, et l'extrait peut devenir le début ou la fin."""
+    pytest.importorskip("PySide6")
+    from PySide6.QtWidgets import QApplication
+    from vhs_restore.gui import MainWindow
+    app = QApplication.instance() or QApplication([])
+
+    def wait(win):
+        while win.worker is not None and win.worker.isRunning():
+            app.processEvents()
+            win.worker.wait(20)
+        for _ in range(5):
+            app.processEvents()
+
+    win = MainWindow(tools)
+    win.load_file(str(samples["long"]))
+    wait(win)
+    assert win.trim_start.value() == 0
+    assert win.trim_start.text() == "dès le début"
+    assert win.trim_end.text() == "à la fin"
+    win.start_spin.setValue(30)
+    win.trim_ici_debut.click()
+    assert win.trim_start.value() == 30 and win.s_trim_start.value() == 30
+    assert win.trim_start.text() == "30 secondes"
+    assert "commencera" in win.status.text()
+    win.trim_ici_fin.click()
+    assert win.trim_end.value() == 40 and win.s_trim_end.value() == 40
+    assert "gardera" in win.s_trim_note.text()
+    win.s_trim_start.setValue(65)
+    assert win.trim_start.value() == 65
+    assert win.trim_start.text() == "1 min 05 s"
+    win.s_trim_voir.click()
+    assert win.start_spin.value() == 65
+    assert "aperçu" in win.status.text()
+    win.s_trim_tout.click()
+    assert win.trim_start.value() == 0 and win.trim_end.value() == 0
+    assert "gardé" in win.status.text()
+    win.close()
+

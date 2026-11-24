@@ -613,4 +613,35 @@ Aucun traitement n'a changé (mêmes filtres, mêmes profils, case de conseils t
 - **Clavier** : Entrée active l'étape encadrée, ordre de tabulation, noms pour le lecteur d'écran,
   focus visible. Un bouton « ? » à côté des cases dont le détail était seulement en infobulle.
 
+## Découpage du début et de la fin, en langage clair (phase 22)
+
+Le réglage existait déjà (secondes brutes, options avancées seulement, libellé
+« Garder du début à … jusqu'à »). Rien ne change dans `trim_window` ni dans les filtres.
+
+- Les durées s'affichent « 1 min 05 s » ou « 1 h 04 min ». La valeur interne reste des secondes.
+  On peut aussi taper `1:05` ou `90`.
+- Le même réglage est sur la page simple : « Le film commence à » / « Le film s'arrête à »,
+  une phrase qui dit combien de temps la copie gardera, « Tout garder », et
+  « Montrer ce début dans l'aperçu ».
+- Dans les options avancées, « Commencer à cet extrait » et « Arrêter après cet extrait »
+  recopient le moment de l'aperçu (10 secondes). 0 reste « dès le début » / « à la fin ».
+- Une photo n'affiche pas ce bloc. L'original n'est jamais coupé.
+
+## Passages enlevés au milieu (phase 23)
+
+On peut enlever plusieurs passages au milieu d'un film, pas seulement le début et la fin.
+Chaque morceau gardé est restauré seul : les scènes enlevées ne sont pas traitées, ce qui
+raccourcit le travail. Les morceaux sont ensuite assemblés sans seconde compression.
+Ce n'est pas compatible avec l'amélioration IA, les poussières, la réparation de bande,
+ni le re-cadencement de la pellicule.
+
+La barre du film est dessinée dans l'application (aucun code de Clipchamp, OpenShot ou
+LosslessCut). Un clic place l'extrait. En doré : ce qui ne sera pas restauré.
+Les flèches gauche et droite déplacent d'une seconde.
+On fait glisser le curseur pour se placer. « Couper ici » une fois pour le
+début du passage, une seconde fois pour la fin. Les bords dorés, avec un
+petit carré blanc, se tirent pour ajuster. Rien n'est fusionné tant que
+le bouton de la souris reste enfoncé.
+
+
 
