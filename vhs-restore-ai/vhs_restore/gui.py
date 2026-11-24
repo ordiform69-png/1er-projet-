@@ -1655,6 +1655,11 @@ class MainWindow(QMainWindow):
         back.setCursor(Qt.PointingHandCursor)
         back.clicked.connect(lambda: self.set_advanced(False))
         outer.addWidget(back, 0, Qt.AlignLeft)
+        rap = QPushButton("Préparer un rapport pour mon fils")
+        rap.setMinimumHeight(48)
+        rap.setToolTip("Crée un fichier à envoyer à votre fils. Ni film ni photo.")
+        rap.clicked.connect(self._preparer_rapport)
+        outer.addWidget(rap, 0, Qt.AlignLeft)
         root = self._colonnes = QBoxLayout(QBoxLayout.LeftToRight)
         outer.addLayout(root, 1)
         left = QVBoxLayout()
@@ -2257,6 +2262,20 @@ class MainWindow(QMainWindow):
                                  "de la fenêtre "
                                  + (f"({t.realesrgan.problem})" if t.realesrgan.problem else ""))
 
+
+    def _preparer_rapport(self) -> None:
+        from . import rapport
+        journaux = [Path.home() / "vhs_restore.log", Path("vhs_restore.log")]
+        try:
+            dest, msg = rapport.preparer_rapport(
+                [p for p in journaux if p.is_file()], None,
+                "VHS Restore AI", self.tools.summary() if hasattr(self.tools, "summary") else "")
+        except Exception as exc:
+            QMessageBox.warning(self, "Rapport", "Le rapport n'a pas pu être créé. "
+                                "Fermez le logiciel, rouvrez-le, puis réessayez.")
+            return
+        QMessageBox.information(self, "Rapport", f"{msg}\nNom du fichier : {dest.name}")
+
     def show_welcome(self) -> None:
         """Mode d'emploi en trois étapes (au premier lancement, puis par le bouton « Aide »)."""
         box = QMessageBox(QMessageBox.Information, "Bienvenue dans VHS Restore AI",
@@ -2278,8 +2297,11 @@ class MainWindow(QMainWindow):
                           "Seule la copie est découpée.\n\n"
                           "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
-        box.addButton("C'est parti", QMessageBox.AcceptRole)
+        parti = box.addButton("C'est parti", QMessageBox.AcceptRole)
+        rap = box.addButton("Préparer un rapport pour mon fils", QMessageBox.ActionRole)
         box.exec()
+        if box.clickedButton() is rap:
+            self._preparer_rapport()
 
     def maybe_welcome(self) -> None:
         """Premier lancement : montre le mode d'emploi une fois."""
