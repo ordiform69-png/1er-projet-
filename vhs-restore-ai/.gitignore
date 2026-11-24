@@ -3,3 +3,5 @@ tools/
 .pytest_cache/
 build/
 dist/
+
+__pycache__/
