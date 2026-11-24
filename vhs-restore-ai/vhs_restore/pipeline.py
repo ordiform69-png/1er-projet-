@@ -659,6 +659,11 @@ def disk_needs(info: MediaInfo, s: Settings, start: float | None = None,
             # désentrelacement ffv1 avant Analog Repair (vidéo : une image par trame)
             frames = 2 if s.source == "video" else 1
             temp += info.width * info.height * float(info.fps) * frames * dur
+    if s.use_ai:
+        images = int(dur * output_fps(info, s)) + 1
+        pixels = info.width * info.height
+        temp += images * pixels * 1.5 * 0.7
+        temp += min(images, AI_CHUNK_FRAMES) * pixels * 3 * (1 + RealEsrganUpscaler.scale ** 2)
     if s.restore_audio and s.profile.deepfilter and info.has_audio:
         temp += dur * 48000 * 2 * 2 * 2   # WAV source + WAV nettoyé
     return final, temp
@@ -683,7 +688,7 @@ def check_disk_space(info: MediaInfo, s: Settings, out_dir: Path, start: float |
             continue
         free = shutil.disk_usage(path).free
         prev = roots.get(dev, (path, 0.0, free))
-        roots[dev] = (prev[0], prev[1] + need, free)
+        roots[dev] = (prev[0], prev[1] + need, min(prev[2], free))
     for path, need, free in roots.values():
         if free < need * 1.1:
             raise ToolError(f"Espace disque insuffisant dans {path} : il faut environ "
@@ -897,8 +902,7 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         check_fat32(info, s, Path(out_path).parent, None, sum(max(0.0, b - a) for a, b in passages))
         return _export_morceaux(info, s, out_path, tools, cancel, progress, passages)
     check_fat32(info, s, Path(out_path).parent, start, duration)
-    if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
-        check_disk_space(info, s, Path(out_path).parent, start, duration)
+    check_disk_space(info, s, Path(out_path).parent, start, duration)
     if s.dust or _tape_job(s):
         return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
     out_path = Path(out_path).resolve()
@@ -1201,14 +1205,7 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                df_wav: Path | None = None, present: frozenset[str] | None = None) -> None:
     upscaler = RealEsrganUpscaler(tools.realesrgan)
     fps = output_fps(info, s)
-    frames_est = int(total * fps) + 1
-    px = info.width * info.height
-    need = frames_est * px * 1.5 * 0.7 + AI_CHUNK_FRAMES * px * 3 * (1 + upscaler.scale ** 2)
     root = _work_root()
-    free = shutil.disk_usage(root).free
-    if free < need * 1.2:
-        raise ToolError(f"Espace disque insuffisant dans {root} : environ {need / 1e9:.1f} Go "
-                        f"nécessaires, {free / 1e9:.1f} Go libres.")
     tmp = Path(tempfile.mkdtemp(prefix="vhsrestore_", dir=root))
     enc: subprocess.Popen | None = None
     try:

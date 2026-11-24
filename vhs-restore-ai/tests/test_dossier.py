@@ -89,3 +89,25 @@ def test_delai_deuxieme_photo(tmp_path, tools, monkeypatch):
     res = pipeline.restore_folder(tmp_path, tools, lambda i: pipeline.Settings(profile_for("fidele")))
     assert len(res.done) == 2 and res.done[-1].name.startswith("3")
     assert res.errors == [("2.png", "La lecture de ce fichier a pris trop de temps.")]
+
+
+def test_espace_ia_sur_destination_avant_traitement(samples, tools, tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    info = analyze(samples["prog"], tools)
+    s = pipeline.Settings(profile_for("fidele"), use_ai=True)
+    temp = tmp_path / "travail"
+    temp.mkdir()
+    monkeypatch.setenv("VHSRA_TMP", str(temp))
+    # Deux identifiants de volume, indépendants du montage réel du répertoire de test.
+    original = pipeline.os
+    class Volumes:
+        def __getattr__(self, key):
+            return getattr(original, key)
+        def stat(self, path):
+            return SimpleNamespace(st_dev=2 if Path(path) == temp else 1)
+    monkeypatch.setattr(pipeline, "os", Volumes())
+    monkeypatch.setattr(shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(
+        10**12, 0, 10**12 if Path(p) == temp else 1))
+    with pytest.raises(ToolError, match="Espace disque insuffisant"):
+        pipeline.export(info, s, tmp_path / "sortie.mp4", tools)
+    assert not list(temp.iterdir())
