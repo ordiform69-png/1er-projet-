@@ -5,6 +5,8 @@ Toutes les commandes sont lancées sous forme de liste d'arguments
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
+import time
 from contextlib import contextmanager
 import tempfile
 import collections
@@ -247,10 +249,48 @@ def ff_input(path: str | Path) -> list[str]:
     return ["-i", p]
 
 
+_arret = ContextVar("arret_sondage", default=None)
+
+
+@contextmanager
+def sondages_annulables(event):
+    jeton = _arret.set(event)
+    try:
+        yield
+    finally:
+        _arret.reset(jeton)
+
+
+def capture(cmd, *, timeout, **options):
+    event = _arret.get()
+    if event is None:
+        return subprocess.run(cmd, timeout=timeout, **options)
+    if event.is_set():
+        raise Cancelled()
+    options.pop("capture_output")
+    limite = time.monotonic() + timeout
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **options) as proc:
+        try:
+            while not event.is_set():
+                reste = limite - time.monotonic()
+                if reste <= 0:
+                    raise subprocess.TimeoutExpired(cmd, timeout)
+                try:
+                    stdout, stderr = proc.communicate(timeout=min(0.15, reste))
+                    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+                except subprocess.TimeoutExpired:
+                    continue
+            raise Cancelled()
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.communicate()
+
+
 def run_capture(cmd: list[str], timeout: float = 60) -> subprocess.CompletedProcess:
     """Commande courte : renvoie stdout/stderr séparés (UTF-8)."""
     log.debug("exec: %s", cmd)
-    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+    return capture(cmd, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", timeout=timeout, stdin=subprocess.DEVNULL,
                           creationflags=_NO_WINDOW)
 

@@ -40,6 +40,9 @@ VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *
                 "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp);;Tous les fichiers (*)")
 
 
+from .tools import sondages_annulables
+
+
 class Worker(QThread):
     """Exécute fn(cancel, progress) hors du thread graphique."""
     progressed = Signal(float, str)
@@ -55,7 +58,8 @@ class Worker(QThread):
     def run(self) -> None:
         _keep_awake(True)
         try:
-            res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
+            with sondages_annulables(self.cancel_event):
+                res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
         except Cancelled:
             self.cancelled.emit()
         except ToolError as exc:
@@ -3563,6 +3567,9 @@ class MainWindow(QMainWindow):
         self._fini_a_rendre = False
 
     def _on_finished(self) -> None:
+        if getattr(self, "_fermeture_demandee", False):
+            QTimer.singleShot(0, self.close)
+            return
         if getattr(self, "_apercu_a_montrer", False):
             self._apercu_a_montrer = False
             QTimer.singleShot(120, self._montrer_apercu)     # après la remise en page de la zone
@@ -3576,13 +3583,19 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, e) -> None:  # noqa: N802
         if self._busy():
+            if getattr(self, "_fermeture_demandee", False):
+                e.ignore()
+                return
             if not self._question("Quitter", "Un travail est en cours. L'arrêter et quitter ?",
                                   "Oui, arrêter et quitter", "Non, continuer"):
                 e.ignore()
                 return
             if self._busy():                        # le travail a pu finir pendant la question
+                self._fermeture_demandee = True
                 self.worker.cancel_event.set()
-                self.worker.wait(15000)
+                self.status.setText("Arrêt en cours. La fenêtre va se fermer.")
+                e.ignore()
+                return
         self._save_prefs()
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()

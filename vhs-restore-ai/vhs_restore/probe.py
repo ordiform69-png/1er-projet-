@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from pathlib import Path
 
-from .tools import _NO_WINDOW, ToolError, Toolset, ff_input, run_capture
+from .tools import capture, _NO_WINDOW, ToolError, Toolset, ff_input, run_capture
 
 SD_SIZES = {(720, 576), (704, 576), (720, 480), (704, 480), (720, 486), (352, 288), (352, 240)}
 IDET_FRAMES = 600
@@ -203,7 +203,7 @@ def parse_signals(text: str) -> dict[str, float | None]:
 def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float, float] | None:
     """Moyenne R, G, B sur quelques images réduites. Une seule lecture courte."""
     try:
-        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
                             "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
                             "-map", "0:v:0", "-vf", "scale=32:32,format=rgb24",
                             "-frames:v", "8", "-an", "-f", "rawvideo", "-"],
@@ -255,7 +255,7 @@ def edge_damage(ffmpeg: str, path: Path, width: int, start: float = 0.0, frames:
     vf = (f"[0:v:0]select='not(mod(n\\,12))',scale={width}:144:flags=area,split[a][b];"
           f"[a]crop={w}:144:0:0[l];[b]crop={w}:144:{width - w}:0,hflip[r];[l][r]hstack,format=rgb24")
     try:
-        r = subprocess.run([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
                             "-ss", f"{max(0.0, start):.3f}", "-i", str(path),
                             "-filter_complex", vf, "-frames:v", str(frames), "-an", "-f", "rawvideo", "-"],
                            capture_output=True, timeout=120, stdin=subprocess.DEVNULL,
