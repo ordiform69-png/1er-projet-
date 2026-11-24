@@ -166,10 +166,15 @@ def effacer(path: Path) -> None:
         pass
 
 
-def verifier_chemin(path: Path) -> None:
+def verifier_chemin(path: Path, *, origine: bool = False) -> None:
     """Windows refuse souvent les chemins de plus de 260 caractères : on le dit AVANT de travailler."""
     if IS_WIN and len(str(Path(path).resolve())) >= 250:
-        raise ToolError(f"Le chemin du fichier à créer est trop long pour Windows ({len(str(path))} caractères). "
+        n = len(str(Path(path)))
+        if origine:
+            raise ToolError(
+                f"Le chemin du film d'origine est trop long pour Windows ({n} caractères). "
+                "Déplacez le film dans un dossier plus court (par exemple « Vidéos »), puis recommencez.")
+        raise ToolError(f"Le chemin du fichier à créer est trop long pour Windows ({n} caractères). "
                         "Choisissez un dossier de sortie plus court (par exemple « Vidéos »), ou raccourcissez "
                         "le nom du film, puis recommencez.")
 

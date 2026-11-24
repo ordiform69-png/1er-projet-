@@ -138,6 +138,33 @@ def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event 
         what="7-Zip (extraction)")
 
 
+def _poser_installation(staged: Path, final: Path, nom: str) -> None:
+    """Remplace l'installation précédente. Si le programme est ouvert, on ne l'efface pas."""
+    ancien = final.with_name(final.name + ".ancien")
+    deplace = False
+    if final.exists():
+        if ancien.exists():
+            shutil.rmtree(ancien, ignore_errors=True)
+        try:
+            final.rename(ancien)
+        except PermissionError:
+            raise ToolError(
+                f"{nom} est ouvert dans un autre programme. Fermez-le, puis recommencez l'installation. "
+                "Rien n'a été désinstallé.") from None
+        deplace = True
+    try:
+        shutil.move(str(staged), final)
+    except Exception:
+        if deplace and ancien.exists() and not final.exists():
+            try:
+                ancien.rename(final)
+            except OSError:
+                pass
+        raise
+    if deplace and ancien.exists():
+        shutil.rmtree(ancien, ignore_errors=True)
+
+
 def install(key: str, *, cancel: threading.Event | None = None, progress: Progress | None = None,
             root: Path | None = None) -> Path:
     """Télécharge, vérifie et installe l'outil `key`. Renvoie le chemin du fichier installé."""
@@ -181,9 +208,7 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
             shutil.move(str(dl), staged / p.file_name)
         if cancel is not None and cancel.is_set():
             raise Cancelled()
-        if final.exists():
-            shutil.rmtree(final)
-        shutil.move(str(staged), final)
+        _poser_installation(staged, final, p.name)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     if progress:

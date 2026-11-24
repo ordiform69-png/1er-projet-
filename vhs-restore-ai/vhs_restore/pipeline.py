@@ -647,9 +647,14 @@ def disk_needs(info: MediaInfo, s: Settings, start: float | None = None,
 
 
 def check_disk_space(info: MediaInfo, s: Settings, out_dir: Path, start: float | None = None,
-                     duration: float | None = None) -> None:
-    """Refuse de commencer s'il ne reste pas assez de place (le mode IA a son propre contrôle)."""
+                     duration: float | None = None, extra_temp: float = 0.0) -> None:
+    """Refuse de commencer s'il ne reste pas assez de place (le mode IA a son propre contrôle).
+
+    extra_temp : octets en plus dans le dossier temporaire (les morceaux d'une coupe au milieu,
+    présents en même temps que le fichier final).
+    """
     final, temp = disk_needs(info, s, start, duration)
+    temp += max(0.0, extra_temp)
     roots = {}
     for path, need in ((Path(out_dir), final), (Path(_work_root()), temp)):
         if need <= 0:
@@ -777,6 +782,25 @@ def passages_gardes(duree: float, debut: float, fin: float,
     return gardes
 
 
+def bornes_a_exporter(duree: float, debut: float, fin: float,
+                      coupes: list[tuple[float, float]]
+                      ) -> tuple[list[tuple[float, float]], float | None, float | None]:
+    """Intervalles gardés, puis (début, durée) quand il n'en reste qu'un.
+
+    Deux intervalles ou plus : une coupe au milieu. (début, durée) vaut (None, None) ;
+    l'appelant passe la liste à export(..., passages=). Un seul intervalle plus court
+    que le film (coupe collée au début ou à la fin) : (début, durée) comme trim_window,
+    sinon le film entier partirait alors que l'écran annonce un temps plus court.
+    """
+    gardes = passages_gardes(duree, debut, fin, coupes)
+    if len(gardes) >= 2:
+        return gardes, None, None
+    a, b = gardes[0]
+    if a <= 0 and (not duree or b >= float(duree) - 1e-3):
+        return gardes, None, None
+    return gardes, (a if a > 0 else None), (b - a)
+
+
 def filtres_passages(chaine: str, plages: list[tuple[float, float]], *, audio: bool) -> str:
     """Enveloppe une chaîne -vf ou -af : ne garde que des plages relatives au temps 0
     (après -ss), puis les enchaîne. À n'appeler que si len(plages) >= 2.
@@ -826,6 +850,7 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     ignoré, le début et la fin seuls restent comme avant.
     """
     tools.require_ffmpeg()
+    verifier_chemin(Path(info.path), origine=True)
     if passages is not None and len(passages) >= 2:
         if s.use_ai or s.dust or _tape_job(s) or retime(info, s):
             raise ToolError(
@@ -929,7 +954,9 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
     durees = [max(0.0, b - a) for a, b in gardes]
     somme = sum(durees) or 1.0
     if not s.use_ai:
-        check_disk_space(info, s, out_path.parent, None, somme)
+        final, _ = disk_needs(info, s, None, somme)
+        # Les morceaux restaurés sont sur le disque temporaire en même temps que le résultat.
+        check_disk_space(info, s, out_path.parent, None, somme, extra_temp=final)
     part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
     verifier_chemin(part)                   # chemin trop long pour Windows : dit avant de travailler
     travail = Path(tempfile.mkdtemp(prefix="vhsrestore_morceaux_", dir=_work_root()))

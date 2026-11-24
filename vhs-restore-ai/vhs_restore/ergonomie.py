@@ -19,8 +19,10 @@ def expliquer(message: str) -> tuple[str, str]:
                                                   or "trop ancien" in bas):
         clair = ("Le logiciel est incomplet (un de ses outils manque). "
                  "Réinstallez-le à partir du fichier téléchargé, puis recommencez.")
-    elif "renommez ce fichier" in bas or "chemin du fichier à créer est trop long" in bas \
-            or "fat32" in bas:
+    elif ("renommez ce fichier" in bas or "chemin du fichier à créer est trop long" in bas
+            or "chemin du film d'origine est trop long" in bas
+            or "fermez-le, puis recommencez l'installation" in bas
+            or "fat32" in bas):
         clair = brut                        # message déjà écrit pour la personne : il dit quoi faire
     elif any(mot in bas for mot in ("permission denied", "errno 13", "winerror 32", "winerror 5",
                                     "used by another process", "read-only file system", "lecture seule",

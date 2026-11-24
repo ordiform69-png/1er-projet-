@@ -2,15 +2,21 @@
 rem Installation de VHS Restore AI.
 rem Options : -AvecIA (Real-ESRGAN)  -AvecQTGMC (VapourSynth + QTGMC, Python 3.12+)  -AvecPoussieres (Analog Repair : poussières, bruit de bande)  -AvecSon (DeepFilterNet)  -AvecCouleurs (colorisation des photos noir et blanc, DDColor)
 chcp 65001 >nul
-cd /d "%~dp0"
+rem cmd refuse « cd » vers \\serveur\... : pushd accepte un disque reseau le temps de l'installation.
+set "ICI=%~dp0"
+pushd "%ICI%"
+if errorlevel 1 (
+  echo Impossible d'ouvrir ce dossier. S'il est sur un disque reseau, copiez-le sur l'ordinateur.
+  pause
+  exit /b 1
+)
 set "PY=python"
 where py >nul 2>nul && set "PY=py -3"
 %PY% -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>nul
 if errorlevel 1 (
   echo Python 3.10 ou plus recent est requis : https://www.python.org/downloads/
   echo Cochez "Add python.exe to PATH" pendant son installation.
-  pause
-  exit /b 1
+  goto erreur
 )
 if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erreur
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt || goto erreur
@@ -39,9 +45,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\installer_outils.ps
 echo.
 echo Installation terminee. Double-cliquez sur lancer.bat pour demarrer.
 pause
+popd
 exit /b 0
 :erreur
 echo.
 echo L'installation a echoue. Verifiez votre connexion Internet et relancez installer.bat.
 pause
+popd
 exit /b 1

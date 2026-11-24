@@ -702,6 +702,7 @@ class BarreFilm(QWidget):
     clique = Signal(float)
     borde = Signal(int, bool, float)
     borde_fini = Signal()
+    valider = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -753,15 +754,15 @@ class BarreFilm(QWidget):
         return max(0.0, min(self.duree, (float(x) - float(r.left())) / float(r.width()) * self.duree))
 
     def _bord_sous(self, x: float) -> tuple[int, bool] | None:
-        """Bord doré à 10 px près. Le plus proche l'emporte. None si la piste est vide."""
+        """Bord doré : zone cliquable d'au moins 44 px. Le plus proche l'emporte."""
         if self.duree <= 0 or not self.coupes:
             return None
         choisi: tuple[int, bool] | None = None
-        ecart = 11.0
+        ecart = 45.0
         for i, (a, b) in enumerate(self.coupes):
             for est_fin, moment in ((False, a), (True, b)):
                 d = abs(float(x) - self._x_de(moment))
-                if d <= 10.0 and d < ecart:
+                if d <= 44.0 and d < ecart:
                     choisi = (i, est_fin)
                     ecart = d
         return choisi
@@ -813,6 +814,9 @@ class BarreFilm(QWidget):
             self.clique.emit(max(0.0, self.position - 1.0))
         elif event.key() == Qt.Key_Right:
             self.clique.emit(min(self.duree, self.position + 1.0))
+        elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            event.accept()
+            self.valider.emit()
         else:
             super().keyPressEvent(event)
 
@@ -1121,6 +1125,7 @@ class MainWindow(QMainWindow):
         self.barre.clique.connect(self._barre_cliquee)
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
+        self.barre.valider.connect(self._couper_ici)
         dans.addWidget(self.barre)
         legende = QLabel("Bleu : ce qui sera restauré. Doré : ce qui est enlevé.")
         legende.setWordWrap(True)
@@ -2617,7 +2622,7 @@ class MainWindow(QMainWindow):
                 if self.s_voir.isVisible():
                     self.s_voir.click()
                 return
-            if not isinstance(focus, (QLineEdit, QAbstractSpinBox, QComboBox)):
+            if not isinstance(focus, (QLineEdit, QAbstractSpinBox, QComboBox, BarreFilm)):
                 for b in (self.s_choose, self.s_preview, self.s_run):
                     if b.suggested and b.isEnabled():
                         b.click()
@@ -2716,7 +2721,7 @@ class MainWindow(QMainWindow):
         self.cadence_combo.setCurrentIndex(0)
         self._update_state()
         self._plage_coupe(info.duration)
-        self.start_spin.setRange(0, max(0.0, info.duration - 10))
+        self.start_spin.setRange(0, max(0.0, info.duration))
         self.start_spin.setValue(min(info.duration * 0.1, max(0.0, info.duration - 10)))
         self.out_note = ""
         if (not self._out_manual or not self.out_edit.text()
@@ -2965,6 +2970,8 @@ class MainWindow(QMainWindow):
             return
         nouveau = self._avec_nouvelle_coupe(debut, fin)
         if nouveau is None:
+            self._coupe_ouverte = None
+            self._texte_couper("Couper ici")
             self.status.setText(
                 "Huit passages suffisent. Restaurez cette copie, puis recommencez dessus si besoin.")
             return
@@ -2985,6 +2992,8 @@ class MainWindow(QMainWindow):
             return
         nouveau = self._avec_nouvelle_coupe(debut, fin)
         if nouveau is None:
+            self._coupe_ouverte = None
+            self._texte_couper("Couper ici")
             self.status.setText(
                 "Huit passages suffisent. Restaurez cette copie, puis recommencez dessus si besoin.")
             return
@@ -2998,6 +3007,11 @@ class MainWindow(QMainWindow):
     def _passage_annuler(self) -> None:
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
+            return
+        if self._coupe_ouverte is not None:
+            self._coupe_ouverte = None
+            self._texte_couper("Couper ici")
+            self.status.setText("La coupe commencée est annulée.")
             return
         if not self._coupes:
             self.status.setText("Aucun passage à remettre.")
@@ -3184,10 +3198,8 @@ class MainWindow(QMainWindow):
             return
         try:
             out = pipeline.unique_output_path(info, s, out_dir)
-            gardes = pipeline.passages_gardes(
+            gardes, start, length = pipeline.bornes_a_exporter(
                 info.duration, self.trim_start.value(), self.trim_end.value(), self._coupes)
-            if len(gardes) < 2:
-                start, length = pipeline.trim_window(info, self.trim_start.value(), self.trim_end.value())
         except ToolError as exc:
             self.status.setText(ergonomie.expliquer(str(exc))[0])
             ergonomie.montrer_erreur(self, str(exc))

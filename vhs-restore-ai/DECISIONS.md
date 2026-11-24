@@ -803,3 +803,23 @@ Demande n°7 : six rôles, le chef tranche. Rien n'a été changé dans les filt
 - Le mode d'emploi et la fenêtre « Bienvenue » expliquent « Couper ici ». L'erreur de coupe
   nomme les cases telles qu'à l'écran, plus « réparations de bande ».
 
+## Équipe, vague 2 (phase 28)
+
+Toujours aucun filtre modifié.
+
+- Une coupe qui ne laisse qu'un seul morceau (début ou fin enlevé) est vraiment envoyée
+  à l'export : avant, l'écran annonçait un film plus court et le film entier partait.
+- Le curseur de la barre va de 0 jusqu'à la fin du film, y compris sur un film de moins
+  de 10 secondes. L'aperçu, lui, reste calé pour tenir dans le film.
+- Entrée sur la barre pose la coupe. Elle ne lance plus « Voir l'avant / après » ni « Restaurer ».
+- La zone pour tirer un bord doré fait 44 px (le carré dessiné reste petit). La barre
+  ne descend pas sous 56 px.
+- Au-delà de huit passages, ou avec « Annuler la dernière coupe » pendant un geste commencé,
+  le bouton revient à « Couper ici » sans retirer une coupe déjà posée.
+- Les morceaux d'une coupe au milieu réservent leur place sur le disque temporaire.
+  La copie sans passages vides refuse une clé FAT32 si elle dépasserait 4 Go.
+  Un film dont le chemin dépasse 250 caractères est signalé (il faut le déplacer).
+  `lancer.bat` ne fait plus `cd` (un dossier `\\serveur\` échouait).
+  Réinstaller LosslessCut ou Shotcut pendant qu'il est ouvert ne l'efface plus.
+- Le décalage son / image n'est pas retiré des morceaux : chaque morceau repart à zéro.
+

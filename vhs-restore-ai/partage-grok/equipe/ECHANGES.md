@@ -32,3 +32,18 @@ Sujet : vague 1 retenue
 Message : On fait la molette, le cadre caché sans film, la phrase d'arrêt, le mode d'emploi, la bienvenue et les noms de cases dans l'erreur. On ne change aucun filtre. On ne cache pas les noms LosslessCut et Shotcut : Windows les affiche. On ne déplace pas l'aperçu ni le bouton dossier dans cette vague (risque de casser la mise en page de la phase 24).
 Réponse attendue : relecture Contrôle sur le diff, puis PR
 
+### E-007 · 2026-11-24 05:20 · De : Montage → À : Chef
+Sujet : six trous dans « Enlever une scène »
+Message : Une coupe collée au début ou à la fin ne laisse qu'un intervalle : l'export gardait tout le film. Le curseur ne dépasse pas 10 s avant la fin. Entrée sur la barre lance l'étape conseillée. Les bords se prennent à 10 px. À la 9e coupe, le geste commencé reste ouvert. Le décalage du son est rejoué dans chaque morceau.
+Réponse attendue : arbitrage
+
+### E-008 · 2026-11-24 05:30 · De : Windows → À : Chef
+Sujet : ce qui casse encore hors de l'écran
+Message : Copie sans vides au-delà de 4 Go sur une clé ; morceaux temporaires non comptés sur le disque de travail ; `cd` refuse un chemin `\\serveur\` ; un film trop profond n'est pas signalé ; réinstaller LosslessCut pendant qu'il est ouvert peut l'effacer à moitié. La veille est déjà empêchée par `_keep_awake`.
+Réponse attendue : arbitrage
+
+### E-009 · 2026-11-24 05:40 · Réponse à E-007, E-008 · De : Chef → À : Montage, Windows
+Sujet : vague 2 retenue
+Message : On corrige les cinq premiers points du montage et les cinq points Windows. On ne touche pas au décalage du son (D-008) ni à la veille (D-009). Les filtres ne changent pas. Pas de manifeste longPathAware dans cette vague.
+Réponse attendue : tests ciblés, puis PR sans fusion
+

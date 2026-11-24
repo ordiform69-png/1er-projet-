@@ -134,3 +134,83 @@ def test_mode_ia_avec_pourcent_dans_le_dossier_temporaire(tools, tmp_path, monke
     s = dataclasses.replace(pipeline.Settings(profile_for("equilibre", "video")), use_ai=True, resolution="1080")
     out = pipeline.export(info, s, tmp_path / "film_ia.mp4", tools)
     assert out.is_file() and not list(travail.iterdir())
+
+
+def test_morceaux_reservent_le_disque_temporaire(monkeypatch, tmp_path):
+    """Le résultat seul tiendrait ; les morceaux, en plus, non. On refuse avant d'encoder."""
+    info = MediaInfo(path=tmp_path / "a.mpg", has_audio=True, duration=3600, fps=Fraction(25),
+                     width=720, height=576)
+    s = pipeline.Settings(profile_for("equilibre"))
+    final, _ = pipeline.disk_needs(info, s, None, 3600)
+
+    class _Stat:
+        st_dev = 1
+
+    class _Usage:
+        def __init__(self, free):
+            self.free = free
+
+    monkeypatch.setattr(pipeline.os, "stat", lambda _p: _Stat())
+    monkeypatch.setattr(pipeline.shutil, "disk_usage", lambda _p: _Usage(final * 1.2))
+    pipeline.check_disk_space(info, s, tmp_path, None, 3600)
+    with pytest.raises(tools_mod.ToolError, match="Espace disque"):
+        pipeline.check_disk_space(info, s, tmp_path, None, 3600, extra_temp=final)
+
+
+def test_copie_sans_vides_refuse_la_cle_fat32(monkeypatch, tmp_path):
+    from vhs_restore import vides
+    monkeypatch.setattr(pipeline, "systeme_de_fichiers", lambda _p: "FAT32")
+    with pytest.raises(tools_mod.ToolError, match="FAT32"):
+        vides.verifier_place(tmp_path / "copie.mp4", 90 * 60)
+    vides.verifier_place(tmp_path / "copie.mp4", 20 * 60)
+    clair, _ = ergonomie.expliquer(
+        "La copie serait enregistrée sur une clé USB ou une carte au format FAT32.")
+    assert "FAT32" in clair
+
+
+def test_film_origine_trop_long_dit_de_le_deplacer(monkeypatch, tmp_path):
+    long = tmp_path
+    while len(str(long)) < 260:
+        long = long / ("dossier" * 8)
+    monkeypatch.setattr(tools_mod, "IS_WIN", True)
+    with pytest.raises(tools_mod.ToolError, match="film d'origine") as origine:
+        tools_mod.verifier_chemin(long / "film.mpg", origine=True)
+    with pytest.raises(tools_mod.ToolError, match="fichier à créer"):
+        tools_mod.verifier_chemin(long / "sortie.mp4")
+    clair, _ = ergonomie.expliquer(str(origine.value))
+    assert "Déplacez le film" in clair
+
+
+def test_outil_ouvert_n_est_pas_desinstalle(tmp_path, monkeypatch):
+    from vhs_restore import installer
+    final = tmp_path / "LosslessCut"
+    final.mkdir()
+    (final / "LosslessCut.exe").write_text("ancien", encoding="utf-8")
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "LosslessCut.exe").write_text("nouveau", encoding="utf-8")
+    vrai = Path.rename
+
+    def bloque(self, dest):
+        if self == final:
+            raise PermissionError(5, "access")
+        return vrai(self, dest)
+
+    monkeypatch.setattr(Path, "rename", bloque)
+    with pytest.raises(tools_mod.ToolError, match="Fermez-le"):
+        installer._poser_installation(staged, final, "LosslessCut")
+    assert (final / "LosslessCut.exe").read_text(encoding="utf-8") == "ancien"
+    clair, _ = ergonomie.expliquer(str(tools_mod.ToolError(
+        "LosslessCut est ouvert dans un autre programme. Fermez-le, puis recommencez l'installation.")))
+    assert "Fermez-le" in clair
+
+
+def test_lancement_depuis_un_chemin_reseau():
+    racine = Path(__file__).resolve().parent.parent
+    lancer = (racine / "lancer.bat").read_text(encoding="utf-8")
+    installer = (racine / "installer.bat").read_text(encoding="utf-8")
+    assert "cd /d" not in lancer
+    assert "/D" in lancer and "%~dp0" in lancer
+    assert "pushd" in installer and "popd" in installer
+    assert "cd /d" not in installer
+

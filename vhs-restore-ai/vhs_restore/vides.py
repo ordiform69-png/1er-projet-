@@ -14,6 +14,7 @@ blanc filmé de près peuvent être pris pour un passage vide : la liste est tou
 from __future__ import annotations
 
 import re
+import shutil
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -93,6 +94,31 @@ def _fermer(groupe: list[dict]) -> Passage:
     return Passage(groupe[0]["t"], groupe[-1]["t"] + PAS, _genre(groupe))
 
 
+def verifier_place(dst: Path, secondes: float) -> None:
+    """Avant une copie sans passages vides : clé FAT32 (4 Go) et place sur le disque.
+
+    La copie est en x264 CRF 16, plus lourde que l'estimation d'une restauration.
+    Environ 10 Mbit/s : on refuse trop tôt plutôt qu'après une heure d'écriture.
+    """
+    from .pipeline import systeme_de_fichiers
+    besoin = max(0.0, float(secondes)) * 10e6 / 8
+    if systeme_de_fichiers(dst).upper().startswith("FAT") and besoin > 3.6e9:
+        taille = f"{besoin / 1e9:.1f}".replace(".", ",")
+        raise ToolError(
+            "La copie serait enregistrée sur une clé USB ou une carte au format FAT32, qui n'accepte "
+            f"pas de fichier de plus de 4 Go. Elle ferait environ {taille} Go. "
+            "Choisissez un dossier sur l'ordinateur (par exemple « Vidéos »), puis recommencez.")
+    try:
+        libre = shutil.disk_usage(Path(dst).parent).free
+    except OSError:
+        return
+    if libre < besoin * 1.1:
+        raise ToolError(
+            f"Espace disque insuffisant dans {Path(dst).parent} : il faut environ "
+            f"{besoin / 1e9:.1f} Go, il en reste {libre / 1e9:.1f} Go. "
+            "Libérez de la place ou choisissez un autre dossier, puis recommencez.")
+
+
 def detecter(ffmpeg: str, path: Path, duree: float, *, cancel: threading.Event | None = None,
              progress: Progress | None = None) -> list[Passage]:
     """Lit tout le film (vite : petites images) et renvoie les passages vides."""
@@ -103,6 +129,7 @@ def detecter_tout(ffmpeg: str, path: Path, duree: float | None, *, cancel: threa
                   progress: Progress | None = None) -> tuple[list[Passage], float]:
     """Passages vides et durée du film MESURÉE en le lisant : la durée annoncée par ffprobe peut
     manquer (« N/A ») ou être trop courte (horodatages qui repartent à zéro dans un VOB)."""
+    verifier_chemin(Path(path), origine=True)
     duree = duree if duree and duree > 0 else 0.0
     mesures: list[dict] = []
     courant: dict = {}
@@ -169,6 +196,11 @@ def retirer(ffmpeg: str, src: Path, dst: Path, passages: list[Passage], duree: f
     garde = a_garder(passages, duree)
     if not garde:
         raise ToolError("Il ne resterait rien du film : rien n'a été retiré.")
+    total = sum((b if b is not None else max(duree, a)) - a for a, b in garde)
+    verifier_chemin(src, origine=True)
+    partiel = dst.with_name(dst.stem + ".partiel.mp4")
+    verifier_chemin(partiel)
+    verifier_place(dst, total)
     parts, labels = [], ""
     for i, (a, b) in enumerate(garde):
         fin = f":end={b:.3f}" if b is not None else ""
@@ -178,9 +210,6 @@ def retirer(ffmpeg: str, src: Path, dst: Path, passages: list[Passage], duree: f
             parts.append(f"[0:a:0]atrim=start={a:.3f}{fin},asetpts=PTS-STARTPTS[a{i}]")
             labels += f"[a{i}]"
     parts.append(f"{labels}concat=n={len(garde)}:v=1:a={1 if avec_son else 0}[v]" + ("[a]" if avec_son else ""))
-    total = sum((b if b is not None else max(duree, a)) - a for a, b in garde)
-    partiel = dst.with_name(dst.stem + ".partiel.mp4")
-    verifier_chemin(partiel)
     ecrit = [0.0]
 
     def ligne(l: str) -> None:
