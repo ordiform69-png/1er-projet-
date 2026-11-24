@@ -75,8 +75,22 @@ def test_decoupage_hors_de_restauration_complete(fenetre):
         while w is not None and w.objectName() != "carte":
             w = w.parentWidget()
         return w
-    lancer, couper = carte_de(win.run_btn), carte_de(win.trim_couper)
+    lancer, couper = carte_de(win.run_btn), carte_de(win.trim_couper)   # « Enlever un passage »
     assert lancer is not None and couper is not None and lancer is not couper
     assert not lancer.isAncestorOf(win.trim_passage_deb)
     assert lancer.height() < 450                                   # carte compacte
     assert win.trim_couper.height() < 50                           # boutons compacts (options avancées)
+
+
+def test_colonnes_equilibrees(fenetre):
+    """Plus de grand vide en bas d'une colonne : les deux s'arrêtent presque au même niveau."""
+    from vhs_restore.gui import Carte
+    win, _ = fenetre
+    page = win.pages.widget(1).widget()
+    bas = {True: 0, False: 0}
+    for c in page.findChildren(Carte):
+        if c.isVisible():
+            droite = c.x() > page.width() // 3
+            bas[droite] = max(bas[droite], c.y() + c.height())
+    assert bas[True] and bas[False]
+    assert abs(bas[True] - bas[False]) < 250, bas

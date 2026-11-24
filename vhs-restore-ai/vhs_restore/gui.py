@@ -108,7 +108,7 @@ class CompareView(QWidget):
     def _ajuster_hauteur(self) -> None:
         if not self._proportion:
             return
-        h = min(900, max(240, (self.width() - 22) * 3 // 4 + 22))
+        h = min(620, max(240, (self.width() - 22) * 3 // 4 + 22))   # grand écran : pas un mur noir
         if self._plafond is not None:
             h = min(h, max(240, self._plafond()))
         if abs(self.minimumHeight() - h) > 2 or self.maximumHeight() != h:
@@ -1737,12 +1737,11 @@ class MainWindow(QMainWindow):
         # Découpage : sa propre carte, à gauche sous « Image » (dans « Restauration complète », ses
         # onze gros boutons repoussaient « Lancer la restauration » loin vers le bas et laissaient un
         # grand vide à gauche). Boutons compacts, deux par ligne ; le mode simple garde ses gros boutons.
-        carte_coupe = Carte("Couper le film", "ciseaux")
+        # deux cartes, une par colonne : « Début et fin » (réglage du film entier) à gauche, sous
+        # « Image » ; « Enlever un passage » à droite, sous l'aperçu dont il utilise le moment.
+        # Une seule carte déséquilibrait les colonnes (500 px de vide d'un côté ou de l'autre).
+        carte_coupe = Carte("Début et fin", "ciseaux")
         bv = carte_coupe.body
-        titre = QLabel("Début et fin de la copie")
-        titre.setObjectName("note")
-        titre.setWordWrap(True)
-        bv.addWidget(titre)
         self.trim_start = TempsSpin()
         self.trim_end = TempsSpin()
         self.trim_start.setSpecialValueText("dès le début")
@@ -1792,10 +1791,12 @@ class MainWindow(QMainWindow):
         g1.addWidget(self.trim_ici_fin, 0, 1)
         g1.addWidget(self.trim_tout, 1, 0, 1, 2)
         bv.addLayout(g1)
-        titre2 = QLabel("Enlever un passage au milieu (au moment « Début de l'extrait »)")
+        carte_passages = Carte("Enlever un passage", "ciseaux")
+        bp = carte_passages.body
+        titre2 = QLabel("Au moment « Début de l'extrait », dans la carte de l'aperçu ci-dessus.")
         titre2.setObjectName("note")
         titre2.setWordWrap(True)
-        bv.addWidget(titre2)
+        bp.addWidget(titre2)
         self.trim_couper = compact(QPushButton("Couper ici"), "ciseaux")
         self.trim_couper.setAccessibleName("Couper ici")
         self.trim_couper.clicked.connect(self._couper_ici)
@@ -1826,14 +1827,16 @@ class MainWindow(QMainWindow):
         self.trim_passage_fin.clicked.connect(self._passage_reprend)
         g2.addWidget(self.trim_passage_deb, 2, 0)
         g2.addWidget(self.trim_passage_fin, 2, 1)
-        bv.addLayout(g2)
+        bp.addLayout(g2)
         self.trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_start,)))
         self.s_trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_start,)))
         self.trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_end,)))
         self.s_trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_end,)))
         self._dire_coupe()
         self._row_trim = carte_coupe
+        self._row_passages = carte_passages
         left.insertWidget(left.count() - 1, carte_coupe)      # avant le ressort de la colonne de gauche
+        right.insertWidget(1, carte_passages)                 # juste sous « Aperçu avant / après »
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
@@ -2325,7 +2328,8 @@ class MainWindow(QMainWindow):
         # on les grise pour ne pas laisser croire qu'ils changent le travail en cours.
         for card in (self._card_media, self._card_info, self._card_profil, self._card_image, self._card_son):
             card.setEnabled(not busy)
-        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self.s_advice,
+        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self._row_passages,
+                   self.s_advice,
                    self.s_coupe):
             wd.setEnabled(not busy)
         # Photo : seuls le profil, la dominante, l'IA et la colorisation comptent. Les réglages
@@ -2333,7 +2337,7 @@ class MainWindow(QMainWindow):
         self._card_son.setVisible(not photo_mode)
         self.s_coupe.setVisible(self.info is not None and not photo_mode)
         for wd in (self._row_res, self._row_deint, self._row_edge, self._row_chroma, self.hq_check,
-                   self.stab_check, self.start_label, self.start_spin, self._row_trim):
+                   self.stab_check, self.start_label, self.start_spin, self._row_trim, self._row_passages):
             wd.setVisible(not photo_mode)
         for box in (self.tape_check, self.chroma_check, self.dropout_check):
             box.setVisible(src != "film" and not photo_mode)
