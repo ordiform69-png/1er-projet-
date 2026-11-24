@@ -724,6 +724,86 @@ def trim_window(info: MediaInfo, begin: float, end: float) -> tuple[float | None
     return (begin or None), length
 
 
+_MIN_PASSAGE = 0.5   # en dessous, une coupe est ignorée et un morceau gardé est abandonné
+
+
+def passages_gardes(duree: float, debut: float, fin: float,
+                    coupes: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Fenêtre extérieure (debut, fin ; fin 0 = jusqu'au bout) moins les passages à enlever.
+
+    Retourne les intervalles [début, fin] absolus à garder, dans l'ordre.
+    Mêmes contrôles que trim_window pour la fenêtre. Une coupe plus courte que
+    0,5 s est ignorée ; les coupes qui se recouvrent ou se touchent sont fusionnées.
+    Un morceau gardé plus court que 0,5 s est abandonné. Sans coupe : un seul
+    intervalle, celui que trim_window garderait (0 et 0 → tout le film).
+    """
+    info = MediaInfo(path=Path("."), duration=float(duree or 0))
+    debut_lu, longueur = trim_window(info, debut, fin)
+    if debut_lu is None and longueur is None:
+        w0, w1 = 0.0, float(info.duration)
+    else:
+        w0 = float(debut_lu or 0.0)
+        w1 = w0 + float(longueur or 0.0)
+    if not coupes:
+        return [(w0, w1)]
+
+    bornes: list[tuple[float, float]] = []
+    for brut_a, brut_b in coupes:
+        a, b = float(brut_a), float(brut_b)
+        if b < a:
+            a, b = b, a
+        a, b = max(a, w0), min(b, w1)
+        if b - a < _MIN_PASSAGE:
+            continue
+        bornes.append((a, b))
+    bornes.sort()
+    fusionnees: list[list[float]] = []
+    for a, b in bornes:
+        if fusionnees and a <= fusionnees[-1][1]:
+            fusionnees[-1][1] = max(fusionnees[-1][1], b)
+        else:
+            fusionnees.append([a, b])
+
+    gardes: list[tuple[float, float]] = []
+    curseur = w0
+    for a, b in fusionnees:
+        if a - curseur >= _MIN_PASSAGE:
+            gardes.append((curseur, a))
+        curseur = b
+    if w1 - curseur >= _MIN_PASSAGE:
+        gardes.append((curseur, w1))
+    if not gardes:
+        raise ToolError("Il ne resterait plus rien du film. Laissez au moins un passage.")
+    return gardes
+
+
+def filtres_passages(chaine: str, plages: list[tuple[float, float]], *, audio: bool) -> str:
+    """Enveloppe une chaîne -vf ou -af : ne garde que des plages relatives au temps 0
+    (après -ss), puis les enchaîne. À n'appeler que si len(plages) >= 2.
+
+    La chaîne existante est appliquée une seule fois, avant le split : les filtres
+    lourds ne tournent pas une fois par passage. Le concat final n'a pas d'étiquette
+    de sortie (c'est la sortie du graphe). Temps au millième de seconde.
+    """
+    n = len(plages)
+    if audio:
+        decoupe, coupe, recale = "asplit", "atrim", "asetpts"
+        concat = f"concat=n={n}:v=0:a=1"
+    else:
+        decoupe, coupe, recale = "split", "trim", "setpts"
+        concat = f"concat=n={n}:v=1:a=0"
+    branches = "".join(f"[p{i}]" for i in range(n))
+    tete = f"{chaine},{decoupe}={n}{branches}" if chaine else f"{decoupe}={n}{branches}"
+    parties = [tete]
+    sorties: list[str] = []
+    for i, (a, b) in enumerate(plages):
+        parties.append(
+            f"[p{i}]{coupe}=start={a:.3f}:end={b:.3f},{recale}=PTS-STARTPTS[o{i}]")
+        sorties.append(f"[o{i}]")
+    parties.append("".join(sorties) + concat)
+    return ";".join(parties)
+
+
 def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     base = output_base(info, s)
     cand = out_dir / f"{base}.mp4"
@@ -736,9 +816,25 @@ def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
 
 def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
-           start: float | None = None, duration: float | None = None) -> Path:
-    """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet."""
+           start: float | None = None, duration: float | None = None,
+           passages: list[tuple[float, float]] | None = None) -> Path:
+    """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
+
+    passages : deux intervalles [début, fin] ou plus, en secondes absolues, à garder.
+    Chaque morceau gardé est restauré seul (les trous ne sont pas traités), puis les
+    morceaux sont assemblés sans recompression. Moins de deux intervalles (ou None) :
+    ignoré, le début et la fin seuls restent comme avant.
+    """
     tools.require_ffmpeg()
+    if passages is not None and len(passages) >= 2:
+        if s.use_ai or s.dust or _tape_job(s) or retime(info, s):
+            raise ToolError(
+                "Enlever un passage au milieu ne va pas avec cette option. "
+                "Décochez l'amélioration IA, les poussières, la réparation de bande ou la cadence "
+                "de tournage (re-cadencement de la pellicule), ou bien n'enlevez que le début et la fin.")
+        # taille estimée de ce qui est gardé, pas du film entier
+        check_fat32(info, s, Path(out_path).parent, None, sum(max(0.0, b - a) for a, b in passages))
+        return _export_morceaux(info, s, out_path, tools, cancel, progress, passages)
     check_fat32(info, s, Path(out_path).parent, start, duration)
     if not s.use_ai:   # le mode IA fait son propre contrôle, plus fin (images PNG)
         check_disk_space(info, s, Path(out_path).parent, start, duration)
@@ -780,11 +876,12 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
-            cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", filter_chain(info, s),
+            vf = filter_chain(info, s)
+            sons = audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
+                              rnnoise=tools.rnnoise_model)
+            cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
-                   *audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
-                              rnnoise=tools.rnnoise_model),
-                   "-f", "mp4", str(part)])
+                   *sons, "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         finaliser(part, out_path)
@@ -796,6 +893,74 @@ def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     finally:
         if work is not None and (df_owned or s.stabilize):
             shutil.rmtree(work, ignore_errors=True)
+    if progress:
+        progress(1.0, "Terminé")
+    log.info("Export terminé : %s", out_path)
+    return out_path
+
+
+def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
+                               cancel: threading.Event | None) -> None:
+    """Assemble des films déjà restaurés. -c copy : pas de seconde compression."""
+    liste = dest.with_suffix(".liste.txt")
+    lignes = []
+    for morceau in morceaux:
+        nom = morceau.resolve().as_posix().replace("'", "'\\''")
+        lignes.append(f"file '{nom}'")
+    liste.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+    try:
+        run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+             "-f", "concat", "-safe", "0", "-i", str(liste), "-c", "copy", str(dest)],
+            cancel=cancel, what="FFmpeg (assemblage)")
+    finally:
+        effacer(liste)
+
+
+def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
+                     cancel: threading.Event | None, progress: Progress | None,
+                     passages: list[tuple[float, float]]) -> Path:
+    """Restaure chaque passage gardé, sans traiter les trous, puis assemble."""
+    out_path = Path(out_path).resolve()
+    if out_path.resolve() == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas être le fichier original.")
+    if not out_path.parent.is_dir():
+        raise ToolError(f"Dossier de sortie introuvable : {out_path.parent}")
+    gardes = [(float(a), float(b)) for a, b in passages]
+    durees = [max(0.0, b - a) for a, b in gardes]
+    somme = sum(durees) or 1.0
+    if not s.use_ai:
+        check_disk_space(info, s, out_path.parent, None, somme)
+    part = out_path.with_name(out_path.stem + ".partiel.mp4").resolve()
+    verifier_chemin(part)                   # chemin trop long pour Windows : dit avant de travailler
+    travail = Path(tempfile.mkdtemp(prefix="vhsrestore_morceaux_", dir=_work_root()))
+    try:
+        faits = 0.0
+        fichiers: list[Path] = []
+        for i, ((a, b), duree) in enumerate(zip(gardes, durees), start=1):
+            if cancel is not None and cancel.is_set():
+                raise Cancelled("Annulé.")
+            dest = travail / f"morceau-{i}.mp4"
+
+            def sous(f: float, m: str, *, i: int = i, faits: float = faits, duree: float = duree) -> None:
+                if progress:
+                    progress((faits + max(0.0, min(1.0, f)) * duree) / somme,
+                             f"Morceau {i} sur {len(gardes)} — {m}")
+
+            export(info, s, dest, tools, cancel=cancel, progress=sous,
+                   start=a or None, duration=duree)
+            fichiers.append(dest)
+            faits += duree
+        if progress:
+            progress(0.98, "Assemblage des morceaux…")
+        _concat_sans_recompression(tools, fichiers, part, cancel)
+        finaliser(part, out_path)           # lecteur vidéo qui garde le fichier : réessai, rien de perdu
+        _write_audio_copy(out_path, info, s, tools, cancel, progress)
+    except BaseException as exc:
+        if not isinstance(exc, FichierOccupe):
+            effacer(part)
+        raise
+    finally:
+        shutil.rmtree(travail, ignore_errors=True)
     if progress:
         progress(1.0, "Terminé")
     log.info("Export terminé : %s", out_path)

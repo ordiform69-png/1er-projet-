@@ -752,3 +752,41 @@ Interface :
 
 Tests : `tests/test_pieges_windows.py`, ajouts dans `test_installer.py`, `test_bords_auto.py`,
 `test_vides_montage.py`.
+
+## Découpage du début et de la fin, en langage clair (phase 25, branche grok/montage)
+
+Le réglage existait déjà (secondes brutes, options avancées seulement, libellé
+« Garder du début à … jusqu'à »). Rien ne change dans `trim_window` ni dans les filtres.
+
+- Les durées s'affichent « 1 min 05 s » ou « 1 h 04 min ». La valeur interne reste des secondes.
+  On peut aussi taper `1:05` ou `90`.
+- Le même réglage est sur la page simple : « Le film commence à » / « Le film s'arrête à »,
+  une phrase qui dit combien de temps la copie gardera, « Tout garder », et
+  « Montrer ce début dans l'aperçu ».
+- Dans les options avancées, « Commencer à cet extrait » et « Arrêter après cet extrait »
+  recopient le moment de l'aperçu (10 secondes). 0 reste « dès le début » / « à la fin ».
+- Une photo n'affiche pas ce bloc. L'original n'est jamais coupé.
+
+## Passages enlevés au milieu (phase 26, branche grok/montage)
+
+On peut enlever plusieurs passages au milieu d'un film, pas seulement le début et la fin.
+Chaque morceau gardé est restauré seul : les scènes enlevées ne sont pas traitées, ce qui
+raccourcit le travail. Les morceaux sont ensuite assemblés sans seconde compression.
+Ce n'est pas compatible avec l'amélioration IA, les poussières, la réparation de bande,
+ni le re-cadencement de la pellicule.
+
+La barre du film est dessinée dans l'application (aucun code de Clipchamp, OpenShot ou
+LosslessCut). Un clic place l'extrait. En doré : ce qui ne sera pas restauré.
+Les flèches gauche et droite déplacent d'une seconde.
+On fait glisser le curseur pour se placer. « Couper ici » une fois pour le
+début du passage, une seconde fois pour la fin. Les bords dorés, avec un
+petit carré blanc, se tirent pour ajuster. Rien n'est fusionné tant que
+le bouton de la souris reste enfoncé.
+
+Rapprochement de grok/montage avec la n°64 : les morceaux d'une coupe au milieu profitent des
+protections de la n°64 (fichier ouvert dans un lecteur : réessai et résultat gardé ; chemin trop long
+dit avant ; clé FAT32 vérifiée sur la durée gardée, pas sur le film entier ; liste d'assemblage
+effacée sans masquer une erreur).
+- Page simple : « Couper ici » deux fois suffit ; « Ce passage inutile commence ici », « Le film reprend ici » et « Autre façon, en deux temps » y sont cachés (pas détruits), toujours visibles dans les options avancées.
+- Avant « Restaurer » : la note des passages prévient si une option cochée empêchera la coupe au milieu, avec les mots de l'écran (« Amélioration IA », « Enlever les poussières et rayures », « Bruit de bande », « Couleur des décrochages », « Taches d'une seule image », « Cadence de tournage ») ; rien n'est décoché ; le refus de pipeline.export et ergonomie.expliquer citent aussi la cadence de tournage.
+- Un dossier ignore les coupes du film ouvert : la phrase est écrite en haut de la page et répétée dans « C'est prêt » (la ligne d'état est remplacée aussitôt par « Film 1 sur … »), sans fenêtre ; restore_folder ne reçoit aucun passage.

@@ -7,6 +7,8 @@ et quoi faire ; le détail technique reste disponible, jamais en premier.
 from __future__ import annotations
 
 PHRASE_PATIENCE = "Vous pouvez utiliser l'ordinateur ou le laisser travailler."
+PHRASE_COUPES_DOSSIER = ("Les coupes de ce film ne seront pas appliquées aux autres fichiers du dossier. "
+                         "Chaque film part en entier.")
 
 
 def expliquer(message: str) -> tuple[str, str]:
@@ -40,6 +42,12 @@ def expliquer(message: str) -> tuple[str, str]:
                  "Essayez une autre copie du fichier.")
     elif "fin doit être après" in bas or "début choisi" in bas:
         clair = "Le début et la fin ne vont pas ensemble. La fin doit être après le début."
+    elif "ne resterait plus rien" in bas or "au moins un passage" in bas:
+        clair = "Il ne resterait plus rien du film. Laissez au moins un passage."
+    elif "passage au milieu" in bas:
+        clair = ("Enlever un passage au milieu ne va pas avec l'option choisie. Décochez "
+                 "« Amélioration IA », « Enlever les poussières et rayures » ou les réparations de bande, ou remettez "
+                 "« Cadence de tournage » sur « Celle du fichier » ; ou bien n'enlevez que le début et la fin.")
     elif "ne peut pas être le fichier" in bas or "ne peut pas remplacer" in bas:
         clair = ("Le résultat ne peut pas remplacer le fichier d'origine. "
                  "Rien n'a été écrasé. Choisissez un autre dossier si besoin.")
@@ -53,8 +61,9 @@ def expliquer(message: str) -> tuple[str, str]:
     return clair, brut
 
 
-def resume_dossier(reussis: int, deja: int, erreurs: list[tuple[str, str]]) -> str:
-    """Résumé final d'un dossier, en mots simples."""
+def resume_dossier(reussis: int, deja: int, erreurs: list[tuple[str, str]], remarque: str = "") -> str:
+    """Résumé final d'un dossier, en mots simples. `remarque` : phrase ajoutée avant la dernière ligne
+    (par exemple PHRASE_COUPES_DOSSIER, quand le film ouvert avait des coupes)."""
     lignes = [
         "C'est prêt." if reussis or deja else "Aucun fichier n'a pu être restauré.",
         f"Réussis : {reussis}.",
@@ -64,6 +73,8 @@ def resume_dossier(reussis: int, deja: int, erreurs: list[tuple[str, str]]) -> s
     for nom, msg in erreurs:
         clair, _ = expliquer(msg)
         lignes.append(f"• {nom} : {clair}")
+    if remarque:
+        lignes.append(remarque)
     lignes.append("Les fichiers d'origine n'ont pas été modifiés.")
     return "\n".join(lignes)
 
