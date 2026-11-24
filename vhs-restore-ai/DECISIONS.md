@@ -827,3 +827,11 @@ Toujours aucun filtre modifié.
 Relecture de grok/equipe (f4cba42, 252 tests verts) puis fusion, avec deux corrections :
 - Barre du film : un simple clic près d'un bord doré rallongeait la coupe jusqu'au clic (prise de 44 px de chaque côté, bord déplacé dès l'appui) ; désormais la prise fait 44 px en tout (22 de chaque côté), le bord ne bouge qu'après un vrai glisser (4 px), et un simple clic place le curseur.
 - Après « Arrêter », « Pour recommencer, cliquez sur Restaurer » seulement après une restauration ; aperçu, recherche de passages vides, installation et dossier ont chacun leur phrase.
+
+Capture de l'utilisateur (n°69, options avancées) : les commandes de découpage de la branche
+grok/montage occupaient « Restauration complète » (onze boutons pleine largeur, deux champs de temps
+sur toute la largeur) : « Lancer la restauration » était loin en bas et un grand vide restait à
+gauche. Elles ont maintenant leur carte « Couper le film », dans la colonne de gauche sous « Image » :
+champs de temps côte à côte, boutons compacts deux ou trois par ligne (libellés courts ; noms complets
+pour le lecteur d'écran et en infobulle). Le mode simple garde ses gros boutons. Test :
+`test_page_avancee.py::test_decoupage_hors_de_restauration_complete`.

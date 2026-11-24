@@ -64,3 +64,19 @@ def test_defauts_corriges_dits_clairement(fenetre):
     assert win.settings().mask_sides == 0
     win.s_advice.setChecked(True)
     assert win.a_advice.isChecked() and win.settings().mask_sides > 0
+
+
+def test_decoupage_hors_de_restauration_complete(fenetre):
+    """Capture de l'utilisateur (n°69) : onze gros boutons de découpage dans « Restauration
+    complète » repoussaient « Lancer la restauration » loin vers le bas. Ils ont leur carte."""
+    win, _ = fenetre
+
+    def carte_de(w):
+        while w is not None and w.objectName() != "carte":
+            w = w.parentWidget()
+        return w
+    lancer, couper = carte_de(win.run_btn), carte_de(win.trim_couper)
+    assert lancer is not None and couper is not None and lancer is not couper
+    assert not lancer.isAncestorOf(win.trim_passage_deb)
+    assert lancer.height() < 450                                   # carte compacte
+    assert win.trim_couper.height() < 50                           # boutons compacts (options avancées)

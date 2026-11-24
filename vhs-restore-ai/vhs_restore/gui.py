@@ -21,7 +21,7 @@ from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QS
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QBoxLayout, QButtonGroup,
                                QCheckBox, QComboBox, QDoubleSpinBox,
-                               QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect,
+                               QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
                                QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
@@ -1734,11 +1734,12 @@ class MainWindow(QMainWindow):
         h.addWidget(self.out_edit, 1)
         h.addWidget(bo)
         v.addLayout(h)
-        bloc = QWidget()
-        bv = QVBoxLayout(bloc)
-        bv.setContentsMargins(0, 4, 0, 0)
-        bv.setSpacing(6)
-        titre = QLabel("Couper le début et la fin")
+        # Découpage : sa propre carte, à gauche sous « Image » (dans « Restauration complète », ses
+        # onze gros boutons repoussaient « Lancer la restauration » loin vers le bas et laissaient un
+        # grand vide à gauche). Boutons compacts, deux par ligne ; le mode simple garde ses gros boutons.
+        carte_coupe = Carte("Couper le film", "ciseaux")
+        bv = carte_coupe.body
+        titre = QLabel("Début et fin de la copie")
         titre.setObjectName("note")
         titre.setWordWrap(True)
         bv.addWidget(titre)
@@ -1750,25 +1751,33 @@ class MainWindow(QMainWindow):
         self.trim_end.setAccessibleName("Le film s'arrête à")
         self.trim_start.setToolTip("Pour ne pas garder la neige ou l'écran bleu du début.")
         self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « à la fin » = tout garder.")
-        for libelle, spin in (("Le film commence à", self.trim_start), ("Le film s'arrête à", self.trim_end)):
+        grille = QGridLayout()
+        grille.setHorizontalSpacing(8)
+        grille.setVerticalSpacing(6)
+        for col, (libelle, spin) in enumerate((("Le film commence à", self.trim_start),
+                                               ("Le film s'arrête à", self.trim_end))):
             lab = QLabel(libelle)
             lab.setWordWrap(True)
-            bv.addWidget(lab)
-            bv.addWidget(spin)
+            grille.addWidget(lab, 0, col)
+            grille.addWidget(spin, 1, col)
+        bv.addLayout(grille)
         self.trim_note = QLabel()
         self.trim_note.setWordWrap(True)
         self.trim_note.setObjectName("note")
         bv.addWidget(self.trim_note)
-        self.trim_ici_debut = QPushButton("Commencer à cet extrait")
-        self.trim_ici_fin = QPushButton("Arrêter après cet extrait")
-        self.trim_tout = QPushButton("Tout garder")
-        for b, ic in ((self.trim_ici_debut, "ciseaux"), (self.trim_ici_fin, "ciseaux"),
-                      (self.trim_tout, "film")):
-            _with_icon(b, ic)
-            b.setMinimumHeight(44)
+
+        def compact(b: QPushButton, ic: str | None = None) -> QPushButton:
+            if ic:
+                _with_icon(b, ic)
+            b.setMinimumHeight(36)
             b.setMinimumWidth(0)
             b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             b.setCursor(Qt.PointingHandCursor)
+            return b
+
+        self.trim_ici_debut = compact(QPushButton("Commencer à l'extrait"), "ciseaux")
+        self.trim_ici_fin = compact(QPushButton("Arrêter après l'extrait"), "ciseaux")
+        self.trim_tout = compact(QPushButton("Tout garder"), "film")
         self.trim_ici_debut.setToolTip("Le moment « Début de l'extrait » devient le début de la copie.")
         self.trim_ici_fin.setToolTip("La copie s'arrête à la fin de cet extrait de 10 secondes.")
         self.trim_ici_debut.setAccessibleName("Faire commencer le film au début de l'extrait")
@@ -1777,35 +1786,54 @@ class MainWindow(QMainWindow):
         self.trim_ici_debut.clicked.connect(lambda: self._coupe_depuis_extrait(False))
         self.trim_ici_fin.clicked.connect(lambda: self._coupe_depuis_extrait(True))
         self.trim_tout.clicked.connect(self._coupe_tout)
-        for b in (self.trim_ici_debut, self.trim_ici_fin, self.trim_tout):
-            bv.addWidget(b)
-        self.trim_couper = _bouton_secondaire("Couper ici", "Couper ici")
+        g1 = QGridLayout()
+        g1.setSpacing(6)
+        g1.addWidget(self.trim_ici_debut, 0, 0)
+        g1.addWidget(self.trim_ici_fin, 0, 1)
+        g1.addWidget(self.trim_tout, 1, 0, 1, 2)
+        bv.addLayout(g1)
+        titre2 = QLabel("Enlever un passage au milieu (au moment « Début de l'extrait »)")
+        titre2.setObjectName("note")
+        titre2.setWordWrap(True)
+        bv.addWidget(titre2)
+        self.trim_couper = compact(QPushButton("Couper ici"), "ciseaux")
+        self.trim_couper.setAccessibleName("Couper ici")
         self.trim_couper.clicked.connect(self._couper_ici)
-        bv.addWidget(self.trim_couper)
-        for texte, sec in (("Enlever 10 secondes ici", 10),
-                           ("Enlever 30 secondes ici", 30),
-                           ("Enlever 1 minute ici", 60)):
-            b = _bouton_secondaire(texte, texte)
+        self.trim_passage_annuler = compact(QPushButton("Annuler la dernière coupe"))
+        self.trim_passage_annuler.setAccessibleName("Annuler la dernière coupe")
+        self.trim_passage_annuler.clicked.connect(self._passage_annuler)
+        g2 = QGridLayout()
+        g2.setSpacing(6)
+        g2.addWidget(self.trim_couper, 0, 0)
+        g2.addWidget(self.trim_passage_annuler, 0, 1)
+        rangee = QHBoxLayout()
+        rangee.setSpacing(6)
+        for texte, court, sec in (("Enlever 10 secondes ici", "Enlever 10 s", 10),
+                                  ("Enlever 30 secondes ici", "Enlever 30 s", 30),
+                                  ("Enlever 1 minute ici", "Enlever 1 min", 60)):
+            b = compact(QPushButton(court))
+            b.setAccessibleName(texte)
+            b.setToolTip(texte + " : à partir du moment « Début de l'extrait ».")
             b.clicked.connect(lambda _=False, s=sec: self._passage_duree(s))
-            bv.addWidget(b)
-        self.trim_passage_deb = _bouton_secondaire(
-            "Ce passage inutile commence ici", "Ce passage inutile commence ici")
-        self.trim_passage_fin = _bouton_secondaire(
-            "Le film reprend ici", "Le film reprend ici")
-        self.trim_passage_annuler = _bouton_secondaire(
-            "Annuler la dernière coupe", "Annuler la dernière coupe")
+            rangee.addWidget(b)
+        g2.addLayout(rangee, 1, 0, 1, 2)
+        self.trim_passage_deb = compact(QPushButton("Début du passage ici"))
+        self.trim_passage_fin = compact(QPushButton("Le film reprend ici"))
+        self.trim_passage_deb.setAccessibleName("Ce passage inutile commence ici")
+        self.trim_passage_fin.setAccessibleName("Le film reprend ici")
+        self.trim_passage_deb.setToolTip("Ce passage inutile commence ici (en deux temps : puis « Le film reprend ici »).")
         self.trim_passage_deb.clicked.connect(self._passage_commence)
         self.trim_passage_fin.clicked.connect(self._passage_reprend)
-        self.trim_passage_annuler.clicked.connect(self._passage_annuler)
-        for b in (self.trim_passage_deb, self.trim_passage_fin, self.trim_passage_annuler):
-            bv.addWidget(b)
+        g2.addWidget(self.trim_passage_deb, 2, 0)
+        g2.addWidget(self.trim_passage_fin, 2, 1)
+        bv.addLayout(g2)
         self.trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_start,)))
         self.s_trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_start,)))
         self.trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_end,)))
         self.s_trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_end,)))
         self._dire_coupe()
-        self._row_trim = bloc
-        v.addWidget(self._row_trim)
+        self._row_trim = carte_coupe
+        left.insertWidget(left.count() - 1, carte_coupe)      # avant le ressort de la colonne de gauche
         h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
