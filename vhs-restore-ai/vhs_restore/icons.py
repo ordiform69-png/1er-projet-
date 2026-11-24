@@ -90,6 +90,11 @@ PATHS: dict[str, str] = {
                    '<path d="M12.3 17v-6.5l3 1"/>',
     "canaux": '<circle cx="8.5" cy="12" r="5"/><circle cx="15.5" cy="12" r="5"/>',
     "sature": '<path d="M2 12c1.5 0 2-6 3.5-6h4c1.5 0 2 12 3.5 12h4c1.5 0 2-6 3.5-6h1.5"/>',
+    # après la restauration
+    "etiquette": '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>',
+    "envoyer": '<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
+    "separer": '<rect x="2" y="6" width="7" height="12" rx="1.5"/><rect x="15" y="6" width="7" height="12" rx="1.5"/>'
+               '<path d="M12 3v18" stroke-dasharray="2 2.5"/>',
 }
 
 SIZE = 22
