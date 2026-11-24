@@ -124,3 +124,15 @@ def test_analog_repair_refused_on_multipart_dvd(video_ts, tools, tmp_path):
     with pytest.raises(ToolError, match="plusieurs morceaux"):
         pipeline.export(info, s, tmp_path / "x.mp4", t)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_trou_et_liste_temporaire(video_ts, tools, tmp_path, monkeypatch):
+    monkeypatch.setenv("VHSRA_TMP", str(tmp_path))
+    info = dvd.open_media(video_ts[0] / "VIDEO_TS/VTS_01_1.VOB", tools)
+    pipeline.export(info, pipeline.Settings(profile_for("fidele")), tmp_path / "extrait.mp4", tools,
+                    duration=0.5)
+    assert not list(tmp_path.glob("vhsrestore_dvd_*"))
+    for n in (1, 3):
+        (tmp_path / f"VTS_01_{n}.VOB").touch()
+    with pytest.raises(ToolError, match="VTS_01_2.VOB manque"):
+        dvd.open_media(tmp_path / "VTS_01_3.VOB", tools)

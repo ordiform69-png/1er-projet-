@@ -17,6 +17,15 @@ FF = shutil.which("ffmpeg")
 pytestmark = pytest.mark.skipif(FF is None, reason="ffmpeg absent")
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """Python < 3.12 seulement : None n'est pas encore immortel (PEP 683),
+    PySide peut abortir au ramasse-miettes final. Protection limitée aux tests.
+    L'application elle-même n'appelle plus os._exit."""
+    import sys
+    if sys.version_info < (3, 12):
+        os._exit(int(exitstatus))
+
+
 def ff(*args):
     r = subprocess.run([FF, "-hide_banner", "-loglevel", "error", "-y", *args],
                        capture_output=True, text=True, encoding="utf-8", errors="replace")

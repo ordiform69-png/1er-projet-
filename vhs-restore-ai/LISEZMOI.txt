@@ -49,9 +49,12 @@ Quand le film est prêt, deux boutons de plus :
     Votre film d'origine reste intact.
     La première fois, le logiciel propose de l'installer (un clic).
 
-Pour enlever un moment au milieu, avant de restaurer : glissez le curseur et
-cliquez deux fois sur « Couper ici ». Seule la copie est découpée. Un dossier
-n'en tient pas compte.
+Pour enlever un moment au milieu, avant de restaurer : la barre montre des
+petites images du film. Glissez pour vous placer : l'image au-dessus dit
+l'heure (« 12 min 34 s »). Cliquez deux fois sur « Couper ici », ou une fois
+sur « Enlever 10 secondes ici », « Enlever 30 secondes ici » ou
+« Enlever 1 minute ici ». Le doré ne sera pas restauré. Seule la copie est
+découpée. Un dossier n'en tient pas compte.
 
 La neige du début ou de la fin se règle avec « Le film commence à » et
 « Le film s'arrête à ». « Tout garder » annule. L'original n'est pas coupé.

@@ -64,7 +64,7 @@ def test_silent_track_and_pale_colors(samples, tools, tmp_path):
             "testsrc2=size=720x540:rate=18,hue=s=0.12,noise=alls=8:allf=t", "-f", "lavfi", "-i",
             "anullsrc=r=48000:cl=stereo", "-t", "3", "-c:v", "ffv1", "-c:a", "flac", str(src)], check=True)
     i = analyze(src, tools)
-    assert i.has_audio and i.audio_silent and "silencieuse" in i.summary()["Audio"]
+    assert i.has_audio and i.audio_silent and "Aucun son entendu dans les extraits analysés" in i.summary()["Audio"]
     assert i.pale_colors and not i.black_and_white
     out = pipeline.export(i, S(source="film"), tmp_path / "o.mp4", tools)
     assert streams(out)[2]                                # piste conservée, pas supprimée
@@ -172,3 +172,24 @@ def test_deflicker_option(A, tools, tmp_path):
 def test_output_names(A, tmp_path):
     assert "_film" in pipeline.unique_output_path(A("film18"), S(source="film"), tmp_path).name
     assert "_transfert" in pipeline.unique_output_path(A("transfert"), S(source="transfer"), tmp_path).name
+
+
+def test_couleur_declaree_et_mire_rgb(tmp_path, tools):
+    from conftest import ff, probe_json
+    import numpy as np
+    src = tmp_path / "plage.mkv"
+    ff("-f", "lavfi", "-i", "color=c=0x995544:s=144x108:r=25,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=limited", "-t", "0.25",
+       "-c:v", "ffv1", "-colorspace", "bt709", "-color_primaries", "bt709",
+       "-color_trc", "bt709", "-color_range", "tv", str(src))
+    info = analyze(src, tools)
+    def centre(path):
+        data = subprocess.check_output([tools.ffmpeg.path, "-v", "error", "-i", str(path),
+              "-vf", "format=rgb24,crop=2:2", "-frames:v", "1", "-f", "rawvideo", "-"])
+        return np.frombuffer(data, np.uint8).astype(int)
+    for taille in ("source", "1080"):
+        dst = pipeline.export(info, pipeline.Settings(PROFILES["fidele"], resolution=taille),
+                              tmp_path / (taille + ".mp4"), tools)
+        v = probe_json(dst)["streams"][0]
+        assert [v[k] for k in ("color_space", "color_primaries", "color_transfer", "color_range")] == [
+            "bt709", "bt709", "bt709", "tv"]
+        assert abs(centre(src) - centre(dst)).max() <= 4

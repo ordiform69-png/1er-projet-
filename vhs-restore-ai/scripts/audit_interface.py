@@ -130,12 +130,8 @@ w.load_file(PHOTO_NB); wait_idle()
 effect_test("photo N&B")
 print("ÉVÉNEMENTS (extrait) :", events[-12:])
 print("FIN")
-# PySide plante parfois en libérant les QThread à l'arrêt de l'interpréteur,
-# après la fin réelle de l'audit. On ferme proprement, puis on sort sans ce faux échec.
-import os
 if getattr(w, "worker", None) is not None and w.worker.isRunning():
     w.cancel()
     w.worker.wait(8000)
 w.close()
 app.processEvents()
-os._exit(0)

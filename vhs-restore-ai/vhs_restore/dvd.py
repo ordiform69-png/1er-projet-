@@ -6,6 +6,10 @@ sont lus par le démultiplexeur `concat` de FFmpeg, sans recopier le DVD
 """
 from __future__ import annotations
 
+from dataclasses import replace
+from functools import wraps
+import weakref
+import shutil
 import json
 import os
 import re
@@ -63,6 +67,27 @@ def parts_for(path: Path) -> list[Path]:
     return [path]
 
 
+def lecture_dvd(fonction):
+    """Le travail possède sa liste. Un appel imbriqué emprunte la même liste."""
+    @wraps(fonction)
+    def lire(info, *args, **kwargs):
+        if len(info.parts) <= 1 or info.concat_list is not None:
+            return fonction(info, *args, **kwargs)
+        with tempfile.TemporaryDirectory(prefix="vhsrestore_dvd_", dir=os.getenv("VHSRA_TMP")) as dossier:
+            liste = Path(dossier) / "concat.txt"
+            _ecrire_liste(liste, info.parts)
+            return fonction(replace(info, concat_list=liste), *args, **kwargs)
+    return lire
+
+
+def _ecrire_liste(liste, parts):
+    lignes = []
+    for p in parts:
+        texte = Path(p).resolve().as_posix().replace("'", "'\\''")
+        lignes.append(f"file '{texte}'\n")
+    liste.write_text("".join(lignes), encoding="utf-8")
+
+
 def input_args(info: MediaInfo) -> list[str]:
     """`-i` du fichier, ou le démultiplexeur concat si le film a plusieurs VOB."""
     parts = tuple(info.parts)
@@ -72,11 +97,8 @@ def input_args(info: MediaInfo) -> list[str]:
     if lst is None or not Path(lst).is_file():
         d = Path(tempfile.mkdtemp(prefix="vhsrestore_dvd_", dir=os.environ.get("VHSRA_TMP") or None))
         lst = d / "concat.txt"
-        lines = []
-        for p in parts:
-            text = Path(p).resolve().as_posix().replace("'", "'\\''")
-            lines.append(f"file '{text}'\n")
-        lst.write_text("".join(lines), encoding="utf-8")
+        weakref.finalize(info, shutil.rmtree, d, True)
+        _ecrire_liste(lst, parts)
         info.concat_list = lst
     return ["-f", "concat", "-safe", "0", "-i", str(lst)]
 
@@ -101,6 +123,11 @@ def open_media(path: str | Path, tools: Toolset) -> MediaInfo:
             "Ce fichier est un menu de DVD, pas le film.\n"
             "Choisissez un morceau VTS_xx_1.VOB (ou le dossier VIDEO_TS).")
     parts = parts_for(p)
+    if title_key(parts[0].name):
+        for attendu, morceau in enumerate(parts, 1):
+            if int(_VTS.match(morceau.name).group(2)) != attendu:
+                nom = f"{title_key(morceau.name)}_{attendu}.VOB"
+                raise ToolError(f"Le morceau {nom} manque. Retrouvez-le avant de restaurer ce DVD.")
     info = analyze(parts[0], tools)
     key = title_key(parts[0].name)
     if key:

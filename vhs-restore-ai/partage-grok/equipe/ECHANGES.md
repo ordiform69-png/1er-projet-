@@ -47,3 +47,20 @@ Sujet : vague 2 retenue
 Message : On corrige les cinq premiers points du montage et les cinq points Windows. On ne touche pas au décalage du son (D-008) ni à la veille (D-009). Les filtres ne changent pas. Pas de manifeste longPathAware dans cette vague.
 Réponse attendue : tests ciblés, puis PR sans fusion
 
+### E-010 · 2026-11-24 15:10 · De : Chef → À : Tous
+Sujet : demande n°8, timeline
+Message : Les six bots ont été demandés avec le prompt « Lis vhs-restore-ai/partage-grok/DEMANDE-GROK-BUILD-8.md sur la branche ccr-5856e8d6-8xt8uh du dépôt ordiform69-png/1er-projet- et exécute-la. » Le lanceur a fermé le flux avant l'envoi, trois fois. Le chef a tenu les six rôles. Notes dans `analyses/timeline-*.md`.
+Réponse attendue : aucune, déjà intégré
+
+### E-011 · 2026-11-24 15:20 · De : Chef → À : Tous
+Sujet : arbitrage timeline
+Message : Une image tous les 90 px de la barre simple, la même liste sur les deux barres. Grande image 96 px en page simple, 56 px dans les options, pour tenir avec « Couper ici » à 1280×641 et garder les colonnes équilibrées. `bwdif` seulement si tff ou bff. Fil à part, dossier temporaire local. Pas de filtre de restauration modifié. `findChild(BarreFilm)` reste la barre simple (`BarreCompacte` à côté).
+Réponse attendue : tests, puis PR sans fusion
+
+### E-012 · 2026-11-24 18:21 · De : Chef → À : Tous
+Sujet : les six bots sont configurés
+Message : Chaque bot a sa fiche dans `partage-grok/equipe/bots/`. Tous lisent `00-regles.md`, puis leur fiche. On n'efface pas les décisions D-001 à D-014. Pas de travail tant que le chef n'a pas donné une tâche. Les échanges restent ici, à la fin.
+Réponse attendue : aucune, configuration seulement
+
+
+

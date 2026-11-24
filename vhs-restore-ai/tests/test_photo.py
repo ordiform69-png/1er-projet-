@@ -94,3 +94,16 @@ def test_preview_and_folder(images, tools, tmp_path):
     assert len(res.done) == 2 and all(p.suffix == ".png" for p in res.done)
     again = pipeline.restore_folder(folder, tools, auto)
     assert again.done == [] and len(again.skipped) == 2              # relance : rien n'est refait
+
+
+def test_lot_homonymes_et_reglages(images, tools, tmp_path):
+    import shutil
+    from dataclasses import replace
+    shutil.copy(images["jpeg"], tmp_path / "Noel.jpg")
+    ff("-i", str(images["jpeg"]), str(tmp_path / "Noel.png"))
+    def lot(decalage):
+        return pipeline.restore_folder(tmp_path, tools, lambda _: replace(
+            pipeline.Settings(profile_for("fidele")), audio_offset_ms=decalage))
+    assert len(lot(0).done) == 2
+    assert len(lot(0).skipped) == 2
+    assert len(lot(100).done) == 2

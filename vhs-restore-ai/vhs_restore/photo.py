@@ -26,6 +26,8 @@ from typing import Callable
 
 from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
+from .tools import copie_annexe
+from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, FichierOccupe, ToolError, Toolset, effacer, ff_input, finaliser, run,
                     run_capture, verifier_chemin)
 from .upscaler import RealEsrganUpscaler
@@ -116,6 +118,16 @@ def output_path(info: MediaInfo, s: pipeline.Settings, out_dir: Path) -> Path:
 
 def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: Toolset, *,
                   cancel: threading.Event | None = None, progress: Progress | None = None) -> Path:
+    cible = Path(out_path).resolve()
+    if cible == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas remplacer le fichier original.")
+    annexes = lambda p: [colorized_path(p)] if wants_color(info, s) else []
+    with reserver_sorties(cible, annexes) as libre:
+        return _restore_photo(info, s, libre, tools, cancel=cancel, progress=progress)
+
+
+def _restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: Toolset, *,
+                  cancel: threading.Event | None = None, progress: Progress | None = None) -> Path:
     """Écrit la photo restaurée (PNG, sans perte). L'original n'est jamais modifié.
     Si la colorisation est demandée pour une photo noir et blanc, écrit EN PLUS la copie
     colorisée (colorized_path) ; une copie déjà présente n'est jamais écrasée."""
@@ -133,7 +145,7 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
                             "ou décochez « Coloriser ».")
         if color_out.exists():
             raise ToolError(f"Une photo colorisée porte déjà ce nom : {color_out.name}. Rien n'a été remplacé.")
-    part = out_path.with_name(out_path.stem + ".partiel.png")
+    part = partiel_unique(out_path)
     verifier_chemin(part)
     ff = [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error"]
     work = Path(tempfile.mkdtemp(prefix="vhsrestore_photo_"))
@@ -159,8 +171,7 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
         if color_out is not None:
             if progress:
                 progress(0.6, "Colorisation par l'IA (couleurs inventées)…")
-            colorize.colorize(out_path, color_out, tools.ffmpeg.path, tools.ffprobe.path,
-                              Path(tools.colorizer.path), cancel=cancel)
+            copie_couleur(out_path, tools, cancel)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -172,24 +183,34 @@ def restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools: 
     return out_path
 
 
+def copie_couleur(principal, tools, cancel):
+    with copie_annexe(principal, "La copie en couleur"):
+        colorize.colorize(principal, colorized_path(principal), tools.ffmpeg.path, tools.ffprobe.path,
+                          Path(tools.colorizer.path), cancel=cancel)
+
+
 def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, workdir: Path, *,
                        cancel: threading.Event | None = None,
                        progress: Progress | None = None) -> pipeline.PreviewResult:
     """Avant / après côte à côte, à la même taille (l'original est agrandi s'il le faut)."""
     workdir.mkdir(parents=True, exist_ok=True)
     target = workdir / "apercu_photo.png"
+    effacer(target)
     colorized_path(target).unlink(missing_ok=True)       # aperçu précédent
     restored = restore_photo(info, s, target, tools, cancel=cancel, progress=progress)
     if wants_color(info, s):                              # avant (noir et blanc) / après (colorisé)
         restored = colorized_path(target)
     compare = workdir / "apercu_photo_comparaison.png"
     fmt = "gray" if info.black_and_white and not wants_color(info, s) else "rgb24"
+    # -loop 1 : une seule image n'émet pas de trame avec scale2ref sous FFmpeg 7
+    # (code 0, fichier vide). -update 1 : un PNG, pas une suite numérotée.
     r = subprocess.run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-                        *ff_input(info.path), "-i", str(restored), "-filter_complex",
+                        "-loop", "1", *ff_input(info.path), "-loop", "1", "-i", str(restored),
+                        "-filter_complex",
                         f"[0:v][1:v]scale2ref=flags=lanczos[a][b];[a]format={fmt}[a2];[b]format={fmt}[b2];"
-                        "[a2][b2]hstack=inputs=2", "-frames:v", "1", str(compare)],
+                        "[a2][b2]hstack=inputs=2", "-frames:v", "1", "-update", "1", str(compare)],
                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
                        stdin=subprocess.DEVNULL, creationflags=_NO_WINDOW)
-    if r.returncode:
-        raise ToolError("Comparaison impossible : " + r.stderr.strip()[-300:])
+    if r.returncode or not compare.is_file():
+        raise ToolError("Comparaison impossible : " + (r.stderr.strip()[-300:] or "fichier vide"))
     return pipeline.PreviewResult(0.0, 0.0, restored, compare, [compare], info.path)

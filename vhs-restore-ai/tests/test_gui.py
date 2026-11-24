@@ -181,3 +181,19 @@ def test_photo_mode(app, tools, tmp_path, monkeypatch):
     assert "photo restaurée" in win.s_fini_texte.text()
     assert win.s_voir.text() == "Voir la photo" and not win.s_fini.isHidden()
     win.close()
+
+
+def test_choix_ia_explicite(app, tools, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+    import threading
+    win = MainWindow(tools)
+    def repondre(box):
+        boutons = {b.text(): b for b in box.buttons()}
+        assert set(boutons) == {"Continuer avec l'IA", "Continuer sans l'IA", "Annuler"}
+        assert "Full HD" in box.text()
+        boutons["Continuer sans l'IA"].click()
+    monkeypatch.setattr(QMessageBox, "exec", repondre)
+    reponse, pret = [], threading.Event()
+    win._question_vitesse((15000, True, False, reponse, pret))
+    assert reponse == ["sans"] and pret.is_set()
+    win.close()
