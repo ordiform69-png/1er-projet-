@@ -162,6 +162,14 @@ def copie_annexe(principal, libelle):
         raise CopieIncomplete(principal, f"{libelle} {fin}", isinstance(exc, Cancelled)) from exc
 
 
+def cacher(chemin: Path) -> None:
+    """Sous Windows, un point au début ne cache rien : on pose l'attribut caché."""
+    if os.name != "nt":
+        return
+    import ctypes
+    ctypes.windll.kernel32.SetFileAttributesW(str(chemin), 0x2)  # FILE_ATTRIBUTE_HIDDEN
+
+
 def partiel_unique(final: Path) -> Path:
     verifier_chemin(final)
     verifier_chemin(final.parent / ("vhs-XXXXXXXX.partiel" + final.suffix))
@@ -185,6 +193,7 @@ def reserver_sorties(principal, annexes):
                 verrou = cible.with_name("." + cible.name + ".reserve")
                 verifier_chemin(verrou)
                 verrou.touch(exist_ok=False)
+                cacher(verrou)
                 verrous.append(verrou)
                 if cible.exists():
                     raise FileExistsError(cible)

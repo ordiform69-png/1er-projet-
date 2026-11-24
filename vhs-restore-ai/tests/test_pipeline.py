@@ -217,3 +217,48 @@ def test_vitesse_ia_mesuree_avant_choix(pal, tools, tmp_path, monkeypatch):
     assert s.use_ai and not choix.use_ai
     attendu = 10 * float(pipeline.output_fps(pal, s)) * 30
     assert abs(estimations[0] / attendu - 1) < 0.2
+
+
+def test_apercu_ia_seuil_deux_minutes(pal, tools, monkeypatch):
+    """Aperçu : question seulement au-delà de 2 minutes. Restauration : seuil inchangé."""
+    from types import SimpleNamespace
+    horloge = [0.0]
+
+    class Moteur:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            # 1 image : 4 s de démarrage + 9 s ; 2 images : encore 9 s -> 9 s/image
+            n = len(list(src.glob("*.png")))
+            horloge[0] += 4 + 9 * n
+
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+    monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: horloge[0]))
+    from dataclasses import replace
+    s = replace(S(), use_ai=True)
+    vus = []
+
+    def choisir(secondes, en_4k, inconnue):
+        vus.append(secondes)
+        return "avec"
+
+    # 10 s d'aperçu à 9 s/image * 50 i/s = 4500 s, mais on force le coût :
+    # 9 s/image * fps(25 ou 50) * 10 s dépasse 2 min. On vérifie les deux seuils
+    # en contrôlant la durée passée.
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=True)
+    assert vus, "un aperçu long doit poser la question"
+    long = vus[-1]
+    vus.clear()
+    # 0,1 s/image : sous 2 min pour un aperçu de 10 s, au-dessus de 3 × la durée
+    horloge[0] = 0
+    class MoteurCourt:
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            n = len(list(src.glob("*.png")))
+            horloge[0] += 0.9 + 0.1 * n
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", MoteurCourt)
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=True)
+    assert vus == [], vus
+    pipeline.essayer_ia(pal, s, tools, 10, choisir, threading.Event(), None, apercu=False)
+    assert vus, "la restauration garde le seuil 3 × durée"

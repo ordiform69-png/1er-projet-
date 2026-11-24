@@ -970,9 +970,15 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                     chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
                 chaine_son += ["apad", f"atrim=duration={duration:.9f}"]
             sons = ["-af", ",".join(chaine_son)] if chaine_son else []
+            # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
+            # avec -t seul. Même résultat en 6.1 et en 7.x.
+            limite = []
+            if duration:
+                n = max(1, round(float(duration) * float(output_fps(info, s))))
+                limite = ["-frames:v", str(n)]
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
-                   *sons, "-f", "mp4", str(part)])
+                   *sons, *limite, "-f", "mp4", str(part)])
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         finaliser(part, out_path)
@@ -1202,8 +1208,12 @@ def _stab_detect(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
 
 
 @lecture_dvd
-def essayer_ia(info, s, tools, duree, demander, cancel, progress):
-    """Mesure le coût fixe de lancement et le coût par image sur la machine locale."""
+def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=False):
+    """Mesure le coût fixe de lancement et le coût par image sur la machine locale.
+
+    apercu : ne demander que si l'attente estimée dépasse 2 minutes.
+    La restauration garde le seuil actuel (3 × la durée, ou 2 h).
+    """
     if not s.use_ai:
         return s
     from .tools import ff_input
@@ -1231,7 +1241,9 @@ def essayer_ia(info, s, tools, duree, demander, cancel, progress):
         par_image = temps[1] / 2
     demarrage = max(0.0, temps[0] - par_image)
     estimation = images * par_image + math.ceil(images / AI_CHUNK_FRAMES) * demarrage
-    if estimation > 7200 or (not photo and (not duree or estimation > 3 * duree)):
+    trop_long = estimation > 120 if apercu else (
+        estimation > 7200 or (not photo and (not duree or estimation > 3 * duree)))
+    if trop_long:
         choix = demander(estimation, s.resolution == "2160", not photo and not duree)
         if choix == "annuler":
             raise Cancelled()
@@ -1359,9 +1371,34 @@ class BatchResult:
     fallback: bool = False             # dossier source non modifiable : sortie de secours
 
 
+def dossier_recus() -> Path:
+    """Reçus « déjà fait » : dans le profil, pas à côté des films (Windows montre les dossiers pointés)."""
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.local/state")
+    d = Path(base) / "VHSRestoreAI" / "recus"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _duree_totale(files: list[Path], tools: Toolset) -> float:
+    """Somme des durées des films du dossier (une photo compte une image)."""
+    from . import photo
+    total = 0.0
+    for f in files:
+        if photo.is_photo(f):
+            total += 1 / 25
+            continue
+        try:
+            info = open_media(f, tools)
+        except (ToolError, OSError, ValueError):
+            continue
+        total += float(info.duration or 0)
+    return total
+
+
 def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaInfo], Settings], *,
                    cancel: threading.Event | None = None,
-                   progress: Progress | None = None) -> BatchResult:
+                   progress: Progress | None = None,
+                   demander=None) -> BatchResult:
     """Restaure toutes les vidéos d'un dossier (sans sous-dossiers) dans
     « Films restaurés ». Un fichier en erreur n'arrête pas les suivants ;
     une annulation arrête tout (les films déjà terminés restent)."""
@@ -1391,6 +1428,27 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
     out_dir.mkdir(exist_ok=True)
     res = BatchResult(out_dir, [], [], fallback=fallback)
     n = len(files)
+    # Une seule mesure et une seule question pour tout le dossier.
+    decision: dict = {"fait": False, "sans": False, "resolution": None}
+    duree_totale = _duree_totale(files, tools) if demander is not None else 0.0
+
+    def reglages_pour(info: MediaInfo) -> Settings:
+        s = settings_for(info)
+        if not s.use_ai or demander is None:
+            return s
+        if not decision["fait"]:
+            choisi = essayer_ia(info, s, tools, duree_totale or info.duration, demander,
+                                cancel, progress)
+            decision["fait"] = True
+            decision["sans"] = not choisi.use_ai
+            decision["resolution"] = choisi.resolution
+            return choisi
+        if decision["sans"]:
+            return dataclasses.replace(
+                s, use_ai=False,
+                resolution=decision["resolution"] or s.resolution)
+        return s
+
     for k, f in enumerate(files):
         if cancel is not None and cancel.is_set():
             raise Cancelled()
@@ -1403,14 +1461,16 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             sub(0.0, "analyse…")
             image = photo.is_photo(f)
             info = photo.analyze_photo(f, tools) if image else open_media(f, tools)
-            s = settings_for(info)
+            s = reglages_pour(info)
             sources = []
             for source in info.parts or (f,):
                 stat = source.stat()
                 sources.append((str(source.resolve()), stat.st_size, stat.st_mtime_ns))
-            identite = json.dumps([sources, dataclasses.asdict(s)], sort_keys=True, default=str)
+            identite = json.dumps(
+                [str(out_dir.resolve()), sources, dataclasses.asdict(s)],
+                sort_keys=True, default=str)
             cle = hashlib.sha256(identite.encode()).hexdigest()
-            registre = out_dir / ".restaurations"
+            registre = dossier_recus()
             recu = registre / cle
             principal = None
             try:

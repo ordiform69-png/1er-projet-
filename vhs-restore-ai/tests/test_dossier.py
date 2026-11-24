@@ -111,3 +111,35 @@ def test_espace_ia_sur_destination_avant_traitement(samples, tools, tmp_path, mo
     with pytest.raises(ToolError, match="Espace disque insuffisant"):
         pipeline.export(info, s, tmp_path / "sortie.mp4", tools)
     assert not list(temp.iterdir())
+
+
+def test_dossier_ia_une_seule_question(samples, tools, tmp_path, monkeypatch):
+    """Trois films, agrandisseur lent : une question, les trois suivent le choix."""
+    for name in ("pal_tff", "prog", "long"):
+        shutil.copy(samples[name], tmp_path / f"{name}.mpg")
+    questions = []
+
+    class Moteur:
+        scale = 4
+        def __init__(self, outil):
+            pass
+        def upscale_dir(self, src, dst, cancel=None):
+            import time
+            # assez lent pour dépasser 3 × la durée totale du dossier
+            time.sleep(0.4 * max(1, len(list(Path(src).glob("*.png")))))
+
+    monkeypatch.setattr(pipeline, "RealEsrganUpscaler", Moteur)
+
+    def demander(secondes, en_4k, inconnue):
+        questions.append(secondes)
+        return "sans"
+
+    def reglages(info):
+        return pipeline.Settings(profile_for("equilibre", "video"), use_ai=True, resolution="1080")
+
+    res = pipeline.restore_folder(tmp_path, tools, reglages, demander=demander)
+    assert len(questions) == 1, questions
+    assert res.errors == []
+    assert len(res.done) == 3
+    assert not any(p.name.endswith("_ia.mp4") or "_ia" in p.stem for p in res.done)
+    assert not (res.out_dir / ".restaurations").exists()

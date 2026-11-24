@@ -2839,8 +2839,9 @@ class MainWindow(QMainWindow):
         reponse.append("sans" if bouton is sans else "avec" if bouton is avec else "annuler")
         pret.set()
 
-    def _choix_ia(self, info, s, duree, c, p):
-        return pipeline.essayer_ia(info, s, self.tools, duree, self.worker.demander_ia, c, p)
+    def _choix_ia(self, info, s, duree, c, p, apercu=False):
+        return pipeline.essayer_ia(info, s, self.tools, duree, self.worker.demander_ia, c, p,
+                                   apercu=apercu)
 
     def start_preview(self) -> None:
         if not self.info or self._busy():
@@ -2853,10 +2854,10 @@ class MainWindow(QMainWindow):
             shutil.rmtree(vieux, ignore_errors=True)
         travail = Path(tempfile.mkdtemp(prefix="apercu_", dir=self.preview_dir))
         if getattr(self, "is_photo", False):
-            self._launch(lambda c, p: photo.make_photo_preview(info, self._choix_ia(info, s, 1, c, p), self.tools, travail / "photo",
+            self._launch(lambda c, p: photo.make_photo_preview(info, self._choix_ia(info, s, 1, c, p, apercu=True), self.tools, travail / "photo",
                                                                cancel=c, progress=p), self._preview_done)
             return
-        self._launch(lambda c, p: pipeline.make_preview(info, self._choix_ia(info, s, min(info.duration or 10, 10), c, p), self.tools, travail, start,
+        self._launch(lambda c, p: pipeline.make_preview(info, self._choix_ia(info, s, min(info.duration or 10, 10), c, p, apercu=True), self.tools, travail, start,
                                                         cancel=c, progress=p), self._preview_done)
 
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
@@ -3488,9 +3489,10 @@ class MainWindow(QMainWindow):
         self._remarque_dossier = ergonomie.PHRASE_COUPES_DOSSIER if coupes else ""
         self.status.setText(ergonomie.PHRASE_COUPES_DOSSIER if coupes else "Restauration du dossier…")
         reglages = self._reglages_dossier()
-        self._launch(lambda c, p: pipeline.restore_folder(folder, self.tools,
-                            lambda i: self._choix_ia(i, reglages(i), i.duration, c, p),
-                                                          cancel=c, progress=p), self._folder_done,
+        self._launch(lambda c, p: pipeline.restore_folder(
+                            folder, self.tools, reglages,
+                            demander=self.worker.demander_ia,
+                            cancel=c, progress=p), self._folder_done,
                      job="dossier")
         if coupes:
             self.s_info.setText(_insecables(f"<b>Travail en cours.</b> {ergonomie.PHRASE_COUPES_DOSSIER} "

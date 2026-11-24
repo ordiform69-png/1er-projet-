@@ -95,6 +95,11 @@ def test_export_passages_milieu(samples, tools, tmp_path):
     # Les pistes du PAL de test commencent à des dates différentes. Comparer leurs fins.
     fin_image = float(v["start_time"]) + float(v["duration"])
     assert abs(fin_image - 3.0) < 0.04
+    import subprocess
+    n = subprocess.check_output([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
+                                 "-count_packets", "-show_entries", "stream=nb_read_packets",
+                                 "-of", "csv=p=0", str(out)], text=True).strip()
+    assert int(n) == 150, n
     assert len(a) == 1
     fin_son = float(a[0]["start_time"]) + float(a[0]["duration"])
     assert abs(fin_image - fin_son) < 0.04
