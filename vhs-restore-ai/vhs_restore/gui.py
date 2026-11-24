@@ -2287,7 +2287,7 @@ class MainWindow(QMainWindow):
             self.res_combo.setCurrentIndex(self.res_combo.findData("1080"))
         has_prev = self.preview is not None
         photo_mode = getattr(self, "is_photo", False)
-        sound = bool(self.info is not None and self.info.has_audio and not self.info.audio_silent)
+        sound = bool(self.info is not None and self.info.has_audio)
         self.play_btn.setEnabled(has_prev and not busy)
         self.play_btn.setVisible(not photo_mode)
         for b in (self.hear_orig_btn, self.hear_new_btn, self.s_hear_orig, self.s_hear_new):
@@ -2433,7 +2433,7 @@ class MainWindow(QMainWindow):
         if not self.info.has_audio:
             notes.append("ℹ Aucune piste son : le fichier restauré restera muet.")
         elif self.info.audio_silent:
-            notes.append("ℹ La piste son est vide (silence) : elle est conservée telle quelle.")
+            notes.append("ℹ Aucun son entendu dans les extraits analysés.")
         notes += self._lignes_conseils()
         if getattr(self, "out_note", ""):
             notes.append(self.out_note)
@@ -2794,7 +2794,7 @@ class MainWindow(QMainWindow):
         traits = [_duree(info.duration)]
         if info.black_and_white:
             traits.append("noir et blanc")
-        if not (info.has_audio and not info.audio_silent):
+        if not info.has_audio:
             traits.append("sans son (il restera muet)")
         self.advice = advise(info)
         self._info_debut = f"<b>{info.summary()['Fichier']}</b><br>{kind}, {', '.join(traits)}."

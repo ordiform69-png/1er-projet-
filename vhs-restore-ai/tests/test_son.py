@@ -80,3 +80,11 @@ def test_bottom_mask(mono):
     chain = pipeline.filter_chain(mono, S(mask_bottom=12))
     assert "crop=720:564:0:0,pad=720:576:0:0:black" in chain              # même taille d'image
     assert "pad=" not in pipeline.filter_chain(mono, S())                   # 0 ligne par défaut
+
+
+def test_son_apres_cinq_minutes(tmp_path, tools):
+    src = tmp_path / "tard.mkv"
+    ff("-f", "lavfi", "-i", "color=s=128x96:r=1", "-f", "lavfi", "-i", "sine=r=8000",
+       "-af", "adelay=301000:all=1", "-t", "303", "-c:v", "ffv1", "-c:a", "flac", str(src))
+    info = analyze(src, tools)
+    assert info.has_audio and not info.audio_silent

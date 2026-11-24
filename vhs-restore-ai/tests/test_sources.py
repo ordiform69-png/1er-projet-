@@ -64,7 +64,7 @@ def test_silent_track_and_pale_colors(samples, tools, tmp_path):
             "testsrc2=size=720x540:rate=18,hue=s=0.12,noise=alls=8:allf=t", "-f", "lavfi", "-i",
             "anullsrc=r=48000:cl=stereo", "-t", "3", "-c:v", "ffv1", "-c:a", "flac", str(src)], check=True)
     i = analyze(src, tools)
-    assert i.has_audio and i.audio_silent and "silencieuse" in i.summary()["Audio"]
+    assert i.has_audio and i.audio_silent and "Aucun son entendu dans les extraits analysés" in i.summary()["Audio"]
     assert i.pale_colors and not i.black_and_white
     out = pipeline.export(i, S(source="film"), tmp_path / "o.mp4", tools)
     assert streams(out)[2]                                # piste conservée, pas supprimée

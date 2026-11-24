@@ -109,7 +109,7 @@ class MediaInfo:
             "Format d'affichage": f"{self.dar.numerator}:{self.dar.denominator} ({self.dar_source})",
             "Balayage": f"{scan_txt} [{self.scan_source}]",
             "Norme probable": std,
-            "Audio": (self.audio_desc + (" — silencieuse (aucun son enregistré)" if self.audio_silent else "")
+            "Audio": (self.audio_desc + (" — Aucun son entendu dans les extraits analysés" if self.audio_silent else "")
                       if self.audio_desc else "aucune piste audio (film muet ?)"),
             "Couleur": ("Noir et blanc probable" if self.black_and_white else
                         "Couleurs très pâles (film décoloré ou noir et blanc teinté)" if self.pale_colors else
@@ -467,13 +467,23 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
     if info.has_audio:
         # Piste vide ajoutée lors de la numérisation (constaté sur une archive réelle) :
         # on la garde (rien n'est supprimé), mais on l'annonce.
-        try:
-            r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-i", str(p), "-map", "0:a:0",
-                             "-t", "300", "-af", "volumedetect", "-f", "null", "-"], timeout=300)
-            m = re.search(r"max_volume:\s*(-?[\d.]+|-inf) dB", r.stderr)
-            info.audio_silent = bool(m) and (m.group(1) == "-inf" or float(m.group(1)) < -60)
-        except subprocess.TimeoutExpired:
-            pass
+        longueur = 12.0
+        positions = sorted({0.0, max(0.0, (info.duration - longueur) / 2),
+                            max(0.0, info.duration - longueur)})
+        silencieux = []
+        for position in positions:
+            try:
+                r = run_capture([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-ss", str(position),
+                                 "-i", str(p), "-map", "0:a:0", "-t", str(longueur),
+                                 "-af", "volumedetect", "-f", "null", "-"], timeout=60)
+                m = re.search(r"max_volume:\s*(-?[\d.]+|-inf) dB", r.stderr)
+                silencieux.append(r.returncode == 0 and bool(m) and float(m.group(1)) < -60)
+                if not silencieux[-1]:
+                    break
+            except subprocess.TimeoutExpired:
+                silencieux.append(False)
+                break
+        info.audio_silent = info.duration > 0 and all(silencieux)
         if not info.audio_silent:
             from .audio_check import measure
             chk = measure(tools.ffmpeg.path, p, info.audio_channels)
