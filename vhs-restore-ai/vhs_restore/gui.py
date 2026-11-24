@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from . import ergonomie, icons, installer, photo, pipeline, theme, vides
+from . import ergonomie, icons, installer, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -692,7 +692,117 @@ def _memes_coupes(a: list[tuple[float, float]], b: list[tuple[float, float]]) ->
     return cle(a) == cle(b)
 
 
-class BarreFilm(QWidget):
+class ImageMoment(QLabel):
+    """Grande image du film à l'endroit du curseur. Le texte alternatif dit l'heure."""
+
+    def __init__(self, hauteur: int) -> None:
+        super().__init__()
+        self._hauteur = hauteur
+        self.setAlignment(Qt.AlignCenter)
+        self.setMinimumHeight(hauteur)
+        self.setMaximumHeight(hauteur)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setWordWrap(True)
+        self.vider()
+
+    def vider(self) -> None:
+        self.setPixmap(QPixmap())
+        self.setText("Les images du film arrivent.")
+        self.setAccessibleName("Image du film")
+        self.setAccessibleDescription("Image du film, pas encore prête.")
+
+    def montrer(self, chemin: str, temps: float) -> None:
+        pix = QPixmap(chemin)
+        if pix.isNull():
+            return
+        self.setText("")
+        self.setPixmap(pix.scaledToHeight(max(2, self._hauteur - 4), Qt.SmoothTransformation))
+        phrase = f"Image du film à {_duree(temps)}"
+        self.setAccessibleName(phrase)
+        self.setAccessibleDescription(phrase)
+
+
+class _FilImages(QThread):
+    """Vignettes, une par une, hors du fil de restauration : l'écran n'est pas bloqué."""
+
+    prete = Signal(int, str, int)
+
+    def __init__(self, ffmpeg: str, info: MediaInfo, moments: list[float], dossier: Path,
+                 largeur: int, hauteur: int, annuler: threading.Event, generation: int) -> None:
+        super().__init__()
+        self.ffmpeg, self.info = ffmpeg, info
+        self.moments = list(moments)
+        self.dossier = Path(dossier)
+        self.largeur, self.hauteur = largeur, hauteur
+        self.annuler = annuler
+        self.generation = generation
+
+    def run(self) -> None:
+        for i, instant in enumerate(self.moments):
+            if self.annuler.is_set():
+                return
+            dest = self.dossier / f"v{i:03d}.png"
+            if vignettes.extraire(self.ffmpeg, self.info, instant, dest,
+                                  self.largeur, self.hauteur, self.annuler):
+                self.prete.emit(i, str(dest), self.generation)
+
+
+class _FilMoment(QThread):
+    """Une seule image du curseur à la fois : la dernière demande gagne."""
+
+    prete = Signal(float, str, int)
+
+    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path,
+                 largeur: int, hauteur: int) -> None:
+        super().__init__()
+        self.ffmpeg, self.info = ffmpeg, info
+        self.dossier = Path(dossier)
+        self.largeur, self.hauteur = largeur, hauteur
+        self._lock = threading.Lock()
+        self._demande: tuple[float, int] | None = None
+        self._wake = threading.Event()
+        self._stop = False
+        self._proc: list = []
+
+    def demander(self, instant: float, generation: int) -> None:
+        with self._lock:
+            self._demande = (float(instant), int(generation))
+        for proc in list(self._proc):
+            try:
+                proc.kill()
+            except OSError:
+                pass
+        self._wake.set()
+
+    def arreter(self) -> None:
+        self._stop = True
+        self.demander(0, -1)
+
+    def run(self) -> None:
+        while not self._stop:
+            self._wake.wait(0.25)
+            self._wake.clear()
+            if self._stop:
+                return
+            with self._lock:
+                demande = self._demande
+                self._demande = None
+            if demande is None or demande[1] < 0:
+                continue
+            instant, generation = demande
+            dest = self.dossier / f"m{generation}-{int(instant * 1000)}.png"
+            if vignettes.extraire(self.ffmpeg, self.info, instant, dest,
+                                  self.largeur, self.hauteur, None, self._proc):
+                with self._lock:
+                    encore = self._demande
+                if encore is None and not self._stop:
+                    self.prete.emit(instant, str(dest), generation)
+                elif encore is not None:
+                    self._wake.set()
+
+
+class _Ruban(QWidget):
     """Barre du film, dessinée pour cet écran. Un clic ou un glisser place l'extrait.
 
     En doré : ce qui ne sera pas restauré. Le curseur est le moment choisi.
@@ -703,6 +813,7 @@ class BarreFilm(QWidget):
     borde = Signal(int, bool, float)
     borde_fini = Signal()
     valider = Signal()
+    largeur_changee = Signal(int)
 
     def __init__(self) -> None:
         super().__init__()
@@ -716,6 +827,8 @@ class BarreFilm(QWidget):
         # bord doré saisi mais pas encore tiré : un simple clic ne doit pas modifier la coupe
         self._bord_saisi: tuple[int, bool] | None = None
         self._x_appui = 0.0
+        self._vignettes: list[QPixmap] = []
+        self._compacte = False
         self.setMinimumHeight(56)
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -727,7 +840,24 @@ class BarreFilm(QWidget):
             "Faites glisser pour vous placer. Tirez les bords dorés pour ajuster un passage enlevé.")
 
     def sizeHint(self) -> QSize:  # noqa: N802
-        return QSize(400, 88)
+        return QSize(400, 64 if self._compacte else 88)
+
+    def vider_images(self, nombre: int) -> None:
+        """Places grises en attendant les petites images. `nombre` 0 : barre comme avant."""
+        self._vignettes = [QPixmap() for _ in range(max(0, int(nombre)))]
+        self.update()
+
+    def poser_image(self, index: int, chemin: str) -> None:
+        if not (0 <= index < len(self._vignettes)):
+            return
+        pix = QPixmap(chemin)
+        if not pix.isNull():
+            self._vignettes[index] = pix
+            self.update()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self.largeur_changee.emit(max(0, self._zone().width()))
 
     def definir(self, duree: float, position: float, debut: float, fin: float,
                 coupes: list[tuple[float, float]]) -> None:
@@ -835,6 +965,27 @@ class BarreFilm(QWidget):
         else:
             super().keyPressEvent(event)
 
+    def _dessiner_images(self, p: QPainter, r: QRect) -> None:
+        """Petites images du film, ou un gris tant qu'elles ne sont pas prêtes."""
+        n = len(self._vignettes)
+        if n <= 0 or r.width() <= 0:
+            return
+        p.save()
+        p.setClipRect(r.adjusted(2, 2, -2, -2))
+        slot = r.width() / n
+        for i, pix in enumerate(self._vignettes):
+            x = int(r.left() + i * slot)
+            suivant = int(r.left() + (i + 1) * slot)
+            dest = QRect(x, r.top() + 3, max(1, suivant - x), max(1, r.height() - 6))
+            if pix.isNull():
+                p.fillRect(dest, QColor("#5c6570"))
+                continue
+            scaled = pix.scaled(dest.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            sx = max(0, (scaled.width() - dest.width()) // 2)
+            sy = max(0, (scaled.height() - dest.height()) // 2)
+            p.drawPixmap(dest, scaled, QRect(sx, sy, dest.width(), dest.height()))
+        p.restore()
+
     def paintEvent(self, _event) -> None:  # noqa: N802
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -842,16 +993,23 @@ class BarreFilm(QWidget):
         p.setPen(QPen(QColor(theme.BORD), 1))
         p.setBrush(QColor(theme.PISTE))
         p.drawRoundedRect(r, 6, 6)
+        self._dessiner_images(p, r)
         if self.duree <= 0:
             p.end()
             return
 
         fin = self.fin if self.fin > 0 else self.duree
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(theme.ACCENT))
+        a_images = any(not pix.isNull() for pix in self._vignettes)
+        bleu = QColor(theme.ACCENT)
+        dore = QColor(theme.AMBRE)
+        if a_images:
+            bleu.setAlpha(55)
+            dore.setAlpha(150)
+        p.setBrush(bleu)
         x0, x1 = self._x_de(self.debut), self._x_de(fin)
         p.drawRect(int(x0), r.top() + 4, max(2, int(x1 - x0)), r.height() - 8)
-        p.setBrush(QColor(theme.AMBRE))
+        p.setBrush(dore)
         for a, b in self.coupes:
             xa, xb = self._x_de(a), self._x_de(b)
             p.drawRect(int(xa), r.top() + 4, max(2, int(xb - xa)), r.height() - 8)
@@ -876,6 +1034,14 @@ class BarreFilm(QWidget):
             p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree(self.duree / 2))
             p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(self.duree))
         p.end()
+
+
+class BarreFilm(_Ruban):
+    """Barre de la page simple. Un findChild(BarreFilm) trouve celle-ci, pas l'autre."""
+
+
+class BarreCompacte(_Ruban):
+    """Même barre, dans les options avancées. Ce n'est pas une BarreFilm."""
 
 
 class MainWindow(QMainWindow):
@@ -1136,19 +1302,27 @@ class MainWindow(QMainWindow):
         titre.setObjectName("carteTitre")
         titre.setWordWrap(True)
         dans.addWidget(titre)
+        self.s_moment_heure = QLabel("")
+        self.s_moment_heure.setObjectName("carteTitre")
+        self.s_moment_heure.setWordWrap(True)
+        self.s_moment_heure.setMinimumWidth(0)
+        dans.addWidget(self.s_moment_heure)
+        self.s_moment = ImageMoment(96)
+        dans.addWidget(self.s_moment)
         self.barre = BarreFilm()
         self.barre.clique.connect(self._barre_cliquee)
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
+        self.barre.largeur_changee.connect(self._sur_largeur_barre)
         dans.addWidget(self.barre)
-        legende = QLabel("Bleu : ce qui sera restauré. Doré : ce qui est enlevé.")
+        legende = QLabel("Les petites images montrent le film. Doré : ce qui est enlevé.")
         legende.setWordWrap(True)
         legende.setMinimumWidth(0)
         legende.setObjectName("note")
         dans.addWidget(legende)
-        aide_barre = QLabel("Glissez le curseur, puis « Couper ici ». Une seconde fois quand le film reprend. "
-                            "Les carrés blancs se tirent.")
+        aide_barre = QLabel("Glissez sur les images pour vous placer. « Couper ici », puis une seconde fois "
+                            "quand le film reprend. Les carrés blancs se tirent.")
         aide_barre.setWordWrap(True)
         aide_barre.setMinimumWidth(0)
         aide_barre.setObjectName("note")
@@ -1387,6 +1561,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.pages)
         self.setTabOrder(self.help_btn, self.theme_btn)
         self.setTabOrder(self.theme_btn, self._taille_btns[100])
+        self._gen_images = 0
+        self._annule_images = threading.Event()
+        self._fil_images: _FilImages | None = None
+        self._fil_moment: _FilMoment | None = None
+        self._dossier_images: Path | None = None
+        self._fils_morts: list[QThread] = []
+        self._replan_images = QTimer(self)
+        self._replan_images.setSingleShot(True)
+        self._replan_images.setInterval(250)
+        self._replan_images.timeout.connect(self._lancer_images)
+        self._attente_moment = QTimer(self)
+        self._attente_moment.setSingleShot(True)
+        self._attente_moment.setInterval(120)
+        self._attente_moment.timeout.connect(self._demander_moment)
         self.setTabOrder(self._taille_btns[100], self._taille_btns[125])
         self.setTabOrder(self._taille_btns[125], self._taille_btns[150])
         self.setTabOrder(self._taille_btns[150], self.s_choose)
@@ -1793,7 +1981,21 @@ class MainWindow(QMainWindow):
         bv.addLayout(g1)
         carte_passages = Carte("Enlever un passage", "ciseaux")
         bp = carte_passages.body
-        titre2 = QLabel("Au moment « Début de l'extrait », dans la carte de l'aperçu ci-dessus.")
+        self.trim_moment_heure = QLabel("")
+        self.trim_moment_heure.setObjectName("carteTitre")
+        self.trim_moment_heure.setWordWrap(True)
+        self.trim_moment_heure.setMinimumWidth(0)
+        bp.addWidget(self.trim_moment_heure)
+        self.trim_moment = ImageMoment(56)
+        bp.addWidget(self.trim_moment)
+        self.barre_avancee = BarreCompacte()
+        self.barre_avancee._compacte = True
+        self.barre_avancee.clique.connect(self._barre_cliquee)
+        self.barre_avancee.borde.connect(self._bord_bouge)
+        self.barre_avancee.borde_fini.connect(self._bord_fini)
+        self.barre_avancee.valider.connect(self._couper_ici)
+        bp.addWidget(self.barre_avancee)
+        titre2 = QLabel("Au moment montré ci-dessus. Même coupe que sur la page simple.")
         titre2.setObjectName("note")
         titre2.setWordWrap(True)
         bp.addWidget(titre2)
@@ -1955,7 +2157,9 @@ class MainWindow(QMainWindow):
                           "propose de le regarder ou d'ouvrir le dossier.\n\n"
                           "Pour enlever la neige du début ou la fin de bande : « Le film commence à » "
                           "et « Le film s'arrête à », sous les trois boutons. "
-                          "Pour un moment au milieu, cliquez deux fois sur « Couper ici ». "
+                          "Pour un moment au milieu, regardez les petites images sur la barre, "
+                          "puis cliquez deux fois sur « Couper ici ». "
+                          "L'image au-dessus de la barre montre où vous êtes. "
                           "Seule la copie est découpée.\n\n"
                           "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
@@ -2742,6 +2946,7 @@ class MainWindow(QMainWindow):
         self.drop.setText(info.path.name)
         self._memoriser_recent(str(info.path))
         self._update_state()
+        self._couper_images()
         self._refresh_hints()
         self.status.setText(f"Photo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
@@ -2804,6 +3009,7 @@ class MainWindow(QMainWindow):
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
+        self._lancer_images()
 
     def start_preview(self) -> None:
         if not self.info or self._busy():
@@ -2931,15 +3137,127 @@ class MainWindow(QMainWindow):
         self.s_trim_note.setText(texte)
         self._rafraichir_passages()
 
+    def _barres(self) -> list[_Ruban]:
+        return [b for b in (getattr(self, "barre", None), getattr(self, "barre_avancee", None))
+                if b is not None]
+
     def _rafraichir_barre(self) -> None:
-        barre = getattr(self, "barre", None)
-        if barre is None:
+        barres = self._barres()
+        if not barres:
             return
         if not self._film_pour_coupe() or not hasattr(self, "start_spin") or not hasattr(self, "trim_start"):
-            barre.definir(0, 0, 0, 0, [])
+            for barre in barres:
+                barre.definir(0, 0, 0, 0, [])
             return
-        barre.definir(self.info.duration, self.start_spin.value(),
-                      self.trim_start.value(), self.trim_end.value(), self._coupes)
+        for barre in barres:
+            barre.definir(self.info.duration, self.start_spin.value(),
+                          self.trim_start.value(), self.trim_end.value(), self._coupes)
+        if hasattr(self, "_attente_moment"):
+            self._attente_moment.start()
+
+    def _sur_largeur_barre(self, px: int) -> None:
+        """Le nombre de petites images suit la largeur. On ne relance que si ce nombre change."""
+        if not self._film_pour_coupe() or not getattr(self.info, "duration", 0):
+            return
+        if not hasattr(self, "_replan_images"):
+            return
+        n = len(vignettes.instants(self.info.duration, max(int(px), 1)))
+        if n and n != len(self.barre._vignettes):
+            self._replan_images.start()
+
+    def _couper_images(self) -> None:
+        """Arrête la fabrication en cours. Le dossier temporaire est effacé hors de l'écran,
+        une fois le fil arrêté : changer de film ne bloque pas."""
+        self._gen_images = getattr(self, "_gen_images", 0) + 1
+        annuler = getattr(self, "_annule_images", None)
+        if annuler is not None:
+            annuler.set()
+        fil = getattr(self, "_fil_images", None)
+        moment = getattr(self, "_fil_moment", None)
+        dossier = getattr(self, "_dossier_images", None)
+        self._fil_images = None
+        self._fil_moment = None
+        self._dossier_images = None
+        if fil is not None:
+            fil.annuler.set()
+            self._fils_morts.append(fil)
+        if moment is not None:
+            moment.arreter()
+            self._fils_morts.append(moment)
+
+        def _nettoyer() -> None:
+            if fil is not None:
+                fil.wait(8000)
+            if moment is not None:
+                moment.wait(8000)
+            if dossier is not None:
+                shutil.rmtree(dossier, ignore_errors=True)
+
+        threading.Thread(target=_nettoyer, name="vhs-vignettes-fin", daemon=True).start()
+        for barre in self._barres():
+            barre.vider_images(0)
+        for nom in ("s_moment", "trim_moment"):
+            image = getattr(self, nom, None)
+            if image is not None:
+                image.vider()
+        for nom in ("s_moment_heure", "trim_moment_heure"):
+            lab = getattr(self, nom, None)
+            if lab is not None:
+                lab.setText("")
+
+    def _lancer_images(self) -> None:
+        """Petites images et image du moment, dans un fil à part (pas self.worker)."""
+        self._couper_images()
+        if not self._film_pour_coupe() or not self.info.duration or self.info.duration <= 0:
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools.ffmpeg else None
+        if not ffmpeg:
+            return
+        largeur = max(self.barre.width(), self.barre.sizeHint().width(), 400)
+        moments = vignettes.instants(self.info.duration, largeur)
+        if not moments:
+            return
+        dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
+        self._dossier_images = dossier
+        self._annule_images = threading.Event()
+        generation = self._gen_images
+        lw, lh = vignettes.taille(self.info, vignettes.HAUTEUR_VIGNETTE)
+        for barre in self._barres():
+            barre.vider_images(len(moments))
+        fil = _FilImages(ffmpeg, self.info, moments, dossier, lw, lh, self._annule_images, generation)
+        fil.prete.connect(self._vignette_prete)
+        fil.start()
+        self._fil_images = fil
+        mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
+        moment = _FilMoment(ffmpeg, self.info, dossier, mw, mh)
+        moment.prete.connect(self._moment_pret)
+        moment.start()
+        self._fil_moment = moment
+        self._demander_moment()
+
+    def _vignette_prete(self, index: int, chemin: str, generation: int) -> None:
+        if generation != self._gen_images:
+            return
+        for barre in self._barres():
+            barre.poser_image(index, chemin)
+
+    def _moment_pret(self, instant: float, chemin: str, generation: int) -> None:
+        if generation != self._gen_images:
+            return
+        for nom in ("s_moment", "trim_moment"):
+            image = getattr(self, nom, None)
+            if image is not None:
+                image.montrer(chemin, instant)
+        for nom in ("s_moment_heure", "trim_moment_heure"):
+            lab = getattr(self, nom, None)
+            if lab is not None:
+                lab.setText(_duree(instant))
+
+    def _demander_moment(self) -> None:
+        fil = getattr(self, "_fil_moment", None)
+        if fil is None or not self._film_pour_coupe():
+            return
+        fil.demander(float(self.start_spin.value()), self._gen_images)
 
     def _barre_cliquee(self, secondes: float) -> None:
         if not self._film_pour_coupe():
@@ -3584,6 +3902,9 @@ class MainWindow(QMainWindow):
                 self.worker.cancel_event.set()
                 self.worker.wait(15000)
         self._save_prefs()
+        self._couper_images()
+        for fil in getattr(self, "_fils_morts", []):
+            fil.wait(2000)
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
 
