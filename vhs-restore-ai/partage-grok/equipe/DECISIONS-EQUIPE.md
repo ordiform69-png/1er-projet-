@@ -14,5 +14,7 @@
 - D-012 · 2026-11-24 · Une image tous les 90 px, même liste pour les deux barres. Hauteur d'image 96 px (simple) et 56 px (options). `bwdif` seulement si le balayage est tff ou bff. Aucun seuil de restauration modifié.
 - D-013 · 2026-11-24 · L'extraction ne passe pas par `self.worker`. Dossier temporaire local, supprimé au changement de film. Les signaux d'une génération périmée sont ignorés. La dernière demande d'image du moment gagne.
 - D-014 · 2026-11-24 · Les bots de la demande n°8 n'ont pas démarré (flux fermé). Le chef a fait le travail des six rôles. Pas d'exe Windows dans cet environnement : pas de ligne « RÉSULTAT : OK ».
+- D-015 · 2026-11-24 · Six bots configurés dans `partage-grok/equipe/bots/` : Parcours senior, Windows, Image et son, Montage, Aide et textes, Contrôle. Le chef les lance, recopie les échanges dans `ECHANGES.md`, et écrit les rapports. Ils ne codent pas sans une tâche du chef.
+
 
 

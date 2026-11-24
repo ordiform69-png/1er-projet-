@@ -24,4 +24,5 @@ Branche d'intégration : `grok/equipe` (partie de `ccr-5856e8d6-8xt8uh`, commit 
 | 18 | Parcours senior | Trio visible à 1280×641, heure en clair | gui.py | fini | grok/timeline |
 | 19 | Aide et textes | Légende, LISEZMOI, Bienvenue | LISEZMOI.txt, gui.py | fini | grok/timeline |
 | 20 | Contrôle | tests/test_timeline.py | tests | fini | grok/timeline |
+| 21 | Chef | Fiches des six bots (`bots/`) | partage-grok/equipe/bots/ | fini | grok/timeline |
 
