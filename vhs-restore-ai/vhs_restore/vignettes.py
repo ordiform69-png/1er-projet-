@@ -6,6 +6,7 @@ fil des restaurations) : l'écran reste utilisable. Aucune image n'est
 """
 from __future__ import annotations
 
+import atexit
 import subprocess
 import threading
 from pathlib import Path
@@ -16,8 +17,25 @@ from .tools import _NO_WINDOW, ff_input
 
 PAS_PX = 90
 HAUTEUR_VIGNETTE = 72
-HAUTEUR_MOMENT = 144
-HAUTEUR_MOMENT_COMPACT = 96
+HAUTEUR_MOMENT = 180
+
+_EN_COURS: list[subprocess.Popen] = []
+_VERROU = threading.Lock()
+
+
+def tuer_extractions() -> None:
+    """Tue les FFmpeg d'images encore ouverts (fermeture, annulation, sortie de Python)."""
+    with _VERROU:
+        procs = list(_EN_COURS)
+    for proc in procs:
+        try:
+            if proc.poll() is None:
+                proc.kill()
+        except OSError:
+            pass
+
+
+atexit.register(tuer_extractions)
 
 
 def instants(duree: float, largeur: int, pas: int = PAS_PX) -> list[float]:
@@ -105,17 +123,24 @@ def extraire(ffmpeg: str, info: MediaInfo, instant: float, dest: Path,
             creationflags=_NO_WINDOW)
     except OSError:
         return False
+    with _VERROU:
+        _EN_COURS.append(proc)
     if processus is not None:
         processus[:] = [proc]
-    while proc.poll() is None:
-        if annuler is not None and annuler.is_set():
-            proc.kill()
-            proc.wait(2)
-            return False
-        try:
-            proc.wait(0.05)
-        except subprocess.TimeoutExpired:
-            continue
-    if processus is not None and processus[:1] == [proc]:
-        processus.clear()
-    return proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0
+    try:
+        while proc.poll() is None:
+            if annuler is not None and annuler.is_set():
+                proc.kill()
+                proc.wait(2)
+                return False
+            try:
+                proc.wait(0.05)
+            except subprocess.TimeoutExpired:
+                continue
+        return proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0
+    finally:
+        with _VERROU:
+            if proc in _EN_COURS:
+                _EN_COURS.remove(proc)
+        if processus is not None and processus[:1] == [proc]:
+            processus.clear()

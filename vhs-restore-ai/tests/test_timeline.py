@@ -197,20 +197,110 @@ def test_derniere_demande_gagne(tools, samples, monkeypatch):
 def test_trio_visible_sans_defilement_horizontal(tools, samples, monkeypatch):
     monkeypatch.setattr(vignettes, "extraire", lambda *_a, **_k: False)
     app, win = _ouvrir(tools, samples)
-    win.resize(1280, 641)
-    win.show()
+    try:
+        for pct in (100, 150):
+            win.resize(1280, 641)
+            win.show()
+            win.set_taille_texte(pct, annoncer=False)
+            app.processEvents()
+            zone = win.pages.widget(0)
+            zone.widget().layout().activate()
+            app.processEvents()
+            assert win.s_moment.height() >= 180, (pct, win.s_moment.height())
+            zone.ensureWidgetVisible(win.s_couper, 0, 0)
+            app.processEvents()
+            vue = zone.viewport().rect()
+            for w in (win.s_moment, win.barre, win.s_couper):
+                coin = w.mapTo(zone.viewport(), w.rect().topLeft())
+                assert coin.x() >= -2, pct
+                assert coin.x() + w.width() <= vue.width() + 2, pct
+            haut = win.s_moment.mapTo(zone.viewport(), QPoint(0, 0)).y()
+            bas = win.s_couper.mapTo(zone.viewport(), QPoint(0, win.s_couper.height())).y()
+            assert 0 <= haut < bas <= vue.height() + 2, (pct, haut, bas, vue.height())
+            assert zone.horizontalScrollBar().maximum() == 0
+    finally:
+        win.close()
+
+
+def test_apercu_avance_recoit_limage_du_moment(tools, samples, tmp_path):
+    app, win = _ouvrir(tools, samples)
+    try:
+        img = tmp_path / "moment.png"
+        qimg = QImage(16, 12, QImage.Format_RGB32)
+        qimg.fill(Qt.red)
+        qimg.save(str(img))
+        win.preview = None
+        win._moment_pret(12, str(img), win._gen_images)
+        vue = win.compare._w[0]
+        assert vue._moment is not None and not vue._moment.isNull()
+        assert vue.before is None
+        assert "12" in vue._moment_texte
+    finally:
+        win.close()
+
+
+def test_cinq_films_effacent_les_dossiers(tools, samples, monkeypatch):
+    def lent(*args, **kwargs):
+        annuler = args[6] if len(args) > 6 else kwargs.get("annuler")
+        for _ in range(40):
+            if annuler is not None and annuler.is_set():
+                return False
+            time.sleep(0.02)
+        return False
+
+    monkeypatch.setattr(vignettes, "extraire", lent)
+    app, win = _ouvrir(tools, samples)
+    dossiers = []
+    try:
+        for nom in ("pal_tff", "prog", "long", "pal_tff", "prog"):
+            if win._dossier_images is not None:
+                dossiers.append(win._dossier_images)
+            win.load_file(str(samples[nom]))
+            for _ in range(400):
+                app.processEvents()
+                if (win.worker is None or not win.worker.isRunning()) and win.info is not None \
+                        and win.info.path.name == samples[nom].name:
+                    break
+                time.sleep(0.02)
+    finally:
+        if win._dossier_images is not None:
+            dossiers.append(win._dossier_images)
+        win.close()
+        app.processEvents()
+    for _ in range(80):
+        if dossiers and all(not d.exists() for d in dossiers):
+            break
+        time.sleep(0.05)
+        app.processEvents()
+    assert dossiers and all(not d.exists() for d in dossiers), [str(d) for d in dossiers if d.exists()]
+
+
+def test_sortie_sans_close_ne_plante_pas(samples):
+    """Une fenêtre qui n'appelle pas close() ne doit pas tuer le processus (code 134)."""
+    import os
+    import subprocess
+    import sys
+    script = r"""
+import os, sys, time
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+from PySide6.QtWidgets import QApplication
+from vhs_restore.gui import MainWindow
+from vhs_restore.tools import detect_tools
+app = QApplication([])
+win = MainWindow(detect_tools())
+win.load_file(sys.argv[1])
+for _ in range(500):
     app.processEvents()
-    zone = win.pages.widget(0)
-    zone.widget().layout().activate()
-    zone.ensureWidgetVisible(win.s_couper, 0, 12)
-    app.processEvents()
-    vue = zone.viewport().rect()
-    for w in (win.s_moment, win.barre, win.s_couper):
-        coin = w.mapTo(zone.viewport(), w.rect().topLeft())
-        assert coin.x() >= -2
-        assert coin.x() + w.width() <= vue.width() + 2
-    haut = win.s_moment.mapTo(zone.viewport(), QPoint(0, 0)).y()
-    bas = win.s_couper.mapTo(zone.viewport(), QPoint(0, win.s_couper.height())).y()
-    assert 0 <= haut < bas <= vue.height() + 2
-    assert zone.horizontalScrollBar().maximum() == 0
-    win.close()
+    if win.info is not None and (win.worker is None or not win.worker.isRunning()):
+        break
+    time.sleep(0.02)
+# vignettes peut-être encore en cours : on ne ferme pas
+"""
+    env = os.environ.copy()
+    env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    r = subprocess.run([sys.executable, "-c", script, str(samples["long"])],
+                       cwd=str(Path(__file__).resolve().parent.parent),
+                       env=env, capture_output=True, text=True, timeout=90)
+    assert r.returncode == 0, r.stderr[-1500:]
+    assert "QThread" not in r.stderr
+    assert "QThread" not in r.stdout

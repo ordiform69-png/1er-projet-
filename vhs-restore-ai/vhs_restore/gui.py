@@ -12,6 +12,8 @@ import tempfile
 import threading
 import time
 import traceback
+import atexit
+import weakref
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable
@@ -36,6 +38,99 @@ from .profiles import PROFILES, RESOLUTIONS, profile_for
 from .tools import Cancelled, ToolError, Toolset, detect_tools, run_capture
 
 log = logging.getLogger("vhs_restore")
+
+# Fenêtres encore vivantes, et fils qui effacent les dossiers d'images.
+# PySide détruit ses objets pendant le ramasse-miettes final et Python quitte
+# alors par « none_dealloc » (code 134) : la fabrication Windows n'a pas d'exe.
+# On coupe FFmpeg, on attend les fils, puis os._exit avec le vrai code.
+_FENETRES: weakref.WeakSet = weakref.WeakSet()
+_NETTOYEURS: list[threading.Thread] = []
+_ARRET_ENREGISTRE = False
+_code_sortie: int | None = None
+
+
+def noter_code_sortie(code) -> None:
+    """Mémorise le code que le processus doit rendre (pytest ou sys.exit)."""
+    global _code_sortie
+    if isinstance(code, SystemExit):
+        code = code.code
+    if code is None:
+        _code_sortie = 0
+    elif isinstance(code, int):
+        _code_sortie = code
+    else:
+        _code_sortie = 1
+
+
+def _eteindre_a_la_sortie() -> None:
+    """Plus aucun fil d'images ni FFmpeg, puis sortie sans le ramasse-miettes de Qt."""
+    if getattr(_eteindre_a_la_sortie, "_fait", False):
+        return
+    _eteindre_a_la_sortie._fait = True  # type: ignore[attr-defined]
+    for win in list(_FENETRES):
+        try:
+            fab = getattr(win, "_fab", None)
+            if fab is not None:
+                fab.stop()
+            for nom in ("_pompe", "_replan_images", "_attente_moment"):
+                timer = getattr(win, nom, None)
+                if timer is not None:
+                    timer.stop()
+            for fil in list(getattr(win, "_fils", []) or []):
+                try:
+                    if fil.isRunning():
+                        fil.wait(2000)
+                except RuntimeError:
+                    pass
+        except RuntimeError:
+            pass
+    try:
+        vignettes.tuer_extractions()
+    except Exception:
+        pass
+    for win in list(_FENETRES):
+        fab = getattr(win, "_fab", None)
+        if fab is None:
+            continue
+        for fil in list(getattr(fab, "fils", ())):
+            fil.join(2)
+        try:
+            win._fab = None
+        except RuntimeError:
+            pass
+    for fil in list(_NETTOYEURS):
+        fil.join(3)
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass
+    os._exit(0 if _code_sortie is None else _code_sortie)
+
+
+def _enregistrer_arret() -> None:
+    global _ARRET_ENREGISTRE
+    if _ARRET_ENREGISTRE:
+        return
+    _ARRET_ENREGISTRE = True
+    orig_exit = sys.exit
+
+    def _exit(code=0):  # noqa: A001
+        noter_code_sortie(code)
+        orig_exit(code)
+
+    sys.exit = _exit  # type: ignore[assignment]
+    orig_hook = sys.excepthook
+
+    def _hook(etype, value, tb):
+        if etype is not SystemExit:
+            noter_code_sortie(1)
+        orig_hook(etype, value, tb)
+
+    sys.excepthook = _hook
+    atexit.register(_eteindre_a_la_sortie)
+
+
 VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *.mts *.ts *.dv *.vob *.wmv *.m4v "
                 "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp);;Tous les fichiers (*)")
 
@@ -96,6 +191,8 @@ class CompareView(QWidget):
         self.setMouseTracking(True)
         self._proportion = False
         self._plafond: Callable[[], int] | None = None
+        self._moment: QPixmap | None = None
+        self._moment_texte = ""
 
     def garder_proportions(self, plafond: Callable[[], int] | None = None) -> None:
         """Hauteur réglée sur la largeur (image 4:3) : le cadre ne s'étire pas en un grand
@@ -129,6 +226,23 @@ class CompareView(QWidget):
         self.before = self.after = None
         self.update()
 
+    def poser_moment(self, chemin: str, temps: float) -> None:
+        """Image du film tant qu'aucun aperçu n'a été fait. L'aperçu la remplace."""
+        pix = QPixmap(chemin)
+        if pix.isNull():
+            return
+        self._moment = pix
+        self._moment_texte = f"Image du film à {_duree(temps)}"
+        self.setAccessibleDescription(self._moment_texte)
+        if self.before is None:
+            self.update()
+
+    def oublier_moment(self) -> None:
+        self._moment = None
+        self._moment_texte = ""
+        if self.before is None:
+            self.update()
+
     def set_mode(self, mode: str) -> None:
         """Comparer sans geste précis : original seul, restauré seul, ou les deux (souris)."""
         self.mode = mode if mode in ("before", "after") else "split"
@@ -158,6 +272,18 @@ class CompareView(QWidget):
         p.setBrush(QColor("#0a0e13"))
         p.drawRoundedRect(inner, 6, 6)
         if self.before is None or self.after is None:
+            if self._moment is not None and not self._moment.isNull():
+                size = self._moment.size().scaled(inner.size(), Qt.KeepAspectRatio)
+                r = QRect(QPoint(0, 0), size)
+                r.moveCenter(inner.center())
+                p.setRenderHint(QPainter.SmoothPixmapTransform)
+                p.drawPixmap(r, self._moment)
+                p.setPen(QColor("#f3f6fa"))
+                f = p.font()
+                f.setPointSizeF(max(f.pointSizeF(), 13))
+                p.setFont(f)
+                p.drawText(inner.adjusted(8, 8, -8, -8), Qt.AlignBottom | Qt.AlignHCenter, self._moment_texte)
+                return
             p.setPen(QColor(theme.MONITEUR_TEXTE))
             f = p.font()
             f.setPointSizeF(max(f.pointSizeF(), 13))
@@ -723,83 +849,94 @@ class ImageMoment(QLabel):
         self.setAccessibleDescription(phrase)
 
 
-class _FilImages(QThread):
-    """Vignettes, une par une, hors du fil de restauration : l'écran n'est pas bloqué."""
+class _Boite:
+    """Résultats des fils Python, lus ensuite par le fil de l'interface."""
 
-    prete = Signal(int, str, int)
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.vignettes: list[tuple[int, str, int]] = []
+        self.moments: list[tuple[float, str, int]] = []
 
-    def __init__(self, ffmpeg: str, info: MediaInfo, moments: list[float], dossier: Path,
-                 largeur: int, hauteur: int, annuler: threading.Event, generation: int) -> None:
-        super().__init__()
+    def ajouter_vignette(self, index: int, chemin: str, generation: int) -> None:
+        with self._lock:
+            self.vignettes.append((index, chemin, generation))
+
+    def ajouter_moment(self, instant: float, chemin: str, generation: int) -> None:
+        with self._lock:
+            self.moments.append((instant, chemin, generation))
+
+    def prendre(self) -> tuple[list[tuple[int, str, int]], list[tuple[float, str, int]]]:
+        with self._lock:
+            v, m = self.vignettes, self.moments
+            self.vignettes, self.moments = [], []
+        return v, m
+
+
+class _Fab:
+    """Un lot de petites images, et une image du moment à la fois. Fils démons :
+    ils ne sont pas des QThread, donc la fermeture de Python ne plante pas."""
+
+    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path, moments: list[float],
+                 lw: int, lh: int, mw: int, mh: int, generation: int, boite: _Boite) -> None:
         self.ffmpeg, self.info = ffmpeg, info
-        self.moments = list(moments)
         self.dossier = Path(dossier)
-        self.largeur, self.hauteur = largeur, hauteur
-        self.annuler = annuler
+        self.lw, self.lh, self.mw, self.mh = lw, lh, mw, mh
         self.generation = generation
+        self.boite = boite
+        self.annuler = threading.Event()
+        self._lock = threading.Lock()
+        self._moment_id = 0
+        self._procs_lot: list = []
+        self._procs_moment: list = []
+        self.fils: list[threading.Thread] = []
+        fil = threading.Thread(target=self._lot, args=(list(moments),), name="vhs-vignettes", daemon=True)
+        fil.start()
+        self.fils.append(fil)
 
-    def run(self) -> None:
-        for i, instant in enumerate(self.moments):
+    def _lot(self, moments: list[float]) -> None:
+        for i, instant in enumerate(moments):
             if self.annuler.is_set():
                 return
             dest = self.dossier / f"v{i:03d}.png"
             if vignettes.extraire(self.ffmpeg, self.info, instant, dest,
-                                  self.largeur, self.hauteur, self.annuler):
-                self.prete.emit(i, str(dest), self.generation)
-
-
-class _FilMoment(QThread):
-    """Une seule image du curseur à la fois : la dernière demande gagne."""
-
-    prete = Signal(float, str, int)
-
-    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path,
-                 largeur: int, hauteur: int) -> None:
-        super().__init__()
-        self.ffmpeg, self.info = ffmpeg, info
-        self.dossier = Path(dossier)
-        self.largeur, self.hauteur = largeur, hauteur
-        self._lock = threading.Lock()
-        self._demande: tuple[float, int] | None = None
-        self._wake = threading.Event()
-        self._stop = False
-        self._proc: list = []
+                                  self.lw, self.lh, self.annuler, self._procs_lot):
+                self.boite.ajouter_vignette(i, str(dest), self.generation)
 
     def demander(self, instant: float, generation: int) -> None:
         with self._lock:
-            self._demande = (float(instant), int(generation))
-        for proc in list(self._proc):
+            self._moment_id += 1
+            ident = self._moment_id
+            for proc in list(self._procs_moment):
+                try:
+                    if proc.poll() is None:
+                        proc.kill()
+                except OSError:
+                    pass
+        fil = threading.Thread(target=self._moment, args=(float(instant), generation, ident),
+                               name="vhs-moment", daemon=True)
+        fil.start()
+        self.fils.append(fil)
+
+    def _moment(self, instant: float, generation: int, ident: int) -> None:
+        if self.annuler.is_set():
+            return
+        dest = self.dossier / f"m{ident}.png"
+        if not vignettes.extraire(self.ffmpeg, self.info, instant, dest,
+                                  self.mw, self.mh, self.annuler, self._procs_moment):
+            return
+        with self._lock:
+            if ident != self._moment_id or self.annuler.is_set():
+                return
+        self.boite.ajouter_moment(instant, str(dest), generation)
+
+    def stop(self) -> None:
+        self.annuler.set()
+        for proc in list(self._procs_lot) + list(self._procs_moment):
             try:
-                proc.kill()
+                if proc.poll() is None:
+                    proc.kill()
             except OSError:
                 pass
-        self._wake.set()
-
-    def arreter(self) -> None:
-        self._stop = True
-        self.demander(0, -1)
-
-    def run(self) -> None:
-        while not self._stop:
-            self._wake.wait(0.25)
-            self._wake.clear()
-            if self._stop:
-                return
-            with self._lock:
-                demande = self._demande
-                self._demande = None
-            if demande is None or demande[1] < 0:
-                continue
-            instant, generation = demande
-            dest = self.dossier / f"m{generation}-{int(instant * 1000)}.png"
-            if vignettes.extraire(self.ffmpeg, self.info, instant, dest,
-                                  self.largeur, self.hauteur, None, self._proc):
-                with self._lock:
-                    encore = self._demande
-                if encore is None and not self._stop:
-                    self.prete.emit(instant, str(dest), generation)
-                elif encore is not None:
-                    self._wake.set()
 
 
 class _Ruban(QWidget):
@@ -1062,6 +1199,8 @@ class MainWindow(QMainWindow):
         self._build()
         self._refresh_tools()
         self._update_state()
+        _FENETRES.add(self)
+        _enregistrer_arret()
 
     # ------------------------------------------------------------ construction
     def _build_simple(self) -> QWidget:
@@ -1296,18 +1435,23 @@ class MainWindow(QMainWindow):
         cadre.setObjectName("carte")
         cadre.setMinimumWidth(0)
         dans = QVBoxLayout(cadre)
-        dans.setContentsMargins(12, 10, 12, 10)
-        dans.setSpacing(6)
+        dans.setContentsMargins(12, 8, 12, 8)
+        dans.setSpacing(4)
+        ligne_titre = QHBoxLayout()
+        ligne_titre.setSpacing(8)
         titre = QLabel("Enlever une scène")
         titre.setObjectName("carteTitre")
         titre.setWordWrap(True)
-        dans.addWidget(titre)
+        titre.setMinimumWidth(0)
         self.s_moment_heure = QLabel("")
         self.s_moment_heure.setObjectName("carteTitre")
         self.s_moment_heure.setWordWrap(True)
         self.s_moment_heure.setMinimumWidth(0)
-        dans.addWidget(self.s_moment_heure)
-        self.s_moment = ImageMoment(96)
+        self.s_moment_heure.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        ligne_titre.addWidget(titre, 1)
+        ligne_titre.addWidget(self.s_moment_heure, 1)
+        dans.addLayout(ligne_titre)
+        self.s_moment = ImageMoment(180)
         dans.addWidget(self.s_moment)
         self.barre = BarreFilm()
         self.barre.clique.connect(self._barre_cliquee)
@@ -1316,21 +1460,17 @@ class MainWindow(QMainWindow):
         self.barre.valider.connect(self._couper_ici)
         self.barre.largeur_changee.connect(self._sur_largeur_barre)
         dans.addWidget(self.barre)
-        legende = QLabel("Les petites images montrent le film. Doré : ce qui est enlevé.")
-        legende.setWordWrap(True)
-        legende.setMinimumWidth(0)
-        legende.setObjectName("note")
-        dans.addWidget(legende)
-        aide_barre = QLabel("Glissez sur les images pour vous placer. « Couper ici », puis une seconde fois "
-                            "quand le film reprend. Les carrés blancs se tirent.")
-        aide_barre.setWordWrap(True)
-        aide_barre.setMinimumWidth(0)
-        aide_barre.setObjectName("note")
-        dans.addWidget(aide_barre)
         self.s_couper = _bouton_secondaire("Couper ici", "Couper ici")
         self.s_couper.setObjectName("action")
         self.s_couper.clicked.connect(self._couper_ici)
         dans.addWidget(self.s_couper)
+        legende = QLabel("Les petites images montrent le film. Doré : ce qui est enlevé. "
+                         "Glissez pour vous placer, « Couper ici », puis une seconde fois "
+                         "quand le film reprend. Les carrés blancs se tirent.")
+        legende.setWordWrap(True)
+        legende.setMinimumWidth(0)
+        legende.setObjectName("note")
+        dans.addWidget(legende)
         for texte, sec in (("Enlever 10 secondes ici", 10),
                            ("Enlever 30 secondes ici", 30),
                            ("Enlever 1 minute ici", 60)):
@@ -1562,11 +1702,12 @@ class MainWindow(QMainWindow):
         self.setTabOrder(self.help_btn, self.theme_btn)
         self.setTabOrder(self.theme_btn, self._taille_btns[100])
         self._gen_images = 0
-        self._annule_images = threading.Event()
-        self._fil_images: _FilImages | None = None
-        self._fil_moment: _FilMoment | None = None
+        self._fab: _Fab | None = None
         self._dossier_images: Path | None = None
-        self._fils_morts: list[QThread] = []
+        self._boite = _Boite()
+        self._pompe = QTimer(self)
+        self._pompe.setInterval(40)
+        self._pompe.timeout.connect(self._pomper_images)
         self._replan_images = QTimer(self)
         self._replan_images.setSingleShot(True)
         self._replan_images.setInterval(250)
@@ -1981,13 +2122,6 @@ class MainWindow(QMainWindow):
         bv.addLayout(g1)
         carte_passages = Carte("Enlever un passage", "ciseaux")
         bp = carte_passages.body
-        self.trim_moment_heure = QLabel("")
-        self.trim_moment_heure.setObjectName("carteTitre")
-        self.trim_moment_heure.setWordWrap(True)
-        self.trim_moment_heure.setMinimumWidth(0)
-        bp.addWidget(self.trim_moment_heure)
-        self.trim_moment = ImageMoment(56)
-        bp.addWidget(self.trim_moment)
         self.barre_avancee = BarreCompacte()
         self.barre_avancee._compacte = True
         self.barre_avancee.clique.connect(self._barre_cliquee)
@@ -1995,7 +2129,8 @@ class MainWindow(QMainWindow):
         self.barre_avancee.borde_fini.connect(self._bord_fini)
         self.barre_avancee.valider.connect(self._couper_ici)
         bp.addWidget(self.barre_avancee)
-        titre2 = QLabel("Au moment montré ci-dessus. Même coupe que sur la page simple.")
+        titre2 = QLabel("L'image du moment est dans l'aperçu, tant que vous n'avez pas cliqué "
+                         "sur « Voir l'avant / après ». Même coupe que sur la page simple.")
         titre2.setObjectName("note")
         titre2.setWordWrap(True)
         bp.addWidget(titre2)
@@ -3165,45 +3300,45 @@ class MainWindow(QMainWindow):
         if n and n != len(self.barre._vignettes):
             self._replan_images.start()
 
-    def _couper_images(self) -> None:
-        """Arrête la fabrication en cours. Le dossier temporaire est effacé hors de l'écran,
-        une fois le fil arrêté : changer de film ne bloque pas."""
+    def _arreter_images(self) -> None:
+        """Coupe les fils et tue FFmpeg. N'attend pas : l'écran ne se bloque pas."""
         self._gen_images = getattr(self, "_gen_images", 0) + 1
-        annuler = getattr(self, "_annule_images", None)
-        if annuler is not None:
-            annuler.set()
-        fil = getattr(self, "_fil_images", None)
-        moment = getattr(self, "_fil_moment", None)
+        fab = getattr(self, "_fab", None)
         dossier = getattr(self, "_dossier_images", None)
-        self._fil_images = None
-        self._fil_moment = None
+        self._fab = None
         self._dossier_images = None
-        if fil is not None:
-            fil.annuler.set()
-            self._fils_morts.append(fil)
-        if moment is not None:
-            moment.arreter()
-            self._fils_morts.append(moment)
+        if fab is not None:
+            fab.stop()
 
         def _nettoyer() -> None:
-            if fil is not None:
-                fil.wait(8000)
-            if moment is not None:
-                moment.wait(8000)
+            if fab is not None:
+                for fil in fab.fils:
+                    fil.join(8)
             if dossier is not None:
                 shutil.rmtree(dossier, ignore_errors=True)
 
-        threading.Thread(target=_nettoyer, name="vhs-vignettes-fin", daemon=True).start()
+        if fab is not None or dossier is not None:
+            fil = threading.Thread(target=_nettoyer, name="vhs-vignettes-fin", daemon=True)
+            _NETTOYEURS.append(fil)
+            fil.start()
+        pompe = getattr(self, "_pompe", None)
+        if pompe is not None:
+            pompe.stop()
+
+    def _couper_images(self) -> None:
+        """Arrête la fabrication et remet l'écran. Le dossier part une fois les fils arrêtés."""
+        self._arreter_images()
         for barre in self._barres():
             barre.vider_images(0)
-        for nom in ("s_moment", "trim_moment"):
-            image = getattr(self, nom, None)
-            if image is not None:
-                image.vider()
-        for nom in ("s_moment_heure", "trim_moment_heure"):
-            lab = getattr(self, nom, None)
-            if lab is not None:
-                lab.setText("")
+        image = getattr(self, "s_moment", None)
+        if image is not None:
+            image.vider()
+        heure = getattr(self, "s_moment_heure", None)
+        if heure is not None:
+            heure.setText("")
+        vue = getattr(self, "compare", None)
+        if vue is not None and hasattr(vue, "oublier_moment"):
+            vue.oublier_moment()
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
@@ -3219,21 +3354,24 @@ class MainWindow(QMainWindow):
             return
         dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
         self._dossier_images = dossier
-        self._annule_images = threading.Event()
         generation = self._gen_images
         lw, lh = vignettes.taille(self.info, vignettes.HAUTEUR_VIGNETTE)
+        mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
         for barre in self._barres():
             barre.vider_images(len(moments))
-        fil = _FilImages(ffmpeg, self.info, moments, dossier, lw, lh, self._annule_images, generation)
-        fil.prete.connect(self._vignette_prete)
-        fil.start()
-        self._fil_images = fil
-        mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
-        moment = _FilMoment(ffmpeg, self.info, dossier, mw, mh)
-        moment.prete.connect(self._moment_pret)
-        moment.start()
-        self._fil_moment = moment
+        self._fab = _Fab(ffmpeg, self.info, dossier, moments, lw, lh, mw, mh, generation, self._boite)
+        self._pompe.start()
         self._demander_moment()
+
+    def _pomper_images(self) -> None:
+        boite = getattr(self, "_boite", None)
+        if boite is None:
+            return
+        vignettes_pretes, moments = boite.prendre()
+        for index, chemin, generation in vignettes_pretes:
+            self._vignette_prete(index, chemin, generation)
+        for instant, chemin, generation in moments:
+            self._moment_pret(instant, chemin, generation)
 
     def _vignette_prete(self, index: int, chemin: str, generation: int) -> None:
         if generation != self._gen_images:
@@ -3244,20 +3382,22 @@ class MainWindow(QMainWindow):
     def _moment_pret(self, instant: float, chemin: str, generation: int) -> None:
         if generation != self._gen_images:
             return
-        for nom in ("s_moment", "trim_moment"):
-            image = getattr(self, nom, None)
-            if image is not None:
-                image.montrer(chemin, instant)
-        for nom in ("s_moment_heure", "trim_moment_heure"):
-            lab = getattr(self, nom, None)
-            if lab is not None:
-                lab.setText(_duree(instant))
+        image = getattr(self, "s_moment", None)
+        if image is not None:
+            image.montrer(chemin, instant)
+        heure = getattr(self, "s_moment_heure", None)
+        if heure is not None:
+            heure.setText(_duree(instant))
+        if not getattr(self, "preview", None):
+            vue = getattr(self, "compare", None)
+            if vue is not None and hasattr(vue, "poser_moment"):
+                vue.poser_moment(chemin, instant)
 
     def _demander_moment(self) -> None:
-        fil = getattr(self, "_fil_moment", None)
-        if fil is None or not self._film_pour_coupe():
+        fab = getattr(self, "_fab", None)
+        if fab is None or not self._film_pour_coupe():
             return
-        fil.demander(float(self.start_spin.value()), self._gen_images)
+        fab.demander(float(self.start_spin.value()), self._gen_images)
 
     def _barre_cliquee(self, secondes: float) -> None:
         if not self._film_pour_coupe():
@@ -3903,8 +4043,6 @@ class MainWindow(QMainWindow):
                 self.worker.wait(15000)
         self._save_prefs()
         self._couper_images()
-        for fil in getattr(self, "_fils_morts", []):
-            fil.wait(2000)
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
 

@@ -17,6 +17,14 @@ FF = shutil.which("ffmpeg")
 pytestmark = pytest.mark.skipif(FF is None, reason="ffmpeg absent")
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """Le code de pytest doit survivre à os._exit (sinon PySide sort en 134)."""
+    import sys
+    gui = sys.modules.get("vhs_restore.gui")
+    if gui is not None and hasattr(gui, "noter_code_sortie"):
+        gui.noter_code_sortie(int(exitstatus))
+
+
 def ff(*args):
     r = subprocess.run([FF, "-hide_banner", "-loglevel", "error", "-y", *args],
                        capture_output=True, text=True, encoding="utf-8", errors="replace")

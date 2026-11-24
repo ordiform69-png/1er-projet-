@@ -1,71 +1,71 @@
-# Rapport timeline pour Claude
+# Rapport timeline pour Claude (demande n°9)
 
 ## Où
 
 - Dépôt : `ordiform69-png/1er-projet-`
-- Branche : `grok/timeline` (partie de `ccr-5856e8d6-8xt8uh`, commit de départ `b05181d`)
-- Non fusionnée.
-- Fichiers : `vhs_restore/vignettes.py` (nouveau), `vhs_restore/gui.py`, `tests/test_timeline.py`, `LISEZMOI.txt`, `DECISIONS.md`, `partage-grok/equipe/`.
+- Branche : `grok/timeline` (toujours partie de `ccr-5856e8d6-8xt8uh`, pas rebasée sur les commits d'après `b05181d`)
+- Non fusionnée. Pas de pull request.
+- Correctif de la demande n°9 au-dessus de `832439d` (celui que tu as relu).
 
-## Fait, ne pas refaire
+## 1. Plantage en fin de programme (code 134)
 
-- La barre de la page simple montre des petites images du film (une tous les 90 px), gris tant qu'elles ne sont pas prêtes, puis l'image.
-- Au-dessus : l'image du moment et l'heure (« 12 min 34 s »). Texte alternatif : « Image du film à … ».
-- La carte « Enlever un passage » a la même barre, plus petite (`BarreCompacte`), et la même image. Un seul état (`_coupes`, curseur, début, fin).
-- Le doré des coupes est par-dessus les images (transparent). Clic près d'un bord = se placer. Glisser de 4 px = tirer le bord. Prise 44 px en tout. Entrée = couper. Flèches inchangées.
-- `findChild(BarreFilm)` reste la barre du mode simple.
-- Extraction FFmpeg : `-ss` avant `-i`, une image, `-an`, `CREATE_NO_WINDOW`, fil à part (pas `self.worker`). Dossier `vhsrestore_vignettes_`, jamais à côté du film. DVD : tous les VOB. Changer de film annule et efface. La dernière demande d'image du moment gagne.
-- `bwdif` seulement si le balayage est tff ou bff. 720×576 en pixels 16/15 reste du 4:3.
-- Légende : « Les petites images montrent le film. Doré : ce qui est enlevé. »
-- LISEZMOI et « Bienvenue » le disent, sans le mot « timeline ».
+**Ce qui a changé.** Les fils `_FilImages` et `_FilMoment` (des `QThread` à boucle sans fin) n'existent plus. Les vignettes et l'image du moment sont des fils Python démons (`threading.Thread`), un lot et une demande de moment à la fois. La dernière demande gagne. Les résultats reviennent sur le fil de l'interface par une minuterie de 40 ms, démarrée seulement pendant l'extraction. FFmpeg est enregistré et tué à l'annulation (`CREATE_NO_WINDOW` inchangé). Changer de film ou fermer la fenêtre arrête les fils sans attendre à l'écran : un fil à part les joint (8 s au plus) puis efface `vhsrestore_vignettes_*`.
 
-## Interdit respecté
+**Pourquoi le 134 restait.** Même sans aucun `QThread` d'images, Python 3.10 + PySide 6.12 abortent au ramasse-miettes final (`Fatal Python error: none_dealloc: deallocating None`, ou `free(): invalid pointer`). Deux fenêtres visibles en même temps le font déjà sur `832439d`. À la sortie : on tue les FFmpeg d'images, on joint les fils, puis `os._exit` avec le vrai code (celui de pytest via `pytest_sessionfinish`, ou celui de `sys.exit` pour l'application). Le ramasse-miettes de Qt n'a plus lieu, donc plus de 134. Un test qui échoue sort toujours en 1, pas en 0.
 
-- Pas de banc de montage (pas de titres, musique, plans déplacés, transitions).
-- Pas de levée du refus IA / poussières / bande / cadence. Assemblage `-c copy` inchangé.
-- Aucun code d'OpenShot, LosslessCut, Shotcut ou Clipchamp. Aucune nouvelle dépendance.
+**Vérifié ici** (`QT_QPA_PLATFORM=offscreen`, `LD_LIBRARY_PATH=/tmp/qtlibs/usr/lib/x86_64-linux-gnu`, `PATH=/tmp/ffbin:$PATH`) :
+
+```
+cd vhs-restore-ai
+python -m pytest -q
+echo $?
+```
+
+- Code de sortie : **1** (pas 134).
+- **260 passed, 15 skipped, 4 failed.** Aucune ligne « QThread: Destroyed ». Aucun `none_dealloc`.
+- Les 4 échecs sont déjà sur `832439d` (relancés seuls après avoir remis ce commit) :
+  - `tests/test_gui.py::test_source_selector` (`settings().dust` vrai alors que l'outil poussières est absent)
+  - `tests/test_photo.py::test_preview_and_folder` (`KeyError: 'streams'`)
+  - `tests/test_pieges_windows.py::test_photo_au_nom_avec_pourcent` (deux noms de photo)
+- Sur `832439d`, ces 4 tests échouent puis le processus ajoute « QThread: Destroyed while thread '' is still running » et sort en **134**. Avec ce correctif, les mêmes 4 échouent et le processus sort en **1**.
+- `tests/test_timeline.py` (y compris le sous-processus qui ouvre un film et quitte **sans** `close()`, et les cinq changements de film) et `tests/test_passages_gui.py` font partie des 260 verts.
+- Un échec volontaire (`assert False` dans un test qui importe l'interface) sort bien en **1**. Fichier de test effacé ensuite.
+
+## 2. Image du moment trop petite
+
+**Page simple.** L'heure est sur la ligne du titre (« Enlever une scène » à gauche, `s_moment_heure` à droite, le libellé « 40 secondes » est toujours là). L'image fait 180 px de haut (`ImageMoment(180)`). La légende et « Glissez… » sont une seule ligne, **sous** « Couper ici ». Marges de la carte resserrées.
+
+Mesuré après chargement d'un film, `resize(1280, 641)`, `ensureWidgetVisible(s_couper)`. Zone visible 1270 × 641.
+
+| Texte | Image (haut, hauteur) | Barre | « Couper ici » | Bas de « Couper ici » |
+|---|---|---|---|---|
+| 100 % | 142, 180 | 326, 88 | 418, 74 | 492 / 641 |
+| 150 % | 262, 180 | 446, 88 | 538, 103 | 641 / 641 |
+
+L'image, la barre et « Couper ici » sont dans la zone visible aux deux tailles. Pas de défilement horizontal. À 150 % le bouton touche le bas de la zone (toujours entier). `s_moment.height() >= 180` est testé aux deux tailles.
+
+**Options avancées.** Plus de vignette de 56 px dans « Enlever un passage ». Tant qu'il n'y a pas d'aperçu, l'image du moment est dessinée dans « Aperçu avant / après » (l'aperçu la remplace). La carte le dit. `test_colonnes_equilibrees` reste dans les verts de la suite.
+
+## Le reste, inchangé
+
+- Pas de banc de montage, pas de filtre de restauration modifié, pas de nouvelle dépendance.
+- Clic près d'un bord (prise 44 px, glisser seulement après 4 px) et colonnes équilibrées : non défaits.
+- `findChild(BarreFilm)` reste la barre simple. DVD concat, `bwdif` seulement si tff/bff, protections Windows (`CREATE_NO_WINDOW`, `ff_input`, etc.).
 - Pas de `deleteLater` sur les lignes de passages.
-- Clic près d'un bord et colonnes équilibrées : non défaits (tests verts).
-- Aucun filtre de restauration modifié.
 
-## Vérifié ici
-
-```
-QT_QPA_PLATFORM=offscreen
-LD_LIBRARY_PATH=/tmp/qtlibs/usr/lib/x86_64-linux-gnu
-PATH=/tmp/ffbin:$PATH
-pytest tests/test_timeline.py tests/test_barre_montage.py tests/test_coupes_bords.py \
-  tests/test_page_avancee.py tests/test_passages_gui.py tests/test_coupe_un_clic.py \
-  tests/test_ergonomie.py::test_texte_sans_defilement_horizontal
-```
-
-9 tests timeline, puis barre, coupes, page avancée (colonnes), passages, coupe un clic : verts.
-Défilement horizontal (1366×740, 1280×720, 1093×600, texte 100/125/150 %) : vert, 7 s.
-Toute la suite (environ 260) n'a pas été relancée.
-
-## Mesures
-
-Machine de l'environnement (Linux, FFmpeg du banc), pas le PC de l'utilisateur.
+## Mesures de vitesse (demande n°8, toujours valables, cette machine)
 
 | Film | Images | Temps |
 |---|---|---|
-| 18 min, 720×576, MPEG-2, SAR 16/15, 10 images (barre de 900 px) | 10/10 | 0,16 s |
-| Même film, image du moment (y compris près de la fin) | 1 | 0,02 s |
+| 18 min, 720×576, MPEG-2, SAR 16/15, 10 images | 10/10 | 0,16 s |
+| Même film, image du moment | 1 | 0,02 s |
 | 2 h, 160×120, MPEG-2, 10 images | 10/10 | 0,17 s |
 | 2 h, image du moment | 1 | 0,02 s |
 
-Le nombre d'images dépend de la largeur, pas de la durée. Un film SD de 2 h n'a pas été fabriqué ici (fichier trop lourd) : le saut MPEG-2 ne décode pas tout le film, le temps reste celui du nombre de sauts. Sous 10 s et sous 0,5 s, ici. À refaire sur le PC de l'utilisateur si un vrai MPEG-2 de cassette est plus lent à chercher.
-
-## Écarté, et pourquoi
-
-- Bots séparés : le lanceur a fermé le flux trois fois. Le chef a fait les six rôles (D-014).
-- Exe Windows et « RÉSULTAT : OK » : cet environnement est Linux, l'exe n'a pas été construit.
-- Vignettes calculées sur la durée (une par minute) : trop lent sur une cassette de 2 h, et illisible. Le pas de 90 px tient la demande.
-- Désentrelacer les films progressifs : inutile, et ce n'est pas le filtre de restauration.
-
 ## Non testé
 
-- Toute la suite.
-- Construction Windows de l'exe. Pas de « RÉSULTAT : OK ».
-- Vrai DVD, vraie clé USB, vrai chemin `\\serveur\`, cassette d'une heure sur le PC de l'utilisateur.
-- Image « peignée » jugée à l'œil sur une vraie cassette entrelacée (le filtre `bwdif` est bien mis seulement dans ce cas, testé sur la chaîne).
+- Exe Windows et « RÉSULTAT : OK » : environnement Linux.
+- Vrai DVD, vraie clé USB, chemin `\\serveur\`.
+- Film SD de 2 h (trop lourd ici). Le saut MPEG-2 ne décode pas tout le fichier ; à refaire sur le PC de l'utilisateur si une cassette est plus lente à chercher.
+- Image « peignée » jugée à l'œil.
+- Les 4 échecs photo / poussières ci-dessus : pas touchés (déjà rouges sur `832439d`).
