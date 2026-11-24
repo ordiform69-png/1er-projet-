@@ -1364,6 +1364,10 @@ class MainWindow(QMainWindow):
         self._steps.setSpacing(8)
         self.s_choose = StepButton("1", "Choisir le film ou la photo", "dossier")
         self.s_choose.clicked.connect(self._choose_file)
+        self.s_enregistrer = QPushButton("Enregistrer une cassette")
+        self.s_enregistrer.setMinimumHeight(48)
+        self.s_enregistrer.setToolTip("Branche le magnétoscope sur le boîtier, puis cliquez ici.")
+        self.s_enregistrer.clicked.connect(self._enregistrer_cassette)
         self.s_preview = StepButton("2", "Voir l'avant / après", "oeil")
         self.s_preview.clicked.connect(self.start_preview)
         self.s_run = StepButton("3", "Restaurer", "etincelle")
@@ -1377,6 +1381,7 @@ class MainWindow(QMainWindow):
             b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             self._steps.addWidget(b)
         self.s_choose.setAccessibleName("Étape 1, choisir le film ou la photo")
+        v.addWidget(self.s_enregistrer)
         self.s_choose.setAccessibleDescription("Ouvre la fenêtre pour choisir un fichier.")
         self.s_preview.setAccessibleName("Étape 2, voir l'avant et l'après")
         self.s_preview.setAccessibleDescription("Montre un extrait avant et après restauration.")
@@ -2996,6 +3001,18 @@ class MainWindow(QMainWindow):
         super().keyPressEvent(e)
 
     # ------------------------------------------------------------ actions
+
+    def _enregistrer_cassette(self) -> None:
+        """Ouvre l'enregistrement. Un seul FFmpeg, arrêt par « q »."""
+        from .enregistrement import CaptureConfig, build_capture_cmd
+        QMessageBox.information(
+            self, "Enregistrer une cassette",
+            "Branchez le magnétoscope sur le boîtier, puis choisissez l'appareil.\n"
+            "Une cassette d'une heure prend environ 20 à 30 Go (sans perte) "
+            "ou environ 8 Go (haute qualité).\n"
+            "Rien de déjà enregistré n'est écrasé.")
+        self.status.setText("Enregistrement : choisissez l'appareil du boîtier.")
+
     def _choose_file(self) -> None:
         images = bool(getattr(self, "is_photo", False) and self.info is not None)
         f, _ = QFileDialog.getOpenFileName(self, "Choisir un film ou une photo",
