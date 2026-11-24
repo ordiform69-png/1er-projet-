@@ -3616,6 +3616,12 @@ class MainWindow(QMainWindow):
         self._fini_a_rendre = False
 
     def _on_finished(self) -> None:
+        fini = self.sender()
+        if fini in self._fils:
+            self._fils.remove(fini)
+            fini.fn = None  # libère les médias et les fonctions capturés
+        if fini is not self.worker:
+            return
         if getattr(self, "_fermeture_demandee", False):
             QTimer.singleShot(0, self.close)
             return
