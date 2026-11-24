@@ -202,12 +202,15 @@ def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, wo
         restored = colorized_path(target)
     compare = workdir / "apercu_photo_comparaison.png"
     fmt = "gray" if info.black_and_white and not wants_color(info, s) else "rgb24"
+    # -loop 1 : une seule image n'émet pas de trame avec scale2ref sous FFmpeg 7
+    # (code 0, fichier vide). -update 1 : un PNG, pas une suite numérotée.
     r = subprocess.run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-                        *ff_input(info.path), "-i", str(restored), "-filter_complex",
+                        "-loop", "1", *ff_input(info.path), "-loop", "1", "-i", str(restored),
+                        "-filter_complex",
                         f"[0:v][1:v]scale2ref=flags=lanczos[a][b];[a]format={fmt}[a2];[b]format={fmt}[b2];"
-                        "[a2][b2]hstack=inputs=2", "-frames:v", "1", str(compare)],
+                        "[a2][b2]hstack=inputs=2", "-frames:v", "1", "-update", "1", str(compare)],
                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
                        stdin=subprocess.DEVNULL, creationflags=_NO_WINDOW)
-    if r.returncode:
-        raise ToolError("Comparaison impossible : " + r.stderr.strip()[-300:])
+    if r.returncode or not compare.is_file():
+        raise ToolError("Comparaison impossible : " + (r.stderr.strip()[-300:] or "fichier vide"))
     return pipeline.PreviewResult(0.0, 0.0, restored, compare, [compare], info.path)
