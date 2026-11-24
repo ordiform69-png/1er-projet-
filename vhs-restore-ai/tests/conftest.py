@@ -18,11 +18,12 @@ pytestmark = pytest.mark.skipif(FF is None, reason="ffmpeg absent")
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """Le code de pytest doit survivre à os._exit (sinon PySide sort en 134)."""
+    """Python < 3.12 seulement : None n'est pas encore immortel (PEP 683),
+    PySide peut abortir au ramasse-miettes final. Protection limitée aux tests.
+    L'application elle-même n'appelle plus os._exit."""
     import sys
-    gui = sys.modules.get("vhs_restore.gui")
-    if gui is not None and hasattr(gui, "noter_code_sortie"):
-        gui.noter_code_sortie(int(exitstatus))
+    if sys.version_info < (3, 12):
+        os._exit(int(exitstatus))
 
 
 def ff(*args):

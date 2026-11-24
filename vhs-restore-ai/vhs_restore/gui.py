@@ -40,30 +40,14 @@ from .tools import Cancelled, ToolError, Toolset, detect_tools, run_capture
 log = logging.getLogger("vhs_restore")
 
 # Fenêtres encore vivantes, et fils qui effacent les dossiers d'images.
-# PySide détruit ses objets pendant le ramasse-miettes final et Python quitte
-# alors par « none_dealloc » (code 134) : la fabrication Windows n'a pas d'exe.
-# On coupe FFmpeg, on attend les fils, puis os._exit avec le vrai code.
+# À la fermeture : on arrête les minuteurs, on tue les FFmpeg d'images, on attend les fils.
+# Pas de os._exit : la fin normale de Python doit rester (autres atexit, journaux).
 _FENETRES: weakref.WeakSet = weakref.WeakSet()
 _NETTOYEURS: list[threading.Thread] = []
-_ARRET_ENREGISTRE = False
-_code_sortie: int | None = None
-
-
-def noter_code_sortie(code) -> None:
-    """Mémorise le code que le processus doit rendre (pytest ou sys.exit)."""
-    global _code_sortie
-    if isinstance(code, SystemExit):
-        code = code.code
-    if code is None:
-        _code_sortie = 0
-    elif isinstance(code, int):
-        _code_sortie = code
-    else:
-        _code_sortie = 1
 
 
 def _eteindre_a_la_sortie() -> None:
-    """Plus aucun fil d'images ni FFmpeg, puis sortie sans le ramasse-miettes de Qt."""
+    """Plus aucun fil d'images ni FFmpeg. Sans os._exit : Python finit normalement."""
     if getattr(_eteindre_a_la_sortie, "_fait", False):
         return
     _eteindre_a_la_sortie._fait = True  # type: ignore[attr-defined]
@@ -105,30 +89,10 @@ def _eteindre_a_la_sortie() -> None:
         sys.stderr.flush()
     except Exception:
         pass
-    os._exit(0 if _code_sortie is None else _code_sortie)
+    # Pas de os._exit : un vrai plantage futur ne doit pas être masqué.
 
 
-def _enregistrer_arret() -> None:
-    global _ARRET_ENREGISTRE
-    if _ARRET_ENREGISTRE:
-        return
-    _ARRET_ENREGISTRE = True
-    orig_exit = sys.exit
-
-    def _exit(code=0):  # noqa: A001
-        noter_code_sortie(code)
-        orig_exit(code)
-
-    sys.exit = _exit  # type: ignore[assignment]
-    orig_hook = sys.excepthook
-
-    def _hook(etype, value, tb):
-        if etype is not SystemExit:
-            noter_code_sortie(1)
-        orig_hook(etype, value, tb)
-
-    sys.excepthook = _hook
-    atexit.register(_eteindre_a_la_sortie)
+atexit.register(_eteindre_a_la_sortie)
 
 
 VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *.mts *.ts *.dv *.vob *.wmv *.m4v "
@@ -1200,7 +1164,6 @@ class MainWindow(QMainWindow):
         self._refresh_tools()
         self._update_state()
         _FENETRES.add(self)
-        _enregistrer_arret()
 
     # ------------------------------------------------------------ construction
     def _build_simple(self) -> QWidget:
@@ -4130,6 +4093,7 @@ def main() -> int:
     import sys
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
+    app.aboutToQuit.connect(_eteindre_a_la_sortie)
     from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
     traduction = QTranslator(app)           # textes standard de Qt en français (« Annuler », « Ouvrir »…)
     if traduction.load(QLocale(QLocale.French, QLocale.France), "qtbase", "_",
