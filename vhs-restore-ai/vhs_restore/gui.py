@@ -2774,7 +2774,7 @@ class MainWindow(QMainWindow):
                                  source=src, playback_fps=(Fraction(self.cadence_combo.currentData())
                                                            if self.cadence_combo.currentData() else None),
                                  deflicker=self.flicker_check.isChecked() and src != "video",
-                                 dust=self.dust_check.isChecked() and src == "film",
+                                 dust=self.dust_check.isChecked() and src == "film" and self.tools.dust_available,
                                  tape_noise=self.tape_check.isChecked() and src != "film",
                                  chroma_repair=self.chroma_check.isChecked() and src != "film",
                                  dropouts=self.dropout_check.isChecked() and src != "film",
