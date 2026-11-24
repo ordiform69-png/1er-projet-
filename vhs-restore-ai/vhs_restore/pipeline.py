@@ -1356,6 +1356,8 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             res.done.append(principal)
         except Cancelled:
             raise
+        except subprocess.TimeoutExpired:
+            res.errors.append((f.name, "La lecture de ce fichier a pris trop de temps."))
         except (ToolError, OSError, ValueError) as exc:     # un fichier bloqué n'arrête pas les autres
             log.warning("Dossier : %s ignoré : %s", f.name, exc)
             res.errors.append((f.name, (str(exc).splitlines() or [type(exc).__name__])[0]))

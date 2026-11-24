@@ -72,3 +72,20 @@ def test_disk_space_checked_before_starting(samples, tools, tmp_path, monkeypatc
     with pytest.raises(ToolError, match="Espace disque insuffisant"):
         pipeline.export(info, s, tmp_path / "o.mp4", tools)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_delai_deuxieme_photo(tmp_path, tools, monkeypatch):
+    import subprocess
+    from vhs_restore import photo
+    from vhs_restore.probe import MediaInfo
+    def lire(path, _):
+        if path.stem == "2":
+            raise subprocess.TimeoutExpired("lecture", 1)
+        return MediaInfo(path=path)
+    for nom in ("1.png", "2.png", "3.png"):
+        (tmp_path / nom).touch()
+    monkeypatch.setattr(photo, "analyze_photo", lire)
+    monkeypatch.setattr(photo, "restore_photo", lambda i,s,p,t,**kw: p)
+    res = pipeline.restore_folder(tmp_path, tools, lambda i: pipeline.Settings(profile_for("fidele")))
+    assert len(res.done) == 2 and res.done[-1].name.startswith("3")
+    assert res.errors == [("2.png", "La lecture de ce fichier a pris trop de temps.")]
