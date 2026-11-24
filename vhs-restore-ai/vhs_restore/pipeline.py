@@ -111,6 +111,8 @@ class Settings:
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
     mask_sides: int = 0                    # pixels noirs sur les bords, 0 = rien. Pellicule : les quatre côtés
     colorize: bool = False                 # photo noir et blanc : copie colorisée par IA EN PLUS (couleurs inventées)
+    redresser: bool = False               # photo : redresser et enlever le bord du scanner
+    photo_quarts: int = 0                 # photo : tours de 90° (1 = gauche, 3 = droite)
     crf: int = 18
     preset: str = "medium"
 

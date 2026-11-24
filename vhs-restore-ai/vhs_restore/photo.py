@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 from typing import Callable
@@ -75,14 +76,160 @@ def analyze_photo(path: str | Path, tools: Toolset) -> MediaInfo:
     info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
     if not info.black_and_white:          # une photo noir et blanc n'a pas de « dominante » à corriger
         info.cast_rgb = rgb_mean(tools.ffmpeg.path, p)
+    try:
+        info.scanner = analyser_scanner(p, tools)   # type: ignore[attr-defined]
+    except Exception:
+        info.scanner = AnalyseScanner(message="Analyse impossible : la photo est gardée telle quelle.")
     return info
 
 
+
+# --- Redressement et bord du scanner (demande n°11) ---------------------------
+# D'abord redresser (coins vides remplis de la couleur du bord), ensuite seulement
+# enlever le bord sur l'image redressée. Jamais de coupe dans la photo elle-même.
+
+
+@dataclass(frozen=True)
+class AnalyseScanner:
+    tilt: float = 0.0
+    border: str = ""                  # "white" | "black" | ""
+    fill: str = "white"
+    crop_frac: tuple[float, float, float, float] | None = None  # w, h, x, y en fraction
+    cocher: bool = False
+    message: str = ""
+
+
+def _raw_gray(path: Path, tools: Toolset, w: int, h: int) -> list[int]:
+    import subprocess
+    raw = subprocess.check_output(
+        [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-loglevel", "error",
+         *ff_input(path), "-vf", f"scale={w}:{h}:flags=area,format=gray",
+         "-frames:v", "1", "-f", "rawvideo", "-"], timeout=60)
+    return list(raw[: w * h])
+
+
+def _tourner_memoire(src: list[int], w: int, h: int, deg: float, fill: int) -> list[int]:
+    import math
+    out = [fill] * (w * h)
+    ca, sa = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    cx, cy = (w - 1) / 2, (h - 1) / 2
+    for y in range(h):
+        for x in range(w):
+            dx, dy = x - cx, y - cy
+            sx = ca * dx + sa * dy + cx
+            sy = -sa * dx + ca * dy + cy
+            ix, iy = int(round(sx)), int(round(sy))
+            if 0 <= ix < w and 0 <= iy < h:
+                out[y * w + x] = src[iy * w + ix]
+    return out
+
+
+def _bord(src: list[int], w: int, h: int) -> tuple[str, int]:
+    ring = src[: w * 3] + src[-w * 3 :]
+    moy = sum(ring) / max(1, len(ring))
+    if moy >= 200:
+        return "white", 255
+    if moy <= 40:
+        return "black", 0
+    return "", 128
+
+
+def _score_rect(src: list[int], w: int, h: int, border: str) -> float:
+    if border == "white":
+        pts = [(i % w, i // w) for i, p in enumerate(src) if p < 190]
+    elif border == "black":
+        pts = [(i % w, i // w) for i, p in enumerate(src) if p > 40]
+    else:
+        return 0.0
+    if len(pts) < 30:
+        return 0.0
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return len(pts) / ((max(xs) - min(xs) + 1) * (max(ys) - min(ys) + 1))
+
+
+def analyser_scanner(path: Path, tools: Toolset) -> AnalyseScanner:
+    """Bord uniforme et inclinaison nette (< 10°). Au doute : rien, case décochée."""
+    w, h = 160, 120
+    try:
+        src = _raw_gray(Path(path), tools, w, h)
+    except Exception:
+        return AnalyseScanner(message="Analyse impossible : la photo est gardée telle quelle.")
+    if len(src) != w * h:
+        return AnalyseScanner(message="Analyse impossible : la photo est gardée telle quelle.")
+    border, fill = _bord(src, w, h)
+    best_a, best_s = 0.0, _score_rect(src, w, h, border) if border else 0.0
+    if border:
+        for i in range(-19, 20):
+            a = i * 0.5
+            if not a:
+                continue
+            s = _score_rect(_tourner_memoire(src, w, h, a, fill), w, h, border)
+            if s > best_s + 0.008:
+                best_s, best_a = s, a
+    incertain = abs(best_a) >= 10
+    tilt = 0.0 if incertain or abs(best_a) < 0.5 else best_a
+    crop = None
+    if border and not incertain:
+        img = _tourner_memoire(src, w, h, tilt, fill) if tilt else src
+        if border == "white":
+            pts = [(i % w, i // w) for i, p in enumerate(img) if p < 200]
+        else:
+            pts = [(i % w, i // w) for i, p in enumerate(img) if p > 30]
+        if len(pts) >= 30:
+            x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts)
+            y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
+            # marge : on ne coupe pas dans le contenu
+            if (x1 - x0) > w * 0.5 and (y1 - y0) > h * 0.5 and (x0 > 1 or y0 > 1):
+                crop = ((x1 - x0 + 1) / w, (y1 - y0 + 1) / h, x0 / w, y0 / h)
+    if incertain:
+        return AnalyseScanner(message="Correction automatique incertaine : la photo est laissée telle quelle.")
+    cocher = bool(border) or abs(tilt) >= 0.5
+    if tilt and border:
+        msg = f"Bord du scanner et inclinaison de {abs(tilt):.0f}° détectés."
+    elif border:
+        msg = f"Bord {'blanc' if border == 'white' else 'noir'} du scanner détecté."
+    elif tilt:
+        msg = f"Inclinaison de {abs(tilt):.0f}° détectée."
+    else:
+        msg = "Photo droite, aucun bord détecté."
+        cocher = False
+    return AnalyseScanner(tilt=tilt, border=border, fill=border or "white",
+                          crop_frac=crop, cocher=cocher, message=msg)
+
+
+def filtres_scanner(s: "pipeline.Settings", analyse: AnalyseScanner | None) -> list[str]:
+    """Tours de 90° de l'utilisateur, puis redressement (remplissage), puis bord."""
+    f: list[str] = []
+    q = int(getattr(s, "photo_quarts", 0)) % 4
+    if q == 1:
+        f.append("transpose=2")          # gauche, 90° anti-horaire
+    elif q == 2:
+        f.append("hflip,vflip")
+    elif q == 3:
+        f.append("transpose=1")          # droite, 90° horaire
+    if getattr(s, "redresser", False) and analyse and (analyse.tilt or analyse.crop_frac):
+        if analyse.tilt:
+            fill = "black" if analyse.fill == "black" else "white"
+            f.append(f"rotate={analyse.tilt}*PI/180:fillcolor={fill}:ow=iw:oh=ih")
+        if analyse.crop_frac:
+            cw, ch, cx, cy = analyse.crop_frac
+            f.append(f"crop=iw*{cw:.4f}:ih*{ch:.4f}:iw*{cx:.4f}:ih*{cy:.4f}")
+    return f
+
+
+def mesurer_inclinaison(path: Path, tools: Toolset) -> float:
+    """Inclinaison résiduelle (degrés) après correction. Pour les tests."""
+    return abs(analyser_scanner(path, tools).tilt)
+
+
 def photo_chain(info: MediaInfo, s: pipeline.Settings, *, after_ai: bool = False) -> list[str]:
-    """Filtres FFmpeg de la photo, dans l'ordre : blocs, grain, niveaux, couleur,
-    agrandissement, netteté, format de sortie."""
+    """Filtres FFmpeg de la photo, dans l'ordre : tours et scanner, blocs, grain,
+    niveaux, couleur, agrandissement, netteté, format de sortie."""
     base, sharpen, upscale = PHOTO_FILTERS[s.profile.key]
     f = [] if after_ai else list(base)
+    if not after_ai:
+        f = filtres_scanner(s, getattr(info, "scanner", None)) + f
     if not after_ai:
         for flt in (pipeline._cast_filter(s), pipeline._levels_filter(s)):
             if flt:

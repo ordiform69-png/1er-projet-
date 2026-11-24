@@ -1360,6 +1360,29 @@ class MainWindow(QMainWindow):
         self.s_colorize_note.setWordWrap(True)
         self.s_colorize_note.setVisible(False)
         v.addWidget(self.s_colorize_note)
+        self.s_redresser = QCheckBox("Redresser et enlever le bord du scanner")
+        self.s_redresser.setObjectName("caseSimple")
+        self.s_redresser.setVisible(False)
+        self.s_redresser.setToolTip("Redresse une photo penchée et retire le bord blanc ou noir du scanner. "
+                                    "La photo d'origine n'est pas modifiée.")
+        self.s_redresser_note = QLabel("")
+        self.s_redresser_note.setObjectName("note")
+        self.s_redresser_note.setWordWrap(True)
+        self.s_redresser_note.setVisible(False)
+        tours = QHBoxLayout()
+        self.s_tourner_gauche = QPushButton("Tourner à gauche")
+        self.s_tourner_droite = QPushButton("Tourner à droite")
+        for b in (self.s_tourner_gauche, self.s_tourner_droite):
+            b.setVisible(False)
+            b.setMinimumHeight(48)
+            b.setCursor(Qt.PointingHandCursor)
+        self.s_tourner_gauche.clicked.connect(lambda: self._tourner_photo(-1))
+        self.s_tourner_droite.clicked.connect(lambda: self._tourner_photo(1))
+        tours.addWidget(self.s_tourner_gauche)
+        tours.addWidget(self.s_tourner_droite)
+        v.addWidget(self.s_redresser)
+        v.addWidget(self.s_redresser_note)
+        v.addLayout(tours)
         self._steps = QBoxLayout(QBoxLayout.LeftToRight)
         self._steps.setSpacing(8)
         self.s_choose = StepButton("1", "Choisir le film ou la photo", "dossier")
@@ -2798,7 +2821,9 @@ class MainWindow(QMainWindow):
                                  mask_bottom=int(self.mask_spin.value()) if src == "video" else 0,
                                  mask_sides=int(self.edge_spin.value()),
                                  colorize=(getattr(self, "is_photo", False) and self.s_colorize.isChecked()
-                                           and self.tools.colorize_available))
+                                           and self.tools.colorize_available),
+                                 redresser=(getattr(self, "is_photo", False) and self.s_redresser.isChecked()),
+                                 photo_quarts=getattr(self, "_photo_quarts", 0))
 
     def _choisir_comparaison(self, mode: str) -> None:
         self.s_compare.set_mode(mode)          # le mode simple seulement : l'aperçu avancé se compare
@@ -2996,6 +3021,16 @@ class MainWindow(QMainWindow):
         super().keyPressEvent(e)
 
     # ------------------------------------------------------------ actions
+
+    def _tourner_photo(self, sens: int) -> None:
+        """sens +1 = droite, -1 = gauche. L'original n'est pas modifié."""
+        if not getattr(self, "is_photo", False):
+            return
+        self._photo_quarts = (getattr(self, "_photo_quarts", 0) + (3 if sens > 0 else 1)) % 4
+        self.status.setText("Photo tournée. L'original n'est pas modifié. "
+                            "Étape suivante : « Voir l'avant / après ».")
+        self._update_state()
+
     def _choose_file(self) -> None:
         images = bool(getattr(self, "is_photo", False) and self.info is not None)
         f, _ = QFileDialog.getOpenFileName(self, "Choisir un film ou une photo",
@@ -3056,6 +3091,14 @@ class MainWindow(QMainWindow):
         self.s_advice.setVisible(bool(self.advice))
         self.s_colorize.setChecked(False)                     # jamais coché d'avance
         self.s_colorize.setVisible(info.black_and_white)
+        scan = getattr(info, "scanner", None)
+        self._photo_quarts = 0
+        self.s_redresser.setVisible(True)
+        self.s_redresser.setChecked(bool(scan and scan.cocher))
+        self.s_redresser_note.setText(scan.message if scan else "")
+        self.s_redresser_note.setVisible(True)
+        self.s_tourner_gauche.setVisible(True)
+        self.s_tourner_droite.setVisible(True)
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(info.black_and_white)
         self.drop.setText(info.path.name)
@@ -3070,6 +3113,11 @@ class MainWindow(QMainWindow):
         self.is_photo = False
         self.s_colorize.setChecked(False)
         self.s_colorize.setVisible(False)
+        self.s_redresser.setVisible(False)
+        self.s_redresser_note.setVisible(False)
+        self.s_tourner_gauche.setVisible(False)
+        self.s_tourner_droite.setVisible(False)
+        self._photo_quarts = 0
         self.info = info
         self.preview = None
         self.compare.clear()
