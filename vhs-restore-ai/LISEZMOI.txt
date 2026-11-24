@@ -10,8 +10,9 @@ La première fois, Windows peut afficher « Windows a protégé votre ordinateur
 « Informations complémentaires », puis sur « Exécuter quand même ».
 
 Au premier lancement, une fenêtre explique les trois étapes. Le bouton « Aide »
-(en haut à droite) la rouvre à tout moment. Le bouton « Affichage clair »
-passe à un fond blanc, si vous lisez mieux ainsi (le logiciel redémarre).
+(en haut à droite) la rouvre à tout moment. « A− », « A » et « A+ », en haut à droite, agrandissent le texte. Le choix est gardé.
+« Affichage clair » met un fond blanc. « Affichage sombre » revient au fond sombre.
+Le logiciel redémarre : rouvrez le film.
 
 Restaurer un film
 -----------------
@@ -39,14 +40,21 @@ une copie WAV ou FLAC du son restauré.
 Passages vides et montage
 -------------------------
 Quand le film est prêt, deux boutons de plus :
-  - « Retirer les passages vides » : le logiciel repère la neige, l'écran bleu
-    et le noir (début, fin, trous entre deux enregistrements), en montre la
-    liste avec les heures, et crée une copie sans eux si vous le voulez.
-  - « Faire un montage » : ouvre le film dans un logiciel de montage gratuit.
-    « Couper ou assembler » (LosslessCut) : simple, sans perte de qualité.
-    « Montage complet » (Shotcut) : titres, fondus, musique.
+  - « Retirer les passages vides » : sur « C'est prêt », le logiciel liste la
+    neige, l'écran bleu ou le noir. « Créer la copie » les enlève.
+    « Garder le film tel quel » ne change rien.
+  - « Faire un montage » : ouvre une copie dans un autre programme.
+    « Couper ou assembler » ouvre LosslessCut : vous coupez, l'image n'est pas
+    refaite. « Montage complet » ouvre Shotcut : titres, fondus et musique.
+    Votre film d'origine reste intact.
     La première fois, le logiciel propose de l'installer (un clic).
-Votre film n'est jamais modifié : ce sont toujours des copies.
+
+Pour enlever un moment au milieu, avant de restaurer : glissez le curseur et
+cliquez deux fois sur « Couper ici ». Seule la copie est découpée. Un dossier
+n'en tient pas compte.
+
+La neige du début ou de la fin se règle avec « Le film commence à » et
+« Le film s'arrête à ». « Tout garder » annule. L'original n'est pas coupé.
 
 Outils facultatifs
 ------------------

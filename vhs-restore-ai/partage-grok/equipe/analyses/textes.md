@@ -1,0 +1,14 @@
+# Aide et textes — 8 écarts
+
+Analyse seulement. Aucun libellé de bouton n'est changé (« Couper ici », « Retirer les passages vides », « Faire un montage », « A− », « A », « A+ », « Affichage clair », « Affichage sombre »). Les tests en dépendent.
+
+- LISEZMOI.txt, enlever une scène (phase 26) | « absente » | « Pour enlever un moment au milieu, glissez le curseur et cliquez deux fois sur « Couper ici ». Seule la copie est découpée. Un dossier n'en tient pas compte. »
+- LISEZMOI.txt, début et fin (phase 25) | « absente » | « La neige du début ou de la fin se règle avec « Le film commence à » et « Le film s'arrête à ». « Tout garder » annule. L'original n'est pas coupé. »
+- LISEZMOI.txt, taille du texte | « absente » | « « A− », « A » et « A+ », en haut à droite, agrandissent le texte. Le choix est gardé. »
+- LISEZMOI.txt, « Démarrer » | « Le bouton « Affichage clair » passe à un fond blanc, si vous lisez mieux ainsi (le logiciel redémarre). » | « « Affichage clair » met un fond blanc. « Affichage sombre » revient au fond sombre. Le logiciel redémarre : rouvrez le film. »
+- LISEZMOI.txt, passages vides (phase 22) | « « Retirer les passages vides » : le logiciel repère la neige, l'écran bleu et le noir (début, fin, trous entre deux enregistrements), en montre la liste avec les heures, et crée une copie sans eux si vous le voulez. » | « Sur « C'est prêt », « Retirer les passages vides » liste la neige, le bleu ou le noir. « Créer la copie » les enlève. « Garder le film tel quel » ne change rien. »
+- LISEZMOI.txt et gui.py, « Faire un montage » (phase 22) | « « Couper ou assembler » (LosslessCut) : simple, sans perte de qualité. » | « « Couper ou assembler » ouvre LosslessCut : vous coupez, l'image n'est pas refaite. « Montage complet » ouvre Shotcut : titres, fondus et musique. Votre film d'origine reste intact. »
+- gui.py, fenêtre « Bienvenue » | « absente » | « Pour un moment au milieu du film, cliquez deux fois sur « Couper ici ». »
+- ergonomie.py, expliquer (coupe au milieu) | « Enlever un passage au milieu ne va pas avec l'option choisie. Décochez « Amélioration IA », « Enlever les poussières et rayures » ou les réparations de bande, ou remettez « Cadence de tournage » sur « Celle du fichier » ; ou bien n'enlevez que le début et la fin. » | « Cette coupe au milieu ne va pas avec l'option cochée. Décochez « Amélioration IA », « Enlever les poussières et rayures », « Bruit de bande », « Couleur des décrochages » ou « Taches d'une seule image », ou remettez « Cadence de tournage » sur « Celle du fichier ». »
+
+Compte-rendu : Couper ici absent du LISEZMOI ; début et fin absents ; A− A A+ absents ; Affichage clair incomplet ; passages vides trop long ; LosslessCut et Shotcut trop techniques ; Bienvenue sans Couper ici ; expliquer dit « réparations de bande » au lieu des cases.

@@ -580,6 +580,13 @@ class TempsSpin(QDoubleSpinBox):
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
+    def wheelEvent(self, event) -> None:  # noqa: N802
+        # Sans le focus, la molette doit seulement faire défiler la page.
+        if not self.hasFocus():
+            event.ignore()
+            return
+        super().wheelEvent(event)
+
     def textFromValue(self, value: float) -> str:  # noqa: N802
         return _duree(value)
 
@@ -1896,7 +1903,9 @@ class MainWindow(QMainWindow):
                           "à côté, avec « restaure » dans son nom. À la fin, l'écran « C'est prêt » "
                           "propose de le regarder ou d'ouvrir le dossier.\n\n"
                           "Pour enlever la neige du début ou la fin de bande : « Le film commence à » "
-                          "et « Le film s'arrête à », sous les trois boutons. Seule la copie est découpée.\n\n"
+                          "et « Le film s'arrête à », sous les trois boutons. "
+                          "Pour un moment au milieu, cliquez deux fois sur « Couper ici ». "
+                          "Seule la copie est découpée.\n\n"
                           "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
         box.addButton("C'est parti", QMessageBox.AcceptRole)
@@ -2274,7 +2283,7 @@ class MainWindow(QMainWindow):
         # Photo : seuls le profil, la dominante, l'IA et la colorisation comptent. Les réglages
         # propres aux films sont cachés (ils n'auraient aucun effet).
         self._card_son.setVisible(not photo_mode)
-        self.s_coupe.setVisible(not photo_mode)
+        self.s_coupe.setVisible(self.info is not None and not photo_mode)
         for wd in (self._row_res, self._row_deint, self._row_edge, self._row_chroma, self.hq_check,
                    self.stab_check, self.start_label, self.start_spin, self._row_trim):
             wd.setVisible(not photo_mode)
@@ -3467,7 +3476,8 @@ class MainWindow(QMainWindow):
         ergonomie.montrer_erreur(self, msg)
 
     def _on_cancelled(self) -> None:
-        self.status.setText("Opération annulée. Fichiers temporaires supprimés.")
+        self.status.setText("Arrêté. Votre film n'a pas été modifié. "
+                             "Pour recommencer, cliquez sur « Restaurer ».")
         self._rendre_fini()
         self._montage_en_attente = None
         if self.s_fini.isHidden():

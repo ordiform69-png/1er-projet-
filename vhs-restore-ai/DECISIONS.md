@@ -790,3 +790,16 @@ effacée sans masquer une erreur).
 - Page simple : « Couper ici » deux fois suffit ; « Ce passage inutile commence ici », « Le film reprend ici » et « Autre façon, en deux temps » y sont cachés (pas détruits), toujours visibles dans les options avancées.
 - Avant « Restaurer » : la note des passages prévient si une option cochée empêchera la coupe au milieu, avec les mots de l'écran (« Amélioration IA », « Enlever les poussières et rayures », « Bruit de bande », « Couleur des décrochages », « Taches d'une seule image », « Cadence de tournage ») ; rien n'est décoché ; le refus de pipeline.export et ergonomie.expliquer citent aussi la cadence de tournage.
 - Un dossier ignore les coupes du film ouvert : la phrase est écrite en haut de la page et répétée dans « C'est prêt » (la ligne d'état est remplacée aussitôt par « Film 1 sur … »), sans fenêtre ; restore_folder ne reçoit aucun passage.
+
+## Équipe, vague 1 (phase 27)
+
+Demande n°7 : six rôles, le chef tranche. Rien n'a été changé dans les filtres.
+
+- La molette sur « Le film commence à » et « Le film s'arrête à » ne change plus le temps
+  tant que le champ n'a pas été cliqué : défiler la page ne coupe plus le film par accident.
+- Le cadre « Enlever une scène » n'apparaît qu'une fois un film choisi (toujours caché pour une photo).
+- Après « Arrêter », la ligne d'état dit : « Arrêté. Votre film n'a pas été modifié.
+  Pour recommencer, cliquez sur « Restaurer ». »
+- Le mode d'emploi et la fenêtre « Bienvenue » expliquent « Couper ici ». L'erreur de coupe
+  nomme les cases telles qu'à l'écran, plus « réparations de bande ».
+

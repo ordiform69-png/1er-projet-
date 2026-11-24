@@ -45,9 +45,11 @@ def expliquer(message: str) -> tuple[str, str]:
     elif "ne resterait plus rien" in bas or "au moins un passage" in bas:
         clair = "Il ne resterait plus rien du film. Laissez au moins un passage."
     elif "passage au milieu" in bas:
-        clair = ("Enlever un passage au milieu ne va pas avec l'option choisie. Décochez "
-                 "« Amélioration IA », « Enlever les poussières et rayures » ou les réparations de bande, ou remettez "
-                 "« Cadence de tournage » sur « Celle du fichier » ; ou bien n'enlevez que le début et la fin.")
+        clair = ("Cette coupe au milieu ne va pas avec l'option cochée. Décochez "
+                 "« Amélioration IA », « Enlever les poussières et rayures », « Bruit de bande », "
+                 "« Couleur des décrochages » ou « Taches d'une seule image », ou remettez "
+                 "« Cadence de tournage » sur « Celle du fichier ». "
+                 "Sinon, n'enlevez que le début et la fin.")
     elif "ne peut pas être le fichier" in bas or "ne peut pas remplacer" in bas:
         clair = ("Le résultat ne peut pas remplacer le fichier d'origine. "
                  "Rien n'a été écrasé. Choisissez un autre dossier si besoin.")

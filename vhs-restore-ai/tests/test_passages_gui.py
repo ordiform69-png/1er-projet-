@@ -118,3 +118,25 @@ def test_dossier_sans_les_coupes(tools, tmp_path, monkeypatch):
     assert "ne seront pas appliquées" in ergonomie.resume_dossier(1, 0, [], remarque=ergonomie.PHRASE_COUPES_DOSSIER)
     assert "ne seront pas appliquées" not in ergonomie.resume_dossier(1, 0, [])
     win.close()
+
+
+def test_molette_sans_focus_ne_change_pas_le_temps():
+    """Défiler la page ne doit pas couper le film : la molette est ignorée sans focus."""
+    app = QApplication.instance() or QApplication([])
+    from vhs_restore.gui import TempsSpin
+
+    class _Molette:
+        def __init__(self) -> None:
+            self.ignored = False
+
+        def ignore(self) -> None:
+            self.ignored = True
+
+    spin = TempsSpin()
+    spin.setRange(0, 120)
+    spin.setValue(10)
+    spin.clearFocus()
+    ev = _Molette()
+    spin.wheelEvent(ev)
+    assert ev.ignored and spin.value() == 10
+    app.processEvents()
