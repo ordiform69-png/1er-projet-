@@ -1,0 +1,77 @@
+# Diagnostic TEMPORAIRE (2) : FFmpeg 9.1 (Windows) se fige dès le début sur l'export d'un morceau.
+# Toutes les variantes du 1er diagnostic bloquaient sans écrire de fichier. Hypothèse : le même
+# fichier ouvert deux fois (image et son). Chaque variante : 60 s au plus. À retirer ensuite.
+name: Diagnostic FFmpeg (temporaire)
+
+on:
+  push:
+    branches: ["ccr-5856e8d6-8xt8uh"]
+    paths:
+      - ".github/workflows/diagnostic-ffmpeg.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: vhs-restore-ai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: FFmpeg (même script que la fabrication)
+        shell: pwsh
+        run: ./scripts/installer_outils.ps1
+      - name: Variantes
+        shell: python
+        run: |
+          import os, shutil, subprocess, time
+          ff = os.path.abspath(os.path.join("tools", "ffmpeg", "bin", "ffmpeg.exe"))
+          print(subprocess.run([ff, "-hide_banner", "-version"], capture_output=True, text=True).stdout.splitlines()[0], flush=True)
+          src = os.path.abspath("clap.mkv")
+          signal = "+".join(f"between(t,{t},{t + 0.08})" for t in (0.6, 4.6))
+          subprocess.run([ff, "-v", "error", "-y", "-f", "lavfi", "-i",
+                          "color=black:s=128x96:r=25:d=6,drawbox=color=white:t=fill:enable='eq(n,25)+eq(n,125)'",
+                          "-f", "lavfi", "-i", f"aevalsrc='0.5*sin(2*PI*440*t)*({signal})':s=48000:d=6",
+                          "-c:v", "ffv1", "-c:a", "flac", src], check=True, timeout=60)
+          copie = os.path.abspath("clap-copie.mkv")
+          shutil.copy(src, copie)
+          mp4 = os.path.abspath("clap.mp4")
+          subprocess.run([ff, "-v", "error", "-y", "-i", src, "-c:v", "libx264", "-c:a", "aac", mp4], check=True, timeout=60)
+          enc = ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k"]
+          vf = ["-vf", "hqdn3d=1.5:3:2:4,setsar=1/1,format=yuv420p"]
+          af = ["-af", "adelay=400:all=1,apad=whole_dur=2,atrim=duration=2"]
+          deux = lambda a, b: ["-t", "2.000", "-i", a, "-t", "1.600", "-i", b, "-map", "0:v:0", "-map", "1:a:0"]
+          variantes = [
+              ("A une seule entrée", ["-t", "2.000", "-i", src, "-map", "0:v:0", "-map", "0:a:0", *vf, *enc], True),
+              ("B deux entrées, même fichier", [*deux(src, src), *vf, *enc, *af], True),
+              ("C deux entrées, deux fichiers", [*deux(src, copie), *vf, *enc, *af], False),
+              ("D même fichier, copie sans encoder", [*deux(src, src), "-c", "copy"], False),
+              ("E même fichier, sans -t", ["-i", src, "-i", src, "-map", "0:v:0", "-map", "1:a:0", *enc], False),
+              ("F même fichier MP4", [*deux(mp4, mp4), *vf, *enc, *af], False),
+              ("G même fichier, -threads 1", [*deux(src, src), *vf, *enc, *af, "-threads", "1", "-filter_threads", "1"], False),
+              ("H même fichier, sans -progress", [*deux(src, src), *vf, *enc, *af], False),
+          ]
+          for i, (nom, args, verbeux) in enumerate(variantes):
+              out = os.path.abspath(f"diag-{i}.mkv")
+              prog = [] if nom.startswith("H") else ["-progress", "pipe:1", "-nostats"]
+              cmd = [ff, "-hide_banner", "-nostdin", "-y", "-loglevel", "verbose" if verbeux else "warning",
+                     *prog, *args, "-f", "matroska", out]
+              t0 = time.time()
+              p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              try:
+                  o, e = p.communicate(timeout=60)
+                  etat = f"fini, code {p.returncode}"
+              except subprocess.TimeoutExpired:
+                  p.kill()
+                  o, e = p.communicate()
+                  etat = "BLOQUÉ (arrêté à 60 s)"
+              taille = os.path.getsize(out) if os.path.exists(out) else -1
+              print(f"{nom:36s} : {etat} en {time.time() - t0:5.1f} s ; sortie {taille} octets", flush=True)
+              if verbeux or "BLOQUÉ" in etat:
+                  print("    dernières lignes :", e.decode("utf-8", "replace")[-1500:].replace("\n", "\n    "), flush=True)
