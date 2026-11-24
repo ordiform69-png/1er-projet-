@@ -1,6 +1,5 @@
-# Diagnostic TEMPORAIRE (3) : FFmpeg 9.1 (Windows) se fige même avec une seule entrée ;
-# seule la copie sans réencodage finit. Hypothèse : l'encodeur AAC sur du silence numérique
-# (mono, 192 kbit/s). Chaque variante : 45 s au plus. À retirer ensuite.
+# Diagnostic TEMPORAIRE (4) : l'encodeur AAC de FFmpeg 9.1 (Windows) se fige sur un bip suivi de silence ;
+# silence pur et sinus continu passent. Quel réglage évite le blocage ? 30 s au plus chacun. À retirer.
 name: Diagnostic FFmpeg (temporaire)
 
 on:
@@ -53,13 +52,16 @@ jobs:
           silence_stereo = ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
           sinus_mono = ["-f", "lavfi", "-i", "sine=f=440:r=48000"]
           bip_mono = ["-f", "lavfi", "-i", "aevalsrc='0.5*sin(2*PI*440*t)*between(t,0.6,0.68)':s=48000"]
-          essai("silence mono, aac 192k", [*img, *silence_mono], ["-c:a", "aac", "-b:a", "192k"])
-          essai("silence mono, aac 96k", [*img, *silence_mono], ["-c:a", "aac", "-b:a", "96k"])
-          essai("silence mono, aac sans débit", [*img, *silence_mono], ["-c:a", "aac"])
-          essai("silence mono, aac 192k, -aac_coder fast", [*img, *silence_mono], ["-c:a", "aac", "-b:a", "192k", "-aac_coder", "fast"])
-          essai("silence stéréo, aac 192k", [*img, *silence_stereo], ["-c:a", "aac", "-b:a", "192k"])
-          essai("silence stéréo, aac 192k, -aac_coder fast", [*img, *silence_stereo], ["-c:a", "aac", "-b:a", "192k", "-aac_coder", "fast"])
-          essai("sinus mono, aac 192k", [*img, *sinus_mono], ["-c:a", "aac", "-b:a", "192k"])
-          essai("bip puis silence mono, aac 192k", [*img, *bip_mono], ["-c:a", "aac", "-b:a", "192k"])
-          essai("silence mono, sans son (-an)", [*img, *silence_mono], ["-an"])
-          essai("silence mono, aac 192k, sans image (-vn)", [*img, *silence_mono], ["-c:a", "aac", "-b:a", "192k", "-vn"])
+          bip_bruit = ["-f", "lavfi", "-i", "aevalsrc='0.5*sin(2*PI*440*t)*between(t,0.6,0.68)+0.0005*(random(0)-0.5)':s=48000"]
+          a = ["-c:a", "aac"]
+          essai("bip mono 192k (référence)", [*img, *bip_mono], [*a, "-b:a", "192k"], 30)
+          essai("bip mono 192k -aac_coder fast", [*img, *bip_mono], [*a, "-b:a", "192k", "-aac_coder", "fast"], 30)
+          essai("bip mono 192k -aac_pns 0", [*img, *bip_mono], [*a, "-b:a", "192k", "-aac_pns", "0"], 30)
+          essai("bip mono 192k -aac_tns 0", [*img, *bip_mono], [*a, "-b:a", "192k", "-aac_tns", "0"], 30)
+          essai("bip mono 128k", [*img, *bip_mono], [*a, "-b:a", "128k"], 30)
+          essai("bip mono 96k", [*img, *bip_mono], [*a, "-b:a", "96k"], 30)
+          essai("bip mono -q:a 2 (débit variable)", [*img, *bip_mono], [*a, "-q:a", "2"], 30)
+          essai("bip stéréo 192k", [*img, *bip_mono], [*a, "-b:a", "192k", "-ac", "2"], 30)
+          essai("bip stéréo 192k -aac_coder fast", [*img, *bip_mono], [*a, "-b:a", "192k", "-ac", "2", "-aac_coder", "fast"], 30)
+          essai("bip stéréo 96k -aac_coder fast", [*img, *bip_mono], [*a, "-b:a", "96k", "-ac", "2", "-aac_coder", "fast"], 30)
+          essai("bip + souffle -66 dB, mono 192k", [*img, *bip_bruit], [*a, "-b:a", "192k"], 30)
