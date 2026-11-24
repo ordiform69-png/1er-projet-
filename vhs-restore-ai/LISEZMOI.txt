@@ -49,6 +49,22 @@ Quand le film est prêt, deux boutons de plus :
     Votre film d'origine reste intact.
     La première fois, le logiciel propose de l'installer (un clic).
 
+Nommer, partager, séparer
+-------------------------
+Sur « C'est prêt », trois boutons de plus :
+  - « Nommer ce film » : tapez par exemple « Noël 1988 », et la date si
+    vous la connaissez (1988 ou 25/12/1988). Le film restauré prend ce nom ;
+    le titre et la date sont aussi écrits dans le fichier, et beaucoup de
+    téléviseurs les affichent. Le film d'origine n'est jamais renommé.
+  - « Faire une copie à partager » : « Copie légère » pour l'envoyer par
+    e-mail ou WhatsApp (environ 5 à 15 Mo par minute de film) ; « Pour la
+    télévision » à copier sur une clé USB. La copie est un nouveau fichier,
+    dans le même dossier.
+  - « Séparer en plusieurs films » : une cassette avec Noël, des vacances et
+    un anniversaire devient un fichier par film. Les coupures sont la neige,
+    l'écran bleu ou le noir entre deux films. Vous donnez un nom à chacun.
+    La cassette entière est gardée.
+
 Pour enlever un moment au milieu, avant de restaurer : la barre montre des
 petites images du film. Glissez pour vous placer : l'image au-dessus dit
 l'heure (« 12 min 34 s »). Cliquez deux fois sur « Couper ici », ou une fois

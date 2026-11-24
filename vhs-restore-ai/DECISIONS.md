@@ -856,3 +856,45 @@ relancer un aperçu de 10 secondes. Elle montre maintenant de petites images du 
   (pas de titres, de musique, de plans déplacés). La règle « pas de vignettes » est levée :
   c'est la demande.
 
+
+## Après la restauration : nommer, copie à partager, séparer en films (phase 30)
+
+Demande de l'utilisateur (points 2, 3 et 4 de « ce qu'il manque ») : un film restauré s'appelait
+« DVD_041544_0_restaure_equilibre.mp4 », pesait plusieurs Go (impossible à envoyer) et une cassette
+de 3 heures mélangeait Noël, des vacances et un anniversaire dans un seul fichier. Nouveau module
+`vhs_restore/partage.py` ; trois boutons sur l'écran « C'est prêt » et dans « Restauration complète ».
+
+- **Nommer ce film / cette photo** : seulement un **résultat du logiciel** (`_fini_fichier`), jamais
+  l'original (refus vérifié dans `partage.nommer`). Le film est recopié sans recompression
+  (`-c copy`), avec le titre et la date (`1988`, `12/1988`, `25/12/1988` → forme ISO) écrits dans
+  le fichier ; l'ancien nom n'est effacé qu'après. Nom libre (jamais d'écrasement : « (2) »),
+  caractères interdits par Windows retirés, noms réservés (CON…) protégés. Les copies du son
+  (WAV, FLAC) et la copie colorisée d'une photo suivent le nouveau nom. Une photo change seulement
+  de nom (pas de métadonnées).
+- **Faire une copie à partager** : nouveau fichier à côté du film, le film restauré reste le
+  résultat. « Copie légère » : 640 × 480 (4:3, pixels carrés), 25 i/s au plus, H.264 Main 3.0,
+  CRF 28 plafonné à 2 Mbit/s, AAC 96k stéréo : mesuré 5,2 Mo par minute sur une image bruitée
+  (15 Mo au plus). « Pour la télévision » : 960 × 720 au plus, jamais agrandi (une VHS SD donne
+  768 × 576), cadence gardée (50 i/s au plus), H.264 High 3.2, CRF 20 plafonné à 8 Mbit/s, AAC 192k :
+  mesuré 63 Mo par minute ; le débit baisse pour qu'un film de plusieurs heures reste sous 3,6 Go
+  (clé FAT32). Place libre vérifiée avant. Au-delà de 25 Mo, la phrase dit qu'un e-mail peut refuser.
+- **Séparer en plusieurs films** : les frontières sont les passages vides que `vides.py` repère déjà
+  (neige, écran bleu ou noir) ; un morceau de moins de 20 secondes n'est pas un film ; moins de deux
+  films : rien n'est proposé (« Aucune coupure nette… »). Une fenêtre demande un nom par film (de/à,
+  durée), facultatif (« <cassette> - film 2 »). Chaque film : x264 CRF 16 + AAC 192k comme la copie
+  sans passages vides, titre dans le fichier ; la cassette entière reste. Clé FAT32 vérifiée sur le
+  plus long film, place libre sur l'ensemble. La question « Passages vides » propose aussi
+  « Séparer en N films » quand c'est possible.
+- Jamais d'écrasement, partiel caché puis publication (`reserver_sorties`, `partiel_unique`,
+  `finaliser`) ; DVD ou clé protégée : dossier de secours (`pipeline.output_dir_for`).
+- Pendant « Nommer » et la copie, l'écran « C'est prêt » reste ; arrêt ou erreur : il revient.
+  Séparation et copie sont des travaux longs (phrase de patience, confirmation avant d'arrêter).
+- Page avancée : deux boutons par ligne (« Retirer les passages vides… » / « Séparer en films… »,
+  « Nommer le résultat… » / « Copie à partager… », « Faire un montage… » / « Vérifier
+  l'installation ») : pas de défilement horizontal à 1280 px, texte 100 à 150 %.
+- Tests : `tests/test_partage.py` (moteur : tailles, cadences, niveaux, FAT32, noms Windows, dates,
+  séparation d'une cassette de synthèse, nommer avec WAV et nom déjà pris) et
+  `tests/test_partage_gui.py` (fenêtre réelle : nommer depuis « C'est prêt », refus sans résultat,
+  vérification du nom et de la date, copie légère, séparation par les deux chemins, photo).
+- Non testé : lecture des copies sur un vrai téléviseur et sur un téléphone ; envoi réel par
+  e-mail ou WhatsApp.

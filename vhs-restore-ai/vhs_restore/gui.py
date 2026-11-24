@@ -22,13 +22,13 @@ from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QS
                             QTimer, QUrl, Signal)
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QBoxLayout, QButtonGroup,
-                               QCheckBox, QComboBox, QDoubleSpinBox,
+                               QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
                                QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from . import ergonomie, icons, installer, photo, pipeline, theme, vides, vignettes
+from . import ergonomie, icons, installer, partage, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -738,6 +738,8 @@ def _wrap(layout: QHBoxLayout) -> QWidget:
 
 
 _MAX_COUPES = 8
+# travaux de plusieurs minutes : phrase de patience, confirmation avant d'arrêter
+_TRAVAUX_LONGS = ("export", "dossier", "vides_copie", "separation", "partage")
 _MIN_COUPE = 0.5
 
 
@@ -1295,16 +1297,33 @@ class MainWindow(QMainWindow):
         self.s_montage = _with_icon(QPushButton("Faire un montage"), "film")
         self.s_montage.setToolTip("Couper, assembler, ajouter un titre : ouvre votre film dans un "
                                   "logiciel de montage gratuit.")
+        self.s_nommer = _with_icon(QPushButton("Nommer ce film"), "etiquette")
+        self.s_nommer.setToolTip("« Noël 1988 » plutôt qu'un nom de fichier compliqué. Le titre et la date "
+                                 "sont aussi écrits dans le fichier.")
+        self.s_partager = _with_icon(QPushButton("Faire une copie à partager"), "envoyer")
+        self.s_partager.setToolTip("Une copie légère pour l'envoyer (e-mail, WhatsApp), ou une copie pour "
+                                   "la télévision (clé USB). Le film restauré n'est pas modifié.")
+        self.s_separer = _with_icon(QPushButton("Séparer en plusieurs films"), "separer")
+        self.s_separer.setToolTip("Une cassette avec Noël, des vacances, un anniversaire : un fichier pour "
+                                  "chacun, aux coupures (neige, écran bleu ou noir).")
         rangee2 = QHBoxLayout()
         rangee2.setSpacing(8)
-        for b in (self.s_vides, self.s_montage):
-            b.setObjectName("secondaire")
-            b.setMinimumHeight(48)
-            b.setCursor(Qt.PointingHandCursor)
-            rangee2.addWidget(b, 1)
+        rangee3 = QHBoxLayout()
+        rangee3.setSpacing(8)
+        for rangee, boutons in ((rangee2, (self.s_nommer, self.s_partager)),
+                                (rangee3, (self.s_vides, self.s_separer, self.s_montage))):
+            for b in boutons:
+                b.setObjectName("secondaire")
+                b.setMinimumHeight(48)
+                b.setCursor(Qt.PointingHandCursor)
+                rangee.addWidget(b, 1)
         self.s_vides.clicked.connect(self.retirer_vides)
         self.s_montage.clicked.connect(self.faire_montage)
+        self.s_nommer.clicked.connect(self.nommer_resultat)
+        self.s_partager.clicked.connect(self.partager_resultat)
+        self.s_separer.clicked.connect(self.separer_films)
         fv.addLayout(rangee2)
+        fv.addLayout(rangee3)
         fv.addWidget(self.s_fini_texte)
         self.s_fini.setVisible(False)
         v.addWidget(self.s_fini)
@@ -2179,20 +2198,34 @@ class MainWindow(QMainWindow):
         self.status.setWordWrap(True)
         v.addWidget(self.progress)
         v.addWidget(self.status)
-        h = QHBoxLayout()
         self.vides_btn = _with_icon(QPushButton("Retirer les passages vides…"), "ciseaux")
         self.vides_btn.clicked.connect(self.retirer_vides)
         self.montage_btn = _with_icon(QPushButton("Faire un montage…"), "film")
         self.montage_btn.clicked.connect(self.faire_montage)
-        for b in (self.vides_btn, self.montage_btn):
+        self.separer_btn = _with_icon(QPushButton("Séparer en films…"), "separer")
+        self.separer_btn.clicked.connect(self.separer_films)
+        for b in (self.vides_btn, self.separer_btn, self.montage_btn):
             b.setToolTip("Sur le dernier film restauré, ou sinon sur le film ouvert.")
-            h.addWidget(b)
-        h.addStretch(1)
-        v.addLayout(h)
-        h = QHBoxLayout()                    # ligne à part : la carte tient sur un écran de 1280 px
-        h.addStretch(1)
-        h.addWidget(self.check_btn)
-        v.addLayout(h)
+        self.nommer_btn = _with_icon(QPushButton("Nommer le résultat…"), "etiquette")
+        self.nommer_btn.setToolTip("Nouveau nom (et date) pour le dernier film ou la dernière photo restaurés. "
+                                   "Le fichier d'origine n'est jamais renommé.")
+        self.nommer_btn.clicked.connect(self.nommer_resultat)
+        self.partager_btn = _with_icon(QPushButton("Copie à partager…"), "envoyer")
+        self.partager_btn.setToolTip("Copie légère (e-mail, WhatsApp) ou pour la télévision (clé USB), du dernier "
+                                     "film restauré ou sinon du film ouvert.")
+        self.partager_btn.clicked.connect(self.partager_resultat)
+        # deux boutons par ligne : la carte tient sur un écran de 1280 px, texte à 100 % comme à 150 %
+        for gauche, droite in ((self.vides_btn, self.separer_btn), (self.nommer_btn, self.partager_btn),
+                               (self.montage_btn, self.check_btn)):
+            h = QHBoxLayout()
+            h.addWidget(gauche)
+            if droite is self.check_btn:
+                h.addStretch(1)
+                h.addWidget(droite)
+            else:
+                h.addWidget(droite)
+                h.addStretch(1)
+            v.addLayout(h)
         right.addWidget(g)
         right.addStretch(1)
 
@@ -2431,6 +2464,13 @@ class MainWindow(QMainWindow):
 
     def retirer_vides(self) -> None:
         """Repère neige, écran bleu et noir, puis propose une copie sans ces passages."""
+        self._chercher_coupures(self._vides_trouves, "Recherche des passages vides…")
+
+    def separer_films(self) -> None:
+        """Une cassette qui mélange Noël, des vacances… : un fichier par film, aux coupures."""
+        self._chercher_coupures(self._coupures_trouvees, "Recherche des coupures entre les films…")
+
+    def _chercher_coupures(self, suite: Callable[[Any], None], texte: str) -> None:
         if self._busy():
             return
         cible = self._cible_montage()
@@ -2450,8 +2490,8 @@ class MainWindow(QMainWindow):
             son = "codec_type=audio" in r.stdout
             passages, duree = vides.detecter_tout(t.ffmpeg.path, cible, duree, cancel=cancel, progress=progress)
             return cible, duree, son, passages
-        self.status.setText("Recherche des passages vides…")
-        self._launch(job, self._vides_trouves, job="vides")
+        self.status.setText(texte)
+        self._launch(job, suite, job="vides")
 
     def _vides_trouves(self, res) -> None:
         cible, duree, son, passages = res
@@ -2462,16 +2502,23 @@ class MainWindow(QMainWindow):
             return
         total = sum(p.duree for p in passages)
         liste = "\n".join("•  " + vides.decrire(p) for p in passages)
-        box = QMessageBox(QMessageBox.Question, "Passages vides",
+        films = partage.films_separables(vides.a_garder(passages, duree), duree, film_min=partage.FILM_MIN)
+        aussi = (f"\n\nCes passages séparent {len(films)} films : vous pouvez aussi en faire {len(films)} "
+                 "fichiers, un par film." if films else "")
+        box = QMessageBox(QMessageBox.Question, "Passages vides", _insecables(
                           f"{len(passages)} passage{'s' if len(passages) > 1 else ''} vide"
                           f"{'s' if len(passages) > 1 else ''} trouvé{'s' if len(passages) > 1 else ''} "
                           f"dans « {cible.name} » ({vides._hms(total)} en tout) :\n\n{liste}\n\n"
-                          "Créer une copie du film sans ces passages ? Le film actuel n'est pas modifié.",
+                          f"Créer une copie du film sans ces passages ? Le film actuel n'est pas modifié.{aussi}"),
                           parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 520px; font-size: 14pt; }")
         oui = box.addButton("Créer la copie", QMessageBox.AcceptRole)
+        separer = box.addButton(f"Séparer en {len(films)} films", QMessageBox.AcceptRole) if films else None
         box.addButton("Garder le film tel quel", QMessageBox.RejectRole)
         box.exec()
+        if separer is not None and box.clickedButton() is separer:
+            self._proposer_separation(cible, duree, son, films)
+            return
         if box.clickedButton() is not oui:
             self.status.setText("Le film est gardé tel quel.")
             return
@@ -2491,6 +2538,261 @@ class MainWindow(QMainWindow):
         self._montrer_fini(f"Copie sans les passages vides :\n{out.name}\n\n{vides._hms(total)} retirées "
                            f"(neige, écran bleu ou noir).\n\nElle se trouve dans le dossier :\n{out.parent}\n\n"
                            "Le film précédent n'a pas été modifié.", out.parent, out, "film")
+        self.status.setText(f"Terminé : {out.name}")
+
+    # ------------------------------------------------------------ séparer, nommer, partager
+    def _coupures_trouvees(self, res) -> None:
+        cible, duree, son, passages = res
+        films = partage.films_separables(vides.a_garder(passages, duree), duree, film_min=partage.FILM_MIN)
+        if not films:
+            self.status.setText("Pas de coupure entre deux films.")
+            QMessageBox.information(
+                self, "Séparer en plusieurs films", _insecables(
+                f"Aucune coupure nette (neige, écran bleu ou noir) n'a été trouvée entre deux films de plus de "
+                f"{int(partage.FILM_MIN)} secondes dans « {cible.name} ».\n\nLe film reste d'un seul tenant. "
+                "Pour couper ailleurs, utilisez « Faire un montage »."))
+            return
+        self._proposer_separation(cible, duree, son, films)
+
+    def _proposer_separation(self, cible: Path, duree: float, son: bool, films: list) -> None:
+        noms = self._demander_noms_films(cible, films, duree)
+        if noms is None:
+            self.status.setText("Le film est gardé d'un seul tenant.")
+            return
+        try:
+            dossier, _secours = pipeline.output_dir_for(cible.parent)   # DVD, clé protégée : dossier de secours
+        except ToolError as exc:
+            ergonomie.montrer_erreur(self, str(exc))
+            return
+        ffmpeg = self.tools.ffmpeg.path
+        self.status.setText(f"Séparation en {len(films)} films…")
+        self._launch(lambda c, p: partage.separer(ffmpeg, cible, films, noms, son, dossier=dossier, cancel=c,
+                                                  progress=p, duree=duree),
+                     lambda sortis: self._films_separes(cible, sortis), job="separation")
+
+    def _films_separes(self, cible: Path, sortis: list) -> None:
+        liste = "\n".join("•  " + p.name for p in sortis)
+        self._montrer_fini(f"« {cible.name} » est séparé en {len(sortis)} films :\n{liste}\n\n"
+                           f"Ils se trouvent dans le dossier :\n{sortis[0].parent}\n\n"
+                           "Le film entier est gardé tel quel, sans aucun changement.",
+                           sortis[0].parent, sortis[0], "films")
+        self.status.setText(f"Terminé : {len(sortis)} films")
+
+    def _demander_noms_films(self, cible: Path, films: list, duree: float) -> list[str] | None:
+        """Un nom par film (facultatif). None : annulé."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Séparer en plusieurs films")
+        dlg.setStyleSheet("QLabel, QLineEdit, QPushButton { font-size: 13pt; }")
+        lay = QVBoxLayout(dlg)
+        tete = QLabel(_insecables(f"{len(films)} films trouvés dans « {cible.name} ». Donnez un nom à chacun "
+                                  "(par exemple « Noël 1988 ») ; sans nom, un numéro est donné.\n"
+                                  "Le film entier n'est pas modifié."))
+        tete.setWordWrap(True)
+        lay.addWidget(tete)
+        zone = QScrollArea()
+        zone.setWidgetResizable(True)
+        zone.setFrameShape(QFrame.NoFrame)
+        corps = QWidget()
+        form = QFormLayout(corps)
+        champs = []
+        for i, (a, b) in enumerate(films, start=1):
+            fin = b if b is not None else duree
+            champ = QLineEdit()
+            champ.setPlaceholderText(f"{cible.stem} - film {i}")
+            champ.setMaxLength(80)
+            champ.setAccessibleName(f"Nom du film {i}")
+            form.addRow(QLabel(f"Film {i} : de {vides._hms(a)} à {vides._hms(fin)} "
+                               f"({vides._hms(max(0.0, fin - a))})"), champ)
+            champs.append(champ)
+        zone.setWidget(corps)
+        zone.setMinimumHeight(min(360, 42 * len(films) + 6))
+        lay.addWidget(zone, 1)
+        lay.addLayout(self._boutons_dialogue(dlg, "Séparer"))
+        dlg.resize(720, dlg.sizeHint().height())
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        return [c.text() for c in champs]
+
+    def _boutons_dialogue(self, dlg: QDialog, oui: str, accepter: Callable[[], None] | None = None) -> QHBoxLayout:
+        h = QHBoxLayout()
+        h.addStretch(1)
+        ok = QPushButton(oui)
+        ok.setObjectName("action")
+        ok.setDefault(True)
+        non = QPushButton("Annuler")
+        non.setObjectName("secondaire")
+        for b in (ok, non):
+            b.setMinimumHeight(44)
+            b.setMinimumWidth(140)
+            b.setCursor(Qt.PointingHandCursor)
+            h.addWidget(b)
+        ok.clicked.connect(accepter or dlg.accept)
+        non.clicked.connect(dlg.reject)
+        return h
+
+    def _demander_nom(self, cible: Path, est_photo: bool) -> tuple[str, str] | None:
+        """(nom, date ISO ou « ») ; None : annulé."""
+        dlg = QDialog(self)
+        quoi = "cette photo" if est_photo else "ce film"
+        dlg.setWindowTitle(f"Nommer {quoi}")
+        dlg.setStyleSheet("QLabel, QLineEdit, QPushButton { font-size: 13pt; }")
+        lay = QVBoxLayout(dlg)
+        tete = QLabel(_insecables(f"Nom actuel : {cible.name}\n\nNouveau nom (par exemple « Noël 1988 ») :"))
+        tete.setWordWrap(True)
+        lay.addWidget(tete)
+        nom = QLineEdit()
+        nom.setMaxLength(80)
+        nom.setPlaceholderText("Noël 1988")
+        nom.setAccessibleName("Nouveau nom")
+        lay.addWidget(nom)
+        date = QLineEdit()
+        date.setMaxLength(20)
+        date.setPlaceholderText("1988 ou 25/12/1988")
+        date.setAccessibleName("Date du film")
+        if not est_photo:                    # le titre et la date sont écrits dans le film
+            note_date = QLabel("Date du film (facultatif) :")
+            lay.addWidget(note_date)
+            lay.addWidget(date)
+        erreur = QLabel("")
+        erreur.setObjectName("note")
+        erreur.setWordWrap(True)
+        erreur.setVisible(False)
+        lay.addWidget(erreur)
+
+        def verifier() -> None:              # la fenêtre reste ouverte tant que le nom ne convient pas
+            if not partage.nom_de_fichier(nom.text()):
+                erreur.setText("Tapez un nom, par exemple « Noël 1988 ».")
+            elif partage.date_iso(date.text()) is None:
+                erreur.setText("Date non comprise. Écrivez par exemple 1988, 12/1988 ou 25/12/1988, "
+                               "ou laissez la case vide.")
+            else:
+                dlg.accept()
+                return
+            erreur.setVisible(True)
+        dlg._verifier = verifier             # pour les tests
+        lay.addLayout(self._boutons_dialogue(dlg, "Nommer", verifier))
+        dlg.resize(620, dlg.sizeHint().height())
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        return nom.text().strip(), partage.date_iso(date.text()) or ""
+
+    def nommer_resultat(self) -> None:
+        """« Noël 1988 » plutôt que « DVD_041544_0_restaure_equilibre.mp4 ». Seulement un résultat du
+        logiciel (film, photo) : le fichier d'origine n'est jamais renommé."""
+        if self._busy():
+            return
+        fini = getattr(self, "_fini_fichier", None)
+        if not fini or not Path(fini).is_file():
+            self._etat("Restaurez d'abord le film ou la photo : seul le résultat peut être nommé.",
+                       "Restaurez d'abord (carte 04) : seul le résultat peut être nommé.")
+            return
+        cible = Path(fini)
+        est_photo = photo.is_photo(cible)
+        rep = self._demander_nom(cible, est_photo)
+        if rep is None:
+            self.status.setText("Le nom n'a pas changé.")
+            return
+        nom, date = rep
+        ffmpeg = self.tools.ffmpeg.path
+        original = getattr(self.info, "path", None) if self.info is not None else None
+        annexes = [] if est_photo else [cible.with_suffix(".wav"), cible.with_suffix(".flac")]
+        couleur = photo.colorized_path(cible) if est_photo else None
+
+        def job(cancel, progress):
+            progress(0.2, "Changement de nom…")
+            out = partage.nommer(ffmpeg, cible, nom, date, annexes=annexes, original=original, cancel=cancel)
+            if couleur is not None and couleur.is_file():     # la copie colorisée suit la photo
+                partage.nommer(ffmpeg, couleur, photo.colorized_path(out).stem, original=original)
+            return out
+        self.status.setText("Changement de nom…")
+        self._launch(job, self._nomme, job="nommer")
+
+    def _nomme(self, out: Path) -> None:
+        est_photo = photo.is_photo(out)
+        if est_photo:
+            couleur = photo.colorized_path(out)
+            more = (f"\n\nCopie colorisée par l'IA (couleurs inventées) :\n{couleur.name}"
+                    if couleur.is_file() else "")
+            texte = (f"Votre photo s'appelle maintenant :\n{out.name}{more}\n\nElle se trouve dans le dossier :\n"
+                     f"{out.parent}\n\nLa photo d'origine n'a pas été modifiée.")
+        else:
+            sons = [x.name for x in (out.with_suffix(".wav"), out.with_suffix(".flac")) if x.is_file()]
+            extra = f"\n\nCopie du son restauré :\n{sons[0]}" if sons else ""
+            texte = (f"Votre film s'appelle maintenant :\n{out.name}\n\nIl se trouve dans le dossier :\n"
+                     f"{out.parent}{extra}\n\nLe titre (et la date) sont aussi écrits dans le fichier : "
+                     "les téléviseurs et les lecteurs les affichent. Le film d'origine n'a pas été modifié.")
+        self._montrer_fini(texte, out.parent, out, "photo" if est_photo else "film")
+        self.status.setText(f"Terminé : {out.name}")
+
+    def _choisir_copie(self, cible: Path) -> str | None:
+        box = QMessageBox(QMessageBox.Question, "Faire une copie à partager", _insecables(
+                          f"Quelle copie de « {cible.name} » voulez-vous ?\n\n"
+                          "•  Copie légère : petite, pour l'envoyer par e-mail ou WhatsApp, ou la regarder "
+                          "sur un téléphone (environ 5 à 15 Mo par minute de film).\n\n"
+                          "•  Pour la télévision : à copier sur une clé USB et à brancher sur le téléviseur "
+                          "(belle image, lue par presque tous les téléviseurs).\n\n"
+                          "Le film n'est pas modifié : la copie est un nouveau fichier, dans le même dossier."),
+                          parent=self)
+        box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 560px; font-size: 14pt; }")
+        legere = box.addButton("Copie légère (pour envoyer)", QMessageBox.AcceptRole)
+        tele = box.addButton("Pour la télévision (clé USB)", QMessageBox.AcceptRole)
+        box.addButton("Annuler", QMessageBox.RejectRole)
+        box.exec()
+        choix = box.clickedButton()
+        return "legere" if choix is legere else "tele" if choix is tele else None
+
+    def partager_resultat(self) -> None:
+        """Copie légère (e-mail, WhatsApp) ou pour la télévision (clé USB) : un nouveau fichier."""
+        if self._busy():
+            return
+        cible = self._cible_montage()
+        if cible is None:
+            if self.info is None or getattr(self, "is_photo", False):
+                self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
+            return
+        cle = self._choisir_copie(cible)
+        if cle is None:
+            self.status.setText("Aucune copie faite.")
+            return
+        try:
+            dossier, _secours = pipeline.output_dir_for(cible.parent)
+        except ToolError as exc:
+            ergonomie.montrer_erreur(self, str(exc))
+            return
+        t = self.tools
+        self.status.setText(f"Préparation de la {partage.COPIES[cle].libelle}…")
+        self._launch(lambda c, p: partage.faire_copie(t.ffmpeg.path, t.ffprobe.path, cible, cle, dossier=dossier,
+                                                      cancel=c, progress=p),
+                     lambda out: self._copie_faite(out, cle), job="partage")
+
+    def _copie_faite(self, out: Path, cle: str) -> None:
+        try:
+            taille = out.stat().st_size / 1e6
+        except OSError:
+            taille = 0.0
+        poids = f"{taille:.0f} Mo" if taille < 1000 else f"{taille / 1000:.1f} Go".replace(".", ",")
+        if cle == "legere":
+            usage = "Pour l'envoyer : joignez ce fichier à un e-mail ou à un message WhatsApp."
+            if taille > 25:
+                usage += (" Un e-mail refuse souvent les fichiers de plus de 25 Mo : pour celui-ci, passez "
+                          "plutôt par WhatsApp ou un service d'envoi de gros fichiers.")
+        else:
+            usage = ("Copiez ce fichier sur une clé USB, branchez la clé sur le téléviseur, puis choisissez "
+                     "« USB » ou « Média » avec la télécommande.")
+        ajout = f"{partage.COPIES[cle].libelle.capitalize()} prête :\n{out.name} ({poids})\n\n{usage}"
+        if not self.s_fini.isHidden():
+            self.s_fini_texte.setText(f"{ajout}\n\nElle se trouve dans le dossier :\n{out.parent}\n\n"
+                                      + self.s_fini_texte.text())
+            self._signaler_fin()
+        else:
+            box = QMessageBox(QMessageBox.Information, "Copie à partager",
+                              f"{ajout}\n\nElle se trouve dans le dossier :\n{out.parent}", parent=self)
+            box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 520px; font-size: 14pt; }")
+            ouvrir = box.addButton("Ouvrir le dossier", QMessageBox.AcceptRole)
+            box.addButton("Fermer", QMessageBox.RejectRole)
+            box.exec()
+            if box.clickedButton() is ouvrir:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(out.parent)))
         self.status.setText(f"Terminé : {out.name}")
 
     def faire_montage(self) -> None:
@@ -2617,9 +2919,11 @@ class MainWindow(QMainWindow):
         if self._card_apercu.sous is not None:                           # « extrait de 10 s » : pas
             self._card_apercu.sous.setVisible(not photo_mode)            # pour une photo
         cible = loaded or bool(getattr(self, "_fini_fichier", None))
-        for b in (self.vides_btn, self.montage_btn):                     # pendant un travail ou pour une
-            b.setEnabled(cible and not busy)                             # photo : sans objet
-            b.setVisible(not photo_mode)
+        for b in (self.vides_btn, self.montage_btn, self.separer_btn, self.partager_btn):
+            b.setEnabled(cible and not busy)                             # pendant un travail ou pour une
+            b.setVisible(not photo_mode)                                 # photo : sans objet
+        resultat = getattr(self, "_fini_fichier", None)                  # nommer : un résultat seulement
+        self.nommer_btn.setEnabled(bool(resultat) and Path(resultat).is_file() and not busy)
         self.a_advice.setVisible(not self.s_advice.isHidden())
         # mode simple : seulement ce qui sert maintenant
         self.s_cancel.setVisible(busy)
@@ -2940,7 +3244,8 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "_hauteurs_base"):
             self._hauteurs_base = [(b, b.minimumHeight()) for b in (
                 self.s_cancel, self.s_hear_orig, self.s_hear_new, self.s_folder, self.s_voir, self.s_ouvrir,
-                self.s_autre, self.s_vides, self.s_montage, *self.segments.values())]
+                self.s_autre, self.s_vides, self.s_montage, self.s_nommer, self.s_partager, self.s_separer,
+                *self.segments.values())]
         for b, base in self._hauteurs_base:
             b.setMinimumHeight(int(base * self._echelle))
         self._ranger_etapes()
@@ -3798,6 +4103,10 @@ class MainWindow(QMainWindow):
             self.s_voir.setText("Voir la photo")
             self.s_autre.setText("Restaurer une autre photo")
             self.s_voir.setVisible(True)
+        elif genre == "films":                            # cassette séparée : déjà nommés
+            self.s_voir.setText("Regarder le premier film")
+            self.s_autre.setText("Restaurer un autre film")
+            self.s_voir.setVisible(True)
         elif genre == "dossier":
             self.s_voir.setVisible(False)
             self.s_autre.setText("Restaurer un autre dossier")
@@ -3805,13 +4114,17 @@ class MainWindow(QMainWindow):
             self.s_voir.setText("Regarder le film")
             self.s_autre.setText("Restaurer un autre film")
             self.s_voir.setVisible(True)
-        for b in (self.s_vides, self.s_montage):          # outils de film seulement
+        for b in (self.s_vides, self.s_montage, self.s_separer, self.s_partager):   # outils de film seulement
             b.setVisible(genre == "film")
+        self.s_nommer.setVisible(genre in ("film", "photo") and self._fini_fichier is not None)
+        self.s_nommer.setText("Nommer cette photo" if genre == "photo" else "Nommer ce film")
+        self.s_nommer.setAccessibleName(self.s_nommer.text())
         self.s_voir.setAccessibleName(self.s_voir.text())
         self.s_ouvrir.setAccessibleName("Ouvrir le dossier du résultat")
         self.s_autre.setAccessibleName(self.s_autre.text())
         self.s_fini.setVisible(True)
         self.set_advanced(False)
+        self._update_state()                              # « Nommer le résultat… » suit le résultat
         zone = self.pages.widget(0)
         if isinstance(zone, QScrollArea):
             zone.ensureWidgetVisible(self.s_fini)
@@ -3956,15 +4269,16 @@ class MainWindow(QMainWindow):
         ecoule = 0.0 if debut is None else time.monotonic() - debut
         if ecoule >= 20:
             return True
-        return getattr(self, "_job", "") in ("export", "dossier", "vides_copie") and ecoule >= 8
+        return getattr(self, "_job", "") in _TRAVAUX_LONGS and ecoule >= 8
 
     # ------------------------------------------------------------ worker
     def _launch(self, fn: Callable, on_success: Callable[[Any], None], job: str = "") -> None:
         self._job = job
         self._debut_travail = time.monotonic()
-        self._fini_a_rendre = job in ("vides", "vides_copie", "installation") and self.s_fini.isVisible()
-        if job and job not in ("vides", "installation"):    # ni l'un ni l'autre ne change le film :
-            self.s_fini.setVisible(False)                   # l'écran « C'est prêt » reste
+        self._fini_a_rendre = job in ("vides", "vides_copie", "separation", "installation", "nommer",
+                                      "partage") and self.s_fini.isVisible()
+        if job and job not in ("vides", "installation", "nommer", "partage"):   # le film reste le même :
+            self.s_fini.setVisible(False)                                          # « C'est prêt » reste
         self.worker = w = Worker(fn)
         # On garde les fils terminés : PySide plante si le QThread est détruit
         # pendant que l'interface traite encore ses signaux.
@@ -3984,7 +4298,7 @@ class MainWindow(QMainWindow):
             self.progress.setValue(0)
         self.eta = Eta()
         w.start()
-        if job in ("export", "dossier", "vides_copie"):
+        if job in _TRAVAUX_LONGS:
             self.s_info.setText("<b>Travail en cours.</b> L'avancement s'affiche juste sous les boutons. "
                                 + ergonomie.PHRASE_PATIENCE)
         self._update_state()
@@ -3996,7 +4310,7 @@ class MainWindow(QMainWindow):
         self.progress.setValue(int(frac * 1000))
         left = self.eta.update(frac) if getattr(self, "eta", None) else ""
         texte = f"{msg} — encore {left}" if left else f"{msg} {frac * 100:.0f} %"
-        if getattr(self, "_job", "") in ("export", "dossier", "vides_copie"):
+        if getattr(self, "_job", "") in _TRAVAUX_LONGS:
             texte += "\n" + ergonomie.PHRASE_PATIENCE
         self.status.setText(texte)
 
@@ -4018,8 +4332,10 @@ class MainWindow(QMainWindow):
             texte = f"Arrêté. {quoi} Pour recommencer, cliquez sur « Restaurer »."
         elif job == "dossier":
             texte = "Arrêté. Les originaux n'ont pas été modifiés ; les fichiers déjà terminés restent."
-        elif job in ("vides", "vides_copie"):
+        elif job in ("vides", "vides_copie", "separation", "partage"):
             texte = "Arrêté. Votre film n'a pas été modifié."
+        elif job == "nommer":
+            texte = "Arrêté. Le nom n'a pas changé."
         elif job == "installation":
             texte = "Arrêté. Rien n'a été installé."
         else:                                   # aperçu, analyse, vérification
