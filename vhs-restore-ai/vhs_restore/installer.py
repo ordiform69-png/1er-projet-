@@ -18,6 +18,9 @@ from __future__ import annotations
 
 import json
 import hashlib
+import re
+import stat
+from pathlib import PureWindowsPath
 import shutil
 import tempfile
 import threading
@@ -96,6 +99,34 @@ def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event |
     raise ToolError(f"Téléchargement impossible de {label} : {last}. Vérifiez la connexion Internet.")
 
 
+def _membre(dest, nom):
+    relatif = PureWindowsPath(nom)
+    if (not relatif.parts or relatif.anchor or ".." in relatif.parts
+            or any(":" in p or p.rstrip(" .") != p or PureWindowsPath(p).is_reserved()
+                   for p in relatif.parts)):
+        raise ToolError("Archive refusée (chemin suspect).")
+    cible = dest.joinpath(*relatif.parts).resolve()
+    if not cible.is_relative_to(dest.resolve()):
+        raise ToolError("Archive refusée (chemin suspect).")
+
+
+def _verifier_liste_7z(texte, dest):
+    membres = 0
+    for bloc in re.split(r"\n\s*\n", texte.strip()):
+        champs = dict(l.split(" = ", 1) for l in bloc.splitlines() if " = " in l)
+        if "Path" not in champs:
+            raise ToolError("Impossible de vérifier le contenu de l’archive.")
+        _membre(dest, champs["Path"])
+        attributs = champs.get("Attributes", "")
+        if (any(champs.get(k) for k in ("Symbolic Link", "Hard Link", "Reparse Point"))
+                or re.search(r"(?:^|\s)l[rwx-]{9}", attributs)
+                or "L" in attributs.split(" ")[0]):
+            raise ToolError("Archive refusée (lien suspect).")
+        membres += 1
+    if not membres:
+        raise ToolError("L’archive est vide.")
+
+
 def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event | None,
                  progress: Progress | None) -> None:
     """Extrait une archive 7z avec 7zr.exe (installé d'abord s'il manque)."""
@@ -103,6 +134,10 @@ def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event 
     if not outil.is_file():
         install("sevenzip", cancel=cancel, root=base,
                 progress=(lambda f, m: progress(0.9, "Installation de l'extracteur 7-Zip…")) if progress else None)
+    lignes = []
+    run([str(outil), "l", "-slt", "-ba", "-sccUTF-8", str(archive)], cancel=cancel,
+        on_line=lignes.append, what="Vérification de l’archive")
+    _verifier_liste_7z("\n".join(lignes), dest)
     run([str(outil), "x", str(archive), f"-o{dest}", "-y", "-bso0", "-bsp0"], cancel=cancel,
         what="7-Zip (extraction)")
 
@@ -156,7 +191,7 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
         if p.kind == "7z":
             _extraire_7z(dl, staged, base, cancel, progress)
             for f in staged.rglob("*"):                   # aucun fichier ne doit sortir du dossier
-                if not str(f.resolve()).startswith(str(staged.resolve())):
+                if f.is_symlink() or not f.resolve().is_relative_to(staged.resolve()):
                     raise ToolError(f"Archive de {p.name} refusée (chemin suspect).")
             found = next(staged.rglob(p.file_name), None)
             if found is None:
@@ -165,9 +200,9 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
         elif p.kind == "zip":
             with zipfile.ZipFile(dl) as z:
                 for m in z.infolist():                    # pas de chemin qui sorte du dossier
-                    target = (staged / m.filename).resolve()
-                    if not str(target).startswith(str(staged.resolve())):
-                        raise ToolError(f"Archive de {p.name} refusée (chemin suspect).")
+                    _membre(staged, m.filename)
+                    if stat.S_ISLNK(m.external_attr >> 16) or m.external_attr & 0x400:
+                        raise ToolError(f"Archive de {p.name} refusée (lien suspect).")
                 z.extractall(staged)
             found = next(staged.rglob(p.file_name), None)
             if found is None:

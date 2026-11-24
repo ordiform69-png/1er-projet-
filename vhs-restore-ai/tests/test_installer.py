@@ -189,3 +189,10 @@ def test_installation_script_et_interface_partagent_le_manifeste():
     assert "Invoke-WebRequest" not in script
     for p in installer.PAQUETS.values():
         assert len(bytes.fromhex(p.sha256)) == 32
+
+
+def test_validation_des_membres_avant_extraction(tmp_path):
+    with pytest.raises(ToolError, match="suspect"):
+        installer._membre(tmp_path / "installe", "../installe-voisin/hors.txt")
+    with pytest.raises(ToolError, match="lien suspect"):
+        installer._verifier_liste_7z("Path = fichier\nSymbolic Link = voisin", tmp_path)
