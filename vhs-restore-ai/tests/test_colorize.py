@@ -165,3 +165,22 @@ def test_vrai_modele_ajoute_de_la_couleur(tmp_path, tools):
     rgb = raw(out, "rgb24").reshape(480, 640, 3).astype(int)
     sat = (rgb.max(axis=2) - rgb.min(axis=2)).mean()
     assert sat > 8, f"pas de couleur ajoutée (écart moyen {sat:.1f})"
+
+
+def test_reprendre_uniquement_la_couleur(nb_photo, fake_model, tmp_path, monkeypatch):
+    from vhs_restore.tools import Cancelled
+    import shutil
+    shutil.copy(nb_photo["nb"], tmp_path)
+    original = colorize.colorize
+    def interrompre(*args, **kw):
+        raise Cancelled()
+    monkeypatch.setattr(colorize, "colorize", interrompre)
+    def lot():
+        return pipeline.restore_folder(tmp_path, fake_model, lambda _: settings(colorize=True))
+    premier = lot()
+    p, = premier.done
+    avant = p.stat().st_mtime_ns
+    assert "La copie en couleur a été interrompue" in premier.errors[0][1]
+    monkeypatch.setattr(colorize, "colorize", original)
+    assert lot().done == [p]
+    assert photo.colorized_path(p).is_file() and p.stat().st_mtime_ns == avant

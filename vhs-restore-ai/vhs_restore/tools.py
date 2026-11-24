@@ -145,6 +145,23 @@ class FichierOccupe(ToolError):
     """Le résultat est fini, mais un autre programme garde le fichier ouvert : il est laissé en place."""
 
 
+class CopieIncomplete(ToolError):
+    """Le principal est déjà publié. Seule la copie facultative reste à faire."""
+    def __init__(self, principal, message, interrompue):
+        super().__init__(message)
+        self.principal = principal
+        self.interrompue = interrompue
+
+
+@contextmanager
+def copie_annexe(principal, libelle):
+    try:
+        yield
+    except (Cancelled, ToolError, OSError, subprocess.TimeoutExpired) as exc:
+        fin = "a été interrompue." if isinstance(exc, Cancelled) else "a échoué."
+        raise CopieIncomplete(principal, f"{libelle} {fin}", isinstance(exc, Cancelled)) from exc
+
+
 def partiel_unique(final: Path) -> Path:
     verifier_chemin(final)
     verifier_chemin(final.parent / ("vhs-XXXXXXXX.partiel" + final.suffix))

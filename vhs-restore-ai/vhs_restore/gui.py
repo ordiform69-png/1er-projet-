@@ -40,7 +40,7 @@ VIDEO_FILTER = ("Vidéos et photos (*.avi *.mp4 *.mkv *.mov *.mpg *.mpeg *.m2t *
                 "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp);;Tous les fichiers (*)")
 
 
-from .tools import sondages_annulables
+from .tools import CopieIncomplete, sondages_annulables
 
 
 class Worker(QThread):
@@ -48,6 +48,7 @@ class Worker(QThread):
     progressed = Signal(float, str)
     succeeded = Signal(object)
     failed = Signal(str)
+    copie_incomplete = Signal(object)
     cancelled = Signal()
 
     def __init__(self, fn: Callable[[threading.Event, Callable[[float, str], None]], Any]):
@@ -60,6 +61,8 @@ class Worker(QThread):
         try:
             with sondages_annulables(self.cancel_event):
                 res = self.fn(self.cancel_event, lambda f, m: self.progressed.emit(f, m))
+        except CopieIncomplete as exc:
+            self.copie_incomplete.emit(exc)
         except Cancelled:
             self.cancelled.emit()
         except ToolError as exc:
@@ -3297,6 +3300,13 @@ class MainWindow(QMainWindow):
         box.setDetailedText(text)
         box.exec()
 
+    def _annexe_interrompue(self, exc):
+        photo = getattr(self, "is_photo", False)
+        texte = "Votre photo restaurée est prête." if photo else "Votre film restauré est prêt."
+        p = exc.principal
+        self._montrer_fini(f"{texte} {exc}\n\n{p.name}", p.parent, p, "photo" if photo else "film")
+        self.status.setText(texte)
+
     def _export_done(self, out: Path) -> None:
         extra = ""
         kind = self.settings().audio_copy
@@ -3505,6 +3515,10 @@ class MainWindow(QMainWindow):
         self._fils.append(w)
         w.progressed.connect(self._on_progress)
         w.succeeded.connect(on_success)
+        if job == "export":
+            w.copie_incomplete.connect(self._annexe_interrompue)
+        else:
+            w.copie_incomplete.connect(lambda exc: self._on_failed(str(exc)))
         w.failed.connect(self._on_failed)
         w.cancelled.connect(self._on_cancelled)
         w.finished.connect(self._on_finished)

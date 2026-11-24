@@ -49,6 +49,7 @@ from typing import Callable
 
 from .probe import MediaInfo
 from .profiles import Profile
+from .tools import CopieIncomplete, copie_annexe
 from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
@@ -969,7 +970,8 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             run(cmd, cancel=cancel, what="FFmpeg (restauration)", feeder=vs, cwd=work,
                 on_line=_FFProgress(total, progress, lo, 1, "Restauration…"))
         finaliser(part, out_path)
-        _write_audio_copy(out_path, info, s, tools, cancel, progress)
+        with copie_annexe(out_path, "La copie du son"):
+            _write_audio_copy(out_path, info, s, tools, cancel, progress)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -1045,7 +1047,8 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
             progress(0.98, "Assemblage des morceaux…")
         _concat_sans_recompression(tools, fichiers, part, cancel)
         finaliser(part, out_path)           # lecteur vidéo qui garde le fichier : réessai, rien de perdu
-        _write_audio_copy(out_path, info, s, tools, cancel, progress)
+        with copie_annexe(out_path, "La copie du son"):
+            _write_audio_copy(out_path, info, s, tools, cancel, progress)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -1389,12 +1392,24 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             if principal and all(p.is_file() for p in sorties(principal)):
                 res.skipped.append(f.name)
                 continue
-            if image:
-                cible = photo.output_path(info, s, out_dir)
-                principal = photo.restore_photo(info, s, cible, tools, cancel=cancel, progress=sub)
-            else:
-                cible = unique_output_path(info, s, out_dir)
-                principal = export(info, s, cible, tools, cancel=cancel, progress=sub)
+            arrete = False
+            try:
+                if principal and principal.is_file():
+                    if image:
+                        photo.copie_couleur(principal, tools, cancel)
+                    else:
+                        with copie_annexe(principal, "La copie du son"):
+                            _write_audio_copy(principal, info, s, tools, cancel, sub)
+                elif image:
+                    cible = photo.output_path(info, s, out_dir)
+                    principal = photo.restore_photo(info, s, cible, tools, cancel=cancel, progress=sub)
+                else:
+                    cible = unique_output_path(info, s, out_dir)
+                    principal = export(info, s, cible, tools, cancel=cancel, progress=sub)
+            except CopieIncomplete as exc:
+                principal = exc.principal
+                res.errors.append((f.name, str(exc)))
+                arrete = exc.interrompue
             registre.mkdir(exist_ok=True)
             temporaire = partiel_unique(recu)
             try:
@@ -1403,6 +1418,8 @@ def restore_folder(folder: Path, tools: Toolset, settings_for: Callable[[MediaIn
             finally:
                 effacer(temporaire)
             res.done.append(principal)
+            if arrete:
+                break
         except Cancelled:
             raise
         except subprocess.TimeoutExpired:

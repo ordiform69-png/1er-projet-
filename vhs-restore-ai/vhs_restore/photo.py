@@ -26,6 +26,7 @@ from typing import Callable
 
 from . import colorize, pipeline
 from .probe import MediaInfo, parse_signals, rgb_mean
+from .tools import copie_annexe
 from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, FichierOccupe, ToolError, Toolset, effacer, ff_input, finaliser, run,
                     run_capture, verifier_chemin)
@@ -170,8 +171,7 @@ def _restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools:
         if color_out is not None:
             if progress:
                 progress(0.6, "Colorisation par l'IA (couleurs inventées)…")
-            colorize.colorize(out_path, color_out, tools.ffmpeg.path, tools.ffprobe.path,
-                              Path(tools.colorizer.path), cancel=cancel)
+            copie_couleur(out_path, tools, cancel)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):
             effacer(part)
@@ -181,6 +181,12 @@ def _restore_photo(info: MediaInfo, s: pipeline.Settings, out_path: Path, tools:
     if progress:
         progress(1.0, "Terminé")
     return out_path
+
+
+def copie_couleur(principal, tools, cancel):
+    with copie_annexe(principal, "La copie en couleur"):
+        colorize.colorize(principal, colorized_path(principal), tools.ffmpeg.path, tools.ffprobe.path,
+                          Path(tools.colorizer.path), cancel=cancel)
 
 
 def make_photo_preview(info: MediaInfo, s: pipeline.Settings, tools: Toolset, workdir: Path, *,
