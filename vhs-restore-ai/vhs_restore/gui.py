@@ -1542,9 +1542,7 @@ class MainWindow(QMainWindow):
         self.s_couper.setObjectName("action")
         self.s_couper.clicked.connect(self._couper_ici)
         dans.addWidget(self.s_couper)
-        legende = QLabel("Les petites images montrent le film. Doré : ce qui est enlevé. "
-                         "Glissez pour vous placer, « Couper ici », puis une seconde fois "
-                         "quand le film reprend. Les carrés blancs se tirent.")
+        legende = QLabel("Doré : ce qui est enlevé. Les carrés blancs se tirent.")
         legende.setWordWrap(True)
         legende.setMinimumWidth(0)
         legende.setObjectName("note")
@@ -2385,7 +2383,8 @@ class MainWindow(QMainWindow):
                           "Pour enlever la neige du début ou la fin de bande : « Le film commence à » "
                           "et « Le film s'arrête à », sous les trois boutons. "
                           "Pour un moment au milieu, regardez les petites images sur la barre, "
-                          "puis cliquez deux fois sur « Couper ici ». "
+                          "puis « Couper ici » au début du moment à enlever et « Le film reprend ici » "
+                          "à la reprise. "
                           "L'image au-dessus de la barre montre où vous êtes. "
                           "Seule la copie est découpée.\n\n"
                           "Pour enlever plusieurs moments au milieu :\n\n"
