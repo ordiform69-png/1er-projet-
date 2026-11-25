@@ -467,6 +467,13 @@ class _ZonePages(QScrollArea):
         wd = self.widget()
         return QSize(wd.minimumSizeHint().width() if wd is not None else 0, 0)
 
+    def resizeEvent(self, e) -> None:  # noqa: N802
+        """Coupe le débordement horizontal (barre verticale qui rétrécit la vue, à 150 %)."""
+        super().resizeEvent(e)
+        wd = self.widget()
+        if wd is not None:
+            wd.setMaximumWidth(max(0, self.viewport().width()))
+
 
 class Assistant(QWidget):
     def __init__(self, w) -> None:
