@@ -110,3 +110,77 @@ Cause : voir la section des repères. Branche principalement responsable : **`gr
 La fenêtre de l'assistant **grandit en hauteur** dès que `grok/design-rendu` est fusionné, à 125 % et 150 % dès l'étape 1, et à 100 % dès « Lumière et couleurs ». Les boutons restent visibles, il n'y a pas de défilement horizontal, mais l'exigence « fenêtre 1280 × 641, elle ne grandit pas » n'est pas tenue. `REPERES_VERTICAUX = False` n'arrange rien. Pas de correctif d'intégration appliqué : il faudrait retravailler la liste verticale de l'étape 1 (et le calcul de hauteur du `QStackedWidget`) côté agents.
 
 Le reste de l'intégration (fusions, textes, moteur intact, autres fichiers de tests cités, mot « ← Revenir ») est en place sur `grok/design-maquettes`.
+
+## Corrections
+
+Refusion des corrections des quatre agents, à partir de la tête `5a3a703` (inchangée par rapport à l'attendu). Les têtes annoncées sur origin correspondaient toutes : `grok/design-navigation` `7674ff3` (contient `b506389`), `grok/design-rendu` `dc879c8`, `grok/design-lumiere` `91de274`, `grok/design-lancer` `47cb4df` (contient déjà la fusion de la base `660964d`, jamais « 0 Go »). Merges `--no-ff`, poussés au fur et à mesure. Rien dans `ccr-5856e8d6-8xt8uh`, pas de force-push, pas de PR. Les PR #12, #13 et #14 n'ont pas été touchées (déjà fermées).
+
+| Élément | Commit (SHA court) | SHA complet |
+|---|---|---|
+| Point de départ | `5a3a703` | `5a3a703d5b4ee75520a8bf2a73f6039ee999450d` |
+| Base « 0 Go » | `660964d` | `660964d078467d75c9cd72a568154d0855dbe321` |
+| Tête navigation | `7674ff3` | `7674ff375a4869478695550e2d91801562dcc505` |
+| Fusion navigation | `a4c7d83` | `a4c7d8368c1f5d8d9668f3fecf583573fbd69545` |
+| Tête rendu | `dc879c8` | `dc879c8660728a2ee16d46babfb62c60dab24abe` |
+| Fusion rendu | `9fb9ad1` | `9fb9ad1d37ce63a6e1c4e9cd7a1416c94ee177d9` |
+| Tête lumière | `91de274` | `91de274d78d1cea21f66c6bf4eb369e8d77d2c58` |
+| Fusion lumière | `6d0fa8d` | `6d0fa8da380188def66c5d3d0ad045b915867569` |
+| Tête lancer | `47cb4df` | `47cb4df6c9f5ed5afe030dff83ee4a1fe01a4106` |
+| Fusion lancer | `532f61b` | `532f61b6eb8f485df56ee9a62f06cac825ad7c86` |
+| Correctif d'intégration (largeur de `_ZonePages`) | `b4b47da` | `b4b47da2cac7cd0bab0c59757859d7be87e9a950` |
+
+Le SHA final, après ce complément de rapport, est celui du commit qui l'ajoute.
+
+### Conflits
+
+- Navigation (`a4c7d83`) : `assistant.py`, les classes `_Resume` (déjà là) et `_ZonePages` (nouvelle) au même endroit. Les deux sont conservées.
+- Rendu (`9fb9ad1`) et lumière (`6d0fa8d`) : aucun conflit.
+- Lancer (`532f61b`) : deux conflits dans `assistant.py`.
+  - `style_assistant` : styles de navigation conservés (vert d'action, « Rien à changer » en 12 pt gras, titre 16 pt), consigne d'étape 5 passée en `font-weight: normal` comme demandé.
+  - Texte de la consigne après l'avant / après : la phrase courte de l'agent 3, « Si le résultat vous plaît : « Lancer la restauration », en bas à droite. »
+
+### Moteur
+
+`pipeline.py` inchangé. `estimation.py` : le seul écart par rapport à `5a3a703` est la correction « jamais 0 Go » de la base `660964d`. `git diff 660964d HEAD -- vhs-restore-ai/vhs_restore/estimation.py` et le même diff pour `pipeline.py` sont vides. Le calcul de durée n'a pas été modifié par un agent design. Aucun test affaibli ni supprimé. Pas de capture ni de zip dans le dépôt.
+
+### Correctif d'intégration (signalé)
+
+Après les quatre fusions, la fenêtre restait 1280 × 641 à 100, 125 et 150 %. `test_parcours_complet_d_un_film` était vert. Il restait un échec : `test_chaque_etape_tient_a_1280_641`, `horizontalScrollBar().maximum() == 10` (puis 27 px aux étapes suivantes) **uniquement à 150 %**, sur `_ZonePages` (`pagesAssistant`). Le défilement horizontal est déjà `ScrollBarAlwaysOff` (l'utilisateur ne le voit pas) : à 150 %, la barre verticale réduit la vue, et le contenu (593 à 610 px de large pour 593 px de zone) faisait remonter un maximum horizontal. Branche responsable : `grok/design-navigation` (le filet `_ZonePages`). Correctif trivial dans `resizeEvent` : largeur interne limitée à la vue (`b4b47da`). Aucun test modifié.
+
+### Vérifié (après correctif)
+
+Commande, Linux, hors écran, un fichier à la fois, `timeout 900` :
+
+```
+cd vhs-restore-ai
+QT_QPA_PLATFORM=offscreen timeout 900 python -m pytest -q --tb=line tests/<fichier>.py
+```
+
+Python 3.13.5, PySide6 6.12.0, pytest 9.2.0, FFmpeg 7.1.5.
+
+| Fichier | Résultat pytest | Code de sortie | Durée |
+|---|---|---|---|
+| `tests/test_assistant.py` | **9 passed** | 0 | 50,27 s |
+| `tests/test_lumiere.py` | 10 passed | 0 | 13,12 s |
+| `tests/test_ecran_unique.py` | 9 passed | 0 | 15,86 s |
+| `tests/test_estimation.py` | 5 passed | 0 | 42,70 s |
+| `tests/test_theme.py` | 11 passed | 0 | 4,71 s |
+| `tests/test_gui.py` | 8 passed | 0 | 39,38 s |
+
+**Total : 52 passed, 0 failed, 0 skipped.** `test_assistant.py` est entièrement vert, y compris `test_parcours_complet_d_un_film` et `test_chaque_etape_tient_a_1280_641` (100, 125 et 150 %, film et photo).
+
+### Hauteurs mesurées (fenêtre forcée / restée à 1280 × 641)
+
+| Texte | Étape 1 | Étapes 2, 3 et 4 | Étape 5 |
+|---|---|---|---|
+| 100 % | tient, pas de défilement | tient, pas de défilement | tient, pas de défilement |
+| 125 % | tient, pas de défilement | tient ; filet vertical d'environ 30 px | tient, pas de défilement |
+| 150 % | tient ; filet vertical d'environ 28 px (et 10 px horizontaux avant le correctif) | tient ; filet vertical d'environ 64 px | tient ; filet vertical d'environ 33 px |
+
+« Suivant » et « Lancer la restauration » restent dans la fenêtre à chaque étape. `REPERES_VERTICAUX` reste `True`.
+
+### Non testé / points ouverts
+
+- Suite complète (toujours demandée : ne pas la lancer).
+- Exe Windows, vrai écran, Python 3.12.
+- Objectif « aucun défilement à 100 et 125 % » : tenu à 100 %. À 125 %, un filet vertical d'environ 30 px apparaît encore aux étapes Lumière, Coupes et Son (la fenêtre ne grandit pas ; les tests ne vérifient pas ce défilement vertical). Pas d'autre correctif appliqué.
