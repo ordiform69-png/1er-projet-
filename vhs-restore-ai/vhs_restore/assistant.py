@@ -23,8 +23,9 @@ from pathlib import Path
 
 from PySide6.QtCore import QPoint, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-                               QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from . import estimation, lumiere, photo, pipeline, theme, vides
 from .profiles import PROFILES, profile_for
@@ -45,8 +46,9 @@ TAILLE_RENDU = QSize(112, 84)
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
 # Repères à gauche de la colonne. False : la même liste, sur une ligne de 30 px au-dessus du titre.
+# Largeur 140 px (le plafond demandé est 150) : à 150, la fenêtre dépasse 1280 quand les images sont prêtes.
 REPERES_VERTICAUX = True
-LARGEUR_REPERES = 150
+LARGEUR_REPERES = 140
 HAUTEUR_REPERES = 30
 ECOUTE = 10.0                       # secondes écoutées au début et à la fin
 PAS_SON = 40                        # ms : une image PAL
@@ -435,6 +437,33 @@ class _Resume(QLabel):
         return self._lecture
 
 
+class _ZonePages(QScrollArea):
+    """Les étapes défilent ici si elles dépassent : la fenêtre, elle, ne grandit pas."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("pagesAssistant")
+        self.setFrameShape(QFrame.NoFrame)
+        self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumHeight(0)
+
+    def _largeur(self) -> int:
+        """Largeur demandée par les étapes. La hauteur, non : la fenêtre ne s'allonge pas."""
+        wd = self.widget()
+        if wd is None:
+            return 0
+        return max(wd.minimumSizeHint().width(), wd.sizeHint().width())
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(self._largeur(), 0)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        wd = self.widget()
+        return QSize(wd.minimumSizeHint().width() if wd is not None else 0, 0)
+
+
 class Assistant(QWidget):
     def __init__(self, w) -> None:
         super().__init__()
@@ -469,7 +498,7 @@ class Assistant(QWidget):
             cadre = QVBoxLayout(self)
         self._reperes_lay.setContentsMargins(0, 0, 0, 0)
         self._reperes_lay.setSpacing(2 if not self._reperes_verticaux else 4)
-        cadre.setContentsMargins(6, 2, 6, 2)
+        cadre.setContentsMargins(2, 2, 2, 2)
         cadre.setSpacing(6)
         if self._reperes_verticaux:
             cadre.addWidget(self.reperes)
@@ -490,10 +519,13 @@ class Assistant(QWidget):
         haut.addWidget(self.titre, 1)
         lay.addLayout(haut)
         self.rien_a_changer = _texte("Rien à changer ? Cliquez sur Suivant.", "rienAChanger")
+        self.rien_a_changer.setWordWrap(False)
         self.rien_a_changer.setVisible(False)
         lay.addWidget(self.rien_a_changer)
         self.pages = QStackedWidget()
-        lay.addWidget(self.pages, 1)
+        self.pages_zone = _ZonePages()
+        self.pages_zone.setWidget(self.pages)
+        lay.addWidget(self.pages_zone, 1)
         nav = QHBoxLayout()
         self.retour = _bouton("← Revenir")
         self.suivant = _bouton("Suivant →", "action", 64)
@@ -649,7 +681,7 @@ class Assistant(QWidget):
             self.setStyleSheet(
                 f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
                 f"QLabel#titreAssistant {{font-weight:700; font-size:{16 * e:.0f}pt;}}"
-                f"QLabel#rienAChanger {{font-weight:700; font-size:{14 * e:.0f}pt; color:{theme.TEXTE};}}"
+                f"QLabel#rienAChanger {{font-weight:700; font-size:{12 * e:.0f}pt; color:{theme.TEXTE};}}"
                 f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
                 f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
                 f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
@@ -798,6 +830,7 @@ class Assistant(QWidget):
         self.compteur.setText(f"Étape {i + 1} sur {len(liste)}")
         self.titre.setText(titre)
         self.rien_a_changer.setVisible(page in (self._page_lumiere, self._page_coupe, self._page_son))
+        self.pages_zone.verticalScrollBar().setValue(0)
         self._montrer_reperes(i)
         self.retour.setVisible(i > 0)
         self.suivant.setVisible(i < len(liste) - 1)
