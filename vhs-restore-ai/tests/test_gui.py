@@ -173,7 +173,8 @@ def test_photo_mode(app, tools, tmp_path, monkeypatch):
     assert win.is_photo and "Photo noir et blanc" in win.s_info.text()
     win.s_preview.click()
     wait(app, win)
-    assert win.s_compare.before is not None and win.status.text().startswith("Aperçu prêt")
+    assert win.s_compare.before is not None
+    assert win.status.text() == "Comparez avec les boutons «\u00a0Avant\u00a0» et «\u00a0Après\u00a0»."
     win.s_run.click()
     wait(app, win)
     assert list(tmp_path.glob("carte postale_restaure_*.png"))

@@ -166,7 +166,7 @@ class CompareView(QWidget):
         self.after: QPixmap | None = None
         self.split = 0.5
         self.mode = "split"              # split (glisser) | before (original seul) | after (restauré seul)
-        self.after_label = "RESTAURÉ"
+        self.after_label = "APRÈS"
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
@@ -209,7 +209,9 @@ class CompareView(QWidget):
         self.update()
 
     def set_after_label(self, text: str) -> None:
-        """Étiquette de droite : « RESTAURÉ », ou « COULEURS IA » pour une photo colorisée."""
+        """Étiquette de droite : « APRÈS », ou « COULEURS IA » pour une photo colorisée."""
+        if text == "RESTAURÉ":
+            text = "APRÈS"
         self.after_label = text
         self.update()
 
@@ -258,7 +260,7 @@ class CompareView(QWidget):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         if self.mode in ("before", "after"):          # une seule image, plein cadre
             p.drawPixmap(r, self.before if self.mode == "before" else self.after)
-            self._badges(p, r, ("ORIGINAL",) if self.mode == "before" else (self.after_label,))
+            self._badges(p, r, ("AVANT",) if self.mode == "before" else (self.after_label,))
             return
         p.drawPixmap(r, self.after)
         cut = int(r.width() * self.split)
@@ -271,20 +273,21 @@ class CompareView(QWidget):
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(theme.MONITEUR_ACCENT))
         p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
-        self._badges(p, r, ("ORIGINAL", self.after_label))
+        self._badges(p, r, ("AVANT", self.after_label))
 
     def _badges(self, p: QPainter, r: QRect, texts: tuple) -> None:
-        """Pastilles « ORIGINAL » (à gauche) et « RESTAURÉ » (à droite) sur l'image."""
+        """Pastilles « AVANT » (à gauche) et « APRÈS » (à droite) sur l'image.
+        « COULEURS IA » reste tel quel quand la photo est colorisée."""
         f = p.font()
         f.setPointSizeF(max(f.pointSizeF(), 13))
         f.setBold(True)
         p.setFont(f)
         fm = p.fontMetrics()
         h = fm.height() + 10
-        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", self.after_label)) + 36
-        etroit = r.width() < largeur    # photo en hauteur : « Restauré » passe en bas
+        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("AVANT", self.after_label)) + 36
+        etroit = r.width() < largeur    # photo en hauteur : « Après » passe en bas
         for text in texts:
-            left = text == "ORIGINAL"
+            left = text == "AVANT"
             w = fm.horizontalAdvance(text) + 22
             y = r.bottom() - h - 12 if (etroit and not left) else r.y() + 12
             box = QRect(r.x() + 12 if left else r.right() - w - 12, y, w, h)
@@ -419,7 +422,11 @@ class Carte(QFrame):
 
 
 class ProfileTile(QPushButton):
-    """Tuile de profil (Fidèle / Équilibré / Maximum) : icône, nom, petite phrase."""
+    """Tuile de profil (réglages libres) : icône, nom, petite phrase.
+
+    Le nom peut tenir sur deux lignes. La largeur minimale reste fixe pour que
+    les trois tuiles de « Qualité » ne forcent pas un défilement horizontal.
+    """
 
     def __init__(self, name: str, icon: str, tagline: str) -> None:
         super().__init__(name)
@@ -429,6 +436,12 @@ class ProfileTile(QPushButton):
         self.setMinimumHeight(104)
         self.setMinimumWidth(150)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(160, max(104, self.minimumHeight()))
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(150, self.minimumHeight() or 80)
 
     def paintEvent(self, _e) -> None:  # noqa: N802
         p = QPainter(self)
@@ -448,16 +461,17 @@ class ProfileTile(QPushButton):
         col = theme.ACCENT if (on or self.underMouse()) and en else theme.ACCENT_SOURD
         p.drawPixmap(16, 16, icons.pixmap(self.icon_name, 32, col))
         f = QFont(theme.DISPLAY_FAMILY or p.font().family())
-        f.setPointSizeF(17)
+        f.setPointSizeF(14)
         f.setBold(True)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE))
-        p.drawText(QRect(56, 12, r.width() - 68, 38), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        p.drawText(QRect(56, 8, r.width() - 68, 46), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, self.text())
         f = QFont(theme.BODY_FAMILY or p.font().family())
-        f.setPointSizeF(13)
+        f.setPointSizeF(12)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX))
-        p.drawText(QRect(16, 54, r.width() - 24, r.height() - 62), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
+        p.drawText(QRect(16, 54, r.width() - 24, max(16, r.height() - 60)),
+                   Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, self.tagline)
         if on:                                    # voyant allumé
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(theme.ACCENT))
@@ -471,10 +485,10 @@ TOOL_INFO = {
                        "celui du logiciel (bwdif), mais plusieurs fois plus lent. Il demande Python et "
                        "VapourSynth, il ne s'installe donc pas depuis cette fenêtre. Le désentrelaceur "
                        "intégré suffit pour des films de famille."),
-    "realesrgan": ("Real-ESRGAN", "Agrandissement par intelligence artificielle (profil Maximum, photos). "
+    "realesrgan": ("Real-ESRGAN", "Agrandissement par intelligence artificielle (profil Nettoyage au plus fort, photos). "
                                   "Demande une carte graphique compatible Vulkan. L'IA peut inventer des "
                                   "détails, surtout sur les petits visages : vérifiez toujours l'aperçu."),
-    "deepfilter": ("DeepFilterNet", "Nettoyage poussé des voix pour le profil Maximum, sur le processeur. "
+    "deepfilter": ("DeepFilterNet", "Nettoyage poussé des voix pour le profil Nettoyage au plus fort, sur le processeur. "
                                     "Les rires, la musique et les bruits d'ambiance restent."),
     "colorisation": ("Colorisation", "Colorisation des photos noir et blanc par l'IA (DDColor). Les couleurs "
                                      "sont inventées ; une copie à part est écrite, le noir et blanc est gardé."),
@@ -486,9 +500,9 @@ TOOL_INFO = {
                            "glisser dans la ligne de temps pour commencer."),
 }
 
-PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
-                "equilibre": ("balance", "Conseillé"),
-                "maximum": ("fusee", "Nettoyage fort")}
+PROFILE_LOOK = {"fidele": ("bouclier", "Garde l'aspect d'époque"),
+                "equilibre": ("balance", "Bon équilibre"),
+                "maximum": ("fusee", "Plus long")}
 
 
 def _demarrer(programme: str, args: list[str], dossier: str) -> bool:
@@ -1307,8 +1321,8 @@ class MainWindow(QMainWindow):
         hs.addStretch(1)
         self.segment_group = QButtonGroup(self)
         self.segments: dict[str, QPushButton] = {}
-        for mode, txt, ic in (("before", "Original", "film"), ("split", "Comparer les deux", "comparer"),
-                              ("after", "Restauré", "etincelle")):
+        for mode, txt, ic in (("before", "Avant", "film"), ("split", "Les deux", "comparer"),
+                              ("after", "Après", "etincelle")):
             b = _with_icon(QPushButton(txt), ic)
             b.setObjectName("segment")
             b.setCheckable(True)
@@ -1319,9 +1333,9 @@ class MainWindow(QMainWindow):
             self.segments[mode] = b
             hs.addWidget(b)
         hs.addStretch(1)
-        self.segments["before"].setAccessibleName("Voir seulement l'original")
-        self.segments["split"].setAccessibleName("Comparer l'original et le restauré")
-        self.segments["after"].setAccessibleName("Voir seulement le restauré")
+        self.segments["before"].setAccessibleName("Voir seulement l'avant")
+        self.segments["split"].setAccessibleName("Comparer l'avant et l'après")
+        self.segments["after"].setAccessibleName("Voir seulement l'après")
         self.segments["split"].setChecked(True)
         self.s_segments.setVisible(False)
         self.s_folder = QPushButton("Restaurer tout un dossier")
@@ -1332,14 +1346,14 @@ class MainWindow(QMainWindow):
         self.s_folder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.s_folder.setAccessibleName("Restaurer tous les films et toutes les photos d'un dossier")
         self.s_folder.setAccessibleDescription("Les fichiers d'origine ne sont pas modifiés.")
-        self.s_hear_orig = QPushButton("Écouter l'original")
-        self.s_hear_new = QPushButton("Écouter le son restauré")
+        self.s_hear_orig = QPushButton("Écouter l'avant")
+        self.s_hear_new = QPushButton("Écouter l'après")
         for b in (self.s_hear_orig, self.s_hear_new):
             b.setObjectName("secondaire")
             b.setMinimumHeight(44)
             _with_icon(b, "casque")
-        self.s_hear_orig.setAccessibleName("Écouter le son d'origine")
-        self.s_hear_new.setAccessibleName("Écouter le son restauré")
+        self.s_hear_orig.setAccessibleName("Écouter le son d'avant")
+        self.s_hear_new.setAccessibleName("Écouter le son d'après")
         _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
@@ -1531,17 +1545,20 @@ class MainWindow(QMainWindow):
         self.audio_check = _with_icon(QCheckBox("Restaurer le son (souffle, clics, volume)"), "haut_parleur")
         self.audio_check.setChecked(True)
         self.audio_check.setToolTip(
-            "Suit le profil image. Fidèle : souffle très léger. Équilibré : clics, souffle, volume. "
-            "Maximum : DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
+            "Suit le profil image. Nettoyage léger : souffle très léger. "
+            "Bien nettoyé, naturel : clics, souffle, volume. "
+            "Nettoyage au plus fort : DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
             "(installer.bat -AvecSon), sinon le même souffle FFmpeg plus fort. "
             "Le plafond de DeepFilterNet est de 12 dB. Les rires, la musique et la rue restent. "
             "Une piste muette le reste.")
         self.rnnoise_check = _with_icon(QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)"), "micro")
         self.rnnoise_check.setToolTip(
             "Option, désactivée par défaut : les profils ne changent pas. "
-            "Remplace le souffle FFmpeg d'Équilibré (35 %) et de Maximum (55 %) par RNNoise "
+            "Remplace le souffle FFmpeg de « Bien nettoyé, naturel » (35 %) et de "
+            "« Nettoyage au plus fort » (55 %) par RNNoise "
             "(modèle Xiph inclus, licence BSD). Le reste du signal, donc la pièce, est conservé. "
-            "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
+            "Inutile si DeepFilterNet a déjà traité « Nettoyage au plus fort ». "
+            "« Nettoyage léger » n'est pas concerné.")
         self.wind_check = _with_icon(QCheckBox("Réduire le vent et les grondements"), "vent")
         self.wind_check.toggled.connect(lambda _c: self._marquer_auto())
         self.wind_check.setToolTip(
@@ -1830,7 +1847,8 @@ class MainWindow(QMainWindow):
             self.s_info.setText(prefixe + "Cliquez sur « Choisir un film ou une photo ».")
             return
         if self.preview is not None:
-            suite = " Aperçu prêt : comparez avec les boutons sous l'image, puis « Lancer la restauration » si cela vous plaît."
+            suite = (" Aperçu prêt : comparez avec les boutons « Avant » et « Après », "
+                     "puis « Lancer la restauration » si cela vous plaît.")
         else:
             suite = " Cliquez sur « Voir l'avant / après »."
         self._set_simple_info(prefixe + self._info_debut + suite)
@@ -2573,7 +2591,7 @@ class MainWindow(QMainWindow):
     def _choisir_comparaison(self, mode: str) -> None:
         self.s_compare.montrer_position = False
         self.s_compare.set_mode(mode)
-        noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}   # à la souris
+        noms = {"before": "Avant", "split": "Les deux", "after": "Après"}   # à la souris
         self.status.setText(f"Affichage : {noms.get(mode, mode)}.")
 
     def _dossier_depart(self, images: bool = False) -> str:
@@ -2894,7 +2912,7 @@ class MainWindow(QMainWindow):
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
         self.preview = res
         self.compare.set_after_label("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
-                                     else "RESTAURÉ")
+                                     else "APRÈS")
         self.still_combo.blockSignals(True)
         self.still_combo.clear()
         for i, _ in enumerate(res.stills):
@@ -2906,19 +2924,12 @@ class MainWindow(QMainWindow):
         self.segments["split"].setChecked(True)
         self.compare.montrer_position = False
         self.compare.set_mode("split")
-        quand = "" if getattr(self, "is_photo", False) else \
-            f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
         self._info_suite()
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        texte = f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré »."
-        if not getattr(self, "is_photo", False):
-            from . import estimation
-            annonce = estimation.annonce(self)
-            if annonce:
-                texte += " " + annonce
-        self.status.setText(texte)
+        # La durée est dans le résumé de « Vérifier et lancer », pas répétée ici.
+        self.status.setText("Comparez avec les boutons « Avant » et « Après ».")
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True
@@ -3814,7 +3825,8 @@ class MainWindow(QMainWindow):
         self._ecoute_demandee = False
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
-        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée", "Photo analysée")):
+        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Comparez avec les boutons",
+                                              "Vidéo analysée", "Photo analysée")):
             self.progress.setValue(0)
         else:
             self.progress.setValue(1000)

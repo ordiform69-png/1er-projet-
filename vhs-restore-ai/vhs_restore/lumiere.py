@@ -18,10 +18,11 @@ import threading
 from fractions import Fraction
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QPointF, QTimer, Qt
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
-from . import photo, pipeline
+from . import photo, pipeline, theme
 from .tools import ff_input, run
 
 # (clé du réglage, nom à l'écran, bouton « moins », bouton « plus »)
@@ -287,19 +288,127 @@ class Lumiere:
         shutil.rmtree(self.dossier, ignore_errors=True)
 
 
+def texte_cran(n: int) -> str:
+    """« Normal » au milieu, « +2 » ou « −1 » ailleurs : le nombre, pas un mot."""
+    n = pipeline.cran(n)
+    return "Normal" if n == 0 else f"{n:+d}".replace("-", "−")
+
+
+class Jauge(QWidget):
+    """Sept crans dessinés, de −3 à +3. Le milieu est neutre (0).
+
+    Le nombre (« Normal », « +2 », « −1 ») est écrit à droite, pas dans la jauge.
+    L'entier est celui envoyé au moteur (``pipeline.cran``, borné à −3…+3).
+    Un clic choisit le cran ; les flèches gauche et droite avancent d'un cran.
+    Pas de glisser : trop précis. Hauteur plafonnée à 32 px : la ligne reste
+    celle des boutons.
+    """
+
+    LARGEUR = 140
+    HAUTEUR = 32
+
+    def __init__(self, nom: str, choisir) -> None:
+        super().__init__()
+        self._nom = nom
+        self._choisir = choisir
+        self._valeur = 0
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedSize(self.LARGEUR, self.HAUTEUR)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setAccessibleDescription("Sept crans. Le milieu est neutre. "
+                                      "Flèche gauche ou droite : un cran.")
+        self.setToolTip("Cliquez un cran. Le milieu est neutre.")
+        self._nom_accessible()
+
+    def regler(self, n: int) -> None:
+        self._valeur = pipeline.cran(n)
+        self._nom_accessible()
+        self.update()
+
+    def _nom_accessible(self) -> None:
+        self.setAccessibleName(f"{self._nom} : {texte_cran(self._valeur)}")
+
+    def _rayon(self) -> float:
+        return 6.5
+
+    def _centres(self) -> list[float]:
+        """Abscisses des 7 crans, les mêmes pour le dessin et le clic."""
+        n = 2 * pipeline.CRANS
+        marge = self._rayon() + 3
+        gauche, droite = marge, max(marge + 1, self.width() - marge)
+        return [gauche + i * (droite - gauche) / n for i in range(n + 1)]
+
+    def cran_sous(self, x: float) -> int:
+        """Cran le plus proche de x (−3…+3)."""
+        xs = self._centres()
+        i = min(range(len(xs)), key=lambda k: abs(xs[k] - float(x)))
+        return i - pipeline.CRANS
+
+    def _poser(self, n: int) -> None:
+        if not self.isEnabled():
+            return
+        n = pipeline.cran(n)
+        if n != self._valeur:
+            self._choisir(n)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Left:
+            self._poser(self._valeur - 1)
+        elif event.key() == Qt.Key_Right:
+            self._poser(self._valeur + 1)
+        else:
+            super().keyPressEvent(event)
+
+    def mousePressEvent(self, event) -> None:
+        # le cran est choisi au clic : bouger la souris ensuite ne change rien
+        if event.button() == Qt.LeftButton and self.isEnabled():
+            self.setFocus()
+            self._poser(self.cran_sous(event.position().x()))
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        event.ignore()                 # pas de glisser
+
+    def paintEvent(self, _event) -> None:
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        actif = self.isEnabled()
+        accent = QColor(theme.ACCENT if actif else theme.ACCENT_SOURD)
+        bord = QColor(theme.BORD if actif else theme.BORD_DESACTIVE)
+        fond = QColor(theme.CARTE if actif else theme.FOND_DESACTIVE)
+        rayon = min(self._rayon(), max(3.0, self.height() / 2 - 3))
+        cy = self.height() / 2
+        xs = self._centres()
+        p.setPen(QPen(bord, 2))
+        p.drawLine(QPointF(xs[0], cy), QPointF(xs[-1], cy))
+        for i, x in enumerate(xs):
+            n = i - pipeline.CRANS
+            plein = n == self._valeur
+            r = rayon if plein else max(3.0, rayon - 2.5)
+            p.setPen(QPen(accent if plein or n == 0 else bord, 2))
+            p.setBrush(accent if plein else fond)
+            p.drawEllipse(QPointF(x, cy), r, r)
+        if self.hasFocus() and actif:
+            p.setPen(QPen(accent, 1.5))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(1, 1, self.width() - 3, self.height() - 3, 6, 6)
+        p.end()
+
+
 class Panneau(QWidget):
-    """Quatre lignes « Plus sombre · Normal · Plus clair », etc. Deux exemplaires : l'étape de
-    l'assistant et la section de l'écran complet ; les valeurs sont partagées."""
+    """Quatre lignes « Plus sombre · jauge · Normal · Plus clair ». Deux exemplaires : l'étape
+    de l'assistant et la section de l'écran complet ; les valeurs sont partagées."""
 
     def __init__(self, lum: Lumiere, guide: bool) -> None:
         super().__init__()
         self.lum = lum
         v = QVBoxLayout(self)
         v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(6)
+        v.setSpacing(6 if guide else 4)
         if guide:
-            intro = QLabel("Regardez la grande image : à gauche aujourd'hui, à droite le résultat. "
-                           "Changez si besoin. Si l'image vous plaît, passez à la suite.")
+            intro = QLabel("La grande image change à chaque clic : à gauche avant, à droite après.")
             intro.setWordWrap(True)
             intro.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             v.addWidget(intro)
@@ -307,26 +416,30 @@ class Panneau(QWidget):
         grille.setHorizontalSpacing(8)
         grille.setVerticalSpacing(4 if guide else 2)
         self.lignes: dict[str, tuple[QPushButton, QLabel, QPushButton]] = {}
+        self._jauges: dict[str, Jauge] = {}
         for i, (cle, nom, moins, plus) in enumerate(REGLAGES):
             titre = QLabel(nom)
             titre.setObjectName("nomReglage")
             bm, bp = QPushButton(moins), QPushButton(plus)
-            valeur = QLabel()
-            valeur.setAlignment(Qt.AlignCenter)
-            valeur.setMinimumWidth(80)
+            jauge = Jauge(nom, lambda n, k=cle: self._poser(k, n))
+            valeur = QLabel(texte_cran(0))
             valeur.setObjectName("valeurReglage")
+            valeur.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            valeur.setMinimumWidth(78)
             for b, pas, texte in ((bm, -1, moins), (bp, 1, plus)):
                 b.setAccessibleName(f"{nom} : {texte.lower()}")
                 b.setCursor(Qt.PointingHandCursor)
                 b.setMinimumHeight(44 if guide else 36)
                 b.clicked.connect(lambda _c=False, k=cle, n=pas: lum.changer(k, n))
-            grille.addWidget(titre, i, 0)
+            grille.addWidget(titre, i, 0, Qt.AlignVCenter)
             grille.addWidget(bm, i, 1)
-            grille.addWidget(valeur, i, 2)
-            grille.addWidget(bp, i, 3)
+            grille.addWidget(jauge, i, 2, Qt.AlignVCenter)
+            grille.addWidget(valeur, i, 3, Qt.AlignVCenter)
+            grille.addWidget(bp, i, 4)
             self.lignes[cle] = (bm, valeur, bp)
+            self._jauges[cle] = jauge
         grille.setColumnStretch(1, 1)
-        grille.setColumnStretch(3, 1)
+        grille.setColumnStretch(4, 1)
         v.addLayout(grille)
         bas = QHBoxLayout()
         self.remettre = QPushButton("Remettre comme au départ")
@@ -347,12 +460,22 @@ class Panneau(QWidget):
         lum.panneaux.append(self)
         self.actualiser()
 
+    def _poser(self, cle: str, n: int) -> None:
+        """Le cran cliqué ou la flèche : la valeur du moteur, bornée."""
+        n = pipeline.cran(n)
+        if self.lum.valeurs.get(cle) == n:
+            return
+        self.lum.changer(cle, n - self.lum.valeurs[cle])
+
     def actualiser(self) -> None:
         lum, w = self.lum, self.lum.w
         occupe = w._busy()
         for cle, (bm, valeur, bp) in self.lignes.items():
             n = lum.valeurs[cle]
-            valeur.setText("Normal" if n == 0 else f"{n:+d}".replace("-", "−"))
+            valeur.setText(texte_cran(n))
+            valeur.setEnabled(not occupe)
+            self._jauges[cle].regler(n)
+            self._jauges[cle].setEnabled(not occupe)
             bm.setEnabled(n > -pipeline.CRANS and not occupe)
             bp.setEnabled(n < pipeline.CRANS and not occupe)
         self.remettre.setEnabled(any(lum.valeurs.values()) and not occupe)
@@ -363,8 +486,7 @@ class Panneau(QWidget):
         elif lum._travail and lum._cache is None:
             self.note.setText("Préparation de l'image…")
         elif lum.dernier is not None:
-            self.note.setText("Aperçu rapide d'une image, sans l'amélioration IA. Vérifiez ensuite avec "
-                              "«\u00a0Voir l'avant\u00a0/ après\u00a0».")
+            self.note.setText("Aperçu rapide d'une image, sans l'amélioration IA.")
         else:
             self.note.setText("")
 

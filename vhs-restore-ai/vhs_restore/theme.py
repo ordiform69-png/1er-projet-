@@ -33,6 +33,8 @@ SOMBRE = {
     "HALO_PAGE": "#173842", "FOND_BAS": "#0f1217", "ICONE_GRISE": "#6b7887", "ICONE_ACTIVE": "#d7fbff",
     "SEGMENT_CHOISI": "#0e4e58",
     "CHEVRONS": "", "INTERRUPTEURS": "",
+    # Bouton éteint : vert sourd, texte clair, au moins 4,5:1.
+    "VERT_ETEINT": "#163028", "VERT_ETEINT_TEXTE": "#d7efe2",
 }
 CLAIR = {
     "FOND": "#eef2f6", "CARTE": "#ffffff", "CARTE_SUR": "#f4f7fa", "CARTE_HAUT": "#ffffff",
@@ -51,7 +53,14 @@ CLAIR = {
     "HALO_PAGE": "#dcecf1", "FOND_BAS": "#e7ecf1", "ICONE_GRISE": "#8a95a2", "ICONE_ACTIVE": "#06424e",
     "SEGMENT_CHOISI": "#d8eff3",
     "CHEVRONS": "-sombre", "INTERRUPTEURS": "-clair",
+    "VERT_ETEINT": "#d7ebe0", "VERT_ETEINT_TEXTE": "#143d28",
 }
+# Vert de l'action principale (Suivant, avant / après, Lancer allumé) : texte blanc,
+# identique dans les deux thèmes. Contraste mesuré : 6,34 / 5,69 / 8,11 contre le blanc.
+VERT = "#0c6e3c"
+VERT_SURVOL = "#0e7642"
+VERT_PRESSE = "#0a5c32"
+VERT_TEXTE = "#ffffff"
 # Communs aux deux : bandeau, écran d'aperçu.
 BANDEAU = "#0c2c34"
 MONITEUR = "#0e1218"
@@ -105,6 +114,8 @@ ICONE_ACTIVE: str = CLAIR["ICONE_ACTIVE"]
 SEGMENT_CHOISI: str = CLAIR["SEGMENT_CHOISI"]
 CHEVRONS: str = CLAIR["CHEVRONS"]
 INTERRUPTEURS: str = CLAIR["INTERRUPTEURS"]
+VERT_ETEINT: str = CLAIR["VERT_ETEINT"]
+VERT_ETEINT_TEXTE: str = CLAIR["VERT_ETEINT_TEXTE"]
 
 
 def set_mode(mode: str) -> None:
@@ -129,10 +140,11 @@ def contrastes() -> tuple:
         ("accent / carte", ACCENT, CARTE),
         ("bouton / carte", TEXTE, CARTE),
         ("bouton désactivé", TEXTE_DESACTIVE, FOND_DESACTIVE),
-        ("restaurer", AMBRE_TEXTE, AMBRE),
-        ("restaurer survol", AMBRE_TEXTE, AMBRE_SURVOL),
-        ("restaurer pressé", AMBRE_TEXTE, AMBRE_PRESSE),
-        ("restaurer désactivé", AMBRE_ETEINT_TEXTE, AMBRE_ETEINT),
+        ("restaurer", VERT_TEXTE, VERT),
+        ("restaurer survol", VERT_TEXTE, VERT_SURVOL),
+        ("restaurer pressé", VERT_TEXTE, VERT_PRESSE),
+        ("restaurer désactivé", VERT_ETEINT_TEXTE, VERT_ETEINT),
+        ("repère à venir", TEXTE_DESACTIVE, FOND),
         ("moniteur", MONITEUR_TEXTE, MONITEUR),
         ("pastille", "#f3f6fa", "#102028"),
         ("avertissement / fond", AVERT, FOND),
@@ -276,13 +288,13 @@ QPushButton#etape:disabled {{
 }}
 QPushButton#principal, QPushButton#action {{
     font-size: 15pt; font-weight: 700; min-height: 58px; border-radius: 12px;
-    border: none; color: {AMBRE_TEXTE}; background: {AMBRE}; padding-left: 58px;
+    border: none; color: {VERT_TEXTE}; background: {VERT}; padding-left: 58px;
 }}
 QPushButton#action {{ padding-left: 18px; padding-right: 18px; }}
-QPushButton#principal:hover, QPushButton#action:hover {{ background: {AMBRE_SURVOL}; }}
-QPushButton#principal:pressed, QPushButton#action:pressed {{ background: {AMBRE_PRESSE}; }}
+QPushButton#principal:hover, QPushButton#action:hover {{ background: {VERT_SURVOL}; }}
+QPushButton#principal:pressed, QPushButton#action:pressed {{ background: {VERT_PRESSE}; }}
 QPushButton#principal:disabled, QPushButton#action:disabled {{
-    background: {AMBRE_ETEINT}; color: {AMBRE_ETEINT_TEXTE};
+    background: {VERT_ETEINT}; color: {VERT_ETEINT_TEXTE};
 }}
 QPushButton#lien {{
     border: none; background: transparent; color: {ACCENT}; font-weight: 600;

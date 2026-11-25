@@ -53,21 +53,21 @@ class Profile:
 
 
 PROFILES: dict[str, Profile] = {p.key: p for p in (
-    Profile("fidele", "Fidèle",
+    Profile("fidele", "Nettoyage léger",
             "Nettoyage léger du bruit, couleurs et cadrage d'origine, pas d'agrandissement.",
             denoise=(1.5, 3.0, 2.0, 4.0), despeckle=False,
             contrast=1.0, saturation=1.0, sharpen=0.0,
             default_resolution="source", ai_default=False, deinterlacer="bwdif",
             denoise_hq=(5.0, 4.0, 6.0),
             afftdn_nr=4.0),
-    Profile("equilibre", "Équilibré",
+    Profile("equilibre", "Bien nettoyé, naturel",
             "Réduction du bruit et des parasites, couleurs ravivées modérément, "
             "netteté prudente. Export Full HD possible.",
             denoise=(3.0, 5.0, 4.5, 7.0), despeckle=True,
             contrast=1.04, saturation=1.08, sharpen=0.3,
             default_resolution="source", ai_default=False,
             afftdn_nr=10.0, adeclick=True, loudnorm=True),
-    Profile("maximum", "Maximum",
+    Profile("maximum", "Nettoyage au plus fort",
             "Nettoyage plus fort et Full HD par défaut ; amélioration IA (Real-ESRGAN) "
             "si elle est installée. À vérifier sur l'aperçu : visages et peau.",
             denoise=(4.0, 7.0, 6.0, 10.0), despeckle=True,

@@ -1,12 +1,12 @@
 """Assistant pas à pas : une restauration réussie, une étape à la fois.
 
 L'utilisateur (76 ans) ne peut pas « faire n'importe quoi » : une seule chose à faire par
-écran, « Retour » et « Suivant », et « Lancer la restauration » n'est possible qu'après avoir vu
+écran, « ← Revenir » et « Suivant → », et « Lancer la restauration » n'est possible qu'après avoir vu
 l'avant / après avec les réglages choisis. Les réglages par défaut sont sûrs : en cliquant
 toujours sur « Suivant », on obtient déjà un bon résultat. « Réglages libres » ouvre l'écran
 complet (les sections), pour le fils ou plus tard.
 
-Film : 1. Choisir le rendu (trois images côte à côte) · 2. Lumière et couleurs (la grande image
+Film : 1. Choisir le rendu (liste verticale) · 2. Lumière et couleurs (la grande image
 change tout de suite) · 3. Début, fin et passages à enlever (neige, écran bleu ou noir trouvés
 par le logiciel) · 4. Le son (la voix colle-t-elle aux lèvres ? au début et à la fin) ·
 5. Vérifier et lancer. Photo : 1. Choisir le rendu · 2. Lumière et couleurs · 3. Vérifier et
@@ -21,26 +21,35 @@ import subprocess
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QSize, QTimer, QUrl, Qt
-from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
-from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-                               QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtCore import QPoint, QRect, QSize, QTimer, QUrl, Qt
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from . import estimation, lumiere, photo, pipeline, theme, vides
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
 RENDUS = ("fidele", "equilibre", "maximum")
-# Une phrase sous chaque image : les noms seuls (« Fidèle », « Équilibré ») ne disent rien.
+# Sous-titre sous le nom. Le nom vient de profiles.py ; « equilibre » ajoute « (conseillé) ».
 PHRASES_RENDU = {
-    "original": "Tel qu'il est",
-    "fidele": "Garde l'aspect d'origine",
-    "equilibre": "Conseillé",
-    "maximum": "Le plus beau, plus long",
+    "original": "",
+    "fidele": "Garde l'aspect d'époque",
+    "equilibre": "Bon équilibre",
+    "maximum": "Plus long",
 }
+# Petites images de l'étape 1 (4:3). L'original est un repère plus bas, pas un choix.
+TAILLE_ORIGINAL = QSize(64, 48)
+TAILLE_RENDU = QSize(96, 72)
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
+# Repères à gauche de la colonne. False : la même liste, sur une ligne de 30 px au-dessus du titre.
+# Largeur 140 px (le plafond demandé est 150) : à 150, la fenêtre dépasse 1280 quand les images sont prêtes.
+REPERES_VERTICAUX = True
+LARGEUR_REPERES = 140
+HAUTEUR_REPERES = 30
 ECOUTE = 10.0                       # secondes écoutées au début et à la fin
 PAS_SON = 40                        # ms : une image PAL
 
@@ -157,6 +166,127 @@ def faire_ecoute(info, tools, dossier: Path, moment: float, decalage_ms: float,
 
 
 # ---------------------------------------------------------------- l'assistant
+def _nom_etape(cle: str) -> str:
+    """Nom affiché sur la ligne de l'étape 1. « equilibre » porte la mention conseillée."""
+    nom = PROFILES[cle].name
+    return f"{nom} (conseillé)" if cle == "equilibre" else nom
+
+
+def _encre_sur(fond: QColor) -> QColor:
+    """Encre lisible sur la pastille (clair ou sombre)."""
+    lum = 0.2126 * fond.redF() + 0.7152 * fond.greenF() + 0.0722 * fond.blueF()
+    return QColor("#102027" if lum > 0.55 else "#ffffff")
+
+
+class TuileRendu(QToolButton):
+    """Une ligne de l'étape 1. `text()` garde le nom et le sous-titre (les tests lisent les deux).
+
+    L'image est celle posée par `setIcon` : la vraie image du rendu, pas un pictogramme.
+    """
+
+    def __init__(self, nom: str, phrase: str, *, original: bool) -> None:
+        super().__init__()
+        self._original = original
+        self.setText(f"{nom}\n{phrase}" if phrase else nom)
+        self.setAccessibleName(nom)
+        self.setAccessibleDescription(phrase or nom)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setAutoRaise(True)
+        if original:
+            self.setObjectName("tuileOriginal")
+            self.setFocusPolicy(Qt.NoFocus)
+            self.setIconSize(TAILLE_ORIGINAL)
+            self.setMinimumHeight(TAILLE_ORIGINAL.height() + 8)  # ligne grise plus basse que les rendus
+        else:
+            self.setObjectName("tuileRendu")
+            self.setCheckable(True)
+            self.setCursor(Qt.PointingHandCursor)
+            self.setFocusPolicy(Qt.StrongFocus)
+            self.setIconSize(TAILLE_RENDU)
+            self.setMinimumHeight(TAILLE_RENDU.height() + 6)
+        self.setAttribute(Qt.WA_Hover, True)
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(280, self.minimumHeight())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(0, self.minimumHeight())
+
+    def enterEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().leaveEvent(e)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        on = self.isChecked()
+        r = self.rect().adjusted(1, 1, -2, -2)
+        if self._original:
+            p.setBrush(QColor(theme.FOND_DESACTIVE))
+            p.setPen(QPen(QColor(theme.BORD_DESACTIVE), 1))
+        elif on:
+            p.setBrush(QColor(theme.TUILE_ACTIVE))
+            p.setPen(QPen(QColor(theme.ACCENT), 4))
+        else:
+            p.setBrush(QColor(theme.CARTE))
+            p.setPen(QPen(QColor(theme.ACCENT if self.underMouse() else theme.BORD), 1.5))
+        p.drawRoundedRect(r, 8, 8)
+        if self.hasFocus() and not self._original and not on:
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(theme.ACCENT), 2, Qt.DashLine))
+            p.drawRoundedRect(r.adjusted(3, 3, -3, -3), 6, 6)
+        x = r.left() + 8
+        if not self._original:
+            centre = QPoint(x + 12, r.center().y())
+            if on:
+                accent = QColor(theme.ACCENT)
+                p.setPen(Qt.NoPen)
+                p.setBrush(accent)
+                p.drawEllipse(centre, 11, 11)
+                p.setPen(QPen(_encre_sur(accent), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+                cx, cy = centre.x(), centre.y()
+                p.drawLine(cx - 6, cy, cx - 2, cy + 5)
+                p.drawLine(cx - 2, cy + 5, cx + 6, cy - 5)
+            x += 30
+        taille = TAILLE_ORIGINAL if self._original else TAILLE_RENDU
+        cadre = QRect(x, r.center().y() - taille.height() // 2, taille.width(), taille.height())
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.FOND_DESACTIVE))
+        p.drawRoundedRect(cadre, 4, 4)
+        src = self.icon().pixmap(taille * 2)
+        if not src.isNull():
+            image = src.scaled(taille, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            p.drawPixmap(cadre.x() + (cadre.width() - image.width()) // 2,
+                         cadre.y() + (cadre.height() - image.height()) // 2, image)
+        lignes = self.text().split("\n", 1)
+        nom, phrase = lignes[0], lignes[1] if len(lignes) > 1 else ""
+        tx = cadre.right() + 12
+        tw = max(40, r.right() - tx - 6)
+        e = float(getattr(self.window(), "_echelle", 1.0) or 1.0)
+        f = QFont(theme.BODY_FAMILY or p.font().family())
+        f.setBold(True)
+        f.setPointSizeF(max(11, 13 * e))
+        p.setFont(f)
+        p.setPen(QColor(theme.TEXTE_DOUX if self._original else theme.TEXTE))
+        if self._original:
+            p.drawText(QRect(tx, r.top(), tw, r.height()),
+                       Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap, nom)
+            return
+        haut_nom = p.fontMetrics().boundingRect(QRect(0, 0, tw, 80), Qt.TextWordWrap, nom).height()
+        p.drawText(QRect(tx, r.top() + 6, tw, haut_nom), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, nom)
+        if phrase:
+            f.setBold(False)
+            f.setPointSizeF(max(10, 11 * e))
+            p.setFont(f)
+            p.setPen(QColor(theme.TEXTE_DOUX))
+            p.drawText(QRect(tx, r.top() + 8 + haut_nom, tw, r.height() - haut_nom - 12),
+                       Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, phrase)
+
+
 def _bouton(texte: str, nom: str = "secondaire", haut: int = 48) -> QPushButton:
     b = QPushButton(texte)
     b.setObjectName(nom)
@@ -173,6 +303,176 @@ def _texte(texte: str = "", nom: str = "") -> QLabel:
     if nom:
         lab.setObjectName(nom)
     return lab
+
+
+class _Repere(QPushButton):
+    """Une étape : rond numéroté, coche si elle est faite, rond plein si elle est en cours."""
+
+    def __init__(self, vertical: bool) -> None:
+        super().__init__()
+        self._vertical = vertical
+        self._etat = "suite"
+        self._numero = 1
+        self._nom = ""
+        self.setObjectName("repere")
+        self.setFlat(True)
+        self.setCursor(Qt.ArrowCursor)
+        self.setStyleSheet(
+            "QPushButton#repere {background: transparent; border: none; padding: 0; text-align: left;}")
+        if vertical:
+            self.setMinimumHeight(42)
+            self.setMaximumHeight(48)
+            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        else:
+            self.setFixedHeight(HAUTEUR_REPERES)
+            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    def regler(self, numero: int, nom: str, etat: str) -> None:
+        self._numero = numero
+        self._nom = nom
+        self._etat = etat
+        self.setEnabled(etat != "suite")
+        self.setCursor(Qt.PointingHandCursor if etat == "fait" else Qt.ArrowCursor)
+        self.setFocusPolicy(Qt.TabFocus if etat == "fait" else Qt.NoFocus)
+        etat_lu = {"fait": "faite", "cours": "en cours", "suite": "à venir"}[etat]
+        self.setAccessibleName(f"Étape {numero}, {nom}, {etat_lu}")
+        self.setText(f"{'✓' if etat == 'fait' else '●' if etat == 'cours' else numero} {nom}")
+        self.update()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        if self._vertical:
+            return QSize(LARGEUR_REPERES, 44)
+        return QSize(110, HAUTEUR_REPERES)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(0, 42 if self._vertical else HAUTEUR_REPERES)
+
+    def enterEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().leaveEvent(e)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        if self._etat == "cours":
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.TUILE_ACTIVE))
+            p.drawRoundedRect(self.rect().adjusted(0, 1, -1, -1), 8, 8)
+        elif self._etat == "fait" and self.underMouse():
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.SURVOL))
+            p.drawRoundedRect(self.rect().adjusted(0, 1, -1, -1), 8, 8)
+        if self.hasFocus() and self._etat == "fait":
+            p.setPen(QPen(QColor(theme.ACCENT), 2))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 8, 8)
+        d = 26 if self._vertical else 18
+        cy = max(0, (self.height() - d) // 2)
+        rond = QRect(4 if self._vertical else 2, cy, d, d)
+        if self._etat == "suite":
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(theme.TEXTE_DESACTIVE), 2))
+            p.drawEllipse(rond)
+            self._ecrire(p, rond, str(self._numero), theme.TEXTE_DESACTIVE, 8 if self._vertical else 7)
+            couleur_nom, gras = theme.TEXTE_DESACTIVE, False
+        else:
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.VERT))
+            p.drawEllipse(rond)
+            if self._etat == "fait":
+                self._coche(p, rond)
+            else:
+                self._ecrire(p, rond, str(self._numero), theme.VERT_TEXTE, 9 if self._vertical else 7)
+            couleur_nom, gras = theme.TEXTE, self._etat == "cours"
+        font = QFont(self.font())
+        if not self._vertical:
+            font.setPointSizeF(min(font.pointSizeF() or 9, 9))
+        font.setBold(gras)
+        p.setFont(font)
+        x = rond.right() + (8 if self._vertical else 4)
+        zone = QRect(x, 0, max(0, self.width() - x - 2), self.height())
+        p.setPen(QColor(couleur_nom))
+        p.drawText(zone, Qt.AlignVCenter | Qt.AlignLeft,
+                   QFontMetrics(font).elidedText(self._nom, Qt.ElideRight, zone.width()))
+        p.end()
+
+    def _ecrire(self, p: QPainter, rect: QRect, texte: str, couleur: str, pt: float) -> None:
+        p.setPen(QColor(couleur))
+        font = QFont(self.font())
+        font.setBold(True)
+        font.setPointSizeF(pt)
+        p.setFont(font)
+        p.drawText(rect, Qt.AlignCenter, texte)
+
+    def _coche(self, p: QPainter, rect: QRect) -> None:
+        p.setPen(QPen(QColor(theme.VERT_TEXTE), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        c = rect.center()
+        k = 1.0 if self._vertical else 0.7
+        p.drawLine(int(c.x() - 6 * k), int(c.y()), int(c.x() - 1 * k), int(c.y() + 5 * k))
+        p.drawLine(int(c.x() - 1 * k), int(c.y() + 5 * k), int(c.x() + 6 * k), int(c.y() - 5 * k))
+
+
+class _Resume(QLabel):
+    """Résumé enrichi de « Vérifier et lancer ».
+
+    text() reste la lecture simple (mêmes phrases que l'écran, sans les balises) :
+    les tests et un lecteur d'écran y retrouvent « Lumière et couleurs : comme proposé. ».
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWordWrap(True)
+        self.setTextFormat(Qt.RichText)
+        self.setObjectName("resumeAssistant")
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self._lecture = ""
+
+    def definir(self, html: str, lecture: str) -> None:
+        self._lecture = lecture
+        self.setText(html)
+        self.setAccessibleDescription(lecture)
+
+    def text(self) -> str:  # noqa: A003
+        return self._lecture
+
+
+class _ZonePages(QScrollArea):
+    """Les étapes défilent ici si elles dépassent : la fenêtre, elle, ne grandit pas."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("pagesAssistant")
+        self.setFrameShape(QFrame.NoFrame)
+        self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumHeight(0)
+
+    def _largeur(self) -> int:
+        """Largeur demandée par les étapes. La hauteur, non : la fenêtre ne s'allonge pas."""
+        wd = self.widget()
+        if wd is None:
+            return 0
+        return max(wd.minimumSizeHint().width(), wd.sizeHint().width())
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(self._largeur(), 0)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        wd = self.widget()
+        return QSize(wd.minimumSizeHint().width() if wd is not None else 0, 0)
+
+    def resizeEvent(self, e) -> None:  # noqa: N802
+        """Coupe le débordement horizontal (barre verticale qui rétrécit la vue, à 150 %)."""
+        super().resizeEvent(e)
+        wd = self.widget()
+        if wd is not None:
+            wd.setMaximumWidth(max(0, self.viewport().width()))
 
 
 class Assistant(QWidget):
@@ -195,30 +495,61 @@ class Assistant(QWidget):
         self._minuterie = QTimer(self)
         self._minuterie.setInterval(100)
         self._minuterie.timeout.connect(self._pomper)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(6, 2, 6, 2)
-        lay.setSpacing(6)
+        self._reperes_verticaux = REPERES_VERTICAUX
+        self.reperes = QWidget()
+        self.reperes.setObjectName("colonneReperes")
+        self._boutons_reperes: list[_Repere] = []
+        if self._reperes_verticaux:
+            self.reperes.setFixedWidth(LARGEUR_REPERES)
+            self._reperes_lay = QVBoxLayout(self.reperes)
+            cadre = QHBoxLayout(self)
+        else:
+            self.reperes.setFixedHeight(HAUTEUR_REPERES)
+            self._reperes_lay = QHBoxLayout(self.reperes)
+            cadre = QVBoxLayout(self)
+        self._reperes_lay.setContentsMargins(0, 0, 0, 0)
+        self._reperes_lay.setSpacing(2 if not self._reperes_verticaux else 4)
+        cadre.setContentsMargins(2, 2, 2, 2)
+        cadre.setSpacing(6)
+        if self._reperes_verticaux:
+            cadre.addWidget(self.reperes)
+            lay = QVBoxLayout()
+            lay.setSpacing(6)
+            cadre.addLayout(lay, 1)
+        else:
+            cadre.addWidget(self.reperes)
+            lay = cadre
         haut = QHBoxLayout()
+        haut.setSpacing(10)
         self.compteur = QLabel()
         self.compteur.setObjectName("etapeAssistant")
+        self.compteur.setWordWrap(False)
         self.titre = _texte(nom="titreAssistant")
+        self.titre.setWordWrap(False)
         haut.addWidget(self.compteur)
         haut.addWidget(self.titre, 1)
         lay.addLayout(haut)
+        self.rien_a_changer = _texte("Rien à changer ? Cliquez sur Suivant.", "rienAChanger")
+        self.rien_a_changer.setWordWrap(False)
+        self.rien_a_changer.setVisible(False)
+        lay.addWidget(self.rien_a_changer)
         self.pages = QStackedWidget()
-        lay.addWidget(self.pages, 1)
+        self.pages_zone = _ZonePages()
+        self.pages_zone.setWidget(self.pages)
+        lay.addWidget(self.pages_zone, 1)
         nav = QHBoxLayout()
-        self.retour = _bouton("Retour")
-        self.suivant = _bouton("Suivant", "action")
-        for b in (self.retour, self.suivant):
-            b.setMinimumWidth(170)
-            b.setMinimumHeight(52)
+        self.retour = _bouton("← Revenir")
+        self.suivant = _bouton("Suivant →", "action", 64)
+        self.retour.setMinimumWidth(160)
+        self.retour.setMinimumHeight(52)
+        self.suivant.setMinimumWidth(220)
+        self.suivant.setMinimumHeight(64)
         nav.addWidget(self.retour)
         nav.addStretch(1)
         nav.addWidget(self.suivant)
         lay.addLayout(nav)
-        self.retour.clicked.connect(lambda: self.aller(self.pages.currentIndex() - 1))
-        self.suivant.clicked.connect(lambda: self.aller(self.pages.currentIndex() + 1))
+        self.retour.clicked.connect(lambda: self.aller(self._etape() - 1))
+        self.suivant.clicked.connect(lambda: self.aller(self._etape() + 1))
         self._page_rendu = self._construire_rendu()
         self._page_lumiere = lumiere.Panneau(w.lumiere, guide=True)
         self._page_coupe = self._construire_coupe()
@@ -226,46 +557,43 @@ class Assistant(QWidget):
         self._page_fin = self._construire_fin()
         for p in (self._page_rendu, self._page_lumiere, self._page_coupe, self._page_son, self._page_fin):
             self.pages.addWidget(p)
+        self._montrer_reperes(0)
+        self.style_assistant()
 
     # ------------------------------------------------------------ étapes
     def _construire_rendu(self) -> QWidget:
         page = QWidget()
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
-        v.addWidget(_texte("Quel résultat préférez-vous ? Cliquez sur l'image qui vous plaît. "
-                           "Si vous hésitez, prenez « Équilibré »."))
-        grille = QGridLayout()
-        grille.setSpacing(8)
+        v.setSpacing(4)
+        intro = _texte("Cliquez sur la ligne qui vous plaît.")
+        intro.setObjectName("introRendu")
+        v.addWidget(intro)
+        liste = QVBoxLayout()
+        liste.setSpacing(4)
         self.tuiles: dict[str, QToolButton] = {}
         self._groupe = QButtonGroup(self)
         self._groupe.setExclusive(True)
-        for col, cle in enumerate(("original", *RENDUS)):
-            t = QToolButton()
-            t.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            t.setIconSize(QSize(160, 120))
-            t.setMinimumSize(150, 170)
-            t.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            t.setObjectName("tuileRendu")
-            nom = "Aujourd'hui" if cle == "original" else PROFILES[cle].name
-            phrase = PHRASES_RENDU.get(cle, "")
-            t.setText(f"{nom}\n{phrase}" if phrase else nom)
-            t.setAccessibleName(nom)
-            if cle != "original":
-                t.setCheckable(True)
-                t.setCursor(Qt.PointingHandCursor)
-                self._groupe.addButton(t)
-                t.clicked.connect(lambda _c=False, k=cle: self._choisir_rendu(k))
-            else:                       # repère seulement ; désactivée, l'image serait grisée
-                t.setFocusPolicy(Qt.NoFocus)
-                t.setObjectName("tuileOriginal")
-            grille.addWidget(t, 0, col)
+        origine = TuileRendu("Votre cassette, sans changement", "", original=True)
+        liste.addWidget(origine)
+        self.tuiles["original"] = origine
+        for cle in RENDUS:
+            t = TuileRendu(_nom_etape(cle), PHRASES_RENDU.get(cle, ""), original=False)
+            self._groupe.addButton(t)
+            t.clicked.connect(lambda _c=False, k=cle: self._choisir_rendu(k))
+            liste.addWidget(t)
             self.tuiles[cle] = t
-        v.addLayout(grille)
+        v.addLayout(liste)
         self.note_rendu = _texte()
         v.addWidget(self.note_rendu)
-        self.grand = _bouton("Voir ces images en grand")
+        self.grand = QPushButton("Voir ces images en grand")
+        self.grand.setObjectName("lien")
+        self.grand.setFlat(True)
+        self.grand.setCursor(Qt.PointingHandCursor)
+        self.grand.setAccessibleName("Voir ces images en grand")
+        self.grand.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.grand.clicked.connect(self._voir_en_grand)
-        v.addWidget(self.grand)
+        v.addWidget(self.grand, 0, Qt.AlignLeft)
         v.addStretch(1)
         return page
 
@@ -343,8 +671,7 @@ class Assistant(QWidget):
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(10)
-        self.resume = _texte()
-        self.resume.setObjectName("resumeAssistant")
+        self.resume = _Resume()
         v.addWidget(self.resume)
         self.voir = _bouton("Voir l'avant / après", "action", 56)
         self.voir.clicked.connect(self.w.start_preview)
@@ -356,21 +683,30 @@ class Assistant(QWidget):
         return page
 
     def style_assistant(self) -> None:
-        """Gros titres, rendu choisi entouré ; suit le thème et la taille du texte."""
+        """Gros titres, Suivant vert, rendu choisi entouré ; suit le thème et la taille du texte."""
         e = float(getattr(self.w, "_echelle", 1.0) or 1.0)
-        cle = (theme.ACCENT, theme.BORD, theme.CARTE, e)
-        if getattr(self, "_style_cle", None) == cle:
-            return
-        self._style_cle = cle
-        self.setStyleSheet(
-            f"QLabel#etapeAssistant {{font-weight:bold; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
-            f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
-            f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
-            f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
-            f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
-            f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
-            f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
-            f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
+        cle = (theme.ACCENT, theme.BORD, theme.CARTE, theme.TEXTE, theme.VERT, theme.VERT_TEXTE,
+               theme.VERT_SURVOL, theme.VERT_PRESSE, theme.VERT_ETEINT, theme.VERT_ETEINT_TEXTE, e)
+        if getattr(self, "_style_cle", None) != cle:
+            self._style_cle = cle
+            self.setStyleSheet(
+                f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
+                f"QLabel#titreAssistant {{font-weight:700; font-size:{16 * e:.0f}pt;}}"
+                f"QLabel#rienAChanger {{font-weight:700; font-size:{12 * e:.0f}pt; color:{theme.TEXTE};}}"
+                f"QLabel#consigneAssistant {{font-weight:normal;}}"
+                f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
+                f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
+                f"QPushButton#action {{color:{theme.VERT_TEXTE}; background:{theme.VERT};"
+                f"font-size:{16 * e:.0f}pt; font-weight:700; border:none; border-radius:12px;"
+                f"padding:8px 18px; min-height:56px;}}"
+                f"QPushButton#action:hover {{background:{theme.VERT_SURVOL};}}"
+                f"QPushButton#action:pressed {{background:{theme.VERT_PRESSE};}}"
+                f"QPushButton#action:disabled {{background:{theme.VERT_ETEINT}; color:{theme.VERT_ETEINT_TEXTE};}}"
+                f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
+                f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
+                f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
+        for b in self._boutons_reperes:
+            b.update()
 
     # ------------------------------------------------------------ navigation
     def _film(self) -> bool:
@@ -384,6 +720,44 @@ class Assistant(QWidget):
         if self.w.info is not None and self.w.info.has_audio:
             etapes.append(("Le son", self._page_son))
         return etapes + [("Vérifier et lancer", self._page_fin)]
+
+    def _nom_court(self, page: QWidget) -> str:
+        if page is self._page_rendu:
+            return "Rendu"
+        if page is self._page_lumiere:
+            return "Lumière"
+        if page is self._page_coupe:
+            return "Coupes"
+        if page is self._page_son:
+            return "Son"
+        return "Lancer"
+
+    def _montrer_reperes(self, index: int) -> None:
+        """Repères alignés sur la liste réelle (sans Son s'il n'y a pas d'audio, sans Coupes pour une photo)."""
+        liste = self._liste()
+        if len(self._boutons_reperes) != len(liste):
+            while self._reperes_lay.count():
+                item = self._reperes_lay.takeAt(0)
+                wd = item.widget()
+                if wd is not None:
+                    wd.setParent(None)
+                    wd.deleteLater()
+            self._boutons_reperes = []
+            for i, (_titre, page) in enumerate(liste):
+                b = _Repere(self._reperes_verticaux)
+                b.clicked.connect(lambda _c=False, n=i: self._clic_repere(n))
+                self._reperes_lay.addWidget(b)
+                self._boutons_reperes.append(b)
+            if self._reperes_verticaux:
+                self._reperes_lay.addStretch(1)
+        for i, (_titre, page) in enumerate(liste):
+            etat = "fait" if i < index else "cours" if i == index else "suite"
+            self._boutons_reperes[i].regler(i + 1, self._nom_court(page), etat)
+
+    def _clic_repere(self, i: int) -> None:
+        """Une étape déjà faite ramène en arrière. L'étape en cours et la suite ne naviguent pas."""
+        if i < self._etape():
+            self.aller(i)
 
     def _en_fond(self, genre: str, travail) -> None:
         generation, annuler = self._generation, self._annuler_fond
@@ -409,7 +783,7 @@ class Assistant(QWidget):
             if genre == "rendus":
                 if isinstance(res, BaseException):
                     self.note_rendu.setText("Les images n'ont pas pu être préparées. Choisissez d'après les noms, "
-                                            "ou passez à l'étape suivante : « Équilibré » est conseillé.")
+                                            "ou passez à l'étape suivante : « Bien nettoyé, naturel » est conseillé.")
                 else:
                     self._rendus_prets(res)
             elif genre == "suggestion":
@@ -466,6 +840,9 @@ class Assistant(QWidget):
         self.pages.setCurrentWidget(page)
         self.compteur.setText(f"Étape {i + 1} sur {len(liste)}")
         self.titre.setText(titre)
+        self.rien_a_changer.setVisible(page in (self._page_lumiere, self._page_coupe, self._page_son))
+        self.pages_zone.verticalScrollBar().setValue(0)
+        self._montrer_reperes(i)
         self.retour.setVisible(i > 0)
         self.suivant.setVisible(i < len(liste) - 1)
         if not self.actif:                 # écran complet : rien à préparer pour l'assistant
@@ -535,11 +912,20 @@ class Assistant(QWidget):
     def _rendus_prets(self, sorties: dict[str, Path]) -> None:
         self._rendus = sorties
         for cle, chemin in sorties.items():
+            tuile = self.tuiles.get(cle)
+            if tuile is None:
+                continue
             pix = QPixmap(str(chemin))
-            if not pix.isNull():
-                self.tuiles[cle].setIcon(QIcon(pix))
-        self.note_rendu.setText("Choisissez en regardant : le rendu entouré sera utilisé. « Équilibré » est "
-                                "conseillé si vous hésitez.")
+            if pix.isNull():
+                continue
+            tuile.setIcon(QIcon(pix))
+            if cle == "original":
+                tuile.setAccessibleDescription("Image d'origine de votre cassette, sans changement.")
+            else:
+                tuile.setAccessibleDescription(f"Aperçu réel du rendu {PROFILES[cle].name}.")
+        conseil = PROFILES["equilibre"].name
+        self.note_rendu.setText("Le rendu entouré sera utilisé. "
+                                f"« {conseil} » est conseillé si vous hésitez.")
 
     def _choisir_rendu(self, cle: str) -> None:
         bouton = self.w.profile_buttons.get(cle)
@@ -666,28 +1052,68 @@ class Assistant(QWidget):
         self.actualiser()
 
     def _ecrire_resume(self) -> None:
+        """Lignes (libellé en gras), puis un trait, puis la durée et la place une seule fois."""
+        import html
+
         w = self.w
         s = w.settings(with_advice=True)
-        morceaux = [f"Rendu : {s.profile.name}.",
-                    "Lumière et couleurs : " + (lumiere.phrase(w.lumiere.reglages()) or "comme proposé") + "."]
+        lecture: list[str] = []
+        lignes: list[str] = []
+
+        def ligne(libelle: str, valeur: str) -> None:
+            lecture.append(f"{libelle} {valeur}")
+            lignes.append(f"<b>{html.escape(libelle)}</b> {html.escape(valeur)}")
+
+        ligne("Rendu :", f"{s.profile.name}.")
+        ligne("Lumière et couleurs :", (lumiere.phrase(w.lumiere.reglages()) or "comme proposé") + ".")
         if self._film():
-            if w.info is not None and w.info.has_audio:
-                morceaux.append("Son : " + ("nettoyé" if s.restore_audio else "gardé tel quel")
-                                + (f", {phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min)}" if
-                                   phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min) else "") + ".")
-            coupes = []
+            morceaux = []
             if w.trim_start.value():
-                coupes.append(f"début à {hms(w.trim_start.value())}")
+                morceaux.append(f"début à {hms(w.trim_start.value())}")
             if w.trim_end.value():
-                coupes.append(f"fin à {hms(w.trim_end.value())}")
-            if w._coupes:
-                coupes.append(f"{len(w._coupes)} passage(s) enlevé(s)")
-            morceaux.append("Coupes : " + (", ".join(coupes) if coupes else "aucune, le film est gardé en entier") + ".")
-            if self.apercu_vu():
-                annonce = estimation.annonce(w)
-                if annonce:
-                    morceaux.append(annonce)
-        self.resume.setText(" ".join(morceaux))
+                morceaux.append(f"fin à {hms(w.trim_end.value())}")
+            n = len(w._coupes)
+            if n == 1:
+                morceaux.append("1 passage au milieu")
+            elif n > 1:
+                morceaux.append(f"{n} passages au milieu")
+            ligne("Passages enlevés :", (", ".join(morceaux) if morceaux else "aucun") + ".")
+            if w.info is not None and w.info.has_audio:
+                son = "nettoyé" if s.restore_audio else "gardé tel quel"
+                detail = phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min)
+                if detail:
+                    son += ", " + detail
+                ligne("Son :", son + ".")
+
+        bas_lecture: list[str] = []
+        bas: list[str] = []
+        rouge = "#ff8a80" if theme.MODE == "sombre" else "#a40000"
+
+        def annonce(texte: str, alerte: bool = False) -> None:
+            bas_lecture.append(texte)
+            style = "font-size:115%; font-weight:bold;"
+            if alerte:
+                style += f" color:{rouge};"
+            bas.append(f'<span style="{style}">{html.escape(texte)}</span>')
+
+        if not self.apercu_vu():
+            annonce("La durée s'affichera après l'avant / après.")
+        else:
+            obtenu = estimation.lignes(w)
+            if obtenu:
+                temps, place = obtenu
+                if place.startswith("Il manque"):
+                    annonce(place, alerte=True)
+                    annonce(temps)
+                else:
+                    annonce(temps)
+                    if place:
+                        annonce(place)
+
+        html_texte = "<br>".join(lignes)
+        if bas:
+            html_texte += "<hr>" + "<br>".join(bas)
+        self.resume.definir(html_texte, " ".join(lecture + bas_lecture))
 
     def actualiser(self) -> None:
         """Appelé à chaque mise à jour de l'écran : l'aperçu vu, et ce qu'il reste à faire."""
@@ -700,8 +1126,7 @@ class Assistant(QWidget):
             self.voir.setText("Revoir l'avant / après")
             self.voir.setObjectName("secondaire")
             self.voir.setMinimumHeight(44)
-            self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
-                                  "« Lancer la restauration », en bas à droite. Sinon, « Retour ».")
+            self.consigne.setText("Si le résultat vous plaît : « Lancer la restauration », en bas à droite.")
         else:
             self.voir.setText("Voir l'avant / après")
             self.voir.setObjectName("action")

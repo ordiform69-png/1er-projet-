@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from . import lumiere, theme
+from . import icons, lumiere, theme
 from .assistant import Assistant, phrase_son
 
 
@@ -508,6 +508,7 @@ def installer(w):
     w.note_lancer.hide()
     pied.addWidget(w.note_lancer)
     pied.addWidget(w.run_btn)
+    w.run_btn.setIcon(icons.icon("etincelle", theme.VERT_TEXTE, 24))
     w.run_btn.setProperty("grand", True)
     w.run_btn.setMinimumSize(400, 64)
     w.run_btn.setMaximumSize(400, 64)
@@ -532,7 +533,7 @@ def mode_libre(w, libre: bool) -> None:
         w.assistant.quitter()
         ouvrir(w, "Qualité")
     else:
-        w.assistant.aller(w.assistant.pages.currentIndex())
+        w.assistant.aller(w.assistant._etape())
     w._update_state()
 
 
