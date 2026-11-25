@@ -245,9 +245,9 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
             chain.append("adeclip")
         if s.audio_mains_hz in (50, 60) and _has(present, "bandreject"):
             hz = int(s.audio_mains_hz)
-            # Q élevé = encoche étroite : le bourdonnement, pas la musique grave
-            chain.append(f"bandreject=f={hz}:t=q:w=30")
-            chain.append(f"bandreject=f={hz * 2}:t=q:w=30")
+            # Q élevé = encoche étroite : le bourdonnement et ses harmoniques, pas la voix
+            for n in (1, 2, 3, 4):
+                chain.append(f"bandreject=f={hz * n}:t=q:w=30")
         if s.audio_highpass and _has(present, "highpass"):
             # 6 dB/octave : le vent et les grondements, pas les voix (300 Hz ≈ −0,3 dB)
             chain.append("highpass=f=80:poles=1")
@@ -1581,6 +1581,7 @@ class PreviewResult:
     compare: Path
     stills: list[Path]
     original: Path | None = None
+    restauration_s: float = 0.0      # secondes de la seule restauration de l'extrait
 
 
 @lecture_dvd
@@ -1602,8 +1603,10 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     def sub(lo: float, hi: float) -> Progress | None:
         return (lambda f, m: progress(lo + (hi - lo) * f, m)) if progress else None
 
+    t0 = time.monotonic()
     export(info, sp, restored, tools, cancel=cancel, progress=sub(0, 0.8),
            start=start, duration=duration)
+    restauration_s = time.monotonic() - t0
 
     # Moitié « original » : produite par le même chemin que l'export (même saut,
     # même calage sur le son, même cadence), sans aucun filtre de restauration.
@@ -1645,4 +1648,4 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         stills.append(still)
     if progress:
         progress(1.0, "Aperçu prêt")
-    return PreviewResult(start, duration, restored, compare, stills, reference)
+    return PreviewResult(start, duration, restored, compare, stills, reference, restauration_s)

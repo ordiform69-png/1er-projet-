@@ -82,4 +82,10 @@ def test_comment_faire_schema_et_aide(tools, samples, monkeypatch):
     assert GUIDE_COUPES_OUVERTE in boites[0]
     assert GUIDE_COUPES_FAITE in boites[0]
     assert GUIDE_COUPES_CARRES in boites[0]
+    assert "Ce que le logiciel ne peut pas faire" in boites[0]
+    assert "détail absent de la bande" in boites[0]
+    assert "mauvais tracking" in boites[0]
+    assert "qualité de la numérisation" in boites[0]
+    assert "couleurs restaurées sont une estimation" in boites[0]
+    assert "inventer des textures" in boites[0]
     win.close()

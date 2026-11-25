@@ -26,7 +26,7 @@ from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
-from . import lumiere, photo, pipeline, theme, vides
+from . import estimation, lumiere, photo, pipeline, theme, vides
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
@@ -663,6 +663,9 @@ class Assistant(QWidget):
         return self.w.preview is not None and self._sig_apercu == self._signature()
 
     def _preparer_fin(self) -> None:
+        self.actualiser()
+
+    def _ecrire_resume(self) -> None:
         w = self.w
         s = w.settings(with_advice=True)
         morceaux = [f"Rendu : {s.profile.name}.",
@@ -680,8 +683,11 @@ class Assistant(QWidget):
             if w._coupes:
                 coupes.append(f"{len(w._coupes)} passage(s) enlevé(s)")
             morceaux.append("Coupes : " + (", ".join(coupes) if coupes else "aucune, le film est gardé en entier") + ".")
+            if self.apercu_vu():
+                annonce = estimation.annonce(w)
+                if annonce:
+                    morceaux.append(annonce)
         self.resume.setText(" ".join(morceaux))
-        self.actualiser()
 
     def actualiser(self) -> None:
         """Appelé à chaque mise à jour de l'écran : l'aperçu vu, et ce qu'il reste à faire."""
@@ -703,6 +709,7 @@ class Assistant(QWidget):
             self.consigne.setText("Regardez d'abord l'avant / après. « Lancer la restauration » s'allume ensuite.")
         self.voir.style().unpolish(self.voir)
         self.voir.style().polish(self.voir)
+        self._ecrire_resume()
 
     def peut_lancer(self) -> bool:
         return self.pages.currentWidget() is self._page_fin and self.apercu_vu()

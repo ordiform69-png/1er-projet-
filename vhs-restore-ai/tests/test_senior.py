@@ -55,12 +55,23 @@ def test_etape_suivante_designee_et_comparaison(app, tools, samples, monkeypatch
 
 def test_aide_et_premier_lancement(app, tools, monkeypatch):
     vus = []
-    monkeypatch.setattr(QMessageBox, "exec", lambda self: vus.append(self.windowTitle()) or 0)
+    textes = []
+
+    def capter(self):
+        vus.append(self.windowTitle())
+        textes.append(self.text())
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", capter)
     win = MainWindow(tools)
     win.maybe_welcome()                       # en test, pas de préférences : rien ne s'ouvre
     assert vus == []
     win.help_btn.click()
     assert vus == ["Bienvenue dans VHS Restore AI"]
+    assert "Ce que le logiciel ne peut pas faire" in textes[0]
+    assert "détail absent de la bande" in textes[0]
+    assert "renumériser ou couper" in textes[0]
+    assert "regardez toujours l'avant / après" in textes[0]
     win.close()
 
 
