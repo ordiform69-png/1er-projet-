@@ -508,8 +508,8 @@ class Assistant(QWidget):
         if getattr(self, "_style_cle", None) != cle:
             self._style_cle = cle
             self.setStyleSheet(
-                f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{18 * e:.0f}pt;}}"
-                f"QLabel#titreAssistant {{font-weight:700; font-size:{18 * e:.0f}pt;}}"
+                f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
+                f"QLabel#titreAssistant {{font-weight:700; font-size:{16 * e:.0f}pt;}}"
                 f"QLabel#rienAChanger {{font-weight:700; font-size:{14 * e:.0f}pt; color:{theme.TEXTE};}}"
                 f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
                 f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
