@@ -149,7 +149,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert win.preview is not None and win.run_btn.isEnabled()
     assert "Durée estimée" in a.resume.text() and "sur cet ordinateur" in a.resume.text()
     assert "Il faut environ" in a.resume.text() and "il en reste" in a.resume.text()
-    assert win.status.text().startswith("Aperçu prêt") and "Durée estimée" in win.status.text()
+    assert win.status.text() == "Comparez avec les boutons «\u00a0Avant\u00a0» et «\u00a0Après\u00a0»."
     assert (win.width(), win.height()) == (1280, 641)
     win.profile_buttons["fidele"].click()                                  # réglage changé : aperçu à revoir
     assert not win.run_btn.isEnabled() and a.voir.text() == "Voir l'avant / après"

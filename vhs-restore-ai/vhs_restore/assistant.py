@@ -388,7 +388,7 @@ class Assistant(QWidget):
         self._style_cle = cle
         self.setStyleSheet(
             f"QLabel#etapeAssistant {{font-weight:bold; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
-            f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
+            f"QLabel#consigneAssistant {{font-weight:normal;}}"
             f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
             f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
             f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
@@ -764,8 +764,7 @@ class Assistant(QWidget):
             self.voir.setText("Revoir l'avant / après")
             self.voir.setObjectName("secondaire")
             self.voir.setMinimumHeight(44)
-            self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
-                                  "« Lancer la restauration », en bas à droite. Sinon, « Retour ».")
+            self.consigne.setText("Si le résultat vous plaît : « Lancer la restauration », en bas à droite.")
         else:
             self.voir.setText("Voir l'avant / après")
             self.voir.setObjectName("action")
