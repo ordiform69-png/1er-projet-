@@ -39,6 +39,11 @@ QPushButton#section:checked {{
     background-position: center right;
     background-origin: content;
 }}
+QPushButton#action[grand="true"] {{
+    font-size: 16pt;
+    font-weight: 700;
+    padding: 0px 16px;
+}}
 """
 
 
@@ -352,7 +357,10 @@ def installer(w):
     etat.addWidget(w.s_progress)
     pied.addWidget(w.s_cancel)
     pied.addWidget(w.run_btn)
-    w.run_btn.setMinimumHeight(52)
+    w.run_btn.setProperty("grand", True)
+    w.run_btn.setMinimumSize(400, 64)
+    w.run_btn.setMaximumSize(400, 64)
+    w.run_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     w.s_status.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
     for combo in page.findChildren(QComboBox):
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)

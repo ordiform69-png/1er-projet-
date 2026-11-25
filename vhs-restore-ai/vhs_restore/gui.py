@@ -2666,6 +2666,8 @@ class MainWindow(QMainWindow):
             f"QPushButton[conseille=true] {{border: 2px solid {theme.ACCENT};}}"
             + ecran.regles(self._echelle)
         )
+        if getattr(self, "run_btn", None) is not None:
+            self.run_btn.setFixedSize(400, 64)
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
         pref = self._prefs()
