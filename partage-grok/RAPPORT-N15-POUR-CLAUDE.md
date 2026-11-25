@@ -1,71 +1,70 @@
 # Rapport n°15 pour Claude
 
 Branche `grok/estimation`, partie de `ccr-5856e8d6-8xt8uh` au commit `c25f265`.
-Ni fusion, ni pull request. La suite complète n'a pas été lancée (demandé : trop longue).
+Ni fusion, ni pull request. Un commit par chantier ; le point 1 a d'abord été poussé incomplet (`065513f`), puis complété par-dessus, sans réécrire l'historique.
 
 ## Où
 
-| Chantier | Commit |
+| Commit | Chantier |
 |---|---|
-| Branche vide, identique à `c25f265` | `c25f265` |
-| 2. Harmoniques du ronflement | `78d2e33` |
-| 3. Aide « Ce que le logiciel ne peut pas faire » | `4d6472a` |
-| 1. Durée estimée, place disque, phrase de veille | ce commit (voir `git log -1`) |
+| `78d2e33` | 2. Harmoniques du ronflement |
+| `4d6472a` | 3. Aide « Ce que le logiciel ne peut pas faire » |
+| `065513f` | 1. Première version : durée et place (résumé et ligne d'état seulement) |
+| `7b418aa` | 1. Complété : phrase à côté de « Lancer », place, outils manquants |
+| `249cedc` | 3. Le profil « Maximum » s'affiche « Au plus fort » |
+| ce fichier | Rapport |
 
 ## Fait
 
-2. `audio_filters` : quand `audio_mains_hz` vaut 50 ou 60, encoches `bandreject` à 1×, 2×, 3× et 4× (150/200 Hz ou 180/240 Hz), `t=q:w=30`. Le reste de la chaîne n'a pas changé.
+1. **Durée avant de lancer.** L'aperçu (10 s, les mêmes réglages, preset `veryfast`) chronomètre seulement l'export restauré, pas la comparaison (`PreviewResult.restauration_s`). Ce temps est rapporté à la durée gardée : début, fin, et passages enlevés. Phrase : « Environ 2 heures sur cet ordinateur. Vous pouvez faire autre chose pendant ce temps. » Elle est à l'étape « Vérifier et lancer », et en réglages libres à côté de « Lancer la restauration ».
 
-3. Fin de « Aide » (`show_welcome`) : cinq phrases, vouvoiement. « Maximum » n'a pas été renommé (l'assistant dit déjà « Le plus beau, plus long »).
+   Place : `pipeline.disk_needs`, fichier final et temporaires s'ils sont sur le même disque, marge 1,1 comme le contrôle déjà en place. « Il faut environ 6 Go ; il en reste 120 Go dans le dossier choisi. » S'il manque de la place : « Il manque de la place… », avant de lancer.
 
-1. L'aperçu chronomètre seulement `export` des 10 s (`PreviewResult.restauration_s`), pas la comparaison. L'estimation étend ce temps à la durée gardée (`passages_gardes` : début, fin, passages enlevés). Affichage :
-- assistant : dans `self.resume` de « Vérifier et lancer », seulement après l'avant / après ;
-- réglages libres : à la fin de la ligne `s_status`, qui commence toujours par « Aperçu prêt » ;
-- rien à côté de « Lancer » (`note_lancer` non touché).
-Place : `pipeline.disk_needs` (final + temporaire si le dossier temporaire est le même disque) et `shutil.disk_usage` du dossier de sortie. S'il manque de la place (marge 1,1, comme `check_disk_space`), la phrase commence par « Il manque de la place ».
-La veille était déjà empêchée (`gui._keep_awake` dans `Worker.run`). Seule la phrase d'attente a changé : « L'ordinateur ne se mettra pas en veille. »
-Outils manquants (QTGMC, IA) : non faits (facultatif).
+   Outils : si le profil voulait QTGMC sur une vidéo entrelacée et qu'il n'est pas installé : « Le désentrelacement le plus fin n'est pas installé : un autre, un peu moins fin, sera utilisé. » Si le profil voulait l'IA et qu'elle n'est pas installée : « L'amélioration par intelligence artificielle n'est pas installée : elle ne sera pas utilisée. »
+
+   La veille était déjà empêchée (`SetThreadExecutionState` dans `Worker.run`). La phrase de patience le dit : « Vous pouvez faire autre chose pendant ce temps. L'ordinateur ne se mettra pas en veille. » La même phrase est au point 3 de « Aide ».
+
+2. **Ronflement.** Les deux encoches (fondamentale et double) deviennent quatre, seulement si 50 ou 60 Hz est choisi : 50/100/150/200 ou 60/120/180/240, toujours `bandreject` `t=q:w=30`. Rien par défaut. La voix à 300 Hz n'est pas dans ces encoches.
+
+3. **Mots.** La clé reste `maximum`. Les fichiers gardent `_restaure_maximum`. À l'écran le nom est « Au plus fort », avec « Nettoyage fort, plus long » sous les images du rendu et sur la carte. Police des images figée à 11 pt pour que la ligne tienne à 150 %. Les cartes réduisent la police si la tuile est basse.
+
+   « Aide » contient « Ce que le logiciel ne peut pas faire » : détail absent, tracking et bande abîmée, numérisation, couleurs estimées, textures inventées par l'IA.
+
+## Interdit respecté
+
+- Moteur de restauration inchangé, sauf les deux harmoniques (3× et 4×) du point 2. `pipeline.py` n'a reçu qu'un commentaire sur `restauration_s`.
+- Aucune nouvelle dépendance Python.
+- Aucun test affaibli : les textes attendus ont été mis à jour quand l'écran a changé (« Maximum » → « Au plus fort », phrase de patience).
+- Pas de fusion, pas de pull request, pas d'étiquette de version.
+- Vouvoiement. Les options sont nommées comme à l'écran.
+- 1280 × 641, sans défilement horizontal, sans défilement vertical à 100 % et 125 % (vérifié sur l'assistant et l'écran libre).
 
 ## Vérifié
 
-Python 3.12, `QT_QPA_PLATFORM=offscreen`, timeout 900 s par fichier. Code de sortie 0 partout.
+Python 3.12.15, PySide6 6.12, FFmpeg 7.0.2, `QT_QPA_PLATFORM=offscreen`.
 
-| Fichier | Résultat |
-|---|---|
-| `tests/test_son.py` | 7 passed |
-| `tests/test_tous_reglages.py` | 39 passed, 3 skipped |
-| `tests/test_conseils.py` | 6 passed |
-| `tests/test_bande.py` | 4 passed |
-| `tests/test_senior.py` | 5 passed |
-| `tests/test_guide_coupes.py` | 2 passed |
-| `tests/test_estimation.py` | 3 passed |
-| `tests/test_assistant.py` | 9 passed |
-| `tests/test_ecran_unique.py` | 9 passed |
-| `tests/test_etats_interface.py` | 4 passed |
+Suite complète : **353 passed, 15 skipped, code 0**, en 2763,70 s (46 min 04 s).
 
-`test_parcours_complet_d_un_film` vérifie la phrase dans le résumé et dans la ligne d'état, et que la fenêtre reste 1280 × 641. `test_chaque_etape_tient_a_1280_641` et `test_ecran_unique` (100, 125 et 150 %) restent verts. Aucun test assoupli.
+Une passe précédente s'était arrêtée à 352 passed, 1 failed : `test_publication_apres_les_controles` ne trouvait pas `.github/workflows/vhs-restore-windows.yml` dans un clone partiel. Le fichier rétabli, ce test passe. Ce n'était pas une régression du code.
+
+Avant cela, zone touchée : **42 passed, code 0** (5 min 10 s) — `test_estimation`, `test_son` (encoches et énergie), `test_assistant` (parcours, 1280 × 641 à 100/125/150 %, texte des tuiles à 150 %), `test_ecran_unique`, `test_guide_coupes`, `test_ergonomie`, `test_senior`.
+
+Énergie (son de synthèse 50 + 150 + 200 + 300 Hz, encoches Q=30) : à 150 Hz et 200 Hz, baisse de plus de 12 dB ; à 300 Hz, écart inférieur à 1 dB (`78d2e33`).
 
 ## Mesures
 
-Film de synthèse 60,0 s, 720×576, 25 ips, progressif, son 300 Hz, profil Équilibré, sans coupe. FFmpeg 7.0.2.
+Film de synthèse 720×576, 25 i/s, profil Équilibré, sans IA. L'aperçu restaure 10 s. L'export complet est en preset `medium` (l'aperçu est en `veryfast`). Pas de coefficient ajouté : l'estimation est donc un peu courte.
 
-| | Secondes |
-|---|---|
-| Restauration seule de l'aperçu (10 s, preset `veryfast`) | 3,26 |
-| Estimation (× 6) | 19,6 — phrase « moins d'une minute » |
-| Export réel du film entier (preset `medium`) | 28,6 |
-| Réel / estimation | 1,46 |
+| Durée du film | Restauration des 10 s | Estimation | Export réel | Réel / estimation |
+|---|---|---|---|---|
+| 16 s | 2,97 s | 4,76 s | 5,68 s | 1,19 |
+| 40 s | 3,17 s | 12,69 s | 13,73 s | 1,08 |
 
-L'estimation est trop courte d'environ un tiers : l'aperçu est en `veryfast`, l'export en `medium`. Les mots (« moins d'une minute ») restent justes sur ce film court. Aucun coefficient n'a été ajouté pour compenser. Place calculée : environ 0,06 Go pour le fichier, 0 Go de temporaire (pas d'IA ni d'Analog Repair).
+Sur ces courts métrages, l'écart vient surtout du preset, pas de la règle de trois. Sur une cassette de 2 h le même écart de preset reste ; le chiffre dit « environ ».
 
 ## Non testé
 
-- Suite complète.
-- Vrai Windows, et la mise en veille réelle (`SetThreadExecutionState` n'a pas été rejoué).
-- Cassette de 2 ou 3 heures.
-- Message si QTGMC ou l'IA manquent.
-- Vrai boîtier de numérisation.
-
-## Bloqué
-
-Rien. Les copies locales ont disparu une fois en cours de route ; chaque chantier a été poussé dès qu'il tenait, pour ne pas rester seulement en local.
+- Un vrai PC Windows, et la mise en veille réelle (`SetThreadExecutionState` n'est appelé que si `sys.platform == "win32"`).
+- Une cassette de 2 ou 3 heures : les mesures ci-dessus sont des films de synthèse de 16 s et 40 s.
+- QTGMC et Real-ESRGAN installés : les phrases « pas installé » sont couvertes par le test unitaire, pas par un outil vraiment présent.
+- SmartScreen, et un vrai boîtier de numérisation.
