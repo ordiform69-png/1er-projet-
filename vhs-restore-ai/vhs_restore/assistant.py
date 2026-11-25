@@ -175,6 +175,31 @@ def _texte(texte: str = "", nom: str = "") -> QLabel:
     return lab
 
 
+class _Resume(QLabel):
+    """Résumé enrichi de « Vérifier et lancer ».
+
+    text() reste la lecture simple (mêmes phrases que l'écran, sans les balises) :
+    les tests et un lecteur d'écran y retrouvent « Lumière et couleurs : comme proposé. ».
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWordWrap(True)
+        self.setTextFormat(Qt.RichText)
+        self.setObjectName("resumeAssistant")
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self._lecture = ""
+
+    def definir(self, html: str, lecture: str) -> None:
+        self._lecture = lecture
+        self.setText(html)
+        self.setAccessibleDescription(lecture)
+
+    def text(self) -> str:  # noqa: A003
+        return self._lecture
+
+
 class Assistant(QWidget):
     def __init__(self, w) -> None:
         super().__init__()
@@ -343,8 +368,7 @@ class Assistant(QWidget):
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(10)
-        self.resume = _texte()
-        self.resume.setObjectName("resumeAssistant")
+        self.resume = _Resume()
         v.addWidget(self.resume)
         self.voir = _bouton("Voir l'avant / après", "action", 56)
         self.voir.clicked.connect(self.w.start_preview)
@@ -666,28 +690,68 @@ class Assistant(QWidget):
         self.actualiser()
 
     def _ecrire_resume(self) -> None:
+        """Lignes (libellé en gras), puis un trait, puis la durée et la place une seule fois."""
+        import html
+
         w = self.w
         s = w.settings(with_advice=True)
-        morceaux = [f"Rendu : {s.profile.name}.",
-                    "Lumière et couleurs : " + (lumiere.phrase(w.lumiere.reglages()) or "comme proposé") + "."]
+        lecture: list[str] = []
+        lignes: list[str] = []
+
+        def ligne(libelle: str, valeur: str) -> None:
+            lecture.append(f"{libelle} {valeur}")
+            lignes.append(f"<b>{html.escape(libelle)}</b> {html.escape(valeur)}")
+
+        ligne("Rendu :", f"{s.profile.name}.")
+        ligne("Lumière et couleurs :", (lumiere.phrase(w.lumiere.reglages()) or "comme proposé") + ".")
         if self._film():
-            if w.info is not None and w.info.has_audio:
-                morceaux.append("Son : " + ("nettoyé" if s.restore_audio else "gardé tel quel")
-                                + (f", {phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min)}" if
-                                   phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min) else "") + ".")
-            coupes = []
+            morceaux = []
             if w.trim_start.value():
-                coupes.append(f"début à {hms(w.trim_start.value())}")
+                morceaux.append(f"début à {hms(w.trim_start.value())}")
             if w.trim_end.value():
-                coupes.append(f"fin à {hms(w.trim_end.value())}")
-            if w._coupes:
-                coupes.append(f"{len(w._coupes)} passage(s) enlevé(s)")
-            morceaux.append("Coupes : " + (", ".join(coupes) if coupes else "aucune, le film est gardé en entier") + ".")
-            if self.apercu_vu():
-                annonce = estimation.annonce(w)
-                if annonce:
-                    morceaux.append(annonce)
-        self.resume.setText(" ".join(morceaux))
+                morceaux.append(f"fin à {hms(w.trim_end.value())}")
+            n = len(w._coupes)
+            if n == 1:
+                morceaux.append("1 passage au milieu")
+            elif n > 1:
+                morceaux.append(f"{n} passages au milieu")
+            ligne("Passages enlevés :", (", ".join(morceaux) if morceaux else "aucun") + ".")
+            if w.info is not None and w.info.has_audio:
+                son = "nettoyé" if s.restore_audio else "gardé tel quel"
+                detail = phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min)
+                if detail:
+                    son += ", " + detail
+                ligne("Son :", son + ".")
+
+        bas_lecture: list[str] = []
+        bas: list[str] = []
+        rouge = "#ff8a80" if theme.MODE == "sombre" else "#a40000"
+
+        def annonce(texte: str, alerte: bool = False) -> None:
+            bas_lecture.append(texte)
+            style = "font-size:115%; font-weight:bold;"
+            if alerte:
+                style += f" color:{rouge};"
+            bas.append(f'<span style="{style}">{html.escape(texte)}</span>')
+
+        if not self.apercu_vu():
+            annonce("La durée s'affichera après l'avant / après.")
+        else:
+            obtenu = estimation.lignes(w)
+            if obtenu:
+                temps, place = obtenu
+                if place.startswith("Il manque"):
+                    annonce(place, alerte=True)
+                    annonce(temps)
+                else:
+                    annonce(temps)
+                    if place:
+                        annonce(place)
+
+        html_texte = "<br>".join(lignes)
+        if bas:
+            html_texte += "<hr>" + "<br>".join(bas)
+        self.resume.definir(html_texte, " ".join(lecture + bas_lecture))
 
     def actualiser(self) -> None:
         """Appelé à chaque mise à jour de l'écran : l'aperçu vu, et ce qu'il reste à faire."""
