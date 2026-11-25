@@ -3902,7 +3902,9 @@ def main() -> int:
     if traduction.load(QLocale(QLocale.French, QLocale.France), "qtbase", "_",
                        QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
         app.installTranslator(traduction)
-    theme.set_mode(str(QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage", "clair") or "clair"))
+    choix = QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage")
+    # Sans choix enregistré : clair, comme la maquette. Seul « sombre » explicite reste sombre.
+    theme.set_mode("sombre" if str(choix) == "sombre" else "clair")
     theme.apply(app)
     win = MainWindow()
     win.showMaximized()
