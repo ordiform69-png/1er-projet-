@@ -26,6 +26,29 @@ def test_contrastes_aa(mode):
         theme.set_mode("sombre")
 
 
+@pytest.mark.parametrize("mode", ["sombre", "clair"])
+def test_action_principale_verte(mode):
+    """Suivant, avant / après et Lancer allumé : texte blanc sur vert, au moins 4,5:1."""
+    theme.set_mode(mode)
+    try:
+        assert theme.VERT_TEXTE == "#ffffff"
+        couples = (
+            ("action", theme.VERT_TEXTE, theme.VERT),
+            ("survol", theme.VERT_TEXTE, theme.VERT_SURVOL),
+            ("pressée", theme.VERT_TEXTE, theme.VERT_PRESSE),
+            ("éteinte", theme.VERT_ETEINT_TEXTE, theme.VERT_ETEINT),
+            ("repère à venir", theme.TEXTE_DESACTIVE, theme.FOND),
+        )
+        for nom, fg, bg in couples:
+            ratio = theme.contraste(fg, bg)
+            assert ratio >= 4.5, f"{mode} — {nom} : {fg} sur {bg} = {ratio:.2f}"
+        qss = theme._qss()
+        assert theme.VERT in qss and theme.VERT_TEXTE in qss
+        assert "QPushButton#action" in qss
+    finally:
+        theme.set_mode("sombre")
+
+
 def test_polices_ofl_chargees(app):
     theme.apply(app)
     assert theme.BODY_FAMILY == "Inter"
