@@ -48,47 +48,26 @@ def test_balayage_arrete_au_repos(app):
     bar.deleteLater()
 
 
-def _bouton_visible(scroll, btn, app) -> bool:
-    app.processEvents()
-    vp = scroll.viewport()
-
-    def dedans() -> bool:
-        pt = btn.mapTo(vp, QPoint(8, btn.height() // 2))
-        return vp.rect().contains(pt)
-
-    if dedans():
-        return True
-    barre = scroll.verticalScrollBar()
-    if barre.maximum() <= barre.minimum():
-        return False
-    barre.setValue(barre.maximum())
-    app.processEvents()
-    return dedans()
-
-
 @pytest.mark.parametrize("taille", [(1280, 720), (1366, 768)])
-def test_options_avancées_défilent_jusqu_au_bouton(app, tools, taille):
+def test_lancer_toujours_visible(app, tools, taille):
     win = MainWindow(tools)
     win.show()
     win.resize(*taille)
-    win.set_advanced(True)
     app.processEvents()
-    scroll = win.pages.widget(1)
-    assert isinstance(scroll, QScrollArea)
-    assert _bouton_visible(scroll, win.run_btn, app)
+    assert win.run_btn.isVisible()
+    assert win.rect().contains(win.run_btn.mapTo(win, win.run_btn.rect().bottomRight()))
     win.close()
 
 
 @pytest.mark.parametrize("taille", [(1366, 740), (1280, 720), (1093, 600)])
-def test_options_avancées_sans_défilement_horizontal(app, tools, taille):
-    """Portable 1366×768, 1280×720, et 1366 à 125 % (≈ 1093 px utiles) : rien n'est coupé à droite."""
+def test_installation_accessible(app, tools, taille):
     win = MainWindow(tools)
-    win.show()
     win.resize(*taille)
-    win.set_advanced(True)
+    win.show()
+    win.details.click()
     app.processEvents()
-    scroll = win.pages.widget(1)
-    assert scroll.horizontalScrollBar().maximum() == 0
-    droite = win.check_btn.mapTo(scroll.viewport(), QPoint(win.check_btn.width(), 0)).x()
-    assert droite <= scroll.viewport().width()
+    assert win.size().toTuple() == taille
+    assert win.check_btn.isVisible()
+    dlg = win.check_btn.window()
+    assert dlg.rect().contains(win.check_btn.mapTo(dlg, win.check_btn.rect().bottomRight()))
     win.close()

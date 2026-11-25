@@ -30,9 +30,13 @@ def test_passages_au_milieu(tools, samples):
     win.load_file(str(samples["long"]))
     _attendre(app, win)
 
-    # page simple : un seul bouton, « Couper ici », cliqué deux fois
-    assert win.s_passage_deb.isHidden() and win.s_passage_fin.isHidden() and win.s_autre_facon.isHidden()
-    assert not win.trim_passage_deb.isHidden() and not win.trim_passage_fin.isHidden()   # options avancées
+    win.show()
+    win.sections["Couper le film"][0].click()
+    assert win.s_couper.isVisible()
+    assert not win.trim_passage_deb.isVisible() and not win.trim_passage_fin.isVisible()
+    _cliquer(win, "Détails des coupes")
+    assert win.trim_passage_deb.isVisible() and win.trim_passage_fin.isVisible()
+    win.trim_passage_deb.window().close()
     win.start_spin.setValue(10)
     win.s_couper.click()
     assert "reprend" in win.s_couper.text()

@@ -74,9 +74,9 @@ def test_bad_file_shows_error(app, tools, samples, monkeypatch):
 
 def test_source_selector(app, tools, samples):
     win = MainWindow(tools)
-    win.set_advanced(True)
     win.load_file(str(samples["film18"]))
     wait(app, win)
+    win.sections["Régler l'image"][0].click()
     assert win.source_combo.currentData() is None and win.source() == "film"   # suggestion
     assert win.cadence_combo.isVisibleTo(win) and not win.deint_combo.isEnabled()
     assert win.flicker_check.isVisibleTo(win)
@@ -100,7 +100,7 @@ def test_simple_mode(app, tools, samples, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QMessageBox
     monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
     win = MainWindow(tools)
-    assert win.pages.currentIndex() == 0                           # démarre en mode simple
+    assert win.gauche.currentIndex() == 0 and win.choisir.isVisibleTo(win)
     assert win.s_choose.isEnabled() and not win.s_run.isEnabled() and not win.s_cancel.isEnabled()
     src = tmp_path / "films"
     src.mkdir()
@@ -119,8 +119,7 @@ def test_simple_mode(app, tools, samples, tmp_path, monkeypatch):
     wait(app, win)
     assert win.s_status.text().startswith("Terminé : 1 fichier")
     assert len(list((src / "Films restaurés").glob("*.mp4"))) == 1
-    win.set_advanced(True)
-    assert win.pages.currentIndex() == 1
+    assert win.s_fini.isVisibleTo(win) and not win.options.isVisibleTo(win)
     win.close()
 
 

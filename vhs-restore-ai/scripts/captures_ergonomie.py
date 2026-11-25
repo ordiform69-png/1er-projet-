@@ -98,16 +98,13 @@ for mode in ("sombre", "clair"):
     if hasattr(win, "s_fini"):
         win.s_fini.setVisible(False)
     grab(win, f"{mode}-simple-erreur.png")
-    win.set_advanced(True)
-    pump()
-    grab(win, f"{mode}-avance-haut.png")
-    scroll = win.pages.widget(1)
-    if isinstance(scroll, QScrollArea):
-        scroll.verticalScrollBar().setValue(scroll.verticalScrollBar().maximum())
+    win._update_state()
+    for nom, (bouton, _) in win.sections.items():
+        if not bouton.isChecked():
+            bouton.click()
         pump()
-    grab(win, f"{mode}-avance-bas.png")
+        grab(win, f"{mode}-{nom}.png")
     if hasattr(win, "set_taille_texte"):
-        win.set_advanced(False)
         win.resize(1093, 600)
         win.set_taille_texte(150, annoncer=False)
         pump()

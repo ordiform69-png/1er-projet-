@@ -163,8 +163,8 @@ def test_deux_barres_meme_coupe(tools, samples, monkeypatch):
     win._coupes = [(10.0, 25.0)]
     win._rafraichir_barre()
     assert win.barre.coupes == [(10.0, 25.0)]
-    assert win.barre_avancee.coupes == win.barre.coupes
-    assert win.barre_avancee is not win.barre
+    assert win._barres() == [win.barre]
+    assert win.barre.coupes == win._coupes
     win.close()
 
 
@@ -186,10 +186,10 @@ def test_derniere_demande_gagne(tools, samples, monkeypatch):
     win._demander_moment()
     for _ in range(80):
         app.processEvents()
-        if "40" in win.s_moment.accessibleName() or "40" in win.s_moment_heure.text():
+        if "40" in win.s_compare.accessibleDescription() or "40" in win.s_moment_heure.text():
             break
         time.sleep(0.05)
-    texte = win.s_moment.accessibleName() + " " + win.s_moment_heure.text()
+    texte = win.s_compare.accessibleDescription() + " " + win.s_moment_heure.text()
     assert "40" in texte, (texte, vus)
     win.close()
 
@@ -203,20 +203,17 @@ def test_trio_visible_sans_defilement_horizontal(tools, samples, monkeypatch):
             win.show()
             win.set_taille_texte(pct, annoncer=False)
             app.processEvents()
-            zone = win.pages.widget(0)
-            zone.widget().layout().activate()
+            bouton, zone = win.sections["Couper le film"]
+            if not bouton.isChecked():
+                bouton.click()
             app.processEvents()
-            assert win.s_moment.height() >= 180, (pct, win.s_moment.height())
-            zone.ensureWidgetVisible(win.s_couper, 0, 0)
+            zone.ensureWidgetVisible(win.s_couper)
             app.processEvents()
-            vue = zone.viewport().rect()
-            for w in (win.s_moment, win.barre, win.s_couper):
-                coin = w.mapTo(zone.viewport(), w.rect().topLeft())
-                assert coin.x() >= -2, pct
-                assert coin.x() + w.width() <= vue.width() + 2, pct
-            haut = win.s_moment.mapTo(zone.viewport(), QPoint(0, 0)).y()
-            bas = win.s_couper.mapTo(zone.viewport(), QPoint(0, win.s_couper.height())).y()
-            assert 0 <= haut < bas <= vue.height() + 2, (pct, haut, bas, vue.height())
+            for w in (win.s_compare, win.barre, win.s_couper):
+                assert w.isVisible()
+                assert win.rect().contains(w.mapTo(win, w.rect().topLeft()))
+                assert win.rect().contains(w.mapTo(win, w.rect().bottomRight()))
+            assert win.s_compare.height() >= 180
             assert zone.horizontalScrollBar().maximum() == 0
     finally:
         win.close()
@@ -231,7 +228,7 @@ def test_apercu_avance_recoit_limage_du_moment(tools, samples, tmp_path):
         qimg.save(str(img))
         win.preview = None
         win._moment_pret(12, str(img), win._gen_images)
-        vue = win.compare._w[0]
+        vue = win.compare
         assert vue._moment is not None and not vue._moment.isNull()
         assert vue.before is None
         assert "12" in vue._moment_texte

@@ -89,21 +89,26 @@ def test_photo_cache_les_reglages_de_film(app, tools, samples, deux_dossiers):
     _film, img = deux_dossiers
     win = MainWindow(tools)
     win.show()
-    win.set_advanced(True)
     win.load_file(str(img))
     wait(app, win)
-    page = win.pages.widget(1).widget()
-    for wd in (win._card_son, win.deint_combo, win.tape_check, win.hq_check, win.stab_check,
+    page = win.centralWidget()
+    for wd in (win.sections["Régler le son"][0], win.deint_combo, win.tape_check, win.hq_check, win.stab_check,
                win.mask_spin, win.chroma_spin, win.start_spin, win.trim_start, win.source_combo):
         assert not wd.isVisibleTo(page), wd
-    for wd in (win.cast_check, win.ai_check, win.profile_buttons["fidele"], win.run_btn):
+    for wd in (win.ai_check, win.profile_buttons["fidele"], win.run_btn):
         assert wd.isVisibleTo(page), wd
+    win.sections["Régler l'image"][0].click()
+    assert win.cast_check.isVisibleTo(page) and not win.deint_combo.isVisibleTo(page)
+    assert not win.sections["Régler le son"][0].isVisible() and not win.sections["Couper le film"][0].isVisible()
     notes = win.warn_label.text()                              # pas de messages de film
     assert "Photo noir et blanc" in notes and "Film" not in notes and "piste son" not in notes
     win.load_file(str(samples["pal_tff"]))                   # retour à un film : tout réapparaît
     wait(app, win)
-    for wd in (win._card_son, win.deint_combo, win.hq_check, win.start_spin, win.trim_start, win.source_combo):
+    assert win.sections["Régler le son"][0].isVisible() and win.sections["Couper le film"][0].isVisible()
+    for wd in (win.deint_combo, win.hq_check, win.start_spin, win.source_combo):
         assert wd.isVisibleTo(page), wd
+    win.sections["Couper le film"][0].click()
+    assert win.trim_start.isVisibleTo(page)
     win.close()
 
 
