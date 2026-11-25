@@ -148,6 +148,7 @@ def test_advice_checkbox(app, tools, samples, tmp_path):
     win = MainWindow(tools)
     win.load_file(str(src))
     wait(app, win)
+    win.sections["Qualité"][0].click()
     assert win.s_advice.isVisibleTo(win) and win.s_advice.isChecked()     # défauts repérés : cochée d'office
     assert "seul côté" in win.s_info.text() and "côté gauche" in win.s_info.toolTip()   # simple / détail
     assert win.settings().audio_channel_fix == "left"             # corrigé d'office

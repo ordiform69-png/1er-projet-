@@ -1428,7 +1428,9 @@ class MainWindow(QMainWindow):
         self.profile_buttons: dict[str, QAbstractButton] = {}
         for p in PROFILES.values():
             ic, tag = PROFILE_LOOK.get(p.key, ("etincelle", ""))
-            tile = ProfileTile(p.name, ic, tag)
+            tile = QPushButton(p.name)
+            tile.setCheckable(True)
+            tile.setObjectName("profilCompact")
             tile.setToolTip(p.description)
             tile.installEventFilter(self._halos[0])
             self.profile_group.addButton(tile)
@@ -1821,6 +1823,9 @@ class MainWindow(QMainWindow):
         else:
             suite = " Cliquez sur « Voir l'avant / après »."
         self._set_simple_info(prefixe + self._info_debut + suite)
+
+    def defauts_lisibles(self):
+        return [_en_clair(a) for a in self.advice]
 
     def _set_simple_info(self, text: str) -> None:
         """Texte du mode simple : des mots de tous les jours ; le détail technique en infobulle."""
@@ -2363,7 +2368,7 @@ class MainWindow(QMainWindow):
         photo_mode = getattr(self, "is_photo", False)
         sound = bool(self.info is not None and self.info.has_audio)
         self.play_btn.setEnabled(has_prev and not busy)
-        self.play_btn.setVisible(not photo_mode)
+        self.play_btn.setVisible(has_prev and not photo_mode)
         for b in (self.s_hear_orig, self.s_hear_new):
             b.setEnabled(has_prev and sound and not busy)          # film muet : rien à écouter
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
@@ -2663,7 +2668,11 @@ class MainWindow(QMainWindow):
             f"{{font-size: {10 * self._echelle}pt;}}"
             f"QLabel#nomFilm {{font-size: {16 * self._echelle}pt; font-weight: bold;}}"
             "QPushButton {padding: 3px 6px;} QCheckBox {spacing: 4px;}"
-            f"QPushButton[conseille=true] {{border: 2px solid {theme.ACCENT};}}"
+            f"QWidget#page {{background:{theme.FOND};}}"
+            f"QPushButton#profilCompact:checked {{border:2px solid {theme.ACCENT}; font-weight:bold;}}"
+            "QPushButton[conseille=true], QPushButton#action:enabled {background:#1855a5;"
+            "color:white;border:2px solid #1855a5;border-radius:6px;}"
+            "QPushButton[conseille=true]:hover, QPushButton#action:enabled:hover {background:#104584;}"
         )
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)

@@ -54,6 +54,8 @@ def test_photo_travail_et_resultat_gardent_le_pied(tools, monkeypatch, tmp_path,
         w.set_taille_texte(pct, annoncer=False)
         w.show()
         w._photo_loaded(MediaInfo(tmp_path / "Photo de famille.jpg", saturation_high=0))
+        assert not any(b.isChecked() for b, _ in w.sections.values())
+        w.sections["Qualité"][0].click()
         assert w.s_colorize.isVisible()
         assert [nom for nom, (b, _) in w.sections.items() if b.isVisible()] == [
             "Qualité", "Régler l'image"]

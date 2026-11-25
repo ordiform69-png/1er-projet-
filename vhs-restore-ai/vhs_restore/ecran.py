@@ -49,8 +49,18 @@ def installer(w):
     w.autre.clicked.connect(w._choose_file)
     root.setContentsMargins(8, 4, 8, 4)
     root.setSpacing(3)
-    root.addLayout(ligne(w.titre_fichier, w.details, w.autre, w.help_btn, w.theme_btn,
-                         *w._taille_btns.values()))
+    affichage = QPushButton("Affichage…")
+    preferences = QDialog(w)
+    preferences.setWindowTitle("Affichage")
+    pref = QVBoxLayout(preferences)
+    pref.addWidget(QLabel("Taille du texte"))
+    pref.addLayout(ligne(*w._taille_btns.values()))
+    pref.addWidget(w.theme_btn)
+    fermer_pref = QPushButton("Fermer")
+    fermer_pref.clicked.connect(preferences.accept)
+    pref.addWidget(fermer_pref)
+    affichage.clicked.connect(preferences.open)
+    root.addLayout(ligne(w.titre_fichier, w.autre, w.details, w.help_btn, affichage))
     root.itemAt(0).layout().setStretch(0, 1)
 
     dialog = QDialog(w)
@@ -78,7 +88,11 @@ def installer(w):
     w.gauche = QStackedWidget()
     milieu.addWidget(w.gauche, 5)
     accueil = QWidget()
-    av = QVBoxLayout(accueil)
+    centre = QHBoxLayout(accueil)
+    panneau_accueil = QWidget()
+    panneau_accueil.setMaximumWidth(520)
+    centre.addWidget(panneau_accueil, 1)
+    av = QVBoxLayout(panneau_accueil)
     av.addStretch()
     w.choisir = QPushButton("Choisir un film ou une photo")
     w.choisir.setMinimumHeight(54)
@@ -93,16 +107,19 @@ def installer(w):
     iv.addWidget(CadreImage(w.s_compare), 1)
     iv.addWidget(w.s_segments)
     iv.addLayout(ligne(w.start_label, w.start_spin, w.still_combo))
-    iv.addLayout(ligne(w.preview_btn, w.play_btn))
+    iv.addLayout(ligne(w.play_btn, w.preview_btn))
     w.gauche.addWidget(image)
 
-    droite = QVBoxLayout()
-    milieu.addLayout(droite, 7)
+    w.colonne_reglages = QWidget()
+    droite = QVBoxLayout(w.colonne_reglages)
+    droite.setContentsMargins(0, 0, 0, 0)
+    milieu.addWidget(w.colonne_reglages, 7)
     w.options = QWidget()
     ov = QVBoxLayout(w.options)
     ov.setContentsMargins(0, 0, 0, 0)
     ov.setSpacing(3)
     droite.addWidget(w.options)
+    ov.setAlignment(Qt.AlignTop)
     w.sections = {}
     for nom in ("Qualité", "Couper le film", "Régler l'image", "Régler le son"):
         bouton = QPushButton(nom)
@@ -118,10 +135,12 @@ def installer(w):
         zone.setWidget(panneau)
         bouton.setStyleSheet("text-align:left; padding:1px 8px;")
         ov.addWidget(bouton)
-        ov.addWidget(zone, 1)
         zone.hide()
         w.sections[nom] = bouton, zone
         bouton.clicked.connect(lambda checked, n=nom: ouvrir(w, n if checked else None))
+
+    for _, zone in w.sections.values():
+        ov.addWidget(zone, 1)
 
     def contenu(nom):
         return w.sections[nom][1].widget().layout()
@@ -133,8 +152,11 @@ def installer(w):
     q.addWidget(w.ai_check)
     q.addLayout(ligne(w.s_colorize, w.s_aide_couleur))
     q.addWidget(w.s_colorize_note)
-    q.addLayout(ligne(w._out_btn, w.out_edit))
+
     q.addLayout(ligne(w.s_advice, w.s_aide_conseil))
+    w.resume_defauts = QLabel()
+    w.resume_defauts.setWordWrap(True)
+    q.addWidget(w.resume_defauts)
 
     c = contenu("Couper le film")
     bornes = QGridLayout()
@@ -239,8 +261,39 @@ def installer(w):
     etat = QVBoxLayout()
     pied.addLayout(etat, 1)
     etat.addWidget(w.s_note)
+    synchronisation = QWidget()
+    ligne_son = QHBoxLayout(synchronisation)
+    ligne_son.setContentsMargins(0, 0, 0, 0)
+    alerte = QLabel()
+    alerte.setWordWrap(True)
+    zero = QPushButton("Remettre le son à zéro")
+    ligne_son.addWidget(alerte, 1)
+    ligne_son.addWidget(zero)
+    etat.addWidget(synchronisation)
+
+    def actualiser_son():
+        decalage, derive = w.offset_spin.value(), w.drift_spin.value()
+        valeurs = []
+        if decalage:
+            valeurs.append(f"{'avancé' if decalage < 0 else 'retardé'} de {abs(decalage):g} ms")
+        if derive:
+            valeurs.append(f"{'ralenti' if derive < 0 else 'accéléré'} de {abs(derive):g} ms par minute")
+        alerte.setText("Son " + " et ".join(valeurs))
+        synchronisation.setVisible(bool(valeurs) and w.info is not None and not getattr(w, "is_photo", False))
+
+    def remettre_son():
+        w.offset_spin.setValue(0)
+        w.drift_spin.setValue(0)
+
+    zero.clicked.connect(remettre_son)
+    w.offset_spin.valueChanged.connect(actualiser_son)
+    w.drift_spin.valueChanged.connect(actualiser_son)
+    w.actualiser_alerte_son = actualiser_son
+    w.zero_son = zero
     etat.addWidget(w.s_status)
     etat.addWidget(w.s_progress)
+    pied.addWidget(w.out_edit)
+    pied.addWidget(w._out_btn)
     pied.addWidget(w.s_cancel)
     pied.addWidget(w.run_btn)
     w.run_btn.setMinimumHeight(52)
@@ -249,23 +302,46 @@ def installer(w):
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         combo.setMinimumContentsLength(8)
         combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
-    ouvrir(w, "Qualité")
+    ouvrir(w, None)
 
 
 def ouvrir(w, nom):
     w.s_compare.montrer_position = nom == "Couper le film"
     w.s_compare.update()
+    w.options.layout().setAlignment(Qt.AlignmentFlag(0) if nom else Qt.AlignTop)
     for titre, (bouton, zone) in w.sections.items():
-        bouton.setText(("▾  " if titre == nom else "▸  ") + titre)
+        profil = next((b.text() for b in w.profile_buttons.values() if b.isChecked()), "")
+        libelle = titre + ("   ·   " + profil if titre == "Qualité" and profil else "")
+        bouton.setText(("▾  " if titre == nom else "▸  ") + libelle)
         bouton.setAccessibleName(titre)
         bouton.setChecked(titre == nom)
         zone.setVisible(titre == nom)
 
 
 def actualiser(w, charge, photo, occupe, termine):
+    if charge and not photo and w.preview is not None:
+        w.preview_btn.setText("Refaire l’avant / après")
+    elif photo:
+        w.preview_btn.setText("Voir l'avant / après")
+    else:
+        w.preview_btn.setText("Voir 10 secondes avant / après")
+    w.preview_btn.setAccessibleName(w.preview_btn.text())
     w.titre_fichier.setText(w.info.path.name if charge else "VHS Restore AI")
     w.titre_fichier.setToolTip(w.titre_fichier.text())
     w.gauche.setCurrentIndex(int(charge))
+    w.colonne_reglages.setVisible(charge or termine)
+    w.out_edit.setVisible(charge)
+    w._out_btn.setVisible(charge)
+    source = w.info.path if charge else None
+    if getattr(w, "_source_affichee", None) != source:
+        w._source_affichee = source
+        ouvrir(w, None)
+    bouton, _ = w.sections["Qualité"]
+    profil = next((b.text() for b in w.profile_buttons.values() if b.isChecked()), "")
+    bouton.setText(("▾  " if bouton.isChecked() else "▸  ") + "Qualité   ·   " + profil)
+    defauts = ", ".join(dict.fromkeys(w.defauts_lisibles()))
+    w.resume_defauts.setText(defauts)
+    w.resume_defauts.setVisible(bool(defauts))
     w.choisir.setEnabled(not occupe)
     w.autre.setVisible(charge)
     w.autre.setEnabled(not occupe)
@@ -277,4 +353,6 @@ def actualiser(w, charge, photo, occupe, termine):
             ouvrir(w, "Qualité")
         bouton.setVisible(not photo)
     w.s_progress.setVisible(occupe)
+    w.actualiser_alerte_son()
+    w.zero_son.setEnabled(not occupe)
     w.ecouter.setEnabled(charge and w.info.has_audio and not occupe)

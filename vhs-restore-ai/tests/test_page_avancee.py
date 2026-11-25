@@ -48,7 +48,7 @@ def test_apercu_a_la_proportion_de_l_image(fenetre):
 def test_rien_de_vide_ni_de_coupe(fenetre):
     win, _ = fenetre
     assert win.still_combo.isHidden()                                     # pas de liste vide avant l'aperçu
-    assert win.preview_btn.text() == "Voir l'avant / après"               # même nom qu'en mode simple
+    assert win.preview_btn.text() == "Voir 10 secondes avant / après"               # même nom qu'en mode simple
     assert "bouton 2" not in win.status.text()
     for section, combo in (("Régler l'image", win.source_combo), ("Régler le son", win.mains_combo),
                            ("Régler le son", win.copy_combo)):
