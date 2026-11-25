@@ -1321,8 +1321,8 @@ class MainWindow(QMainWindow):
         hs.addStretch(1)
         self.segment_group = QButtonGroup(self)
         self.segments: dict[str, QPushButton] = {}
-        for mode, txt, ic in (("before", "Original", "film"), ("split", "Comparer les deux", "comparer"),
-                              ("after", "Restauré", "etincelle")):
+        for mode, txt, ic in (("before", "Avant", "film"), ("split", "Les deux", "comparer"),
+                              ("after", "Après", "etincelle")):
             b = _with_icon(QPushButton(txt), ic)
             b.setObjectName("segment")
             b.setCheckable(True)
@@ -1333,9 +1333,9 @@ class MainWindow(QMainWindow):
             self.segments[mode] = b
             hs.addWidget(b)
         hs.addStretch(1)
-        self.segments["before"].setAccessibleName("Voir seulement l'original")
-        self.segments["split"].setAccessibleName("Comparer l'original et le restauré")
-        self.segments["after"].setAccessibleName("Voir seulement le restauré")
+        self.segments["before"].setAccessibleName("Voir seulement l'avant")
+        self.segments["split"].setAccessibleName("Comparer l'avant et l'après")
+        self.segments["after"].setAccessibleName("Voir seulement l'après")
         self.segments["split"].setChecked(True)
         self.s_segments.setVisible(False)
         self.s_folder = QPushButton("Restaurer tout un dossier")
@@ -1346,14 +1346,14 @@ class MainWindow(QMainWindow):
         self.s_folder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.s_folder.setAccessibleName("Restaurer tous les films et toutes les photos d'un dossier")
         self.s_folder.setAccessibleDescription("Les fichiers d'origine ne sont pas modifiés.")
-        self.s_hear_orig = QPushButton("Écouter l'original")
-        self.s_hear_new = QPushButton("Écouter le son restauré")
+        self.s_hear_orig = QPushButton("Écouter l'avant")
+        self.s_hear_new = QPushButton("Écouter l'après")
         for b in (self.s_hear_orig, self.s_hear_new):
             b.setObjectName("secondaire")
             b.setMinimumHeight(44)
             _with_icon(b, "casque")
-        self.s_hear_orig.setAccessibleName("Écouter le son d'origine")
-        self.s_hear_new.setAccessibleName("Écouter le son restauré")
+        self.s_hear_orig.setAccessibleName("Écouter le son d'avant")
+        self.s_hear_new.setAccessibleName("Écouter le son d'après")
         _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
@@ -1847,7 +1847,8 @@ class MainWindow(QMainWindow):
             self.s_info.setText(prefixe + "Cliquez sur « Choisir un film ou une photo ».")
             return
         if self.preview is not None:
-            suite = " Aperçu prêt : comparez avec les boutons sous l'image, puis « Lancer la restauration » si cela vous plaît."
+            suite = (" Aperçu prêt : comparez avec les boutons « Avant » et « Après », "
+                     "puis « Lancer la restauration » si cela vous plaît.")
         else:
             suite = " Cliquez sur « Voir l'avant / après »."
         self._set_simple_info(prefixe + self._info_debut + suite)
@@ -2590,7 +2591,7 @@ class MainWindow(QMainWindow):
     def _choisir_comparaison(self, mode: str) -> None:
         self.s_compare.montrer_position = False
         self.s_compare.set_mode(mode)
-        noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}   # à la souris
+        noms = {"before": "Avant", "split": "Les deux", "after": "Après"}   # à la souris
         self.status.setText(f"Affichage : {noms.get(mode, mode)}.")
 
     def _dossier_depart(self, images: bool = False) -> str:
@@ -2911,7 +2912,7 @@ class MainWindow(QMainWindow):
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
         self.preview = res
         self.compare.set_after_label("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
-                                     else "RESTAURÉ")
+                                     else "APRÈS")
         self.still_combo.blockSignals(True)
         self.still_combo.clear()
         for i, _ in enumerate(res.stills):
@@ -2923,19 +2924,12 @@ class MainWindow(QMainWindow):
         self.segments["split"].setChecked(True)
         self.compare.montrer_position = False
         self.compare.set_mode("split")
-        quand = "" if getattr(self, "is_photo", False) else \
-            f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
         self._info_suite()
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        texte = f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré »."
-        if not getattr(self, "is_photo", False):
-            from . import estimation
-            annonce = estimation.annonce(self)
-            if annonce:
-                texte += " " + annonce
-        self.status.setText(texte)
+        # La durée est dans le résumé de « Vérifier et lancer », pas répétée ici.
+        self.status.setText("Comparez avec les boutons « Avant » et « Après ».")
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True
@@ -3831,7 +3825,8 @@ class MainWindow(QMainWindow):
         self._ecoute_demandee = False
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
-        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée", "Photo analysée")):
+        if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Comparez avec les boutons",
+                                              "Vidéo analysée", "Photo analysée")):
             self.progress.setValue(0)
         else:
             self.progress.setValue(1000)

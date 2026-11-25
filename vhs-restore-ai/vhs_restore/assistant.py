@@ -686,7 +686,7 @@ class Assistant(QWidget):
                 f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
                 f"QLabel#titreAssistant {{font-weight:700; font-size:{16 * e:.0f}pt;}}"
                 f"QLabel#rienAChanger {{font-weight:700; font-size:{12 * e:.0f}pt; color:{theme.TEXTE};}}"
-                f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
+                f"QLabel#consigneAssistant {{font-weight:normal;}}"
                 f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
                 f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
                 f"QPushButton#action {{color:{theme.VERT_TEXTE}; background:{theme.VERT};"
@@ -1119,8 +1119,7 @@ class Assistant(QWidget):
             self.voir.setText("Revoir l'avant / après")
             self.voir.setObjectName("secondaire")
             self.voir.setMinimumHeight(44)
-            self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
-                                  "« Lancer la restauration », en bas à droite. Sinon, « ← Revenir ».")
+            self.consigne.setText("Si le résultat vous plaît : « Lancer la restauration », en bas à droite.")
         else:
             self.voir.setText("Voir l'avant / après")
             self.voir.setObjectName("action")
