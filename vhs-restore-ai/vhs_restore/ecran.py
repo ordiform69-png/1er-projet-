@@ -44,6 +44,19 @@ QPushButton#action[grand="true"] {{
     font-weight: 700;
     padding: 0px 16px;
 }}
+QPushButton#accueil {{
+    font-size: 22pt;
+    font-weight: 700;
+    min-height: 120px;
+    padding: 12px 18px;
+    border-radius: 14px;
+}}
+QLabel#etapeAccueil {{
+    font-size: {18 * echelle:.0f}pt;
+    font-weight: 700;
+    color: {theme.TEXTE};
+    padding: 6px 0px;
+}}
 """
 
 
@@ -142,14 +155,18 @@ def installer(w):
     milieu.addWidget(w.gauche, 5)
     accueil = QWidget()
     av = QVBoxLayout(accueil)
-    av.addStretch()
+    av.setContentsMargins(16, 8, 16, 8)
+    av.addStretch(1)
     w.choisir = QPushButton("Choisir un film ou une photo")
-    w.choisir.setMinimumHeight(54)
+    w.choisir.setObjectName("accueil")
+    w.choisir.setMinimumHeight(120)
+    w.choisir.setCursor(Qt.PointingHandCursor)
     w.choisir.clicked.connect(w._choose_file)
     av.addWidget(w.choisir)
+    av.addSpacing(10)
     av.addWidget(w.s_folder)
     av.addWidget(w._recents_box)
-    av.addStretch()
+    av.addStretch(1)
     w.gauche.addWidget(accueil)
     image = QWidget()
     iv = QVBoxLayout(image)
@@ -161,6 +178,19 @@ def installer(w):
 
     droite = QVBoxLayout()
     milieu.addLayout(droite, 7)
+    w.etapes = QWidget()
+    ev = QVBoxLayout(w.etapes)
+    ev.setContentsMargins(24, 12, 16, 12)
+    ev.setSpacing(14)
+    ev.addStretch(1)
+    for texte in ("1. Choisir le film", "2. Voir l'avant / après", "3. Lancer la restauration"):
+        ligne_etape = QLabel(texte)
+        ligne_etape.setObjectName("etapeAccueil")
+        ligne_etape.setWordWrap(True)
+        ev.addWidget(ligne_etape)
+    ev.addStretch(2)
+    w.etapes.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+    droite.addWidget(w.etapes, 1)
     w.options = QWidget()
     ov = QVBoxLayout(w.options)
     ov.setContentsMargins(0, 0, 0, 0)
@@ -384,6 +414,8 @@ def actualiser(w, charge, photo, occupe, termine):
     w.titre_fichier.setToolTip(w.titre_fichier.text())
     w.gauche.setCurrentIndex(int(charge))
     w.choisir.setEnabled(not occupe)
+    w.details.setVisible(charge)
+    w.etapes.setVisible(not charge and not termine)
     w.autre.setVisible(charge)
     w.autre.setEnabled(not occupe)
     w.options.setVisible(charge and not termine)
