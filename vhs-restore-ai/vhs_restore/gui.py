@@ -3844,8 +3844,10 @@ class MainWindow(QMainWindow):
             self.presence_check.setChecked(bool(s.value("audio_presence", False, type=bool)))
         if s.contains("correct_cast"):
             self.cast_check.setChecked(bool(s.value("correct_cast", False, type=bool)))
-        self.offset_spin.setValue(float(s.value("audio_offset_ms", 0) or 0))
-        self.drift_spin.setValue(float(s.value("audio_drift_ms_per_min", 0) or 0))
+        # décalage et dérive du son : propres à chaque cassette, plus gardés d'un film à l'autre
+        # (une dérive réglée une fois pour un essai ralentissait tous les films suivants)
+        s.remove("audio_offset_ms")
+        s.remove("audio_drift_ms_per_min")
         mains = int(float(s.value("audio_mains_hz", 0) or 0))
         idx = self.mains_combo.findData(mains)
         if idx >= 0:
@@ -3886,8 +3888,6 @@ class MainWindow(QMainWindow):
         s.setValue("audio_highpass", self.wind_check.isChecked())
         s.setValue("audio_presence", self.presence_check.isChecked())
         s.setValue("correct_cast", self.cast_check.isChecked())
-        s.setValue("audio_offset_ms", self.offset_spin.value())
-        s.setValue("audio_drift_ms_per_min", self.drift_spin.value())
         s.setValue("audio_mains_hz", int(self.mains_combo.currentData() or 0))
         s.setValue("audio_copy", str(self.copy_combo.currentData() or ""))
         s.setValue("mask_bottom", self.mask_spin.value())

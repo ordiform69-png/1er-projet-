@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import theme
+from .assistant import Assistant, phrase_son
 
 
 def regles(echelle: float) -> str:
@@ -173,9 +174,13 @@ def installer(w):
     w.details = QPushButton("Détails du fichier")
     w.autre = QPushButton("Choisir un autre film")
     w.autre.clicked.connect(w._choose_file)
+    w.libre = QPushButton("Réglages libres")
+    w.libre.setCheckable(True)
+    w.libre.setToolTip("Tous les réglages sur un écran, sans l'assistant pas à pas.")
+    w.libre.toggled.connect(lambda on: mode_libre(w, on))
     root.setContentsMargins(8, 4, 8, 4)
     root.setSpacing(3)
-    root.addLayout(ligne(w.titre_fichier, w.details, w.autre, w.help_btn, w.theme_btn,
+    root.addLayout(ligne(w.titre_fichier, w.libre, w.details, w.autre, w.help_btn, w.theme_btn,
                          *w._taille_btns.values()))
     root.itemAt(0).layout().setStretch(0, 1)
 
@@ -443,6 +448,11 @@ def installer(w):
     etat.addWidget(w.s_note)
     etat.addWidget(w.s_status)
     etat.addWidget(w.s_progress)
+    w.son_zero = QPushButton("Remettre le son à zéro")
+    w.son_zero.setToolTip("Enlève le décalage et la dérive du son réglés pour ce film.")
+    w.son_zero.clicked.connect(lambda: son_a_zero(w))
+    w.son_zero.hide()
+    pied.addWidget(w.son_zero)
     pied.addWidget(w.s_cancel)
     pied.addWidget(w.run_btn)
     w.run_btn.setProperty("grand", True)
@@ -457,6 +467,28 @@ def installer(w):
     ouvrir(w, "Qualité")
     ajuster_son(w)
     ajuster_qualite(w)
+    w.assistant = Assistant(w)
+    w.assistant.hide()
+    droite.insertWidget(droite.indexOf(w.options), w.assistant, 1)
+
+
+def mode_libre(w, libre: bool) -> None:
+    """« Réglages libres » : l'écran complet ; « Revenir à l'assistant » : pas à pas."""
+    w.assistant.actif = not libre
+    if libre:
+        w.assistant.quitter()
+        ouvrir(w, "Qualité")
+    else:
+        w.assistant.aller(w.assistant.pages.currentIndex())
+    w._update_state()
+
+
+def son_a_zero(w) -> None:
+    for sp in (w.offset_spin, w.drift_spin):
+        sp.setValue(0)
+    for _lab, _e, champ in w.assistant.rangs_son.values():
+        champ.setValue(0)
+    w._update_state()
 
 
 def ouvrir(w, nom):
@@ -478,7 +510,16 @@ def actualiser(w, charge, photo, occupe, termine):
     w.etapes.setVisible(not charge and not termine)
     w.autre.setVisible(charge)
     w.autre.setEnabled(not occupe)
-    w.options.setVisible(charge and not termine)
+    a = getattr(w, "assistant", None)
+    guide = a is not None and charge and not termine and a.actif
+    # jamais l'assistant et l'écran complet ensemble, même un instant : la fenêtre grandirait
+    libre = charge and not termine and not guide
+    for cache, montre in ((a, w.options), (w.options, a)):   # d'abord cacher, puis montrer
+        if cache is not None and not (guide if cache is a else libre):
+            cache.setVisible(False)
+    w.options.setVisible(libre)
+    if a is not None:
+        a.setVisible(guide)
     w.options.setEnabled(not occupe)
     for nom in ("Couper le film", "Régler le son"):
         bouton, zone = w.sections[nom]
@@ -487,3 +528,27 @@ def actualiser(w, charge, photo, occupe, termine):
         bouton.setVisible(not photo)
     w.s_progress.setVisible(occupe)
     w.ecouter.setEnabled(charge and w.info.has_audio and not occupe)
+    if a is None:
+        return
+    if charge and w.info is not a._info:
+        # nouveau film : décalage et dérive du son sont propres à chaque cassette, on repart de zéro
+        a._info = w.info
+        for sp in (w.offset_spin, w.drift_spin):
+            sp.blockSignals(True)
+            sp.setValue(0)
+            sp.blockSignals(False)
+        a.demarrer()
+    w.libre.setVisible(charge and not termine)
+    w.libre.blockSignals(True)
+    w.libre.setChecked(not a.actif)
+    w.libre.blockSignals(False)
+    w.libre.setText("Revenir à l'assistant" if not a.actif else "Réglages libres")
+    if guide:
+        a.style_assistant()
+        a.actualiser()
+        w.run_btn.setEnabled(a.peut_lancer() and not occupe)
+        for b in (a.retour, a.suivant, a.chercher, a.grand, a.voir):
+            b.setEnabled(not occupe)
+    phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
+    w.s_note.setText("L'original est conservé." + (f" Correction du son : {phrase}." if phrase else ""))
+    w.son_zero.setVisible(bool(phrase))
