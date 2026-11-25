@@ -6,10 +6,11 @@ l'avant / après avec les réglages choisis. Les réglages par défaut sont sûr
 toujours sur « Suivant », on obtient déjà un bon résultat. « Réglages libres » ouvre l'écran
 complet (les sections), pour le fils ou plus tard.
 
-Film : 1. Choisir le rendu (trois images côte à côte) · 2. Début, fin et passages à enlever
-(neige, écran bleu ou noir trouvés par le logiciel) · 3. Le son (la voix colle-t-elle aux
-lèvres ? au début et à la fin) · 4. Vérifier et lancer. Photo : 1. Choisir le rendu · 2. Vérifier
-et lancer. Le moteur de restauration n'est pas modifié : l'assistant règle les mêmes commandes
+Film : 1. Choisir le rendu (trois images côte à côte) · 2. Lumière et couleurs (la grande image
+change tout de suite) · 3. Début, fin et passages à enlever (neige, écran bleu ou noir trouvés
+par le logiciel) · 4. Le son (la voix colle-t-elle aux lèvres ? au début et à la fin) ·
+5. Vérifier et lancer. Photo : 1. Choisir le rendu · 2. Lumière et couleurs · 3. Vérifier et
+lancer. Le moteur de restauration n'est pas modifié : l'assistant règle les mêmes commandes
 que l'écran complet.
 """
 from __future__ import annotations
@@ -25,7 +26,7 @@ from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
-from . import photo, pipeline, theme, vides
+from . import lumiere, photo, pipeline, theme, vides
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
@@ -219,10 +220,11 @@ class Assistant(QWidget):
         self.retour.clicked.connect(lambda: self.aller(self.pages.currentIndex() - 1))
         self.suivant.clicked.connect(lambda: self.aller(self.pages.currentIndex() + 1))
         self._page_rendu = self._construire_rendu()
+        self._page_lumiere = lumiere.Panneau(w.lumiere, guide=True)
         self._page_coupe = self._construire_coupe()
         self._page_son = self._construire_son()
         self._page_fin = self._construire_fin()
-        for p in (self._page_rendu, self._page_coupe, self._page_son, self._page_fin):
+        for p in (self._page_rendu, self._page_lumiere, self._page_coupe, self._page_son, self._page_fin):
             self.pages.addWidget(p)
 
     # ------------------------------------------------------------ étapes
@@ -365,6 +367,7 @@ class Assistant(QWidget):
             f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
             f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
             f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
+            f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
             f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
             f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
             f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
@@ -374,10 +377,10 @@ class Assistant(QWidget):
         return not getattr(self.w, "is_photo", False)
 
     def _liste(self) -> list[tuple[str, QWidget]]:
+        debut = [("Choisir le rendu", self._page_rendu), ("Lumière et couleurs", self._page_lumiere)]
         if not self._film():
-            return [("Choisir le rendu", self._page_rendu), ("Vérifier et lancer", self._page_fin)]
-        etapes = [("Choisir le rendu", self._page_rendu),
-                  ("Début, fin et passages à enlever", self._page_coupe)]
+            return debut + [("Vérifier et lancer", self._page_fin)]
+        etapes = debut + [("Début, fin et passages à enlever", self._page_coupe)]
         if self.w.info is not None and self.w.info.has_audio:
             etapes.append(("Le son", self._page_son))
         return etapes + [("Vérifier et lancer", self._page_fin)]
@@ -662,7 +665,8 @@ class Assistant(QWidget):
     def _preparer_fin(self) -> None:
         w = self.w
         s = w.settings(with_advice=True)
-        morceaux = [f"Rendu : {s.profile.name}."]
+        morceaux = [f"Rendu : {s.profile.name}.",
+                    "Lumière et couleurs : " + (lumiere.phrase(w.lumiere.reglages()) or "comme proposé") + "."]
         if self._film():
             if w.info is not None and w.info.has_audio:
                 morceaux.append("Son : " + ("nettoyé" if s.restore_audio else "gardé tel quel")

@@ -56,7 +56,7 @@ def test_photo_travail_et_resultat_gardent_le_pied(tools, monkeypatch, tmp_path,
         w._photo_loaded(MediaInfo(tmp_path / "Photo de famille.jpg", saturation_high=0))
         assert w.s_colorize.isVisible()
         assert [nom for nom, (b, _) in w.sections.items() if b.isVisible()] == [
-            "Qualité", "Régler l'image"]
+            "Qualité", "Lumière et couleurs", "Régler l'image"]
         with monkeypatch.context() as m:
             m.setattr(w, "_busy", lambda: True)
             w._update_state()

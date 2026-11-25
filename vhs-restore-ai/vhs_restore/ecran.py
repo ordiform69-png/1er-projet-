@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from . import theme
+from . import lumiere, theme
 from .assistant import Assistant, phrase_son
 
 
@@ -18,8 +18,8 @@ QPushButton#section {{
     text-align: left;
     font-weight: 700;
     font-size: 14pt;
-    min-height: 44px;
-    max-height: 44px;
+    min-height: 35px;
+    max-height: 35px;
     padding: 0px 36px 0px 12px;
     border-radius: 10px;
     border: 1px solid {theme.BORD};
@@ -75,6 +75,9 @@ QPushButton#lien {{
     color: {theme.ACCENT};
     padding: 2px 6px;
     min-height: 0px;
+}}
+QLabel#nomReglage, QLabel#valeurReglage {{
+    font-weight: 700;
 }}
 QCheckBox[large="true"], QPushButton[large="true"], QLabel[large="true"] {{
     font-size: {max(14, 10 * echelle):.0f}pt;
@@ -275,16 +278,17 @@ def installer(w):
     w.options = QWidget()
     ov = QVBoxLayout(w.options)
     ov.setContentsMargins(0, 0, 0, 0)
-    ov.setSpacing(3)
+    ov.setSpacing(2)
     droite.addWidget(w.options)
     w.sections = {}
-    for nom in ("Qualité", "Couper le film", "Régler l'image", "Régler le son"):
+    # cinq titres de 35 px : la section ouverte garde la même hauteur qu'avec quatre titres de 44 px
+    for nom in ("Qualité", "Lumière et couleurs", "Couper le film", "Régler l'image", "Régler le son"):
         bouton = QPushButton(nom)
         bouton.setObjectName("section")
         bouton.setCheckable(True)
         bouton.setCursor(Qt.PointingHandCursor)
-        bouton.setMinimumHeight(44)
-        bouton.setMaximumHeight(44)
+        bouton.setMinimumHeight(35)
+        bouton.setMaximumHeight(35)
         bouton.setMinimumWidth(0)
         bouton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zone = QScrollArea()
@@ -320,6 +324,10 @@ def installer(w):
         if haut:
             wd.setMinimumHeight(haut)
         wd.setProperty("large", True)
+
+    # mêmes valeurs que l'étape « Lumière et couleurs » de l'assistant
+    w.panneau_lumiere = lumiere.Panneau(w.lumiere, guide=False)
+    contenu("Lumière et couleurs").addWidget(w.panneau_lumiere)
 
     c = contenu("Couper le film")
     bornes = QGridLayout()
@@ -582,7 +590,9 @@ def actualiser(w, charge, photo, occupe, termine):
             sp.blockSignals(True)
             sp.setValue(0)
             sp.blockSignals(False)
+        w.lumiere.nouveau_film()
         a.demarrer()
+    w.lumiere.actualiser()
     w.libre.setVisible(charge and not termine)
     w.libre.blockSignals(True)
     w.libre.setChecked(not a.actif)

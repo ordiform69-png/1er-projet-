@@ -15,6 +15,7 @@ restaurée en noir et blanc est toujours écrite.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import shutil
 import subprocess
@@ -87,6 +88,11 @@ def photo_chain(info: MediaInfo, s: pipeline.Settings, *, after_ai: bool = False
         for flt in (pipeline._cast_filter(s), pipeline._levels_filter(s)):
             if flt:
                 f.append(flt)
+        if any(int(getattr(s, k, 0) or 0) for k in ("lumiere", "contraste", "couleurs")):
+            # réglages de l'utilisateur seulement : le profil photo garde ses propres filtres
+            c, sat, g = pipeline.reglages_image(dataclasses.replace(s, profile=dataclasses.replace(
+                s.profile, contrast=1.0, saturation=1.0)))
+            f.append(f"eq=contrast={c:.4g}:saturation={sat:.4g}:gamma={g:.4g}")
     if after_ai:
         f.append(f"scale={info.width * 2}:{info.height * 2}:flags=lanczos")   # IA x4 ramenée à x2
     elif upscale:

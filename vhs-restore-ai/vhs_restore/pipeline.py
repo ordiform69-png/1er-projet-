@@ -111,6 +111,12 @@ class Settings:
     mask_bottom: int = 0                   # lignes noires en bas (bande de commutation VHS), 0 = rien
     mask_sides: int = 0                    # pixels noirs sur les bords, 0 = rien. Pellicule : les quatre côtés
     colorize: bool = False                 # photo noir et blanc : copie colorisée par IA EN PLUS (couleurs inventées)
+    # Réglages de l'utilisateur avant de lancer (−3 à +3, 0 = rendu du profil inchangé) :
+    # lumière des tons moyens (gamma), contraste, couleurs (saturation), teinte (froide / chaude)
+    lumiere: int = 0
+    contraste: int = 0
+    couleurs: int = 0
+    teinte: int = 0
     crf: int = 18
     preset: str = "medium"
 
@@ -412,17 +418,40 @@ def safe_gains(gains: tuple[float, float, float]) -> tuple[float, float, float]:
 
 
 def _levels_filter(s: Settings) -> str | None:
-    """Étirement fixe des noirs et des blancs. Absent si les niveaux sont déjà ouverts."""
+    """Étirement fixe des noirs et des blancs. Absent si les niveaux sont déjà ouverts.
+
+    À moitié seulement : mesuré sur tout le film, l'étirement complet noircissait les scènes
+    d'intérieur peu éclairées (ombres bouchées, image « trop sombre » chez l'utilisateur)."""
     lo, hi = safe_levels(float(s.level_black), float(s.level_white))
     if not (0.02 < lo < hi < 0.98 and hi - lo < 0.75):
         return None
+    lo, hi = lo / 2, hi + (1.0 - hi) / 2
     return (f"colorlevels=rimin={lo:.4f}:gimin={lo:.4f}:bimin={lo:.4f}:"
             f"rimax={hi:.4f}:gimax={hi:.4f}:bimax={hi:.4f}")
 
 
+# Un cran des réglages « Lumière et couleurs » (−3 à +3) : gamma des tons moyens, contraste,
+# saturation, et 3 % de rouge en plus / de bleu en moins vers le chaud (l'inverse vers le froid).
+PAS_LUMIERE, PAS_CONTRASTE, PAS_COULEURS, PAS_TEINTE = 0.10, 0.06, 0.12, 0.03
+CRANS = 3
+
+
+def cran(v) -> int:
+    return max(-CRANS, min(CRANS, int(v or 0)))
+
+
+def reglages_image(s: Settings) -> tuple[float, float, float]:
+    """(contraste, saturation, gamma) : le profil, puis les réglages de l'utilisateur (−3 à +3)."""
+    p = s.profile
+    return (p.contrast * (1 + PAS_CONTRASTE * cran(s.contraste)), p.saturation * (1 + PAS_COULEURS * cran(s.couleurs)),
+            1 + PAS_LUMIERE * cran(s.lumiere))
+
+
 def _cast_filter(s: Settings) -> str | None:
-    """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux."""
-    gains = (float(s.gain_r), float(s.gain_g), float(s.gain_b))
+    """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux.
+    La teinte de l'utilisateur (−3 froide … +3 chaude) s'y ajoute : 3 % de rouge / bleu par cran."""
+    t = cran(s.teinte)
+    gains = (float(s.gain_r) * (1 + PAS_TEINTE * t), float(s.gain_g), float(s.gain_b) * (1 - PAS_TEINTE * t))
     if all(abs(g - 1.0) < 0.02 for g in gains):
         return None
     rr, gg, bb = safe_gains(gains)
@@ -454,8 +483,10 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
         f.append(f"hqdn3d=0:{cs:g}:0:{ct:g}")
     elif p.denoise:
         f.append("hqdn3d=" + ":".join(f"{v:g}" for v in p.denoise))
-    if p.contrast != 1 or p.saturation != 1:
-        f.append(f"eq=contrast={p.contrast:g}:saturation={p.saturation:g}")
+    contraste, saturation, gamma = reglages_image(s)
+    if abs(contraste - 1) > 1e-6 or abs(saturation - 1) > 1e-6 or abs(gamma - 1) > 1e-6:
+        eq = f"eq=contrast={contraste:.4g}:saturation={saturation:.4g}"
+        f.append(eq + (f":gamma={gamma:.4g}" if abs(gamma - 1) > 1e-6 else ""))
     return f
 
 

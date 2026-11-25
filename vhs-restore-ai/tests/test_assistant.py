@@ -80,7 +80,8 @@ def fenetre(tools, monkeypatch):
                 app.processEvents()
                 win.worker.wait(20)
             # images du rendu et proposition de dérive : fils de fond, relevés par un minuteur
-            while getattr(win, "assistant", None) is not None and win.assistant._en_cours and time.monotonic() < fin:
+            while (getattr(win, "assistant", None) is not None and (win.assistant._en_cours or win.lumiere.occupe())
+                   and time.monotonic() < fin):
                 app.processEvents()
                 time.sleep(0.02)
             for _ in range(10):
@@ -111,7 +112,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     attendre(win)
     a = win.assistant
     assert a.isVisible() and not win.options.isVisible()
-    assert a.compteur.text() == "Étape 1 sur 4" and a.titre.text() == "Choisir le rendu"
+    assert a.compteur.text() == "Étape 1 sur 5" and a.titre.text() == "Choisir le rendu"
     assert "Conseillé" in a.tuiles["equilibre"].text()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1
@@ -119,6 +120,9 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a.tuiles["maximum"].click()
     assert win.settings().profile.key == "maximum"
     a.suivant.click()
+    attendre(win)
+    assert a.titre.text() == "Lumière et couleurs" and win.lumiere.dernier is not None
+    a.suivant.click()                                                      # rien à changer : la suite
     a.chercher.click()
     attendre(win)
     assert abs(win.trim_start.value() - 3) <= 0.6 and abs(win.trim_end.value() - 63) <= 0.6, a.note_coupe.text()
@@ -137,6 +141,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert (win.offset_spin.value(), win.drift_spin.value()) == (decalage, derive)
     assert "Correction du son" in win.s_note.text() and win.son_zero.isVisible()
     assert a.titre.text() == "Vérifier et lancer" and "Maximum" in a.resume.text()
+    assert "Lumière et couleurs : comme proposé." in a.resume.text()
     assert not win.run_btn.isEnabled()                                     # pas sans l'avant / après
     assert "avant / après" in a.consigne.text() and "avant / après" in win.run_btn.toolTip()
     a.voir.click()
@@ -159,7 +164,7 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette):
     win.load_file(str(cassette))
     attendre(win)
     a = win.assistant
-    for _ in range(4):
+    for _ in range(5):
         assert (win.width(), win.height()) == (1280, 641), a.titre.text()
         assert win.rect().contains(win.run_btn.geometry().bottomRight())
         a.suivant.click()
@@ -169,7 +174,7 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette):
     assert (win.width(), win.height()) == (1280, 641)
 
 
-def test_photo_en_deux_etapes(fenetre, tmp_path):
+def test_photo_en_trois_etapes(fenetre, tmp_path):
     ouvrir, attendre, _ = fenetre
     p = tmp_path / "photo.png"
     ff("-f", "lavfi", "-i", "testsrc2=s=320x240", "-frames:v", "1", "-update", "1", str(p))
@@ -177,7 +182,11 @@ def test_photo_en_deux_etapes(fenetre, tmp_path):
     win.load_file(str(p))
     attendre(win)
     a = win.assistant
-    assert a.compteur.text() == "Étape 1 sur 2"
+    assert a.compteur.text() == "Étape 1 sur 3"
+    a.suivant.click()
+    attendre(win)
+    assert a.titre.text() == "Lumière et couleurs" and not a._page_lumiere.autre.isVisible()   # pas de « moment »
+    assert win.lumiere.dernier is not None and not win.lumiere.erreur
     a.suivant.click()
     assert a.titre.text() == "Vérifier et lancer" and not a.suivant.isVisible()
 

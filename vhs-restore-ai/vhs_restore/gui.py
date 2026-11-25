@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -1075,6 +1075,7 @@ class MainWindow(QMainWindow):
         self.preview_dir = Path(tempfile.mkdtemp(prefix="vhsrestore_apercu_"))
         self._coupes: list[tuple[float, float]] = []
         self._coupe_ouverte: float | None = None
+        self.lumiere = lumiere.Lumiere(self)          # lumière et couleurs : avant de lancer
         self._build()
         self._refresh_tools()
         self._update_state()
@@ -1749,7 +1750,9 @@ class MainWindow(QMainWindow):
         box = QMessageBox(QMessageBox.Information, "Bienvenue dans VHS Restore AI",
                           "Restaurer un film ou une photo se fait en trois étapes :\n\n"
                           "1.  « Choisir un film ou une photo » : sélectionnez le fichier.\n"
-                          "2.  « Voir l'avant / après » : regardez le résultat sur un petit extrait.\n"
+                          "2.  « Voir l'avant / après » : regardez le résultat sur un petit extrait. "
+                          "Image trop sombre ou couleurs ternes ? « Lumière et couleurs » les règle "
+                          "avant, et la grande image change tout de suite.\n"
                           "3.  « Lancer la restauration » : le logiciel travaille, cela peut prendre du temps. "
                           "Vous pouvez laisser l'ordinateur faire.\n\n"
                           "Le bouton à utiliser est entouré d'un cadre plus épais. "
@@ -2543,6 +2546,7 @@ class MainWindow(QMainWindow):
                                  denoise_hq=self.hq_check.isChecked(),
                                  restore_audio=self.audio_check.isChecked(),
                                  use_rnnoise=self.rnnoise_check.isChecked(),
+                                 **self.lumiere.reglages(),
                                  audio_offset_ms=float(self.offset_spin.value()),
                                  audio_drift_ms_per_min=float(self.drift_spin.value()),
                                  audio_mains_hz=int(self.mains_combo.currentData() or 0),
@@ -3806,6 +3810,7 @@ class MainWindow(QMainWindow):
         assistant = getattr(self, "assistant", None)
         if assistant is not None:                   # images du rendu en préparation : FFmpeg arrêté
             assistant.arreter()
+        self.lumiere.arreter()
         if self._busy():
             if getattr(self, "_fermeture_demandee", False):
                 e.ignore()
@@ -3822,6 +3827,7 @@ class MainWindow(QMainWindow):
                 return
         self._save_prefs()
         self._couper_images()
+        self.lumiere.fermer()
         shutil.rmtree(self.preview_dir, ignore_errors=True)
         e.accept()
 

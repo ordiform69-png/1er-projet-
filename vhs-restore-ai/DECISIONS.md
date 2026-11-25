@@ -915,3 +915,31 @@ Chez l'utilisateur (journal du 24 et du 25 novembre), deux restaurations avec «
 restaurations du journal qui ont échoué sont celles avec arnndn. Une garde `aeval` (`GARDE_NAN`)
 suit désormais arnndn : toute valeur invalide devient du silence. Reproduit avec une source
 contenant des NaN : sans garde, même erreur ; avec garde, fichier complet (`tests/test_aac_ffmpeg9.py`).
+
+## Lumière et couleurs avant de lancer
+
+Chez l'utilisateur, l'image restaurée paraissait sombre et terne, et la restauration est trop
+longue pour essayer au hasard. Deux changements :
+
+- Niveaux à moitié : l'étirement des noirs et des blancs mesuré sur le film (`_levels_filter`)
+  n'est plus appliqué qu'à moitié. Complet, il bouchait les ombres des scènes d'intérieur.
+  `tests/test_plafonds.py` : la balance des couleurs ramène les trois moyennes au même niveau ;
+  l'écart vert − rouge passait de +0,03 à −0,4 sur 255 (image grise). Le test accepte désormais
+  1/255 d'écart ; un vrai virage au magenta se mesure en dizaines.
+- Quatre réglages de −3 à +3, « Normal » au départ : Lumière (gamma des tons moyens, 10 % par
+  cran), Contraste (6 %), Couleurs (saturation, 12 %), Teinte (3 % de rouge en plus et de bleu en
+  moins vers le chaud). Ils s'ajoutent au profil dans la chaîne (`pipeline.reglages_image`, la
+  teinte dans la balance) ; à zéro, la chaîne est identique à avant. Photos : même chose.
+- Où : étape 2 de l'assistant (« Lumière et couleurs », film et photo), et une section du même
+  nom dans « Réglages libres ». Une seule source de valeurs (`lumiere.Lumiere`) ; propres à chaque
+  film, comme le son. Le résumé de « Vérifier et lancer » les cite ; les changer oblige à revoir
+  l'avant / après.
+- Aperçu instantané : une image du film est restaurée une fois (sans IA, 1 à 2 s), puis chaque
+  clic n'applique que les réglages à cette image (0,5 s environ) ; la grande image montre avant
+  et après côte à côte. « Autre moment du film » prend une autre image de la partie gardée (jamais
+  un passage enlevé). Mesuré : l'image rapide et la même image passée dans la chaîne complète
+  diffèrent de 3/255 au plus en moyenne (`tests/test_lumiere.py`).
+- Cinq titres de section à 35 px au lieu de quatre à 44 px : la section ouverte garde sa hauteur,
+  rien ne défile à 100 et 125 % (`tests/test_ecran_unique.py`).
+- Non testé : sur le PC de l'utilisateur, le temps de l'image de base avec « Maximum ».
+

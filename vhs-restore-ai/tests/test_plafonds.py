@@ -42,4 +42,7 @@ def test_green_flat_vhs_is_not_overcorrected(tools, tmp_path):
     r0, g0, _ = rgb_means(src)
     r1, g1, _ = rgb_means(out)
     assert g0 - r0 > 20                       # très vert au départ
-    assert 0 <= g1 - r1 < g0 - r0             # atténué, jamais inversé (pas de magenta)
+    # atténué, jamais inversé (pas de magenta). La balance ramène les moyennes au même niveau :
+    # à 1/255 près, l'écart restant n'est que du bruit d'arrondi (avant les niveaux à moitié :
+    # +0,03 ; après : −0,4, image grise). Un vrai virage au magenta se mesure en dizaines.
+    assert -1 < g1 - r1 < g0 - r0
