@@ -39,9 +39,9 @@ PHRASES_RENDU = {
     "equilibre": "Bon équilibre",
     "maximum": "Plus long",
 }
-# Petites images de l'étape 1 (environ 4:3). L'original est un repère, pas un choix.
-TAILLE_ORIGINAL = QSize(80, 60)
-TAILLE_RENDU = QSize(112, 84)
+# Petites images de l'étape 1 (4:3). L'original est un repère plus bas, pas un choix.
+TAILLE_ORIGINAL = QSize(64, 48)
+TAILLE_RENDU = QSize(96, 72)
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
@@ -196,7 +196,7 @@ class TuileRendu(QToolButton):
             self.setObjectName("tuileOriginal")
             self.setFocusPolicy(Qt.NoFocus)
             self.setIconSize(TAILLE_ORIGINAL)
-            self.setMinimumHeight(TAILLE_ORIGINAL.height() + 4)
+            self.setMinimumHeight(TAILLE_ORIGINAL.height() + 8)  # ligne grise plus basse que les rendus
         else:
             self.setObjectName("tuileRendu")
             self.setCheckable(True)
@@ -272,6 +272,10 @@ class TuileRendu(QToolButton):
         f.setPointSizeF(max(11, 13 * e))
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX if self._original else theme.TEXTE))
+        if self._original:
+            p.drawText(QRect(tx, r.top(), tw, r.height()),
+                       Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap, nom)
+            return
         haut_nom = p.fontMetrics().boundingRect(QRect(0, 0, tw, 80), Qt.TextWordWrap, nom).height()
         p.drawText(QRect(tx, r.top() + 6, tw, haut_nom), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, nom)
         if phrase:
@@ -555,9 +559,9 @@ class Assistant(QWidget):
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(4)
-        conseil = PROFILES["equilibre"].name
-        v.addWidget(_texte("Quel résultat préférez-vous ? Cliquez sur la ligne qui vous plaît. "
-                           f"Si vous hésitez, prenez « {conseil} »."))
+        intro = _texte("Cliquez sur la ligne qui vous plaît.")
+        intro.setObjectName("introRendu")
+        v.addWidget(intro)
         liste = QVBoxLayout()
         liste.setSpacing(4)
         self.tuiles: dict[str, QToolButton] = {}

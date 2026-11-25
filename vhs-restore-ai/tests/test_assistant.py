@@ -115,6 +115,12 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert a.compteur.text() == "Étape 1 sur 5" and a.titre.text() == "Choisir le rendu"
     assert "Bien nettoyé, naturel (conseillé)" in a.tuiles["equilibre"].text()
     assert "Bon équilibre" in a.tuiles["equilibre"].text()
+    intro = a._page_rendu.findChild(type(a.note_rendu), "introRendu")
+    assert intro is not None and intro.text() == "Cliquez sur la ligne qui vous plaît."
+    assert "hésitez" not in intro.text()
+    for cle in ("fidele", "equilibre", "maximum"):
+        assert (a.tuiles[cle].iconSize().width(), a.tuiles[cle].iconSize().height()) == (96, 72)
+    assert a.tuiles["original"].minimumHeight() < a.tuiles["fidele"].minimumHeight()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1
     assert all(not t.icon().isNull() for t in a.tuiles.values())           # quatre images à comparer
