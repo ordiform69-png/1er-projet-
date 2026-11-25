@@ -25,7 +25,6 @@ def fenetre(tools, tmp_path, monkeypatch):
     win = MainWindow(tools)
     win.resize(1276, 720)
     win.show()
-    win.set_advanced(True)
     win.load_file(str(film))
     while win._busy():
         app.processEvents()
@@ -38,10 +37,12 @@ def fenetre(tools, tmp_path, monkeypatch):
 
 def test_apercu_a_la_proportion_de_l_image(fenetre):
     win, _ = fenetre
-    vue = win.compare._w[0]
-    assert abs(vue.height() - ((vue.width() - 22) * 3 // 4 + 22)) <= 3     # 4:3, pas toute la colonne
-    page = win.pages.widget(1).widget()
-    assert win._card_son.parentWidget() is page and win._card_son.x() > page.width() // 3   # son à droite
+    vue = win.compare
+    assert vue.isVisible() and 180 <= vue.height() <= win.height()
+    assert abs(vue.height() - ((vue.width() - 22) * 3 // 4 + 22)) <= 3
+    win.sections["Régler le son"][0].click()
+    assert win.audio_check.isVisible()
+    assert win.audio_check.mapTo(win, win.audio_check.rect().topLeft()).x() > vue.width()
 
 
 def test_rien_de_vide_ni_de_coupe(fenetre):
@@ -49,12 +50,20 @@ def test_rien_de_vide_ni_de_coupe(fenetre):
     assert win.still_combo.isHidden()                                     # pas de liste vide avant l'aperçu
     assert win.preview_btn.text() == "Voir l'avant / après"               # même nom qu'en mode simple
     assert "bouton 2" not in win.status.text()
-    for combo in (win.source_combo, win.mains_combo, win.copy_combo):
+    for section, combo in (("Régler l'image", win.source_combo), ("Régler le son", win.mains_combo),
+                           ("Régler le son", win.copy_combo)):
+        bouton = win.sections[section][0]
+        if not bouton.isChecked():
+            bouton.click()
+        win.plus_son.setChecked(True)
+        fenetre[1].processEvents()
+        assert combo.isVisible()
         assert combo.fontMetrics().horizontalAdvance(combo.currentText()) + 70 < combo.width(), combo.currentText()
 
 
 def test_defauts_corriges_dits_clairement(fenetre):
     win, _ = fenetre
+    win.details.click()
     assert win.a_advice.isVisible() and win.a_advice.isChecked() and win.s_advice.isChecked()
     assert win.edge_spin.text().startswith("auto (")                      # pas « 0 px »
     assert "Corrigé d'office" in win.warn_label.text() and "du son ci-dessous" not in win.warn_label.text()
@@ -71,26 +80,16 @@ def test_decoupage_hors_de_restauration_complete(fenetre):
     complète » repoussaient « Lancer la restauration » loin vers le bas. Ils ont leur carte."""
     win, _ = fenetre
 
-    def carte_de(w):
-        while w is not None and w.objectName() != "carte":
-            w = w.parentWidget()
-        return w
-    lancer, couper = carte_de(win.run_btn), carte_de(win.trim_couper)   # « Enlever un passage »
-    assert lancer is not None and couper is not None and lancer is not couper
-    assert not lancer.isAncestorOf(win.trim_passage_deb)
-    assert lancer.height() < 450                                   # carte compacte
-    assert win.trim_couper.height() < 50                           # boutons compacts (options avancées)
+    win.sections["Couper le film"][0].click()
+    assert win.s_couper.isVisible() and win.run_btn.isVisible()
+    assert not win.options.isAncestorOf(win.run_btn)
+    assert win.s_couper.height() < 50
 
 
 def test_colonnes_equilibrees(fenetre):
-    """Plus de grand vide en bas d'une colonne : les deux s'arrêtent presque au même niveau."""
-    from vhs_restore.gui import Carte
-    win, _ = fenetre
-    page = win.pages.widget(1).widget()
-    bas = {True: 0, False: 0}
-    for c in page.findChildren(Carte):
-        if c.isVisible():
-            droite = c.x() > page.width() // 3
-            bas[droite] = max(bas[droite], c.y() + c.height())
-    assert bas[True] and bas[False]
-    assert abs(bas[True] - bas[False]) < 250, bas
+    win, app = fenetre
+    for bouton, _ in win.sections.values():
+        if not bouton.isChecked():
+            bouton.click()
+        app.processEvents()
+        assert abs(win.options.height() - win.gauche.height()) < 15

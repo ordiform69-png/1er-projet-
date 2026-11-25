@@ -21,14 +21,14 @@ from typing import Any, Callable
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QBoxLayout, QButtonGroup,
+from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
-                               QVBoxLayout, QWidget)
+                               QScrollArea, QSizePolicy, QSpinBox,
+                               QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ergonomie, icons, installer, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, partage, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -170,32 +170,9 @@ class CompareView(QWidget):
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
-        self._proportion = False
-        self._plafond: Callable[[], int] | None = None
         self._moment: QPixmap | None = None
         self._moment_texte = ""
-
-    def garder_proportions(self, plafond: Callable[[], int] | None = None) -> None:
-        """Hauteur réglée sur la largeur (image 4:3) : le cadre ne s'étire pas en un grand
-        rectangle noir quand la colonne voisine est très haute. `plafond` : hauteur maximale
-        (mode simple : la fenêtre visible, pour voir l'image ET ses boutons sans défiler)."""
-        self._proportion = True
-        self._plafond = plafond
-        self._ajuster_hauteur()
-
-    def _ajuster_hauteur(self) -> None:
-        if not self._proportion:
-            return
-        h = min(620, max(240, (self.width() - 22) * 3 // 4 + 22))   # grand écran : pas un mur noir
-        if self._plafond is not None:
-            h = min(h, max(240, self._plafond()))
-        if abs(self.minimumHeight() - h) > 2 or self.maximumHeight() != h:
-            self.setMinimumHeight(h)
-            self.setMaximumHeight(h)
-
-    def resizeEvent(self, e) -> None:  # noqa: N802
-        super().resizeEvent(e)
-        self._ajuster_hauteur()
+        self.montrer_position = False
 
     def set_still(self, path: Path) -> None:
         pm = QPixmap(str(path))
@@ -207,21 +184,21 @@ class CompareView(QWidget):
         self.before = self.after = None
         self.update()
 
-    def poser_moment(self, chemin: str, temps: float) -> None:
+    def poser_moment(self, chemin: str, temps: float | None) -> None:
         """Image du film tant qu'aucun aperçu n'a été fait. L'aperçu la remplace."""
         pix = QPixmap(chemin)
         if pix.isNull():
             return
         self._moment = pix
-        self._moment_texte = f"Image du film à {_duree(temps)}"
+        self._moment_texte = "Photo d’origine" if temps is None else f"Image du film à {_duree(temps)}"
         self.setAccessibleDescription(self._moment_texte)
-        if self.before is None:
+        if self.before is None or self.montrer_position:
             self.update()
 
     def oublier_moment(self) -> None:
         self._moment = None
         self._moment_texte = ""
-        if self.before is None:
+        if self.before is None or self.montrer_position:
             self.update()
 
     def set_mode(self, mode: str) -> None:
@@ -252,7 +229,7 @@ class CompareView(QWidget):
         p.setPen(Qt.NoPen)
         p.setBrush(QColor("#0a0e13"))
         p.drawRoundedRect(inner, 6, 6)
-        if self.before is None or self.after is None:
+        if self.before is None or self.after is None or self.montrer_position:
             if self._moment is not None and not self._moment.isNull():
                 size = self._moment.size().scaled(inner.size(), Qt.KeepAspectRatio)
                 r = QRect(QPoint(0, 0), size)
@@ -341,53 +318,9 @@ def _insecables(texte: str) -> str:
     return texte.replace("« ", "«\u00a0").replace(" »", "\u00a0»")
 
 
-class _Mirror:
-    """Relaie les appels à plusieurs widgets identiques (page simple + page avancée) ;
-    les lectures (text(), maximum(), attributs) viennent du premier."""
-
-    def __init__(self, *widgets: QWidget) -> None:
-        self._w = widgets
-
-    def __getattr__(self, name: str) -> Any:
-        first = getattr(self._w[0], name)
-        if not callable(first):
-            return first
-
-        def call(*a: Any, **k: Any) -> Any:
-            if name == "setText" and a and isinstance(a[0], str):
-                a = (_insecables(a[0]), *a[1:])
-            out = first(*a, **k)
-            for w in self._w[1:]:
-                getattr(w, name)(*a, **k)
-            return out
-        return call
-
-
-BIG = "QPushButton{font-size:15pt;padding:12px;min-height:44px}"
-
-
-class _ReelMark(QWidget):
-    """Cassette dessinée : deux bobines et une fenêtre de bande. Pas d'image externe."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.setFixedSize(68, 48)
-
-    def paintEvent(self, _e) -> None:  # noqa: N802
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        p.setPen(QPen(QColor(theme.ACCENT), 1.4))
-        p.setBrush(QColor("#0a2228"))
-        p.drawRoundedRect(1, 6, 66, 36, 6, 6)
-        p.setBrush(QColor("#12343c"))
-        p.drawRoundedRect(18, 14, 32, 16, 2, 2)
-        p.setBrush(Qt.NoBrush)
-        for cx in (16, 52):
-            p.setPen(QPen(QColor("#e8b15a"), 1.6))
-            p.drawEllipse(QPoint(cx, 24), 7, 7)
-            p.drawEllipse(QPoint(cx, 24), 2, 2)
-        p.setPen(QPen(QColor(theme.ACCENT), 1))
-        p.drawLine(23, 24, 45, 24)
+class Statut(QLabel):
+    def setText(self, texte: str) -> None:
+        super().setText(_insecables(texte))
 
 
 class _DropFilter(QObject):
@@ -407,81 +340,6 @@ class _DropFilter(QObject):
                 self._on(urls[0])
                 return True
         return False
-
-
-class StepButton(QPushButton):
-    """Grand bouton d'étape : numéro dans un cercle, texte aligné à gauche."""
-
-    def __init__(self, number: str, text: str, icon: str = "") -> None:
-        super().__init__(text)
-        self.number = number
-        self.icon_name = icon
-        self.suggested = False           # étape suivante conseillée : cadre plus épais
-        self._echelle = 1.0
-        self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(64)
-        self.setFocusPolicy(Qt.StrongFocus)
-
-    def set_echelle(self, echelle: float) -> None:
-        self._echelle = echelle
-        self.setMinimumHeight(max(64, int(64 * echelle)))
-        self.update()
-
-    def paintEvent(self, _e) -> None:  # noqa: N802
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        principal = self.objectName() == "principal"
-        on = self.isEnabled()
-        if principal and on:
-            bg, fg, border = QColor(theme.AMBRE), QColor(theme.AMBRE_TEXTE), QColor(theme.AMBRE)
-        elif principal:
-            bg, fg = QColor(theme.AMBRE_ETEINT), QColor(theme.AMBRE_ETEINT_TEXTE)
-            border = bg
-        elif on:
-            bg, fg, border = QColor(theme.CARTE), QColor(theme.TEXTE), QColor(theme.ETAPE_CADRE)
-            if self.underMouse():
-                border = QColor(theme.ACCENT)
-                bg = QColor(theme.ETAPE_SURVOL)
-        else:
-            bg, fg, border = QColor(theme.FOND_DESACTIVE), QColor(theme.TEXTE_DESACTIVE), QColor(theme.ETAPE_ETEINT)
-        width = 1.4
-        if self.suggested and on:        # « c'est ici maintenant »
-            width = 3.2
-            border = QColor(theme.TEXTE if principal else theme.ACCENT)
-        p.setPen(QPen(border, width))
-        p.setBrush(bg)
-        p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 12, 12)
-        cx, cy, r = 30, self.height() // 2, 15
-        if principal:
-            p.setPen(Qt.NoPen)
-            p.setBrush(QColor(theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE))
-            p.drawEllipse(QPoint(cx, cy), r, r)
-            p.setPen(QColor(theme.AMBRE if on else theme.AMBRE_ETEINT))
-        else:
-            p.setPen(QPen(QColor(theme.ACCENT if on else theme.ACCENT_SOURD), 1.6))
-            p.setBrush(Qt.NoBrush)
-            p.drawEllipse(QPoint(cx, cy), r, r)
-            p.setPen(fg)
-        f = QFont(theme.BODY_FAMILY or p.font().family())     # police large, plus lisible
-        f.setPointSizeF(14 * self._echelle)
-        f.setBold(True)
-        p.setFont(f)
-        p.drawText(QRect(cx - r, cy - r, r * 2, r * 2), Qt.AlignCenter, self.number)
-        x = 56
-        if self.icon_name:
-            col = (theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE) if principal else \
-                (theme.ACCENT if on else theme.ICONE_GRISE)
-            p.drawPixmap(x, cy - 12, icons.pixmap(self.icon_name, 24, col))
-            x += 34
-        f.setPointSizeF(16 * self._echelle)
-        f.setBold(True)
-        p.setFont(f)
-        p.setPen(fg)
-        p.drawText(QRect(x, 0, self.width() - x - 12, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
-        if self.hasFocus():
-            p.setPen(QPen(QColor("#f3d7a1"), 3))
-            p.setBrush(Qt.NoBrush)
-            p.drawRoundedRect(self.rect().adjusted(3, 3, -4, -4), 10, 10)
 
 
 class _HoverHalo(QObject):
@@ -566,7 +424,7 @@ class ProfileTile(QPushButton):
         self.icon_name, self.tagline = icon, tagline
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(88)
+        self.setMinimumHeight(104)
         self.setMinimumWidth(150)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -586,18 +444,18 @@ class ProfileTile(QPushButton):
             p.setPen(QPen(QColor(theme.ACCENT if self.underMouse() and en else theme.BORD), 1.2))
         p.drawRoundedRect(r, 12, 12)
         col = theme.ACCENT if (on or self.underMouse()) and en else theme.ACCENT_SOURD
-        p.drawPixmap(14, 14, icons.pixmap(self.icon_name, 28, col))
+        p.drawPixmap(16, 16, icons.pixmap(self.icon_name, 32, col))
         f = QFont(theme.DISPLAY_FAMILY or p.font().family())
-        f.setPointSizeF(15)
+        f.setPointSizeF(17)
         f.setBold(True)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE))
-        p.drawText(QRect(50, 10, r.width() - 56, 34), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        p.drawText(QRect(56, 12, r.width() - 68, 38), Qt.AlignVCenter | Qt.AlignLeft, self.text())
         f = QFont(theme.BODY_FAMILY or p.font().family())
-        f.setPointSizeF(11.5)
+        f.setPointSizeF(13)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX))
-        p.drawText(QRect(14, 46, r.width() - 22, r.height() - 50), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
+        p.drawText(QRect(16, 54, r.width() - 24, r.height() - 62), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
         if on:                                    # voyant allumé
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(theme.ACCENT))
@@ -829,37 +687,6 @@ def _memes_coupes(a: list[tuple[float, float]], b: list[tuple[float, float]]) ->
     def cle(xs: list[tuple[float, float]]) -> list[tuple[float, float]]:
         return sorted((round(x, 3), round(y, 3)) for x, y in xs)
     return cle(a) == cle(b)
-
-
-class ImageMoment(QLabel):
-    """Grande image du film à l'endroit du curseur. Le texte alternatif dit l'heure."""
-
-    def __init__(self, hauteur: int) -> None:
-        super().__init__()
-        self._hauteur = hauteur
-        self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(hauteur)
-        self.setMaximumHeight(hauteur)
-        self.setMinimumWidth(0)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setWordWrap(True)
-        self.vider()
-
-    def vider(self) -> None:
-        self.setPixmap(QPixmap())
-        self.setText("Les images du film arrivent.")
-        self.setAccessibleName("Image du film")
-        self.setAccessibleDescription("Image du film, pas encore prête.")
-
-    def montrer(self, chemin: str, temps: float) -> None:
-        pix = QPixmap(chemin)
-        if pix.isNull():
-            return
-        self.setText("")
-        self.setPixmap(pix.scaledToHeight(max(2, self._hauteur - 4), Qt.SmoothTransformation))
-        phrase = f"Image du film à {_duree(temps)}"
-        self.setAccessibleName(phrase)
-        self.setAccessibleDescription(phrase)
 
 
 class _Boite:
@@ -1252,46 +1079,14 @@ class MainWindow(QMainWindow):
         _FENETRES.add(self)
 
     # ------------------------------------------------------------ construction
-    def _build_simple(self) -> QWidget:
-        """Page d'accueil : trois étapes, gros boutons, aucun réglage technique."""
-        page = QWidget()
-        page.setObjectName("page")
-        v = QVBoxLayout(page)
-        v.setContentsMargins(20, 14, 20, 10)
-        v.setSpacing(10)
-        band = QFrame()
-        band.setObjectName("bandeau")
-        bh = QHBoxLayout(band)
-        bh.setContentsMargins(18, 12, 22, 14)
-        bh.setSpacing(14)
-        bh.addWidget(_ReelMark(), 0, Qt.AlignVCenter)
-        bv = QVBoxLayout()
-        bv.setSpacing(2)
-        brand = QLabel("VHS RESTORE AI")
-        brand.setObjectName("marque")
-        title = QLabel("Restaurer un film ou une photo de famille")
-        title.setObjectName("titre")
-        title.setWordWrap(True)
-        title.setMinimumWidth(80)
-        title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        filet = QFrame()
-        filet.setObjectName("filet")
-        bv.addWidget(brand)
-        bv.addWidget(title)
-        bv.addWidget(filet)
-        bh.addLayout(bv, 1)
-        coin = QVBoxLayout()                 # aide et affichage clair / sombre, toujours à portée
-        coin.setSpacing(6)
-        haut = QHBoxLayout()                 # deux lignes seulement : le bandeau laisse de la place à l'aperçu
-        haut.setSpacing(6)
-        coin.addLayout(haut)
+    def _commandes_accueil(self) -> None:
         self.help_btn = QPushButton("Aide")
-        self.help_btn.setIcon(icons.icon("info", "#9ae7f5"))
+        self.help_btn.setIcon(icons.icon("info"))
         self.help_btn.clicked.connect(self.show_welcome)
         self.help_btn.setAccessibleName("Aide")
         self.help_btn.setAccessibleDescription("Explique les trois étapes. Le bouton entouré est celui à utiliser.")
         self.theme_btn = QPushButton("Affichage clair" if theme.MODE == "sombre" else "Affichage sombre")
-        self.theme_btn.setIcon(icons.icon("soleil", "#9ae7f5"))
+        self.theme_btn.setIcon(icons.icon("soleil"))
         self.theme_btn.setToolTip("Change les couleurs de la fenêtre (fond clair ou fond sombre). "
                                   "Le logiciel redémarre.")
         self.theme_btn.setAccessibleName("Changer l'affichage, clair ou sombre")
@@ -1302,9 +1097,6 @@ class MainWindow(QMainWindow):
             b.setCursor(Qt.PointingHandCursor)
             b.setIconSize(QSize(20, 20))
             b.setMinimumHeight(44)
-            haut.addWidget(b)
-        tailles = QHBoxLayout()
-        tailles.setSpacing(4)
         self._taille_btns: dict[int, QPushButton] = {}
         self._echelle = 1.0
         for pct, lib in ((100, "A−"), (125, "A"), (150, "A+")):
@@ -1313,20 +1105,15 @@ class MainWindow(QMainWindow):
             b.setMinimumSize(44, 44)
             b.setCursor(Qt.PointingHandCursor)
             b.setAccessibleName(f"Taille du texte {pct} %")
-            b.setAccessibleDescription("Agrandit ou réduit les textes du mode simple.")
+            b.setAccessibleDescription("Agrandit ou réduit les textes.")
             b.setCheckable(True)
             b.setAutoExclusive(True)
             b.clicked.connect(lambda _=False, p=pct: self.set_taille_texte(p))
-            tailles.addWidget(b, 1)
             self._taille_btns[pct] = b
-        coin.addLayout(tailles)
-        bh.addLayout(coin)
-        v.addWidget(band)
-        self.s_info = QLabel("Pour commencer, cliquez sur le bouton 1 « Choisir le film ou la photo ».")
+        self.s_info = QLabel("Choisissez un film ou une photo.")
         self.s_info.setWordWrap(True)
         self.s_info.setObjectName("infos")
         self.s_info.setMinimumWidth(80)
-        v.addWidget(self.s_info)
         self.s_fini = QFrame()
         self.s_fini.setObjectName("fini")
         fv = QVBoxLayout(self.s_fini)
@@ -1351,13 +1138,6 @@ class MainWindow(QMainWindow):
         self.s_voir.clicked.connect(self._voir_resultat)
         self.s_ouvrir.clicked.connect(self._ouvrir_dossier_fini)
         self.s_autre.clicked.connect(self._restaurer_autre)
-        # boutons avant le texte : sur un portable, « Regarder le film » reste visible sans défiler
-        self._fini_boutons = QBoxLayout(QBoxLayout.LeftToRight)
-        self._fini_boutons.setSpacing(8)
-        self._fini_boutons.addWidget(self.s_voir, 2)
-        self._fini_boutons.addWidget(self.s_ouvrir, 1)
-        self._fini_boutons.addWidget(self.s_autre, 1)
-        fv.addLayout(self._fini_boutons)
         self.s_vides = _with_icon(QPushButton("Retirer les passages vides"), "ciseaux")
         self.s_vides.setToolTip("Neige, écran bleu ou noir en début, en fin ou au milieu de la cassette : "
                                 "le logiciel les repère et propose une copie sans eux.")
@@ -1373,27 +1153,13 @@ class MainWindow(QMainWindow):
         self.s_separer = _with_icon(QPushButton("Séparer en plusieurs films"), "separer")
         self.s_separer.setToolTip("Une cassette avec Noël, des vacances, un anniversaire : un fichier pour "
                                   "chacun, aux coupures (neige, écran bleu ou noir).")
-        rangee2 = QHBoxLayout()
-        rangee2.setSpacing(8)
-        rangee3 = QHBoxLayout()
-        rangee3.setSpacing(8)
-        for rangee, boutons in ((rangee2, (self.s_nommer, self.s_partager)),
-                                (rangee3, (self.s_vides, self.s_separer, self.s_montage))):
-            for b in boutons:
-                b.setObjectName("secondaire")
-                b.setMinimumHeight(48)
-                b.setCursor(Qt.PointingHandCursor)
-                rangee.addWidget(b, 1)
         self.s_vides.clicked.connect(self.retirer_vides)
         self.s_montage.clicked.connect(self.faire_montage)
         self.s_nommer.clicked.connect(self.nommer_resultat)
         self.s_partager.clicked.connect(self.partager_resultat)
         self.s_separer.clicked.connect(self.separer_films)
-        fv.addLayout(rangee2)
-        fv.addLayout(rangee3)
         fv.addWidget(self.s_fini_texte)
         self.s_fini.setVisible(False)
-        v.addWidget(self.s_fini)
         self._recents_box = QWidget()
         self._recents_lay = QVBoxLayout(self._recents_box)
         self._recents_lay.setContentsMargins(0, 0, 0, 0)
@@ -1416,11 +1182,6 @@ class MainWindow(QMainWindow):
         self.s_aide_conseil.setAccessibleDescription("Ouvre une explication. Rien n'est modifié tant que la case n'est pas cochée.")
         self.s_aide_conseil.setVisible(False)
         self.s_aide_conseil.clicked.connect(self._expliquer_conseil)
-        conseil_l = QHBoxLayout()
-        conseil_l.setContentsMargins(0, 0, 0, 0)
-        conseil_l.addWidget(self.s_advice, 1)
-        conseil_l.addWidget(self.s_aide_conseil, 0, Qt.AlignTop)
-        v.addLayout(conseil_l)
         self.s_colorize = QCheckBox("Coloriser aussi (IA)")
         self.s_colorize.setObjectName("caseSimple")
         _with_icon(self.s_colorize, "palette")
@@ -1435,48 +1196,16 @@ class MainWindow(QMainWindow):
             "Les couleurs sont inventées. Une copie à part est créée. Le noir et blanc est gardé.")
         self.s_aide_couleur.setVisible(False)
         self.s_aide_couleur.clicked.connect(self._expliquer_couleur)
-        couleur_l = QHBoxLayout()
-        couleur_l.setContentsMargins(0, 0, 0, 0)
-        couleur_l.addWidget(self.s_colorize, 1)
-        couleur_l.addWidget(self.s_aide_couleur, 0, Qt.AlignTop)
-        v.addLayout(couleur_l)
         self.s_colorize_note = QLabel("Couleurs inventées par l'IA, pas les vraies. Une copie à part est créée : "
                                       "la photo en noir et blanc est gardée.")
         self.s_colorize_note.setObjectName("note")
         self.s_colorize_note.setWordWrap(True)
         self.s_colorize_note.setVisible(False)
-        v.addWidget(self.s_colorize_note)
-        self._steps = QBoxLayout(QBoxLayout.LeftToRight)
-        self._steps.setSpacing(8)
-        self.s_choose = StepButton("1", "Choisir le film ou la photo", "dossier")
-        self.s_choose.clicked.connect(self._choose_file)
-        self.s_preview = StepButton("2", "Voir l'avant / après", "oeil")
-        self.s_preview.clicked.connect(self.start_preview)
-        self.s_run = StepButton("3", "Restaurer", "etincelle")
-        self.s_run.clicked.connect(self.start_export)
-        halo_cyan = _HoverHalo(theme.ACCENT)
-        halo_ambre = _HoverHalo(theme.AMBRE)
-        self._halos = (halo_cyan, halo_ambre)
-        for b in (self.s_choose, self.s_preview, self.s_run):
-            b.setObjectName("principal" if b is self.s_run else "etape")
-            b.installEventFilter(halo_ambre if b is self.s_run else halo_cyan)
-            b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            self._steps.addWidget(b)
-        self.s_choose.setAccessibleName("Étape 1, choisir le film ou la photo")
-        self.s_choose.setAccessibleDescription("Ouvre la fenêtre pour choisir un fichier.")
-        self.s_preview.setAccessibleName("Étape 2, voir l'avant et l'après")
-        self.s_preview.setAccessibleDescription("Montre un extrait avant et après restauration.")
-        self.s_run.setAccessibleName("Étape 3, restaurer")
-        self.s_run.setAccessibleDescription("Lance la restauration. Le fichier d'origine n'est pas modifié.")
-        v.addLayout(self._steps)
-        # pendant le travail : la progression, l'état et « Arrêter » juste sous les étapes, visibles
-        # sans défiler (écran de 1920 x 1080 à 150 % : 641 px de haut seulement)
+        self._halos = (_HoverHalo(theme.ACCENT), _HoverHalo(theme.AMBRE))
         self.s_progress = theme.SweepBar()
-        self.s_status = QLabel("Prêt.")
+        self.s_status = Statut("Prêt.")
         self.s_status.setWordWrap(True)
         self.s_status.setObjectName("statut")
-        v.addWidget(self.s_progress)
-        v.addWidget(self.s_status)
         self.s_cancel = QPushButton("Arrêter")
         self.s_cancel.setObjectName("secondaire")
         self.s_cancel.clicked.connect(lambda: self.cancel(confirmer=True))
@@ -1484,50 +1213,20 @@ class MainWindow(QMainWindow):
         self.s_cancel.setAccessibleName("Arrêter le travail en cours")
         self.s_cancel.setAccessibleDescription("Demande confirmation si le travail a déjà commencé depuis un moment.")
         _with_icon(self.s_cancel, "stop")
-        rangee_arret = QHBoxLayout()
-        rangee_arret.addWidget(self.s_cancel)
-        rangee_arret.addStretch(1)
-        v.addLayout(rangee_arret)
         self.s_note = note = QLabel("Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
                                     "à côté, avec « restaure » dans son nom.")
         note.setWordWrap(True)
         note.setObjectName("note")
-        v.addWidget(note)
-        self.s_coupe = QWidget()
-        coupe = QVBoxLayout(self.s_coupe)
-        coupe.setContentsMargins(0, 8, 0, 0)
-        coupe.setSpacing(6)
-        cadre = QFrame()
-        cadre.setObjectName("carte")
-        cadre.setMinimumWidth(0)
-        dans = QVBoxLayout(cadre)
-        dans.setContentsMargins(12, 8, 12, 8)
-        dans.setSpacing(4)
-        ligne_titre = QHBoxLayout()
-        ligne_titre.setSpacing(8)
-        titre = QLabel("Enlever une scène")
-        titre.setObjectName("carteTitre")
-        titre.setWordWrap(True)
-        titre.setMinimumWidth(0)
         self.s_moment_heure = QLabel("")
         self.s_moment_heure.setObjectName("carteTitre")
         self.s_moment_heure.setWordWrap(True)
         self.s_moment_heure.setMinimumWidth(0)
-        self.s_moment_heure.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        ligne_titre.addWidget(titre, 1)
-        ligne_titre.addWidget(self.s_moment_heure, 1)
-        dans.addLayout(ligne_titre)
-        self.s_moment = ImageMoment(180)
-        dans.addWidget(self.s_moment)
         self.barre = BarreFilm()
         self.barre.clique.connect(self._barre_cliquee)
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
         self.barre.largeur_changee.connect(self._sur_largeur_barre)
-        dans.addWidget(self.barre)
-        rangee_guide = QHBoxLayout()
-        rangee_guide.setSpacing(8)
         self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
         self.s_guide_coupes.setWordWrap(True)
         self.s_guide_coupes.setMinimumWidth(0)
@@ -1535,33 +1234,19 @@ class MainWindow(QMainWindow):
         self.s_guide_coupes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.s_comment_faire = _bouton_secondaire("Comment faire ?", "Comment faire ?", elargi=False)
         self.s_comment_faire.clicked.connect(self._comment_faire_coupes)
-        rangee_guide.addWidget(self.s_guide_coupes, 1)
-        rangee_guide.addWidget(self.s_comment_faire, 0, Qt.AlignTop)
-        dans.addLayout(rangee_guide)
         self.s_couper = _bouton_secondaire("Couper ici", "Couper ici")
-        self.s_couper.setObjectName("action")
+        self.s_couper.setObjectName("couper")
         self.s_couper.clicked.connect(self._couper_ici)
-        dans.addWidget(self.s_couper)
-        legende = QLabel("Doré : ce qui est enlevé. Les carrés blancs se tirent.")
-        legende.setWordWrap(True)
-        legende.setMinimumWidth(0)
-        legende.setObjectName("note")
-        dans.addWidget(legende)
+        self.coupes_rapides = []
         for texte, sec in (("Enlever 10 secondes ici", 10),
                            ("Enlever 30 secondes ici", 30),
                            ("Enlever 1 minute ici", 60)):
             b = _bouton_secondaire(texte, texte)
             b.clicked.connect(lambda _=False, s=sec: self._passage_duree(s))
-            dans.addWidget(b)
+            self.coupes_rapides.append(b)
         self.s_passage_annuler = _bouton_secondaire(
             "Annuler la dernière coupe", "Annuler la dernière coupe")
         self.s_passage_annuler.clicked.connect(self._passage_annuler)
-        dans.addWidget(self.s_passage_annuler)
-        coupe.addWidget(cadre)
-        entete = QLabel("Couper la neige du début ou la fin")
-        entete.setObjectName("note")
-        entete.setWordWrap(True)
-        coupe.addWidget(entete)
         self.s_trim_start = TempsSpin()
         self.s_trim_end = TempsSpin()
         self.s_trim_start.setSpecialValueText("dès le début")
@@ -1574,16 +1259,9 @@ class MainWindow(QMainWindow):
             "Ce qui est après ce moment ne sera pas dans la copie. « à la fin » garde jusqu'au bout.")
         self.s_trim_start.setToolTip("Neige ou écran bleu du début, à ne pas mettre dans la copie.")
         self.s_trim_end.setToolTip("Fin de bande à ne pas mettre dans la copie. « à la fin » = tout garder.")
-        for libelle, spin in (("Le film commence à", self.s_trim_start),
-                              ("Le film s'arrête à", self.s_trim_end)):
-            lab = QLabel(libelle)
-            lab.setWordWrap(True)
-            coupe.addWidget(lab)
-            coupe.addWidget(spin)
         self.s_trim_note = QLabel()
         self.s_trim_note.setWordWrap(True)
         self.s_trim_note.setObjectName("note")
-        coupe.addWidget(self.s_trim_note)
         self.s_trim_voir = QPushButton("Montrer ce début dans l'aperçu")
         self.s_trim_tout = QPushButton("Tout garder")
         for b in (self.s_trim_voir, self.s_trim_tout):
@@ -1596,29 +1274,9 @@ class MainWindow(QMainWindow):
         self.s_trim_tout.setAccessibleName("Garder le film en entier")
         self.s_trim_voir.clicked.connect(self._montrer_debut_garde)
         self.s_trim_tout.clicked.connect(self._coupe_tout)
-        coupe.addWidget(self.s_trim_voir)
-        coupe.addWidget(self.s_trim_tout)
-        # « Couper ici » deux fois suffit : l'ancienne façon en deux boutons reste dans les options
-        # avancées (trim_passage_deb / trim_passage_fin), cachée ici pour ne pas faire hésiter
-        autre = self.s_autre_facon = QLabel("Autre façon, en deux temps")
-        autre.setObjectName("note")
-        autre.setWordWrap(True)
-        autre.setVisible(False)
-        coupe.addWidget(autre)
-        self.s_passage_deb = _bouton_secondaire(
-            "Ce passage inutile commence ici", "Ce passage inutile commence ici")
-        self.s_passage_fin = _bouton_secondaire(
-            "Le film reprend ici", "Le film reprend ici")
-        self.s_passage_deb.clicked.connect(self._passage_commence)
-        self.s_passage_fin.clicked.connect(self._passage_reprend)
-        coupe.addWidget(self.s_passage_deb)
-        coupe.addWidget(self.s_passage_fin)
-        self.s_passage_deb.setVisible(False)
-        self.s_passage_fin.setVisible(False)
         self.s_passages_note = QLabel("Aucun passage du milieu n'est enlevé.")
         self.s_passages_note.setWordWrap(True)
         self.s_passages_note.setObjectName("note")
-        coupe.addWidget(self.s_passages_note)
         self._passage_lignes: list[tuple[QLabel, QPushButton, QWidget]] = []
         for i in range(_MAX_COUPES):
             ligne = QWidget()
@@ -1636,12 +1294,9 @@ class MainWindow(QMainWindow):
             hl.addWidget(lab, 1)
             hl.addWidget(btn, 0)
             ligne.setVisible(False)
-            coupe.addWidget(ligne)
             self._passage_lignes.append((lab, btn, ligne))
-        v.addWidget(self.s_coupe)
         self.s_compare = CompareView()
-        self.s_compare.garder_proportions(self._hauteur_apercu_simple)
-        v.addWidget(self.s_compare)
+
         # comparer sans geste précis : trois gros boutons sous l'image
         self.s_segments = QWidget()
         hs = self._segments_row = QHBoxLayout(self.s_segments)
@@ -1666,9 +1321,7 @@ class MainWindow(QMainWindow):
         self.segments["after"].setAccessibleName("Voir seulement le restauré")
         self.segments["split"].setChecked(True)
         self.s_segments.setVisible(False)
-        v.addWidget(self.s_segments)
-        h = QHBoxLayout()
-        self.s_folder = QPushButton("Restaurer tout un dossier (films et photos)…")
+        self.s_folder = QPushButton("Restaurer tout un dossier")
         self.s_folder.setObjectName("secondaire")
         self.s_folder.clicked.connect(self.start_folder)
         self.s_folder.setMinimumHeight(48)
@@ -1687,96 +1340,10 @@ class MainWindow(QMainWindow):
         _with_icon(self.s_folder, "pile")
         self.s_hear_orig.clicked.connect(self._play_original)
         self.s_hear_new.clicked.connect(self._play_restored)
-        adv = QPushButton("Options avancées")
-        _with_icon(adv, "reglages")
-        adv.setToolTip("Réglages détaillés de l'image et du son, pour les connaisseurs. "
-                       "« Retour au mode simple » en haut de la page.")
-        adv.setAccessibleName("Options avancées")
-        adv.setAccessibleDescription("Réglages détaillés. Le bouton « Retour au mode simple » ramène ici.")
-        adv.setObjectName("lienDiscret")
-        adv.setCursor(Qt.PointingHandCursor)
-        adv.clicked.connect(lambda: self.set_advanced(True))
-        h.addWidget(self.s_hear_orig)
-        h.addWidget(self.s_hear_new)
-        h.addStretch(1)
-        v.addLayout(h)
-        v.addWidget(self._recents_box)          # sous les étapes : ils ne les poussent plus hors de l'écran
-        v.addWidget(self.s_folder)
-        v.addWidget(adv, 0, Qt.AlignLeft)
-        v.addStretch(1)
-        return page
-
-    def set_advanced(self, on: bool) -> None:
-        idx = 1 if on else 0
-        deja = self.pages.currentIndex() == idx
-        self.pages.setCurrentIndex(idx)
-        self.statusBar().setVisible(on)      # noms d'outils : seulement pour les connaisseurs
-        if not on:                           # tailles recalculées (boutons écrasés sinon)
-            page = self.pages.widget(0).widget()
-            page.layout().invalidate()
-            page.updateGeometry()
-        if deja:
-            self.status.setText("Options avancées." if on else "Mode simple.")
-
-    COLONNE_UNIQUE_SOUS = 1240     # px : portable à 125 % / 150 %, ou fenêtre réduite
-
-    def resizeEvent(self, e) -> None:  # noqa: N802
-        super().resizeEvent(e)
-        if hasattr(self, "s_compare"):
-            self.s_compare._ajuster_hauteur()
-        cols = getattr(self, "_colonnes", None)
-        if cols is not None:
-            sens = (QBoxLayout.TopToBottom if self.width() < self.COLONNE_UNIQUE_SOUS
-                    else QBoxLayout.LeftToRight)
-            if cols.direction() != sens:
-                cols.setDirection(sens)
-        self._ranger_etapes()
-
-    def _compacter_options(self) -> None:
-        """Les listes aux libellés longs ne doivent pas élargir la page des options au-delà
-        d'un écran de portable : le texte complet reste visible quand la liste est ouverte."""
-        page = self.pages.widget(1).widget()
-        for combo in page.findChildren(QComboBox):
-            combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-            combo.setMinimumContentsLength(min(combo.minimumContentsLength() or 14, 14))
-            combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
 
     def _build(self) -> None:
-        central = QWidget()
-        central.setObjectName("page")
-        outer = QVBoxLayout(central)
-        back = QPushButton("Retour au mode simple")
-        _with_icon(back, "retour")
-        back.setObjectName("lien")
-        back.setCursor(Qt.PointingHandCursor)
-        back.clicked.connect(lambda: self.set_advanced(False))
-        outer.addWidget(back, 0, Qt.AlignLeft)
-        root = self._colonnes = QBoxLayout(QBoxLayout.LeftToRight)
-        outer.addLayout(root, 1)
-        left = QVBoxLayout()
-        right = QVBoxLayout()
-        root.addLayout(left, 2)
-        root.addLayout(right, 3)
-        self.pages = QStackedWidget()
-        accueil = QScrollArea()
-        accueil.setWidgetResizable(True)
-        accueil.setFrameShape(QFrame.NoFrame)
-        simple = self._build_simple()
-        self._simple = simple
-        accueil.setWidget(simple)
+        self._commandes_accueil()
         self._drop_filter = _DropFilter(self._deposer)
-        for cible in (accueil, accueil.viewport(), simple):
-            cible.setAcceptDrops(True)
-            cible.installEventFilter(self._drop_filter)
-        self.pages.addWidget(accueil)
-        scroll = QScrollArea()          # la page des options est plus haute qu'un écran de portable
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setWidget(central)
-        self.pages.addWidget(scroll)
-        self.setCentralWidget(self.pages)
-        self.setTabOrder(self.help_btn, self.theme_btn)
-        self.setTabOrder(self.theme_btn, self._taille_btns[100])
         self._gen_images = 0
         self._fab: _Fab | None = None
         self._dossier_images: Path | None = None
@@ -1792,24 +1359,12 @@ class MainWindow(QMainWindow):
         self._attente_moment.setSingleShot(True)
         self._attente_moment.setInterval(120)
         self._attente_moment.timeout.connect(self._demander_moment)
-        self.setTabOrder(self._taille_btns[100], self._taille_btns[125])
-        self.setTabOrder(self._taille_btns[125], self._taille_btns[150])
-        self.setTabOrder(self._taille_btns[150], self.s_choose)
-        self.setTabOrder(self.s_choose, self.s_preview)
-        self.setTabOrder(self.s_preview, self.s_run)
-        self.setTabOrder(self.s_run, self.s_folder)
-        self.setTabOrder(self.s_folder, self.s_cancel)
 
         # Import
-        g = self._card_media = Carte("Film ou photo", "film", "1")
-        v = g.body
         self.drop = DropZone()
+        self.drop.setParent(self)
+        self.drop.hide()
         self.drop.dropped.connect(self.load_file)
-        b = _with_icon(QPushButton("Choisir un film ou une photo…"), "dossier")
-        b.clicked.connect(self._choose_file)
-        v.addWidget(self.drop)
-        v.addWidget(b)
-        left.addWidget(g)
 
         # Caractéristiques
         g = self._card_info = Carte("Caractéristiques", "info")
@@ -1863,20 +1418,14 @@ class MainWindow(QMainWindow):
         self.a_advice = QCheckBox("Corriger aussi ces défauts, avec prudence")
         _with_icon(self.a_advice, "conseil")
         self.a_advice.setVisible(False)
-        self.a_advice.setToolTip("La même case que dans le mode simple. Cochée d'office quand l'analyse "
+        self.a_advice.setToolTip("La même case que dans « Qualité ». Cochée d'office quand l'analyse "
                                  "repère des défauts ; décochez-la pour garder le film tel quel.")
         self.a_advice.toggled.connect(self.s_advice.setChecked)
         self.s_advice.toggled.connect(self.a_advice.setChecked)
         self.s_advice.toggled.connect(lambda _c: self._refresh_hints())
         self.info_form.addRow(self.a_advice)
-        left.addWidget(g)
-
-        # Profils : trois tuiles
-        g = self._card_profil = Carte("Profil de restauration", "etincelle", "2")
         self.profile_group = QButtonGroup(self)
         self.profile_buttons: dict[str, QAbstractButton] = {}
-        tiles = QHBoxLayout()
-        tiles.setSpacing(10)
         for p in PROFILES.values():
             ic, tag = PROFILE_LOOK.get(p.key, ("etincelle", ""))
             tile = ProfileTile(p.name, ic, tag)
@@ -1885,27 +1434,20 @@ class MainWindow(QMainWindow):
             self.profile_group.addButton(tile)
             self.profile_buttons[p.key] = tile
             tile.toggled.connect(lambda on, k=p.key: on and self._profile_changed(k))
-            tiles.addWidget(tile)
-        g.body.addLayout(tiles)
         self.profile_desc = QLabel()
         self.profile_desc.setWordWrap(True)
         self.profile_desc.setObjectName("note")
-        g.body.addWidget(self.profile_desc)
-        left.addWidget(g)
 
         # Image
-        gi = self._card_image = Carte("Image", "image")
-        vi = gi.body
-        h = QHBoxLayout()
         self.res_combo = QComboBox()
         for k, txt in RESOLUTIONS.items():
             self.res_combo.addItem(icons.icon("ecran"), txt, k)
         self.ai_check = _with_icon(QCheckBox("Amélioration IA (Real-ESRGAN)"), "puce")
         self.ai_check.toggled.connect(self._ai_toggled)
+        h = QHBoxLayout()
         h.addWidget(_ilabel("Sortie :", "ecran"))
         h.addWidget(self.res_combo, 1)
         self._row_res = _wrap(h)
-        vi.addWidget(self._row_res)
         h = QHBoxLayout()
         self.deint_combo = QComboBox()
         self.deint_combo.addItem("bwdif (rapide)", "bwdif")
@@ -1913,10 +1455,8 @@ class MainWindow(QMainWindow):
         h.addWidget(_ilabel("Désentrelaceur :", "trames"))
         h.addWidget(self.deint_combo, 1)
         self._row_deint = _wrap(h)
-        vi.addWidget(self._row_deint)
         self.dust_check = _with_icon(QCheckBox("Enlever les poussières et rayures (pellicule, plus lent)"),
                                      "poussiere")
-        vi.addWidget(self.dust_check)
         self.tape_check = _with_icon(QCheckBox("Bruit de bande (poursuite, lignes, bande du bas)"), "bande")
         self.chroma_check = _with_icon(QCheckBox("Couleur des décrochages (arcs-en-ciel, couleur perdue)"), "arc")
         self.dropout_check = _with_icon(QCheckBox("Taches d'une seule image (décrochages)"), "eclat")
@@ -1926,19 +1466,15 @@ class MainWindow(QMainWindow):
                "QTGMC n'est pas refait ensuite. Sans le module : installer.bat -AvecPoussieres.")
         for box in (self.tape_check, self.chroma_check, self.dropout_check):
             box.setToolTip(tip)
-            vi.addWidget(box)
         self.flicker_check = _with_icon(QCheckBox("Réduire le scintillement lumineux (pellicule)"), "soleil")
         self.flicker_check.setToolTip("Lisse les variations de luminosité d'une image à l'autre "
                                       "(filtre deflicker sur 5 images). À vérifier sur l'aperçu.")
-        vi.addWidget(self.flicker_check)
         self.hq_check = _with_icon(QCheckBox("Débruitage haute qualité (environ 3 fois plus lent)"), "lisse")
         self.hq_check.setToolTip("Remplace le débruitage standard par fftdnoiz (FFT 3D) avec un renfort "
                                  "sur les taches de couleur. Plus efficace sur le bruit analogique ; "
                                  "intensité adaptée au profil.")
-        vi.addWidget(self.hq_check)
         self.stab_check = _with_icon(
             QCheckBox("Stabiliser l'image (tremblements, 2 passes)"), "viseur")
-        vi.addWidget(self.stab_check)
         self.cast_check = _with_icon(QCheckBox("Corriger la dominante de couleur"), "goutte")
         self.cast_check.toggled.connect(lambda _c: self._marquer_auto())
         self.cast_check.setToolTip(
@@ -1946,7 +1482,6 @@ class MainWindow(QMainWindow):
             "Les trois gains sont calculés une seule fois, pour tout le film. "
             "Un noir et blanc reste neutre, une image pâle n'est pas ravivée. "
             "Désactivé par défaut. L'analyse le conseille seulement si la dominante est forte.")
-        vi.addWidget(self.cast_check)
         self.mask_spin = QDoubleSpinBox()
         self.mask_spin.setRange(0, 32)
         self.mask_spin.setDecimals(0)
@@ -1961,7 +1496,6 @@ class MainWindow(QMainWindow):
         h.addWidget(self.mask_spin)
         h.addStretch(1)
         self._row_mask = _wrap(h)
-        vi.addWidget(self._row_mask)
         self.edge_spin = QDoubleSpinBox()
         self.edge_spin.setRange(0, 64)
         self.edge_spin.setDecimals(0)
@@ -1978,7 +1512,6 @@ class MainWindow(QMainWindow):
         h.addWidget(self.edge_spin)
         h.addStretch(1)
         self._row_edge = _wrap(h)
-        vi.addWidget(self._row_edge)
         h = QHBoxLayout()
         self.chroma_spin = QSpinBox()
         self.chroma_spin.setRange(-8, 8)
@@ -1990,13 +1523,8 @@ class MainWindow(QMainWindow):
         h.addWidget(self.chroma_spin)
         h.addStretch(1)
         self._row_chroma = _wrap(h)
-        vi.addWidget(self._row_chroma)
-        vi.addWidget(self.ai_check)
-        left.addWidget(gi)
 
         # Son
-        gs = self._card_son = Carte("Son", "onde")
-        vs = gs.body
         self.audio_check = _with_icon(QCheckBox("Restaurer le son (souffle, clics, volume)"), "haut_parleur")
         self.audio_check.setChecked(True)
         self.audio_check.setToolTip(
@@ -2005,31 +1533,26 @@ class MainWindow(QMainWindow):
             "(installer.bat -AvecSon), sinon le même souffle FFmpeg plus fort. "
             "Le plafond de DeepFilterNet est de 12 dB. Les rires, la musique et la rue restent. "
             "Une piste muette le reste.")
-        vs.addWidget(self.audio_check)
         self.rnnoise_check = _with_icon(QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)"), "micro")
         self.rnnoise_check.setToolTip(
             "Option, désactivée par défaut : les profils ne changent pas. "
             "Remplace le souffle FFmpeg d'Équilibré (35 %) et de Maximum (55 %) par RNNoise "
             "(modèle Xiph inclus, licence BSD). Le reste du signal, donc la pièce, est conservé. "
             "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
-        vs.addWidget(self.rnnoise_check)
         self.wind_check = _with_icon(QCheckBox("Réduire le vent et les grondements"), "vent")
         self.wind_check.toggled.connect(lambda _c: self._marquer_auto())
         self.wind_check.setToolTip(
             "Passe-haut doux à 80 Hz (6 dB par octave). Coupe le vent sur le micro et les "
             "grondements graves. Une voix à partir de 300 Hz n'est presque pas touchée. "
             "Désactivé par défaut. L'analyse le conseille si les graves sont forts et irréguliers.")
-        vs.addWidget(self.wind_check)
         self.presence_check = _with_icon(QCheckBox("Rendre les voix plus claires"), "egaliseur")
         self.presence_check.setToolTip(
             "Légère présence autour de 3 kHz, +3 dB au plus. Pour un son étouffé. "
             "Désactivé par défaut : rien n'est ajouté si la case n'est pas cochée.")
-        vs.addWidget(self.presence_check)
         self.declip_check = _with_icon(QCheckBox("Réparer le son saturé"), "sature")
         self.declip_check.toggled.connect(lambda _c: self._marquer_auto())
         self.declip_check.setToolTip("Reconstruit les crêtes coupées d'un son enregistré trop fort "
                                      "(cris, fêtes, vent). L'analyse le détecte et le conseille.")
-        vs.addWidget(self.declip_check)
         h = QHBoxLayout()
         self.offset_spin = QDoubleSpinBox()
         self.offset_spin.setRange(-500, 500)
@@ -2039,11 +1562,6 @@ class MainWindow(QMainWindow):
         self.offset_spin.setToolTip(
             "Décalage constant entre le son et l'image. Positif : retarder le son "
             "(il était en avance). Négatif : avancer le son. 0 : ne rien changer.")
-        h.addWidget(_ilabel("Décalage du son :", "horloge"))
-        h.addWidget(self.offset_spin)
-        h.addStretch(1)
-        vs.addLayout(h)
-        h = QHBoxLayout()
         self.drift_spin = QDoubleSpinBox()
         self.drift_spin.setRange(-2000, 2000)
         self.drift_spin.setDecimals(0)
@@ -2054,11 +1572,6 @@ class MainWindow(QMainWindow):
             "(il est accéléré, la hauteur des voix est conservée). "
             "Exemple : +100 = une seconde de retard au bout de 10 minutes. "
             "0 = ne rien changer. Ce n'est pas une détection des lèvres.")
-        h.addWidget(_ilabel("Dérive :", "derive"))
-        h.addWidget(self.drift_spin)
-        h.addStretch(1)
-        vs.addLayout(h)
-        h = QHBoxLayout()
         self.mains_combo = QComboBox()
         for txt, val in (("Pas de ronflement à enlever", 0), ("Ronflement 50 Hz (Europe)", 50),
                          ("Ronflement 60 Hz (Amérique)", 60)):
@@ -2073,21 +1586,14 @@ class MainWindow(QMainWindow):
         self.copy_combo.setToolTip(
             "Enregistre le son restauré à côté du film, sans modifier l'original. "
             "C'est le même son que dans la vidéo.")
-        vs.addWidget(self.mains_combo)
-        vs.addWidget(self.copy_combo)
         self.channel_combo = QComboBox()
         for txt, val in (("Canaux du son inchangés", ""), ("Son gauche mis des deux côtés", "left"),
                          ("Son droit mis des deux côtés", "right"), ("Remettre les deux côtés en phase", "phase")):
             self.channel_combo.addItem(icons.icon("canaux"), txt, val)
         self.channel_combo.setToolTip("Pour un son enregistré d'un seul côté, ou dont les deux côtés "
                                       "s'annulent. L'analyse le détecte et le conseille.")
-        vs.addWidget(self.channel_combo)
-        left.addStretch(1)
 
         # Aperçu
-        g = self._card_apercu = Carte("Aperçu avant / après", "comparer", "3", "extrait de 10 s")
-        v = g.body
-        h = QHBoxLayout()
         self.start_spin = TempsSpin()
         self.start_spin.setRange(0, 0)
         self.start_spin.setAccessibleName("Début de l'extrait à regarder")
@@ -2101,74 +1607,17 @@ class MainWindow(QMainWindow):
         self.still_combo.currentIndexChanged.connect(self._show_still)
         self.play_btn = _with_icon(QPushButton("Lire la comparaison"), "jouer")
         self.play_btn.clicked.connect(self._play_compare)
-        self.hear_orig_btn = _with_icon(QPushButton("Écouter l'original"), "casque")
-        self.hear_orig_btn.clicked.connect(self._play_original)
-        self.hear_new_btn = _with_icon(QPushButton("Écouter le son restauré"), "casque")
-        self.hear_new_btn.clicked.connect(self._play_restored)
+        self.hear_orig_btn = self.s_hear_orig
+        self.hear_new_btn = self.s_hear_new
         self.start_label = _ilabel("Début de l'extrait :", "horloge")
-        h.addWidget(self.start_label)
-        h.addWidget(self.start_spin)
-        h.addWidget(self.preview_btn)
-        h.addStretch(1)
-        v.addLayout(h)
-        h = QHBoxLayout()               # deuxième ligne : la page tient sur un écran de portable
-        h.addWidget(self.still_combo)
-        h.addWidget(self.play_btn)
-        h.addStretch(1)
-        v.addLayout(h)
-        h = QHBoxLayout()
-        h.addWidget(self.hear_orig_btn)
-        h.addWidget(self.hear_new_btn)
-        h.addStretch(1)
-        v.addLayout(h)
-        self.compare = CompareView()
-        self.compare.garder_proportions()
-        v.addWidget(self.compare)
-        right.addWidget(g)
-        right.addWidget(gs)             # le son, juste sous les boutons « Écouter »
-
-        # Export
-        g = Carte("Restauration complète", "export", "4")
-        v = g.body
-        h = QHBoxLayout()
         self.out_edit = QLineEdit()
         self.out_edit.setPlaceholderText("À côté du fichier d'origine")
         self.out_edit.textEdited.connect(lambda t: setattr(self, "_out_manual", bool(t.strip())))
         bo = self._out_btn = _with_icon(QPushButton("Dossier de sortie…"), "dossier")
         bo.clicked.connect(self._choose_outdir)
-        h.addWidget(self.out_edit, 1)
-        h.addWidget(bo)
-        v.addLayout(h)
-        # Découpage : sa propre carte, à gauche sous « Image » (dans « Restauration complète », ses
-        # onze gros boutons repoussaient « Lancer la restauration » loin vers le bas et laissaient un
-        # grand vide à gauche). Boutons compacts, deux par ligne ; le mode simple garde ses gros boutons.
-        # deux cartes, une par colonne : « Début et fin » (réglage du film entier) à gauche, sous
-        # « Image » ; « Enlever un passage » à droite, sous l'aperçu dont il utilise le moment.
-        # Une seule carte déséquilibrait les colonnes (500 px de vide d'un côté ou de l'autre).
-        carte_coupe = Carte("Début et fin", "ciseaux")
-        bv = carte_coupe.body
-        self.trim_start = TempsSpin()
-        self.trim_end = TempsSpin()
-        self.trim_start.setSpecialValueText("dès le début")
-        self.trim_end.setSpecialValueText("à la fin")
-        self.trim_start.setAccessibleName("Le film commence à")
-        self.trim_end.setAccessibleName("Le film s'arrête à")
-        self.trim_start.setToolTip("Pour ne pas garder la neige ou l'écran bleu du début.")
-        self.trim_end.setToolTip("Pour ne pas garder la fin de bande. « à la fin » = tout garder.")
-        grille = QGridLayout()
-        grille.setHorizontalSpacing(8)
-        grille.setVerticalSpacing(6)
-        for col, (libelle, spin) in enumerate((("Le film commence à", self.trim_start),
-                                               ("Le film s'arrête à", self.trim_end))):
-            lab = QLabel(libelle)
-            lab.setWordWrap(True)
-            grille.addWidget(lab, 0, col)
-            grille.addWidget(spin, 1, col)
-        bv.addLayout(grille)
-        self.trim_note = QLabel()
-        self.trim_note.setWordWrap(True)
-        self.trim_note.setObjectName("note")
-        bv.addWidget(self.trim_note)
+        self.trim_start = self.s_trim_start
+        self.trim_end = self.s_trim_end
+        self.trim_note = self.s_trim_note
 
         def compact(b: QPushButton, ic: str | None = None) -> QPushButton:
             if ic:
@@ -2181,7 +1630,7 @@ class MainWindow(QMainWindow):
 
         self.trim_ici_debut = compact(QPushButton("Commencer à l'extrait"), "ciseaux")
         self.trim_ici_fin = compact(QPushButton("Arrêter après l'extrait"), "ciseaux")
-        self.trim_tout = compact(QPushButton("Tout garder"), "film")
+        self.trim_tout = self.s_trim_tout
         self.trim_ici_debut.setToolTip("Le moment « Début de l'extrait » devient le début de la copie.")
         self.trim_ici_fin.setToolTip("La copie s'arrête à la fin de cet extrait de 10 secondes.")
         self.trim_ici_debut.setAccessibleName("Faire commencer le film au début de l'extrait")
@@ -2189,48 +1638,8 @@ class MainWindow(QMainWindow):
         self.trim_tout.setAccessibleName("Garder le film en entier")
         self.trim_ici_debut.clicked.connect(lambda: self._coupe_depuis_extrait(False))
         self.trim_ici_fin.clicked.connect(lambda: self._coupe_depuis_extrait(True))
-        self.trim_tout.clicked.connect(self._coupe_tout)
-        g1 = QGridLayout()
-        g1.setSpacing(6)
-        g1.addWidget(self.trim_ici_debut, 0, 0)
-        g1.addWidget(self.trim_ici_fin, 0, 1)
-        g1.addWidget(self.trim_tout, 1, 0, 1, 2)
-        bv.addLayout(g1)
-        carte_passages = Carte("Enlever un passage", "ciseaux")
-        bp = carte_passages.body
-        self.barre_avancee = BarreCompacte()
-        self.barre_avancee._compacte = True
-        self.barre_avancee.clique.connect(self._barre_cliquee)
-        self.barre_avancee.borde.connect(self._bord_bouge)
-        self.barre_avancee.borde_fini.connect(self._bord_fini)
-        self.barre_avancee.valider.connect(self._couper_ici)
-        bp.addWidget(self.barre_avancee)
-        titre2 = QLabel("L'image du moment est dans l'aperçu, tant que vous n'avez pas cliqué "
-                         "sur « Voir l'avant / après ». Même coupe que sur la page simple.")
-        titre2.setObjectName("note")
-        titre2.setWordWrap(True)
-        bp.addWidget(titre2)
-        self.trim_couper = compact(QPushButton("Couper ici"), "ciseaux")
-        self.trim_couper.setAccessibleName("Couper ici")
-        self.trim_couper.clicked.connect(self._couper_ici)
-        self.trim_passage_annuler = compact(QPushButton("Annuler la dernière coupe"))
-        self.trim_passage_annuler.setAccessibleName("Annuler la dernière coupe")
-        self.trim_passage_annuler.clicked.connect(self._passage_annuler)
-        g2 = QGridLayout()
-        g2.setSpacing(6)
-        g2.addWidget(self.trim_couper, 0, 0)
-        g2.addWidget(self.trim_passage_annuler, 0, 1)
-        rangee = QHBoxLayout()
-        rangee.setSpacing(6)
-        for texte, court, sec in (("Enlever 10 secondes ici", "Enlever 10 s", 10),
-                                  ("Enlever 30 secondes ici", "Enlever 30 s", 30),
-                                  ("Enlever 1 minute ici", "Enlever 1 min", 60)):
-            b = compact(QPushButton(court))
-            b.setAccessibleName(texte)
-            b.setToolTip(texte + " : à partir du moment « Début de l'extrait ».")
-            b.clicked.connect(lambda _=False, s=sec: self._passage_duree(s))
-            rangee.addWidget(b)
-        g2.addLayout(rangee, 1, 0, 1, 2)
+        self.trim_couper = self.s_couper
+        self.trim_passage_annuler = self.s_passage_annuler
         self.trim_passage_deb = compact(QPushButton("Début du passage ici"))
         self.trim_passage_fin = compact(QPushButton("Le film reprend ici"))
         self.trim_passage_deb.setAccessibleName("Ce passage inutile commence ici")
@@ -2238,43 +1647,22 @@ class MainWindow(QMainWindow):
         self.trim_passage_deb.setToolTip("Ce passage inutile commence ici (en deux temps : puis « Le film reprend ici »).")
         self.trim_passage_deb.clicked.connect(self._passage_commence)
         self.trim_passage_fin.clicked.connect(self._passage_reprend)
-        g2.addWidget(self.trim_passage_deb, 2, 0)
-        g2.addWidget(self.trim_passage_fin, 2, 1)
-        bp.addLayout(g2)
-        self.trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_start,)))
-        self.s_trim_start.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_start,)))
-        self.trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.s_trim_end,)))
-        self.s_trim_end.valueChanged.connect(lambda v: self._propager_coupe(v, (self.trim_end,)))
+        self.s_passage_deb = self.trim_passage_deb
+        self.s_passage_fin = self.trim_passage_fin
+        self.trim_start.valueChanged.connect(self._dire_coupe)
+        self.trim_end.valueChanged.connect(self._dire_coupe)
         self._dire_coupe()
-        self._row_trim = carte_coupe
-        self._row_passages = carte_passages
-        left.insertWidget(left.count() - 1, carte_coupe)      # avant le ressort de la colonne de gauche
-        right.insertWidget(1, carte_passages)                 # juste sous « Aperçu avant / après »
-        h = QHBoxLayout()
         self.run_btn = QPushButton("Lancer la restauration")
         self.run_btn.setObjectName("action")
         self.run_btn.setIcon(icons.icon("etincelle", theme.AMBRE_TEXTE, 24))
         self.run_btn.setIconSize(QSize(24, 24))
         self.run_btn.clicked.connect(self.start_export)
         self.run_btn.installEventFilter(self._halos[1])
-        self.cancel_btn = _with_icon(QPushButton("Arrêter"), "stop")
-        self.cancel_btn.clicked.connect(lambda: self.cancel(confirmer=True))
-        self.cancel_btn.setMinimumHeight(44)
-        self.cancel_btn.setAccessibleName("Arrêter le travail en cours")
-        self.cancel_btn.setAccessibleDescription("Demande confirmation si le travail dure déjà depuis un moment.")
+        self.cancel_btn = self.s_cancel
         self.check_btn = _with_icon(QPushButton("Vérifier l'installation"), "diagnostic")
         self.check_btn.setToolTip("Restaure une courte vidéo d'essai et affiche un rapport "
                                   "(utile si quelque chose ne marche pas).")
         self.check_btn.clicked.connect(self.check_install)
-        h.addWidget(self.run_btn)
-        h.addWidget(self.cancel_btn)
-        h.addStretch(1)
-        v.addLayout(h)
-        self.progress = theme.SweepBar()
-        self.status = QLabel("Prêt.")
-        self.status.setWordWrap(True)
-        v.addWidget(self.progress)
-        v.addWidget(self.status)
         self.vides_btn = _with_icon(QPushButton("Retirer les passages vides…"), "ciseaux")
         self.vides_btn.clicked.connect(self.retirer_vides)
         self.montage_btn = _with_icon(QPushButton("Faire un montage…"), "film")
@@ -2291,25 +1679,9 @@ class MainWindow(QMainWindow):
         self.partager_btn.setToolTip("Copie légère (e-mail, WhatsApp) ou pour la télévision (clé USB), du dernier "
                                      "film restauré ou sinon du film ouvert.")
         self.partager_btn.clicked.connect(self.partager_resultat)
-        # deux boutons par ligne : la carte tient sur un écran de 1280 px, texte à 100 % comme à 150 %
-        for gauche, droite in ((self.vides_btn, self.separer_btn), (self.nommer_btn, self.partager_btn),
-                               (self.montage_btn, self.check_btn)):
-            h = QHBoxLayout()
-            h.addWidget(gauche)
-            if droite is self.check_btn:
-                h.addStretch(1)
-                h.addWidget(droite)
-            else:
-                h.addWidget(droite)
-                h.addStretch(1)
-            v.addLayout(h)
-        right.addWidget(g)
-        right.addStretch(1)
-
-        # les deux pages affichent la même progression, le même état, le même aperçu
-        self.status = _Mirror(self.status, self.s_status)
-        self.progress = _Mirror(self.progress, self.s_progress)
-        self.compare = _Mirror(self.compare, self.s_compare)
+        self.status = self.s_status
+        self.progress = self.s_progress
+        self.compare = self.s_compare
         # voyants des outils : cliquables (fiche de l'outil, bouton « Installer » si besoin)
         self.tools_label = QWidget()
         hb = QHBoxLayout(self.tools_label)
@@ -2323,18 +1695,22 @@ class MainWindow(QMainWindow):
             b.clicked.connect(lambda _=False, k=key: self.show_tool(k))
             hb.addWidget(b)
             self.voyants[key] = b
-        self.statusBar().addPermanentWidget(self.tools_label)
         self.statusBar().setVisible(False)       # mode simple : pas de noms d'outils techniques
-        self._compacter_options()       # avant tout calcul de mise en page (Qt garde les tailles)
         # une option cochée après coup peut rendre la coupe au milieu impossible : la note se met à jour
         for case in (self.ai_check, self.dust_check, self.tape_check, self.chroma_check, self.dropout_check):
             case.toggled.connect(lambda _c: self._rafraichir_passages())
         for liste in (self.cadence_combo, self.source_combo):
             liste.currentIndexChanged.connect(lambda _i: self._rafraichir_passages())
-        self.profile_buttons["equilibre"].setChecked(True)
         self._out_manual = False        # dossier de sortie choisi exprès par l'utilisateur ?
+        ecran.installer(self)
+        self.s_choose, self.s_preview, self.s_run = self.choisir, self.preview_btn, self.run_btn
+        for b in (self.s_choose, self.s_preview, self.s_run):
+            b.suggested = False
+            b.setAccessibleName(b.text())
+
+        self.profile_buttons["equilibre"].setChecked(True)
         self._load_prefs()
-        self._ranger_etapes()
+        self.set_taille_texte(round(self._echelle * 100), annoncer=False)
 
     # ------------------------------------------------------------ état
     def _refresh_tools(self) -> None:
@@ -2363,17 +1739,16 @@ class MainWindow(QMainWindow):
                                       "relancez installer.bat -AvecQTGMC (Python 3.12+)."))
         self.ai_check.setToolTip("Agrandissement par IA sur carte graphique (Vulkan). "
                                  "Peut inventer des détails : vérifiez l'aperçu." if t.ai_available else
-                                 "Real-ESRGAN n'est pas installé : cliquez sur « ○ Real-ESRGAN » en bas "
-                                 "de la fenêtre "
+                                 "Real-ESRGAN n'est pas installé : cliquez sur « ○ Real-ESRGAN » dans « Détails du fichier » "
                                  + (f"({t.realesrgan.problem})" if t.realesrgan.problem else ""))
 
     def show_welcome(self) -> None:
         """Mode d'emploi en trois étapes (au premier lancement, puis par le bouton « Aide »)."""
         box = QMessageBox(QMessageBox.Information, "Bienvenue dans VHS Restore AI",
                           "Restaurer un film ou une photo se fait en trois étapes :\n\n"
-                          "1.  « Choisir le film ou la photo » : sélectionnez le fichier.\n"
+                          "1.  « Choisir un film ou une photo » : sélectionnez le fichier.\n"
                           "2.  « Voir l'avant / après » : regardez le résultat sur un petit extrait.\n"
-                          "3.  « Restaurer » : le logiciel travaille, cela peut prendre du temps. "
+                          "3.  « Lancer la restauration » : le logiciel travaille, cela peut prendre du temps. "
                           "Vous pouvez laisser l'ordinateur faire.\n\n"
                           "Le bouton à utiliser est entouré d'un cadre plus épais. "
                           "La touche Entrée l'active.\n\n"
@@ -2381,7 +1756,7 @@ class MainWindow(QMainWindow):
                           "à côté, avec « restaure » dans son nom. À la fin, l'écran « C'est prêt » "
                           "propose de le regarder ou d'ouvrir le dossier.\n\n"
                           "Pour enlever la neige du début ou la fin de bande : « Le film commence à » "
-                          "et « Le film s'arrête à », sous les trois boutons. "
+                          "et « Le film s'arrête à », dans « Couper le film ». "
                           "Pour un moment au milieu, regardez les petites images sur la barre, "
                           "puis « Couper ici » au début du moment à enlever et « Le film reprend ici » "
                           "à la reprise. "
@@ -2411,7 +1786,7 @@ class MainWindow(QMainWindow):
             return
         nouveau = "sombre" if theme.MODE == "clair" else "clair"
         if not self._question("Affichage", f"Passer à l'affichage {nouveau} ?\n\nLe logiciel va redémarrer. "
-                              "Vos réglages sont gardés ; le film ouvert sera à rouvrir (bouton 1).",
+                              "Vos réglages sont gardés ; le film ouvert sera à rouvrir.",
                               f"Oui, affichage {nouveau}", "Non"):
             return
         s = self._prefs()
@@ -2439,12 +1814,12 @@ class MainWindow(QMainWindow):
     def _info_suite(self, prefixe: str = "") -> None:
         """Texte du haut selon l'état : rien d'ouvert, prêt pour l'aperçu, ou aperçu prêt."""
         if self.info is None or not getattr(self, "_info_debut", ""):
-            self.s_info.setText(prefixe + "Pour commencer, cliquez sur le bouton 1 « Choisir le film ou la photo ».")
+            self.s_info.setText(prefixe + "Cliquez sur « Choisir un film ou une photo ».")
             return
         if self.preview is not None:
-            suite = " Aperçu prêt : comparez avec les boutons sous l'image, puis bouton 3 « Restaurer » si cela vous plaît."
+            suite = " Aperçu prêt : comparez avec les boutons sous l'image, puis « Lancer la restauration » si cela vous plaît."
         else:
-            suite = " Prêt : cliquez sur le bouton 2 « Voir l'avant / après »."
+            suite = " Cliquez sur « Voir l'avant / après »."
         self._set_simple_info(prefixe + self._info_debut + suite)
 
     def _set_simple_info(self, text: str) -> None:
@@ -2559,7 +1934,7 @@ class MainWindow(QMainWindow):
         cible = self._cible_montage()
         if cible is None:
             if self.info is None or getattr(self, "is_photo", False):
-                self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
+                self.status.setText("Choisissez d'abord un film.")
             return
         t = self.tools
 
@@ -2766,8 +2141,7 @@ class MainWindow(QMainWindow):
             return
         fini = getattr(self, "_fini_fichier", None)
         if not fini or not Path(fini).is_file():
-            self._etat("Restaurez d'abord le film ou la photo : seul le résultat peut être nommé.",
-                       "Restaurez d'abord (carte 04) : seul le résultat peut être nommé.")
+            self.status.setText("Restaurez d'abord le film ou la photo. Vous pourrez ensuite nommer le résultat.")
             return
         cible = Path(fini)
         est_photo = photo.is_photo(cible)
@@ -2831,7 +2205,7 @@ class MainWindow(QMainWindow):
         cible = self._cible_montage()
         if cible is None:
             if self.info is None or getattr(self, "is_photo", False):
-                self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
+                self.status.setText("Choisissez d'abord un film.")
             return
         cle = self._choisir_copie(cible)
         if cle is None:
@@ -2882,7 +2256,7 @@ class MainWindow(QMainWindow):
         """Ouvre le film dans LosslessCut (simple) ou Shotcut (complet), installés d'un clic si besoin."""
         cible = self._cible_montage()
         if cible is None:
-            self._etat("Choisissez d'abord un film (bouton 1).", "Choisissez d'abord un film (carte 01).")
+            self.status.setText("Choisissez d'abord un film.")
             return
         box = QMessageBox(QMessageBox.Question, "Faire un montage",
                           "Quel montage voulez-vous faire ?\n\n"
@@ -2952,7 +2326,7 @@ class MainWindow(QMainWindow):
         self.stab_check.setEnabled(self.tools.stab_available and not busy)
         # fonctions affichées selon l'origine
         src = self.source()
-        self.info_form.setRowVisible(self.cadence_combo, src == "film")
+        self.image_form.setRowVisible(self.cadence_combo, src == "film")
         if src != "film":
             self.cadence_combo.setCurrentIndex(0)
         self.flicker_check.setVisible(src in ("film", "transfer"))
@@ -2990,17 +2364,14 @@ class MainWindow(QMainWindow):
         sound = bool(self.info is not None and self.info.has_audio)
         self.play_btn.setEnabled(has_prev and not busy)
         self.play_btn.setVisible(not photo_mode)
-        for b in (self.hear_orig_btn, self.hear_new_btn, self.s_hear_orig, self.s_hear_new):
+        for b in (self.s_hear_orig, self.s_hear_new):
             b.setEnabled(has_prev and sound and not busy)          # film muet : rien à écouter
-            b.setVisible(not photo_mode)                            # une photo n'a pas de son
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
         self.still_combo.setEnabled(has_prev and not busy)
         self.still_combo.setVisible(self.still_combo.count() > 1)      # vide ou une seule image : caché
         self.s_colorize_note.setVisible(not self.s_colorize.isHidden())
         for lab in self.info_labels.values():                            # photo : pas de lignes « — »
             self.info_form.setRowVisible(lab, not (photo_mode and lab.text() == "—"))
-        if self._card_apercu.sous is not None:                           # « extrait de 10 s » : pas
-            self._card_apercu.sous.setVisible(not photo_mode)            # pour une photo
         cible = loaded or bool(getattr(self, "_fini_fichier", None))
         for b in (self.vides_btn, self.montage_btn, self.separer_btn, self.partager_btn):
             b.setEnabled(cible and not busy)                             # pendant un travail ou pour une
@@ -3025,6 +2396,9 @@ class MainWindow(QMainWindow):
         for b in (self.s_choose, self.s_preview, self.s_run):
             if b.suggested != (b is nxt):
                 b.suggested = b is nxt
+                b.setProperty("conseille", b.suggested)
+                b.style().unpolish(b)
+                b.style().polish(b)
                 b.update()
             if b is nxt:
                 b.setAccessibleDescription("Étape conseillée. La touche Entrée l'active.")
@@ -3032,18 +2406,12 @@ class MainWindow(QMainWindow):
                 b.setAccessibleDescription("Pas encore disponible.")
         # Pendant un traitement, les réglages ne servent plus (ils ont été lus au lancement) :
         # on les grise pour ne pas laisser croire qu'ils changent le travail en cours.
-        for card in (self._card_media, self._card_info, self._card_profil, self._card_image, self._card_son):
-            card.setEnabled(not busy)
-        for wd in (self.start_spin, self.out_edit, self._out_btn, self._row_trim, self._row_passages,
-                   self.s_advice,
-                   self.s_coupe):
+        for wd in (self.drop, self._card_info, self.start_spin, self.out_edit, self._out_btn):
             wd.setEnabled(not busy)
         # Photo : seuls le profil, la dominante, l'IA et la colorisation comptent. Les réglages
         # propres aux films sont cachés (ils n'auraient aucun effet).
-        self._card_son.setVisible(not photo_mode)
-        self.s_coupe.setVisible(self.info is not None and not photo_mode)
         for wd in (self._row_res, self._row_deint, self._row_edge, self._row_chroma, self.hq_check,
-                   self.stab_check, self.start_label, self.start_spin, self._row_trim, self._row_passages):
+                   self.stab_check, self.start_label, self.start_spin):
             wd.setVisible(not photo_mode)
         for box in (self.tape_check, self.chroma_check, self.dropout_check):
             box.setVisible(src != "film" and not photo_mode)
@@ -3051,9 +2419,10 @@ class MainWindow(QMainWindow):
         self.dust_check.setVisible(src == "film" and not photo_mode)
         self._row_mask.setVisible(src == "video" and not photo_mode)
         for combo in (self.source_combo, self.scan_combo, self.dar_combo):
-            self.info_form.setRowVisible(combo, not photo_mode)
-        self.info_form.setRowVisible(self.cadence_combo, src == "film" and not photo_mode)
+            self.image_form.setRowVisible(combo, not photo_mode)
+        self.image_form.setRowVisible(self.cadence_combo, src == "film" and not photo_mode)
         self._masquer_recent_courant()
+        ecran.actualiser(self, loaded, photo_mode, busy, fini)
 
     def _masquer_recent_courant(self) -> None:
         """Le fichier déjà ouvert ne reste pas proposé : un clic dessus ne ferait rien de neuf."""
@@ -3119,7 +2488,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "is_photo", False):          # une photo : pas de son, pas de « film »
             if self.info.black_and_white:
                 notes.append("ℹ Photo noir et blanc : elle le restera"
-                             + (". La case « Coloriser aussi » du mode simple peut ajouter une copie "
+                             + (". La case « Coloriser aussi » dans « Qualité » peut ajouter une copie "
                                 "colorisée par l'IA (couleurs inventées)." if self.tools.colorize_available else "."))
             notes += self._lignes_conseils()
             if getattr(self, "out_note", ""):
@@ -3188,9 +2557,10 @@ class MainWindow(QMainWindow):
                                            and self.tools.colorize_available))
 
     def _choisir_comparaison(self, mode: str) -> None:
-        self.s_compare.set_mode(mode)          # le mode simple seulement : l'aperçu avancé se compare
+        self.s_compare.montrer_position = False
+        self.s_compare.set_mode(mode)
         noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}   # à la souris
-        self.status._w[1].setText(f"Affichage : {noms.get(mode, mode)}.")
+        self.status.setText(f"Affichage : {noms.get(mode, mode)}.")
 
     def _dossier_depart(self, images: bool = False) -> str:
         """Dernier dossier utilisé, sinon Vidéos ou Images."""
@@ -3285,77 +2655,29 @@ class MainWindow(QMainWindow):
         self._retenir_dossier(str(Path(path).parent))
         self.load_file(path)
 
-    def _ranger_etapes(self) -> None:
-        """Trois boutons côte à côte seulement s'ils tiennent ; sinon l'un sous l'autre."""
-        steps = getattr(self, "_steps", None)
-        if steps is None:
-            return
-        empiler = self._echelle >= 1.24 or self.width() < 1200
-        sens = QBoxLayout.TopToBottom if empiler else QBoxLayout.LeftToRight
-        if steps.direction() != sens:
-            steps.setDirection(sens)
-        fini = getattr(self, "_fini_boutons", None)
-        if fini is not None and fini.direction() != sens:
-            fini.setDirection(sens)
-        # Original / Comparer / Restauré : côte à côte tant qu'ils tiennent (empilés, ils poussaient
-        # l'image hors de l'écran)
-        row = getattr(self, "_segments_row", None)
-        if row is not None:
-            for b in self.segments.values():         # marge : le texte en gras (bouton choisi) est plus large
-                b.setMinimumWidth(0)
-                b.setMinimumWidth(b.sizeHint().width() + 30)
-            besoin = sum(b.minimumWidth() for b in self.segments.values()) + 60
-            pages = getattr(self, "pages", None)
-            dispo = pages.widget(0).viewport().width() - 40 if pages is not None else self.width()
-            sens_seg = QBoxLayout.TopToBottom if besoin > dispo else QBoxLayout.LeftToRight
-            if row.direction() != sens_seg:
-                row.setDirection(sens_seg)
-
     def set_taille_texte(self, pct: int, annoncer: bool = True) -> None:
-        """100, 125 ou 150 %. Mémorisé. N'agrandit que le mode simple."""
-        pct = 150 if int(pct) >= 140 else 125 if int(pct) >= 110 else 100
-        self._echelle = {100: 1.0, 125: 1.25, 150: 1.5}[pct]
-        for b in (self.s_choose, self.s_preview, self.s_run):
-            b.set_echelle(self._echelle)
-        page = self.pages.widget(0).widget()
-        page.setStyleSheet("" if pct == 100 else self._feuille_simple(self._echelle))
+        pct = 150 if pct >= 140 else 125 if pct >= 110 else 100
+        self._echelle = pct / 100
+        self._simple.setStyleSheet(
+            f"QLabel, QPushButton, QCheckBox, QComboBox, QLineEdit, QAbstractSpinBox "
+            f"{{font-size: {10 * self._echelle}pt;}}"
+            f"QLabel#nomFilm {{font-size: {16 * self._echelle}pt; font-weight: bold;}}"
+            "QPushButton {padding: 3px 6px;} QCheckBox {spacing: 4px;}"
+            f"QPushButton[conseille=true] {{border: 2px solid {theme.ACCENT};}}"
+            + ecran.regles(self._echelle)
+        )
+        if getattr(self, "run_btn", None) is not None:
+            self.run_btn.setFixedSize(400, 64)
+        if getattr(self, "profile_buttons", None):
+            ecran.ajuster_qualite(self)
+            ecran.ajuster_son(self)
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
-            bouton.setAccessibleDescription("Taille actuelle." if valeur == pct
-                                            else "Changer la taille du texte du mode simple.")
-        # les hauteurs minimales des boutons suivent la taille du texte (plus de « Oriqinal » rogné)
-        if not hasattr(self, "_hauteurs_base"):
-            self._hauteurs_base = [(b, b.minimumHeight()) for b in (
-                self.s_cancel, self.s_hear_orig, self.s_hear_new, self.s_folder, self.s_voir, self.s_ouvrir,
-                self.s_autre, self.s_vides, self.s_montage, self.s_nommer, self.s_partager, self.s_separer,
-                *self.segments.values())]
-        for b, base in self._hauteurs_base:
-            b.setMinimumHeight(int(base * self._echelle))
-        self._ranger_etapes()
-        s = self._prefs()
-        if s is not None:
-            s.setValue("texte", pct)
+        pref = self._prefs()
+        if pref is not None:
+            pref.setValue("texte", pct)
         if annoncer:
             self.status.setText(f"Taille du texte : {pct} %.")
-
-    def _feuille_simple(self, echelle: float) -> str:
-        def pt(base: float) -> str:
-            return f"{base * echelle:.1f}pt"
-        return (
-            f"QLabel#infos {{ font-size: {pt(15)}; }}"
-            f"QLabel#statut {{ font-size: {pt(14.5)}; }}"
-            f"QLabel#note {{ font-size: {pt(13)}; }}"
-            f"QLabel#titre {{ font-size: {pt(22)}; }}"
-            f"QLabel#marque {{ font-size: {pt(13)}; }}"
-            f"QLabel#finiTitre {{ font-size: {pt(22)}; }}"
-            f"QLabel#finiTexte {{ font-size: {pt(16)}; }}"
-            f"QPushButton#secondaire {{ font-size: {pt(14)}; }}"
-            f"QPushButton#segment {{ font-size: {pt(14)}; }}"
-            f"QPushButton#lienDiscret {{ font-size: {pt(12.5)}; }}"
-            f"QPushButton#bandeauBouton {{ font-size: {pt(12.5)}; }}"
-            f"QPushButton#action {{ font-size: {pt(15)}; min-height: {int(58 * echelle)}px; }}"
-            f"QCheckBox#caseSimple {{ font-size: {pt(14)}; }}"
-        )
 
     def _expliquer_conseil(self) -> None:
         detail = self.s_advice.toolTip() or "Aucun défaut particulier n'a été repéré."
@@ -3370,7 +2692,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Coloriser", detail)
 
     def keyPressEvent(self, e) -> None:  # noqa: N802
-        if e.key() in (Qt.Key_Return, Qt.Key_Enter) and self.pages.currentIndex() == 0:
+        if e.key() in (Qt.Key_Return, Qt.Key_Enter):
             focus = QApplication.focusWidget()
             if not self.s_fini.isHidden() and not self._busy():   # « C'est prêt » : Entrée = regarder
                 if self.s_voir.isVisible():
@@ -3446,10 +2768,12 @@ class MainWindow(QMainWindow):
         self.s_colorize.setVisible(info.black_and_white)
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(info.black_and_white)
+        ecran.ajuster_qualite(self)
         self.drop.setText(info.path.name)
         self._memoriser_recent(str(info.path))
         self._update_state()
         self._couper_images()
+        self.s_compare.poser_moment(str(info.path), None)
         self._refresh_hints()
         self.status.setText(f"Photo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
@@ -3507,6 +2831,7 @@ class MainWindow(QMainWindow):
         self.s_advice.setVisible(bool(self.advice))
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(False)
+        ecran.ajuster_qualite(self)
         self.channel_combo.setCurrentIndex(0)
         self.declip_check.setChecked(False)
         self._refresh_hints()
@@ -3565,42 +2890,21 @@ class MainWindow(QMainWindow):
         self.still_combo.setCurrentIndex(idx)
         self._show_still(idx)
         self.segments["split"].setChecked(True)
+        self.compare.montrer_position = False
         self.compare.set_mode("split")
         quand = "" if getattr(self, "is_photo", False) else \
             f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
         self._info_suite()
-        self._apercu_a_montrer = True           # une fois les boutons sous l'image affichés (_on_finished)
-        self._etat(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
-                   "sous l'image. Si cela vous plaît : bouton 3 « Restaurer ».",
-                   f"Aperçu prêt{quand}. Déplacez la souris sur l'image pour comparer. "
-                   "Si cela vous plaît : « Lancer la restauration ».")
+        if getattr(self, "_ecoute_demandee", False):
+            self._ecoute_demandee = False
+            self._play_restored()
+        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré ».")
 
-    def _hauteur_apercu_simple(self) -> int:
-        """Hauteur visible de la page simple, moins la place des boutons sous l'image."""
-        pages = getattr(self, "pages", None)
-        zone = pages.widget(0) if pages is not None else None
-        return 900 if zone is None else zone.viewport().height() - 150
-
-    def _montrer_apercu(self) -> None:
-        """Mode simple : l'image et ses boutons sont amenés à l'écran (sinon hors de vue à 150 %)."""
-        if self.pages.currentIndex() == 0:
-            zone = self.pages.widget(0)
-            zone.widget().layout().activate()
-            zone.ensureWidgetVisible(self.s_compare, 0, 0)
-            zone.ensureWidgetVisible(self.s_segments, 0, 10)
-
-    def _montrer_progression(self) -> None:
-        if self.pages.currentIndex() == 0 and self._busy():
-            zone = self.pages.widget(0)
-            zone.widget().layout().activate()
-            zone.ensureWidgetVisible(self.s_cancel, 0, 20)       # « Arrêter », puis la barre et l'état
-            zone.ensureWidgetVisible(self.s_progress, 0, 20)     # juste au-dessus
-
-    def _etat(self, simple: str, avance: str) -> None:
-        """Message propre à chaque page : les boutons n'ont pas le même nom dans les deux."""
-        page_avancee, page_simple = self.status._w
-        page_avancee.setText(avance)
-        page_simple.setText(simple)
+    def _ecouter_extrait(self) -> None:
+        self._ecoute_demandee = True
+        self.start_preview()
+        if not self._busy():
+            self._ecoute_demandee = False
 
     def _show_still(self, idx: int) -> None:
         if self.preview and 0 <= idx < len(self.preview.stills):
@@ -3623,19 +2927,11 @@ class MainWindow(QMainWindow):
         self._coupes = []
         self._coupe_ouverte = None
         self._texte_couper("Couper ici")
-        for sp in (self.trim_start, self.trim_end, self.s_trim_start, self.s_trim_end):
+        for sp in (self.trim_start, self.trim_end):
             sp.blockSignals(True)
             sp.setRange(0, max(0.0, duree))
             sp.setValue(0)
             sp.blockSignals(False)
-        self._dire_coupe()
-
-    def _propager_coupe(self, valeur: float, cibles: tuple) -> None:
-        for sp in cibles:
-            if abs(sp.value() - valeur) > 0.01:
-                sp.blockSignals(True)
-                sp.setValue(valeur)
-                sp.blockSignals(False)
         self._dire_coupe()
 
     def _dire_coupe(self) -> None:
@@ -3657,13 +2953,11 @@ class MainWindow(QMainWindow):
                     morceaux.append(f"Après {_duree(fin)}, la fin ne sera pas dedans.")
                 morceaux.append("L'original n'est pas modifié.")
                 texte = " ".join(morceaux)
-        self.trim_note.setText(texte)
         self.s_trim_note.setText(texte)
         self._rafraichir_passages()
 
     def _barres(self) -> list[_Ruban]:
-        return [b for b in (getattr(self, "barre", None), getattr(self, "barre_avancee", None))
-                if b is not None]
+        return [self.barre] if hasattr(self, "barre") else []
 
     def _rafraichir_barre(self) -> None:
         barres = self._barres()
@@ -3771,16 +3065,10 @@ class MainWindow(QMainWindow):
     def _moment_pret(self, instant: float, chemin: str, generation: int) -> None:
         if generation != self._gen_images:
             return
-        image = getattr(self, "s_moment", None)
-        if image is not None:
-            image.montrer(chemin, instant)
         heure = getattr(self, "s_moment_heure", None)
         if heure is not None:
             heure.setText(_duree(instant))
-        if not getattr(self, "preview", None):
-            vue = getattr(self, "compare", None)
-            if vue is not None and hasattr(vue, "poser_moment"):
-                vue.poser_moment(chemin, instant)
+        self.s_compare.poser_moment(chemin, instant)
 
     def _demander_moment(self) -> None:
         fab = getattr(self, "_fab", None)
@@ -3792,6 +3080,7 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
+        self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
         self.status.setText(
             f"Vous êtes à {_duree(secondes)}. Cliquez sur « Couper ici », "
@@ -3840,7 +3129,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def _texte_couper(self, texte: str) -> None:
-        for nom in ("s_couper", "trim_couper"):
+        for nom in ("s_couper",):
             bouton = getattr(self, nom, None)
             if bouton is not None:
                 bouton.setText(texte)
@@ -4046,7 +3335,7 @@ class MainWindow(QMainWindow):
             gestes.append("décochez " + (cases[0] if len(cases) == 1 else "ces cases"))
         if cadence:
             gestes.append("remettez « Cadence de tournage » sur « Celle du fichier »")
-        return (f" Attention : cette coupe ne partira pas avec {liste} (options avancées). "
+        return (f" Attention : cette coupe ne partira pas avec {liste}. "
                 f"Pour la garder, {' et '.join(gestes)} ; ou bien n'enlevez que le début et la fin.")
 
     def _rafraichir_passages(self) -> None:
@@ -4220,7 +3509,9 @@ class MainWindow(QMainWindow):
 
     def _montrer_fini(self, texte: str, dossier: Path, fichier: Path | None, genre: str) -> None:
         """Écran « C'est prêt », pas une petite boîte. Trois grands boutons."""
+        self.options.hide()
         self.s_fini_texte.setText(texte)
+        self.bilan.setVisible(bool(texte))
         self.s_info.setText("<b>Terminé.</b> Le résultat est prêt : regardez-le ou ouvrez son dossier "
                             "avec les boutons ci-dessous.")
         self.s_info.setToolTip("")
@@ -4250,12 +3541,22 @@ class MainWindow(QMainWindow):
         self.s_ouvrir.setAccessibleName("Ouvrir le dossier du résultat")
         self.s_autre.setAccessibleName(self.s_autre.text())
         self.s_fini.setVisible(True)
-        self.set_advanced(False)
         self._update_state()                              # « Nommer le résultat… » suit le résultat
-        zone = self.pages.widget(0)
-        if isinstance(zone, QScrollArea):
-            zone.ensureWidgetVisible(self.s_fini)
         self._signaler_fin()
+
+    def _afficher_bilan(self):
+        dialogue = QDialog(self)
+        dialogue.setWindowTitle("Bilan de la restauration")
+        disposition = QVBoxLayout(dialogue)
+        texte = QPlainTextEdit(self.s_fini_texte.text())
+        texte.setReadOnly(True)
+        disposition.addWidget(texte)
+        fermer = QPushButton("Fermer")
+        fermer.clicked.connect(dialogue.accept)
+        disposition.addWidget(fermer)
+        dialogue.resize(640, 360)
+        dialogue.exec()
+        dialogue.deleteLater()
 
     def _signaler_fin(self) -> None:
         """Son bref et clignotement dans la barre des tâches : le travail est fini."""
@@ -4429,7 +3730,6 @@ class MainWindow(QMainWindow):
             self.s_info.setText("<b>Travail en cours.</b> L'avancement s'affiche juste sous les boutons. "
                                 + ergonomie.PHRASE_PATIENCE)
         self._update_state()
-        QTimer.singleShot(0, self._montrer_progression)
 
     def _on_progress(self, frac: float, msg: str) -> None:
         if self.progress.maximum() == 0:
@@ -4456,7 +3756,7 @@ class MainWindow(QMainWindow):
         if job == "export":                     # « Restaurer » ne vaut que pour une restauration
             quoi = "Votre photo n'a pas été modifiée." if getattr(self, "is_photo", False) \
                 else "Votre film n'a pas été modifié."
-            texte = f"Arrêté. {quoi} Pour recommencer, cliquez sur « Restaurer »."
+            texte = f"Arrêté. {quoi} Pour recommencer, cliquez sur « Lancer la restauration »."
         elif job == "dossier":
             texte = "Arrêté. Les originaux n'ont pas été modifiés ; les fichiers déjà terminés restent."
         elif job in ("vides", "vides_copie", "separation", "partage"):
@@ -4491,9 +3791,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "_fermeture_demandee", False):
             QTimer.singleShot(0, self.close)
             return
-        if getattr(self, "_apercu_a_montrer", False):
-            self._apercu_a_montrer = False
-            QTimer.singleShot(120, self._montrer_apercu)     # après la remise en page de la zone
+        self._ecoute_demandee = False
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
         if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Vidéo analysée", "Photo analysée")):
@@ -4612,10 +3910,12 @@ def main() -> int:
     if traduction.load(QLocale(QLocale.French, QLocale.France), "qtbase", "_",
                        QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
         app.installTranslator(traduction)
-    theme.set_mode(str(QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage", "sombre") or "sombre"))
+    choix = QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage")
+    # Sans choix enregistré : clair, comme la maquette. Seul « sombre » explicite reste sombre.
+    theme.set_mode("sombre" if str(choix) == "sombre" else "clair")
     theme.apply(app)
     win = MainWindow()
-    win.show()
+    win.showMaximized()
     if not (win.tools.ffmpeg.path and win.tools.ffprobe.path):
         QMessageBox.critical(win, "FFmpeg manquant",
                              "FFmpeg est nécessaire et n'a pas été trouvé.\n\n"

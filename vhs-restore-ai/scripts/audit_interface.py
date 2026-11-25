@@ -41,7 +41,7 @@ def name(wd):
 
 def widgets():
     out = []
-    for page in (w.pages.widget(0).widget(), w.pages.widget(1).widget()):
+    for page in (w.centralWidget(),):
         for cls in (QAbstractButton, QComboBox, QAbstractSpinBox, QLineEdit):
             out += [x for x in page.findChildren(cls) if not x.objectName().startswith("qt_")
                     and type(x).__name__ not in ("QLineEdit",) or isinstance(x, QLineEdit) and x is w.out_edit]
@@ -52,12 +52,12 @@ def widgets():
     return res
 
 def page_of(x):
-    return "simple" if w.pages.widget(0).widget().isAncestorOf(x) else "avancé"
+    return next((nom for nom, (_, zone) in w.sections.items() if zone.isAncestorOf(x)), "écran")
 
 def snapshot(label):
     rows = {}
     for x in widgets():
-        root = w.pages.widget(0).widget() if page_of(x) == "simple" else w.pages.widget(1).widget()
+        root = w.centralWidget()
         vis = x.isVisibleTo(root)
         rows[name(x)] = (page_of(x), x.isEnabled(), vis)
     return label, rows
@@ -107,12 +107,12 @@ def effect_test(label):
     for x in widgets():
         if not isinstance(x, QAbstractButton) or isinstance(x, QCheckBox) or type(x).__name__ == "ProfileTile":
             continue
-        root = w.pages.widget(0).widget() if page_of(x) == "simple" else w.pages.widget(1).widget()
+        root = w.centralWidget()
         if not (x.isEnabled() and x.isVisibleTo(root)):
             continue
-        before = (len(events), w.status.text(), w.pages.currentIndex(), w._busy())
+        before = (len(events), w.status.text(), tuple(b.isChecked() for b, _ in w.sections.values()), w._busy())
         x.click(); pump(0.3)
-        after = (len(events), w.status.text(), w.pages.currentIndex(), w._busy())
+        after = (len(events), w.status.text(), tuple(b.isChecked() for b, _ in w.sections.values()), w._busy())
         if w._busy():
             # PySide hors écran plante parfois dans paintEvent si on redessine
             # pendant l'arrêt d'un vrai ffmpeg. On suspend le dessin le temps d'attendre.
@@ -121,7 +121,6 @@ def effect_test(label):
             w.setUpdatesEnabled(True)
         if before == after:
             print("   ", name(x), page_of(x))
-        w.pages.setCurrentIndex(0)
 w.load_file(VIDEO); wait_idle()
 effect_test("film chargé, sans aperçu")
 w.start_preview(); wait_idle(180)

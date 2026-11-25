@@ -115,7 +115,7 @@ def test_entree_noms_et_dossier(app, tools, tmp_path, monkeypatch):
     win.show()
     app.processEvents()
     assert "choisir" in win.s_choose.accessibleName().lower()
-    assert "restaurer" in win.s_run.accessibleName().lower()
+    assert win.s_run.accessibleName() == "Lancer la restauration"
     assert win.s_choose.suggested
     ev = QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
     win.keyPressEvent(ev)
@@ -139,11 +139,8 @@ def test_texte_sans_defilement_horizontal(app, tools):
             win.resize(w, h)
             win.set_taille_texte(pct, annoncer=False)
             app.processEvents()
-            simple = win.pages.widget(0)
-            assert simple.horizontalScrollBar().maximum() == 0, (pct, w, h)
-            win.set_advanced(True)
-            app.processEvents()
-            assert win.pages.widget(1).horizontalScrollBar().maximum() == 0, (pct, w, h)
+            assert win.width() == w and win.height() == h
+            assert win.rect().contains(win.run_btn.mapTo(win, win.run_btn.rect().bottomRight()))
             win.close()
 
 

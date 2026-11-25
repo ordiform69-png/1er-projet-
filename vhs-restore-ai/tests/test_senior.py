@@ -42,14 +42,14 @@ def test_etape_suivante_designee_et_comparaison(app, tools, samples, monkeypatch
     win.s_preview.click()
     wait(app, win)
     assert win.s_run.suggested
-    assert win.s_segments.isVisibleTo(win.pages.widget(0).widget())
+    assert win.s_segments.isVisibleTo(win.centralWidget())
     win.segments["after"].click()
     assert win.s_compare.mode == "after"
-    assert win.compare._w[0].mode == "split"      # l'aperçu des options avancées garde la comparaison
+    assert win.compare.mode == "after"
     win.segments["before"].click()
     assert win.s_compare.mode == "before"
-    win.set_advanced(True)
-    assert win.statusBar().isVisibleTo(win)                                  # voyants pour connaisseurs
+    win.details.click()
+    assert win.tools_label.isVisible()                                  # voyants pour connaisseurs
     win.close()
 
 
@@ -88,10 +88,9 @@ def test_affichage_clair(app, tools):
         win = MainWindow(tools)
         win.show()
         win.resize(1366, 740)
-        win.set_advanced(True)
         app.processEvents()
         assert win.theme_btn.text() == "Affichage sombre"
-        assert win.pages.widget(1).horizontalScrollBar().maximum() == 0
+        assert win.width() == 1366 and win.run_btn.isVisible()
         win.close()
     finally:
         theme.set_mode("sombre")
