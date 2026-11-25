@@ -738,6 +738,36 @@ def _wrap(layout: QHBoxLayout) -> QWidget:
 
 
 _MAX_COUPES = 8
+
+# Guide des coupes au milieu : les trois textes selon l'état. Même texte dans
+# le guide sous la barre, dans « Comment faire ? » et dans « Aide ».
+GUIDE_COUPES_AUCUNE = (
+    "1. Glissez jusqu'au début du moment à enlever. "
+    "2. Cliquez sur « Couper ici ». "
+    "3. Glissez jusqu'à la reprise, puis « Le film reprend ici ».")
+GUIDE_COUPES_OUVERTE = (
+    "Maintenant, glissez jusqu'à l'endroit où le film reprend, "
+    "puis cliquez sur « Le film reprend ici ».")
+GUIDE_COUPES_FAITE = (
+    "1 passage enlevé (en doré). Pour en enlever un autre, "
+    "recommencez ailleurs sur la barre (8 au plus).")
+GUIDE_COUPES_CARRES = (
+    "Les carrés blancs sur la barre se tirent pour ajuster le passage. "
+    "« Annuler la dernière coupe » remet le dernier passage.")
+
+
+def _texte_guide_coupes(ouverte: bool, n: int) -> str:
+    """Texte du guide selon l'état : aucune coupe, coupe commencée, ou passage enlevé."""
+    if ouverte:
+        return GUIDE_COUPES_OUVERTE
+    if n <= 0:
+        return GUIDE_COUPES_AUCUNE
+    if n == 1:
+        return GUIDE_COUPES_FAITE
+    return (f"{n} passages enlevés (en doré). Pour en enlever un autre, "
+            "recommencez ailleurs sur la barre (8 au plus).")
+
+
 # travaux de plusieurs minutes : phrase de patience, confirmation avant d'arrêter
 _TRAVAUX_LONGS = ("export", "dossier", "vides_copie", "separation", "partage")
 _MIN_COUPE = 0.5
@@ -1164,6 +1194,43 @@ class BarreCompacte(_Ruban):
     """Même barre, dans les options avancées. Ce n'est pas une BarreFilm."""
 
 
+class SchemaCoupe(QWidget):
+    """Petit schéma dessiné : barre, zone dorée, carrés blancs. Pas de fichier image."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setMinimumHeight(56)
+        self.setMaximumHeight(72)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setAccessibleName("Schéma : la zone dorée est le passage enlevé")
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        r = self.rect().adjusted(4, 14, -4, -14)
+        if r.width() < 20 or r.height() < 8:
+            p.end()
+            return
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.PISTE))
+        p.drawRoundedRect(r, 6, 6)
+        dore = QColor(theme.AMBRE)
+        dore.setAlpha(180)
+        p.setBrush(dore)
+        xa = r.left() + r.width() // 3
+        xb = r.left() + 2 * r.width() // 3
+        p.drawRect(xa, r.top() + 3, max(2, xb - xa), r.height() - 6)
+        cote = 12
+        milieu = r.top() + r.height() / 2.0
+        p.setPen(QPen(QColor("#1a1206"), 1))
+        p.setBrush(QColor("#ffffff"))
+        for cx in (xa, xb):
+            p.drawRoundedRect(int(round(cx - cote / 2)), int(round(milieu - cote / 2)),
+                              cote, cote, 2, 2)
+        p.end()
+
+
 class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
@@ -1459,6 +1526,18 @@ class MainWindow(QMainWindow):
         self.barre.valider.connect(self._couper_ici)
         self.barre.largeur_changee.connect(self._sur_largeur_barre)
         dans.addWidget(self.barre)
+        rangee_guide = QHBoxLayout()
+        rangee_guide.setSpacing(8)
+        self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
+        self.s_guide_coupes.setWordWrap(True)
+        self.s_guide_coupes.setMinimumWidth(0)
+        self.s_guide_coupes.setObjectName("note")
+        self.s_guide_coupes.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.s_comment_faire = _bouton_secondaire("Comment faire ?", "Comment faire ?", elargi=False)
+        self.s_comment_faire.clicked.connect(self._comment_faire_coupes)
+        rangee_guide.addWidget(self.s_guide_coupes, 1)
+        rangee_guide.addWidget(self.s_comment_faire, 0, Qt.AlignTop)
+        dans.addLayout(rangee_guide)
         self.s_couper = _bouton_secondaire("Couper ici", "Couper ici")
         self.s_couper.setObjectName("action")
         self.s_couper.clicked.connect(self._couper_ici)
@@ -2309,6 +2388,11 @@ class MainWindow(QMainWindow):
                           "puis cliquez deux fois sur « Couper ici ». "
                           "L'image au-dessus de la barre montre où vous êtes. "
                           "Seule la copie est découpée.\n\n"
+                          "Pour enlever plusieurs moments au milieu :\n\n"
+                          + GUIDE_COUPES_AUCUNE + "\n\n"
+                          "Après le premier clic : " + GUIDE_COUPES_OUVERTE + "\n\n"
+                          "Après une coupe : " + GUIDE_COUPES_FAITE + "\n\n"
+                          + GUIDE_COUPES_CARRES + "\n\n"
                           "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
         box.addButton("C'est parti", QMessageBox.AcceptRole)
@@ -3715,6 +3799,47 @@ class MainWindow(QMainWindow):
             "puis une seconde fois là où le film reprend.")
         self._rafraichir_barre()
 
+    def _texte_guide(self) -> str:
+        """Texte du guide selon l'état actuel des coupes."""
+        return _texte_guide_coupes(self._coupe_ouverte is not None, len(self._coupes))
+
+    def _rafraichir_guide_coupes(self) -> None:
+        guide = getattr(self, "s_guide_coupes", None)
+        if guide is not None:
+            guide.setText(self._texte_guide())
+
+    def _comment_faire_coupes(self) -> None:
+        """Fenêtre d'aide : les trois étapes, les carrés blancs, un schéma dessiné."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Comment enlever une scène")
+        dlg.setStyleSheet("QLabel, QPushButton { font-size: 13pt; }")
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(16, 12, 16, 12)
+        lay.setSpacing(8)
+        etapes = QLabel(_insecables(
+            GUIDE_COUPES_AUCUNE + "\n\n"
+            "Après le premier clic : " + GUIDE_COUPES_OUVERTE + "\n\n"
+            "Après une coupe : " + GUIDE_COUPES_FAITE))
+        etapes.setWordWrap(True)
+        etapes.setMinimumWidth(0)
+        lay.addWidget(etapes)
+        carres = QLabel(_insecables(GUIDE_COUPES_CARRES))
+        carres.setWordWrap(True)
+        carres.setObjectName("note")
+        lay.addWidget(carres)
+        lay.addWidget(SchemaCoupe())
+        legende = QLabel("Doré : ce qui est enlevé. Les carrés blancs se tirent.")
+        legende.setWordWrap(True)
+        legende.setObjectName("note")
+        lay.addWidget(legende)
+        ok = QPushButton("J'ai compris")
+        ok.setObjectName("action")
+        ok.setMinimumHeight(44)
+        ok.setCursor(Qt.PointingHandCursor)
+        ok.clicked.connect(dlg.accept)
+        lay.addWidget(ok)
+        dlg.exec()
+
     def _texte_couper(self, texte: str) -> None:
         for nom in ("s_couper", "trim_couper"):
             bouton = getattr(self, nom, None)
@@ -3763,6 +3888,7 @@ class MainWindow(QMainWindow):
             return
         ici = float(self.start_spin.value())
         self._coupe_ouverte = ici
+        self._rafraichir_guide_coupes()
         self.status.setText(
             f"Le passage inutile commence à {_duree(ici)}. "
             "Placez l'extrait là où le film reprend, puis cliquez sur « Le film reprend ici ».")
@@ -3822,6 +3948,7 @@ class MainWindow(QMainWindow):
         if self._coupe_ouverte is not None:
             self._coupe_ouverte = None
             self._texte_couper("Couper ici")
+            self._rafraichir_guide_coupes()
             self.status.setText("La coupe commencée est annulée.")
             return
         if not self._coupes:
@@ -3924,6 +4051,7 @@ class MainWindow(QMainWindow):
                 f"Pour la garder, {' et '.join(gestes)} ; ou bien n'enlevez que le début et la fin.")
 
     def _rafraichir_passages(self) -> None:
+        self._rafraichir_guide_coupes()
         note = getattr(self, "s_passages_note", None)
         if note is not None:
             note.setText(self._phrase_passages())
