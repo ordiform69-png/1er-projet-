@@ -1,5 +1,6 @@
 """Disposition de la fenêtre de restauration. Les commandes gardent leurs signaux Qt."""
-from PySide6.QtCore import Qt
+from . import icons, theme
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFrame, QFormLayout, QGridLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
@@ -45,9 +46,10 @@ def installer(w):
     for bouton in (w.help_btn, w.theme_btn, *w._taille_btns.values()):
         bouton.setObjectName("commandeEntete")
     w.details = QPushButton("Détails du fichier")
+    w.details.setAutoDefault(False)
     w.autre = QPushButton("Choisir un autre film")
     w.autre.clicked.connect(w._choose_file)
-    root.setContentsMargins(8, 4, 8, 4)
+    root.setContentsMargins(14, 6, 14, 6)
     root.setSpacing(3)
     affichage = QPushButton("Affichage…")
     preferences = QDialog(w)
@@ -83,7 +85,7 @@ def installer(w):
     dialog.resize(850, 580)
     w.details.clicked.connect(dialog.open)
 
-    milieu = QHBoxLayout()
+    milieu = w.colonnes = QHBoxLayout()
     root.addLayout(milieu, 1)
     w.gauche = QStackedWidget()
     milieu.addWidget(w.gauche, 5)
@@ -97,6 +99,10 @@ def installer(w):
     w.choisir = QPushButton("Choisir un film ou une photo")
     w.choisir.setMinimumHeight(54)
     w.choisir.clicked.connect(w._choose_file)
+    w.choisir.setIcon(icons.icon("dossier", "#ffffff"))
+    titre_accueil = QLabel("Restaurer un souvenir")
+    titre_accueil.setObjectName("nomFilm")
+    av.addWidget(titre_accueil)
     av.addWidget(w.choisir)
     av.addWidget(w.s_folder)
     av.addWidget(w._recents_box)
@@ -120,6 +126,9 @@ def installer(w):
     ov.setSpacing(3)
     droite.addWidget(w.options)
     ov.setAlignment(Qt.AlignTop)
+    choix = QGridLayout()
+    choix.setSpacing(6)
+    ov.addLayout(choix)
     w.sections = {}
     for nom in ("Qualité", "Couper le film", "Régler l'image", "Régler le son"):
         bouton = QPushButton(nom)
@@ -133,8 +142,13 @@ def installer(w):
         disposition.setSpacing(3)
         disposition.setAlignment(Qt.AlignTop)
         zone.setWidget(panneau)
-        bouton.setStyleSheet("text-align:left; padding:1px 8px;")
-        ov.addWidget(bouton)
+        bouton.setObjectName("rubrique")
+        symbole = {"Qualité": "reglages", "Couper le film": "ciseaux",
+                   "Régler l'image": "image", "Régler le son": "haut_parleur"}[nom]
+        bouton.setIcon(icons.icon(symbole))
+        bouton.setIconSize(QSize(22, 22))
+        i = len(w.sections)
+        choix.addWidget(bouton, i // 2, i % 2)
         zone.hide()
         w.sections[nom] = bouton, zone
         bouton.clicked.connect(lambda checked, n=nom: ouvrir(w, n if checked else None))
@@ -296,7 +310,9 @@ def installer(w):
     pied.addWidget(w._out_btn)
     pied.addWidget(w.s_cancel)
     pied.addWidget(w.run_btn)
-    w.run_btn.setMinimumHeight(52)
+    w.run_btn.setObjectName("restaurer")
+    w.run_btn.setMinimumHeight(46)
+    w.preview_btn.setMinimumHeight(42)
     w.s_status.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
     for combo in page.findChildren(QComboBox):
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
@@ -306,13 +322,16 @@ def installer(w):
 
 
 def ouvrir(w, nom):
+    w.colonnes.setStretch(0, 5 if nom else 7)
+    w.colonnes.setStretch(1, 7 if nom else 5)
     w.s_compare.montrer_position = nom == "Couper le film"
     w.s_compare.update()
     w.options.layout().setAlignment(Qt.AlignmentFlag(0) if nom else Qt.AlignTop)
     for titre, (bouton, zone) in w.sections.items():
         profil = next((b.text() for b in w.profile_buttons.values() if b.isChecked()), "")
         libelle = titre + ("   ·   " + profil if titre == "Qualité" and profil else "")
-        bouton.setText(("▾  " if titre == nom else "▸  ") + libelle)
+        bouton.setMinimumHeight(40 if nom else 66)
+        bouton.setText(libelle + ("   ▴" if titre == nom else "   ▾"))
         bouton.setAccessibleName(titre)
         bouton.setChecked(titre == nom)
         zone.setVisible(titre == nom)
@@ -329,6 +348,8 @@ def actualiser(w, charge, photo, occupe, termine):
     w.titre_fichier.setText(w.info.path.name if charge else "VHS Restore AI")
     w.titre_fichier.setToolTip(w.titre_fichier.text())
     w.gauche.setCurrentIndex(int(charge))
+    if not charge and not occupe and not termine and not w.isVisible():
+        w.choisir.setFocus(Qt.OtherFocusReason)
     w.colonne_reglages.setVisible(charge or termine)
     w.out_edit.setVisible(charge)
     w._out_btn.setVisible(charge)
@@ -338,10 +359,11 @@ def actualiser(w, charge, photo, occupe, termine):
         ouvrir(w, None)
     bouton, _ = w.sections["Qualité"]
     profil = next((b.text() for b in w.profile_buttons.values() if b.isChecked()), "")
-    bouton.setText(("▾  " if bouton.isChecked() else "▸  ") + "Qualité   ·   " + profil)
+    bouton.setText("Qualité   ·   " + profil + ("   ▴" if bouton.isChecked() else "   ▾"))
     defauts = ", ".join(dict.fromkeys(w.defauts_lisibles()))
     w.resume_defauts.setText(defauts)
     w.resume_defauts.setVisible(bool(defauts))
+    w.details.setText("Détails du fichier" if charge else "Outils installés")
     w.choisir.setEnabled(not occupe)
     w.autre.setVisible(charge)
     w.autre.setEnabled(not occupe)

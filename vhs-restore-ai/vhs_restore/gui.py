@@ -2670,9 +2670,14 @@ class MainWindow(QMainWindow):
             "QPushButton {padding: 3px 6px;} QCheckBox {spacing: 4px;}"
             f"QWidget#page {{background:{theme.FOND};}}"
             f"QPushButton#profilCompact:checked {{border:2px solid {theme.ACCENT}; font-weight:bold;}}"
-            "QPushButton[conseille=true], QPushButton#action:enabled {background:#1855a5;"
+            f"QPushButton#rubrique {{background:{theme.CARTE};color:{theme.TEXTE};"
+            f"border:1px solid {theme.BORD};border-radius:8px;text-align:left;padding:2px 12px;"
+            f"font-size:{12 * self._echelle}pt;font-weight:600;}}"
+            f"QPushButton#rubrique:checked, QPushButton#rubrique:hover {{border:2px solid {theme.ACCENT};}}"
+            f"QPushButton#restaurer {{background:{theme.CARTE};color:{theme.TEXTE};padding:4px 12px;}}"
+            "QPushButton[conseille=true], QPushButton#restaurer[conseille=true] {background:#1855a5;"
             "color:white;border:2px solid #1855a5;border-radius:6px;}"
-            "QPushButton[conseille=true]:hover, QPushButton#action:enabled:hover {background:#104584;}"
+            "QPushButton[conseille=true]:hover, QPushButton#restaurer[conseille=true]:hover {background:#104584;}"
         )
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
