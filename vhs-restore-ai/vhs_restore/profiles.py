@@ -67,7 +67,7 @@ PROFILES: dict[str, Profile] = {p.key: p for p in (
             contrast=1.04, saturation=1.08, sharpen=0.3,
             default_resolution="source", ai_default=False,
             afftdn_nr=10.0, adeclick=True, loudnorm=True),
-    Profile("maximum", "Maximum",
+    Profile("maximum", "Au plus fort",
             "Nettoyage plus fort et Full HD par défaut ; amélioration IA (Real-ESRGAN) "
             "si elle est installée. À vérifier sur l'aperçu : visages et peau.",
             denoise=(4.0, 7.0, 6.0, 10.0), despeckle=True,

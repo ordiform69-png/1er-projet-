@@ -20,7 +20,8 @@ from typing import Any, Callable
 
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import (QColor, QDesktopServices, QFont, QFontMetrics, QLinearGradient, QPainter,
+                          QPen, QPixmap)
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
@@ -447,17 +448,29 @@ class ProfileTile(QPushButton):
         p.drawRoundedRect(r, 12, 12)
         col = theme.ACCENT if (on or self.underMouse()) and en else theme.ACCENT_SOURD
         p.drawPixmap(16, 16, icons.pixmap(self.icon_name, 32, col))
+        largeur_nom = max(20, r.width() - 68)
         f = QFont(theme.DISPLAY_FAMILY or p.font().family())
-        f.setPointSizeF(17)
         f.setBold(True)
+        for pt in range(15 if r.height() < 96 else 17, 10, -1):
+            f.setPointSizeF(pt)
+            if QFontMetrics(f).horizontalAdvance(self.text()) <= largeur_nom:
+                break
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE))
-        p.drawText(QRect(56, 12, r.width() - 68, 38), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        nom_h = 24 if r.height() < 96 else 38
+        p.drawText(QRect(56, 8 if r.height() < 96 else 12, largeur_nom, nom_h),
+                   Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        zone = QRect(16, 36 if r.height() < 96 else 54, max(20, r.width() - 24),
+                     max(14, r.height() - (44 if r.height() < 96 else 62)))
         f = QFont(theme.BODY_FAMILY or p.font().family())
-        f.setPointSizeF(13)
+        for pt in (11 if r.height() < 96 else 13, 12, 11, 10, 9):
+            f.setPointSizeF(pt)
+            mesure = QFontMetrics(f).boundingRect(zone, int(Qt.AlignLeft | Qt.TextWordWrap), self.tagline)
+            if mesure.width() <= zone.width() + 1 and mesure.height() <= zone.height() + 1:
+                break
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX))
-        p.drawText(QRect(16, 54, r.width() - 24, r.height() - 62), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
+        p.drawText(zone, Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
         if on:                                    # voyant allumé
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(theme.ACCENT))
@@ -471,10 +484,10 @@ TOOL_INFO = {
                        "celui du logiciel (bwdif), mais plusieurs fois plus lent. Il demande Python et "
                        "VapourSynth, il ne s'installe donc pas depuis cette fenêtre. Le désentrelaceur "
                        "intégré suffit pour des films de famille."),
-    "realesrgan": ("Real-ESRGAN", "Agrandissement par intelligence artificielle (profil Maximum, photos). "
+    "realesrgan": ("Real-ESRGAN", "Agrandissement par intelligence artificielle (profil Au plus fort, photos). "
                                   "Demande une carte graphique compatible Vulkan. L'IA peut inventer des "
                                   "détails, surtout sur les petits visages : vérifiez toujours l'aperçu."),
-    "deepfilter": ("DeepFilterNet", "Nettoyage poussé des voix pour le profil Maximum, sur le processeur. "
+    "deepfilter": ("DeepFilterNet", "Nettoyage poussé des voix pour le profil Au plus fort, sur le processeur. "
                                     "Les rires, la musique et les bruits d'ambiance restent."),
     "colorisation": ("Colorisation", "Colorisation des photos noir et blanc par l'IA (DDColor). Les couleurs "
                                      "sont inventées ; une copie à part est écrite, le noir et blanc est gardé."),
@@ -488,7 +501,7 @@ TOOL_INFO = {
 
 PROFILE_LOOK = {"fidele": ("bouclier", "Doux et fidèle"),
                 "equilibre": ("balance", "Conseillé"),
-                "maximum": ("fusee", "Nettoyage fort")}
+                "maximum": ("fusee", "Nettoyage fort, plus long")}
 
 
 def _demarrer(programme: str, args: list[str], dossier: str) -> bool:
@@ -1532,16 +1545,16 @@ class MainWindow(QMainWindow):
         self.audio_check.setChecked(True)
         self.audio_check.setToolTip(
             "Suit le profil image. Fidèle : souffle très léger. Équilibré : clics, souffle, volume. "
-            "Maximum : DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
+            "Au plus fort : DeepFilterNet si tools\\deepfilter\\deep-filter est installé "
             "(installer.bat -AvecSon), sinon le même souffle FFmpeg plus fort. "
             "Le plafond de DeepFilterNet est de 12 dB. Les rires, la musique et la rue restent. "
             "Une piste muette le reste.")
         self.rnnoise_check = _with_icon(QCheckBox("Souffle de la voix (RNNoise, mélangé à l'original)"), "micro")
         self.rnnoise_check.setToolTip(
             "Option, désactivée par défaut : les profils ne changent pas. "
-            "Remplace le souffle FFmpeg d'Équilibré (35 %) et de Maximum (55 %) par RNNoise "
+            "Remplace le souffle FFmpeg d'Équilibré (35 %) et d'Au plus fort (55 %) par RNNoise "
             "(modèle Xiph inclus, licence BSD). Le reste du signal, donc la pièce, est conservé. "
-            "Inutile si DeepFilterNet a déjà traité Maximum. Fidèle n'est pas concerné.")
+            "Inutile si DeepFilterNet a déjà traité Au plus fort. Fidèle n'est pas concerné.")
         self.wind_check = _with_icon(QCheckBox("Réduire le vent et les grondements"), "vent")
         self.wind_check.toggled.connect(lambda _c: self._marquer_auto())
         self.wind_check.setToolTip(

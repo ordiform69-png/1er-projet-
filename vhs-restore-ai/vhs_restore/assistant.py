@@ -36,7 +36,7 @@ PHRASES_RENDU = {
     "original": "Tel qu'il est",
     "fidele": "Garde l'aspect d'origine",
     "equilibre": "Conseillé",
-    "maximum": "Le plus beau, plus long",
+    "maximum": "Nettoyage fort, plus long",
 }
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
@@ -374,7 +374,7 @@ class Assistant(QWidget):
             f"QLabel#estimationAssistant {{font-size:12pt;}}"
             f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
             f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
-            f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
+            f"background:{theme.CARTE}; font-size:11pt; padding:4px;}}"
             f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
 
     # ------------------------------------------------------------ navigation

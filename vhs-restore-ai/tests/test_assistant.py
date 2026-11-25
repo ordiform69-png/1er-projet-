@@ -140,7 +140,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     decalage, derive = assistant.son_depuis_debut_fin(80, t1, -40, t2)
     assert (win.offset_spin.value(), win.drift_spin.value()) == (decalage, derive)
     assert "Correction du son" in win.s_note.text() and win.son_zero.isVisible()
-    assert a.titre.text() == "Vérifier et lancer" and "Maximum" in a.resume.text()
+    assert a.titre.text() == "Vérifier et lancer" and "Au plus fort" in a.resume.text()
     assert "Lumière et couleurs : comme proposé." in a.resume.text()
     assert not win.run_btn.isEnabled()                                     # pas sans l'avant / après
     assert "avant / après" in a.consigne.text() and "avant / après" in win.run_btn.toolTip()
@@ -187,6 +187,19 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette):
             assert zone.horizontalScrollBar().maximum() == 0
             if pct <= 125:
                 assert zone.verticalScrollBar().maximum() == 0
+    win.libre.click()
+    a.aller(0)
+    win.set_taille_texte(150, annoncer=False)
+    win.resize(1280, 641)
+    app.processEvents()
+    from PySide6.QtGui import QFontMetrics
+    assert (win.width(), win.height()) == (1280, 641)
+    for cle, tuile in a.tuiles.items():
+        mesures = QFontMetrics(tuile.font())
+        for ligne in tuile.text().split("\n"):
+            assert mesures.horizontalAdvance(ligne) <= tuile.contentsRect().width() - 8, (
+                cle, ligne, tuile.contentsRect().width(), mesures.horizontalAdvance(ligne))
+    assert win.profile_buttons["maximum"].text() == "Au plus fort"
 
 
 def test_photo_en_trois_etapes(fenetre, tmp_path):
