@@ -22,6 +22,18 @@ def duree_gardee(duree: float, debut: float, fin: float,
     return sum(max(0.0, b - a) for a, b in gardes)
 
 
+# Durée réelle / aperçu étendu, mesurée sur un film SD de synthèse avec son (60 et 180 s) :
+# l'aperçu encode en « veryfast », la restauration en « medium » ; « Fidèle » garde les 50
+# demi-images par seconde (deux fois plus d'images à encoder). Mesuré à 180 s : 2,11 / 1,66 /
+# 1,57 ; à 60 s : 2,34 / 1,82 / 1,65. Arrondi vers le haut : mieux vaut finir avant l'heure dite.
+FACTEUR = {"fidele": 2.2, "equilibre": 1.75, "maximum": 1.65}
+FACTEUR_INCONNU = 2.2
+
+
+def facteur(cle: str) -> float:
+    return FACTEUR.get(cle, FACTEUR_INCONNU)
+
+
 def extrapoler(secondes_apercu: float, duree_apercu: float, gardee: float) -> float:
     """Temps estimé pour toute la durée gardée, à partir du chronométrage de l'aperçu."""
     if secondes_apercu <= 0 or duree_apercu <= 0 or gardee <= 0:
@@ -72,27 +84,54 @@ def _besoin_et_libre(info, s, gardee: float, dossier: Path) -> tuple[float, floa
     return besoin, libre
 
 
-def annonce(w) -> str:
-    """Phrase pour l'écran, ou « » si l'aperçu n'a pas encore chronométré une restauration."""
+def calcul(w) -> tuple[float, tuple[float, float] | None] | None:
+    """(secondes estimées, (octets nécessaires, octets libres) ou None), ou None sans aperçu chronométré."""
     info, preview = w.info, w.preview
     if info is None or preview is None or getattr(w, "is_photo", False):
-        return ""
+        return None
     secondes = float(getattr(preview, "restauration_s", 0) or 0)
     duree_apercu = float(getattr(preview, "duration", 0) or 0)
     if secondes <= 0 or duree_apercu <= 0 or not info.duration:
-        return ""
+        return None
     try:
         gardee = duree_gardee(info.duration, w.trim_start.value(), w.trim_end.value(),
                               list(getattr(w, "_coupes", ()) or ()))
     except ToolError:
-        return ""
-    estime = extrapoler(secondes, duree_apercu, gardee)
+        return None
+    s = w.settings()
+    estime = extrapoler(secondes, duree_apercu, gardee) * facteur(s.profile.key)
     if estime <= 0:
-        return ""
+        return None
     dossier = Path(w.out_edit.text() or info.path.parent)
     if not dossier.is_dir():
         dossier = Path(info.path.parent)
-    place = _besoin_et_libre(info, w.settings(), gardee, dossier)
+    return estime, _besoin_et_libre(info, s, gardee, dossier)
+
+
+def lignes(w) -> tuple[str, str] | None:
+    """Deux lignes pour l'écran : la durée, puis la place (« » si elle n'a pas pu être lue).
+    S'il manque de la place, la seconde commence par « Il manque de la place »."""
+    res = calcul(w)
+    if res is None:
+        return None
+    estime, place = res
+    temps = f"Durée estimée : {phrase_temps(estime)} sur cet ordinateur."
     if place is None:
-        return f"Durée estimée : {phrase_temps(estime)} sur cet ordinateur."
-    return phrase(estime, place[0], place[1])
+        return temps, ""
+    besoin, libre = place
+    texte = f"Il faut environ {_go(besoin)} Go ; il en reste {_go(libre)} Go."
+    if libre < besoin * 1.1:
+        texte = "Il manque de la place : " + texte[0].lower() + texte[1:]
+    return temps, texte
+
+
+def annonce(w) -> str:
+    """Phrase pour l'écran, ou « » si l'aperçu n'a pas encore chronométré une restauration.
+    S'il manque de la place, cela est dit en premier."""
+    res = lignes(w)
+    if res is None:
+        return ""
+    temps, place = res
+    if place.startswith("Il manque"):
+        return place + " " + temps
+    return (temps + " " + place).strip()

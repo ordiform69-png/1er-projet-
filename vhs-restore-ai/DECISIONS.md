@@ -943,3 +943,22 @@ longue pour essayer au hasard. Deux changements :
   rien ne défile à 100 et 125 % (`tests/test_ecran_unique.py`).
 - Non testé : sur le PC de l'utilisateur, le temps de l'image de base avec « Maximum ».
 
+
+## Durée annoncée avant de lancer (demande n°15, corrigée)
+
+La durée de Grok étendait le temps de l'aperçu de 10 s à la durée gardée. Mais l'aperçu encode
+en « veryfast » et la restauration en « medium » ; « Fidèle » garde en plus 50 demi-images par
+seconde. Mesuré sur un film SD de synthèse avec son (durée réelle / estimation) :
+
+| Rendu | 60 s | 180 s | Facteur retenu |
+|---|---|---|---|
+| Fidèle | 2,34 | 2,11 | 2,2 |
+| Équilibré | 1,82 | 1,66 | 1,75 |
+| Maximum | 1,65 | 1,57 | 1,65 |
+
+Le facteur multiplie l'estimation (`estimation.FACTEUR`), arrondi vers le haut : mieux vaut
+finir avant l'heure annoncée. Encoder l'aperçu en « medium » aurait évité le facteur, mais
+doublé l'attente de chaque avant / après. `estimation.lignes` donne la durée et la place sur
+deux lignes (maquette « Vérifier et lancer »). Tests : `tests/test_estimation.py` (facteur par
+rendu ; film de 60 s : estimation entre 0,7 et 2,5 fois la durée réelle). Non mesuré : le PC
+de l'utilisateur, l'IA, une cassette de 2 à 3 heures.
