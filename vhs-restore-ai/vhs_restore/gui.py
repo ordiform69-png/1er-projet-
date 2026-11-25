@@ -2399,7 +2399,10 @@ class MainWindow(QMainWindow):
             b.setEnabled(has_prev and sound and not busy)          # film muet : rien à écouter
             b.setToolTip("" if sound or not loaded else "Ce film n'a pas de son.")
         self.still_combo.setEnabled(has_prev and not busy)
-        self.still_combo.setVisible(self.still_combo.count() > 1)      # vide ou une seule image : caché
+        # vide ou une seule image : caché. Assistant : caché aussi (une liste de plus à manier ;
+        # « Avant », « Les deux », « Après » suffisent), et la colonne de l'image reste étroite.
+        guide = getattr(getattr(self, "assistant", None), "actif", False) and loaded
+        self.still_combo.setVisible(self.still_combo.count() > 1 and not guide)
         self.s_colorize_note.setVisible(not self.s_colorize.isHidden())
         for lab in self.info_labels.values():                            # photo : pas de lignes « — »
             self.info_form.setRowVisible(lab, not (photo_mode and lab.text() == "—"))
@@ -2928,8 +2931,17 @@ class MainWindow(QMainWindow):
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        # La durée est dans le résumé de « Vérifier et lancer », pas répétée ici.
-        self.status.setText("Comparez avec les boutons « Avant » et « Après ».")
+        quand = "" if getattr(self, "is_photo", False) else \
+            f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
+        texte = f"Aperçu prêt{quand}. Comparez avec les boutons « Avant » et « Après »."
+        assistant = getattr(self, "assistant", None)
+        if not getattr(self, "is_photo", False) and (assistant is None or not assistant.actif):
+            # réglages libres : la durée et la place ici (l'assistant les met dans son résumé)
+            from . import estimation
+            annonce = estimation.annonce(self)
+            if annonce:
+                texte += " " + annonce
+        self.status.setText(texte)
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True

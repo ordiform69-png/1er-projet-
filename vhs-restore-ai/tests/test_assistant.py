@@ -156,7 +156,9 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert win.preview is not None and win.run_btn.isEnabled()
     assert "Durée estimée" in a.resume.text() and "sur cet ordinateur" in a.resume.text()
     assert "Il faut environ" in a.resume.text() and "il en reste" in a.resume.text()
-    assert win.status.text() == "Comparez avec les boutons «\u00a0Avant\u00a0» et «\u00a0Après\u00a0»."
+    assert win.status.text().startswith("Aperçu prêt")
+    assert "«\u00a0Avant\u00a0» et «\u00a0Après\u00a0»" in win.status.text()
+    assert "Durée estimée" not in win.status.text()                       # déjà dans le résumé
     assert (win.width(), win.height()) == (1280, 641)
     win.profile_buttons["fidele"].click()                                  # réglage changé : aperçu à revoir
     assert not win.run_btn.isEnabled() and a.voir.text() == "Voir l'avant / après"
@@ -199,9 +201,15 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
             win.load_file(str(chemin))
             attendre(win)
             a = win.assistant
-            for _ in range(etapes):
+            for i in range(etapes):
+                if i == etapes - 1:                    # la vraie fin : après l'avant / après
+                    a.voir.click()
+                    attendre(win)
+                    assert win.preview is not None
                 assert (win.width(), win.height()) == (1280, 641), (pct, a.titre.text())
                 _pas_de_defilement_horizontal(win)
+                if pct <= 125:                         # aucun défilement à 100 et 125 %
+                    assert a.pages_zone.verticalScrollBar().maximum() == 0, (pct, a.titre.text())
                 assert "Lancer la restauration" in win.run_btn.text()
                 assert _dans_fenetre(win, win.run_btn), (pct, a.titre.text())
                 if a.suivant.isVisible():
@@ -209,6 +217,11 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
                     assert _dans_fenetre(win, a.suivant), (pct, a.titre.text())
                 a.suivant.click()
                 attendre(win)
+            a.aller(1)                                 # retour à Lumière après l'avant / après
+            attendre(win)
+            assert (win.width(), win.height()) == (1280, 641), (pct, "retour")
+            if pct <= 125:
+                assert a.pages_zone.verticalScrollBar().maximum() == 0, (pct, "retour")
             if chemin == cassette and pct == 100:
                 win.libre.click()
                 attendre(win)

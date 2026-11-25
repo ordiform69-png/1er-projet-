@@ -7,7 +7,7 @@ toujours sur « Suivant », on obtient déjà un bon résultat. « Réglages lib
 complet (les sections), pour le fils ou plus tard.
 
 Film : 1. Choisir le rendu (liste verticale) · 2. Lumière et couleurs (la grande image
-change tout de suite) · 3. Début, fin et passages à enlever (neige, écran bleu ou noir trouvés
+change tout de suite) · 3. Couper le film : début, fin et passages (neige, écran bleu ou noir trouvés
 par le logiciel) · 4. Le son (la voix colle-t-elle aux lèvres ? au début et à la fin) ·
 5. Vérifier et lancer. Photo : 1. Choisir le rendu · 2. Lumière et couleurs · 3. Vérifier et
 lancer. Le moteur de restauration n'est pas modifié : l'assistant règle les mêmes commandes
@@ -24,7 +24,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
+                               QLayout, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
 from . import estimation, lumiere, photo, pipeline, theme, vides
@@ -441,6 +441,33 @@ class _Resume(QLabel):
         return self._lecture
 
 
+class _Pile(QStackedWidget):
+    """La taille de l'étape affichée seulement. Une pile ordinaire prend la plus large et la plus
+    haute de ses pages : « Lumière et couleurs » imposait sa largeur et sa hauteur à toutes les
+    étapes (fenêtre élargie après l'avant / après, défilement des coupes et du son à 125 %)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.layout().setSizeConstraint(QLayout.SetNoConstraint)
+        self.currentChanged.connect(lambda _i: self.updateGeometry())
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        p = self.currentWidget()
+        return p.sizeHint() if p is not None else super().sizeHint()
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        p = self.currentWidget()
+        return p.minimumSizeHint() if p is not None else super().minimumSizeHint()
+
+    def heightForWidth(self, largeur: int) -> int:  # noqa: N802
+        # la pile de Qt prend la plus haute de toutes ses pages pour cette largeur
+        p = self.currentWidget()
+        if p is None:
+            return super().heightForWidth(largeur)
+        h = p.heightForWidth(largeur)
+        return h if h >= 0 else p.minimumSizeHint().height()
+
+
 class _ZonePages(QScrollArea):
     """Les étapes défilent ici si elles dépassent : la fenêtre, elle, ne grandit pas."""
 
@@ -525,27 +552,29 @@ class Assistant(QWidget):
         self.compteur.setObjectName("etapeAssistant")
         self.compteur.setWordWrap(False)
         self.titre = _texte(nom="titreAssistant")
-        self.titre.setWordWrap(False)
+        self.titre.setWordWrap(True)                 # à 150 % : sur deux lignes plutôt que coupé
         haut.addWidget(self.compteur)
         haut.addWidget(self.titre, 1)
         lay.addLayout(haut)
+        # à côté de « Suivant → », sur la ligne des boutons : la phrase est près du bouton qu'elle
+        # nomme, et la page garde une ligne de plus (aucun défilement à 125 %)
         self.rien_a_changer = _texte("Rien à changer ? Cliquez sur Suivant.", "rienAChanger")
-        self.rien_a_changer.setWordWrap(False)
+        self.rien_a_changer.setWordWrap(True)
+        self.rien_a_changer.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.rien_a_changer.setVisible(False)
-        lay.addWidget(self.rien_a_changer)
-        self.pages = QStackedWidget()
+        self.pages = _Pile()
         self.pages_zone = _ZonePages()
         self.pages_zone.setWidget(self.pages)
         lay.addWidget(self.pages_zone, 1)
         nav = QHBoxLayout()
         self.retour = _bouton("← Revenir")
-        self.suivant = _bouton("Suivant →", "action", 64)
+        self.suivant = _bouton("Suivant →", "action", 60)
         self.retour.setMinimumWidth(160)
         self.retour.setMinimumHeight(52)
         self.suivant.setMinimumWidth(220)
-        self.suivant.setMinimumHeight(64)
+        self.suivant.setMinimumHeight(60)
         nav.addWidget(self.retour)
-        nav.addStretch(1)
+        nav.addWidget(self.rien_a_changer, 1)
         nav.addWidget(self.suivant)
         lay.addLayout(nav)
         self.retour.clicked.connect(lambda: self.aller(self._etape() - 1))
@@ -716,7 +745,7 @@ class Assistant(QWidget):
         debut = [("Choisir le rendu", self._page_rendu), ("Lumière et couleurs", self._page_lumiere)]
         if not self._film():
             return debut + [("Vérifier et lancer", self._page_fin)]
-        etapes = debut + [("Début, fin et passages à enlever", self._page_coupe)]
+        etapes = debut + [("Couper le film", self._page_coupe)]        # comme la section de l'écran complet
         if self.w.info is not None and self.w.info.has_audio:
             etapes.append(("Le son", self._page_son))
         return etapes + [("Vérifier et lancer", self._page_fin)]

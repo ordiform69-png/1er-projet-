@@ -962,3 +962,28 @@ doublé l'attente de chaque avant / après. `estimation.lignes` donne la durée 
 deux lignes (maquette « Vérifier et lancer »). Tests : `tests/test_estimation.py` (facteur par
 rendu ; film de 60 s : estimation entre 0,7 et 2,5 fois la durée réelle). Non mesuré : le PC
 de l'utilisateur, l'IA, une cassette de 2 à 3 heures.
+
+## L'assistant selon les maquettes (demande n°16)
+
+Fait par cinq agents de Grok (rendu, lumière, lancer, navigation, intégration) d'après les trois
+maquettes choisies par l'utilisateur, avec les adaptations décidées avant : vraies petites
+images (pas d'icônes), vrais noms d'étapes, grande image partagée en deux plutôt que deux
+portraits, boutons en mots autour des jauges (pas de glisser). Noms des rendus : « Nettoyage
+léger », « Bien nettoyé, naturel », « Nettoyage au plus fort » (clés inchangées).
+
+Corrigé à la fusion (mesuré à 100, 125 et 150 % de texte, fenêtre 1280 × 641) :
+- après « Voir l'avant / après », la fenêtre s'élargissait (1342 px à 125 %, 1404 à 150 %) : la
+  pile des étapes prenait la largeur et la hauteur de sa plus grande page (« Lumière et
+  couleurs »), y compris pour le texte qui revient à la ligne (`heightForWidth`). `_Pile` ne
+  mesure plus que l'étape affichée. La liste « Image 2/3 » est cachée dans l'assistant
+  (« Avant », « Les deux », « Après » suffisent ; l'écran complet la garde) ;
+- défilement de 9 à 30 px à 125 % : « Rien à changer ? Cliquez sur Suivant. » passe sur la ligne
+  des boutons, à côté de « Suivant → » ;
+- titre coupé à 125 % (« …passages à enleve ») : l'étape s'appelle « Couper le film », comme la
+  section de l'écran complet, et le titre revient à la ligne s'il le faut ;
+- réglages libres : la durée et la place avaient disparu de la ligne d'état (le test vérifiait
+  une phrase sans elles) ; elles y sont revenues, l'assistant ne les répète pas.
+
+Résultat : aucun défilement à 100 et 125 %, à chaque étape, après l'avant / après et en revenant
+à « Lumière et couleurs » ; 3 px à l'étape 1 à 150 %. `test_chaque_etape_tient_a_1280_641`
+clique désormais « Voir l'avant / après » et vérifie l'absence de défilement à 100 et 125 %.

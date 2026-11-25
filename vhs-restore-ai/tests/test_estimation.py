@@ -1,4 +1,6 @@
 """Durée gardée, extrapolation, et phrase de place avant de lancer."""
+import pytest
+
 from vhs_restore import estimation
 
 
@@ -79,3 +81,36 @@ def test_estimation_contre_duree_reelle(tools, tmp_path):
     pipeline.export(info, s, tmp_path / "restaure.mp4", tools)
     reel = time.monotonic() - t0
     assert 0.7 * reel <= estime <= 2.5 * reel, (estime, reel)
+
+
+def test_reglages_libres_annoncent_la_duree(tools, tmp_path):
+    """Réglages libres : pas de résumé d'assistant, la durée et la place vont dans la ligne d'état."""
+    import time
+    pytest.importorskip("PySide6")
+    from PySide6.QtWidgets import QApplication
+    from conftest import ff
+    from vhs_restore.gui import MainWindow
+    app = QApplication.instance() or QApplication([])
+    f = tmp_path / "film.mp4"
+    ff("-f", "lavfi", "-i", "testsrc2=s=320x240:r=25:d=30", "-f", "lavfi", "-i", "sine=d=30",
+       "-c:v", "libx264", "-c:a", "aac", str(f))
+    win = MainWindow(tools)
+    try:
+        win.show()
+        win.load_file(str(f))
+        fin = time.monotonic() + 120
+        while (win.info is None or (win.worker is not None and win.worker.isRunning())) and time.monotonic() < fin:
+            app.processEvents()
+            time.sleep(0.02)
+        assert not win.assistant.actif                     # écran complet (tests hors assistant)
+        win.start_preview()
+        while (win.worker is not None and win.worker.isRunning()) or win.preview is None:
+            app.processEvents()
+            time.sleep(0.02)
+            assert time.monotonic() < fin
+        for _ in range(10):
+            app.processEvents()
+        texte = win.status.text()
+        assert texte.startswith("Aperçu prêt") and "Durée estimée" in texte and "Il faut environ" in texte, texte
+    finally:
+        win.close()
