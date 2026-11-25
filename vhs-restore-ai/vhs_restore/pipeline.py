@@ -1581,7 +1581,7 @@ class PreviewResult:
     compare: Path
     stills: list[Path]
     original: Path | None = None
-    restauration_s: float = 0.0      # secondes de la seule restauration de l'extrait
+    restauration_s: float = 0.0      # secondes de la restauration seule (pas la comparaison)
 
 
 @lecture_dvd

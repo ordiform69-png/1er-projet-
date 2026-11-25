@@ -352,7 +352,11 @@ class Assistant(QWidget):
         self.consigne = _texte()
         self.consigne.setObjectName("consigneAssistant")
         v.addWidget(self.consigne)
-        v.addStretch(1)
+        self.estimation = _texte()
+        self.estimation.setObjectName("estimationAssistant")
+        self.estimation.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.estimation.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        v.addWidget(self.estimation, 1)
         return page
 
     def style_assistant(self) -> None:
@@ -367,6 +371,7 @@ class Assistant(QWidget):
             f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
             f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
             f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
+            f"QLabel#estimationAssistant {{font-size:12pt;}}"
             f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
             f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
             f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
@@ -663,9 +668,6 @@ class Assistant(QWidget):
         return self.w.preview is not None and self._sig_apercu == self._signature()
 
     def _preparer_fin(self) -> None:
-        self.actualiser()
-
-    def _ecrire_resume(self) -> None:
         w = self.w
         s = w.settings(with_advice=True)
         morceaux = [f"Rendu : {s.profile.name}.",
@@ -683,19 +685,54 @@ class Assistant(QWidget):
             if w._coupes:
                 coupes.append(f"{len(w._coupes)} passage(s) enlevé(s)")
             morceaux.append("Coupes : " + (", ".join(coupes) if coupes else "aucune, le film est gardé en entier") + ".")
-            if self.apercu_vu():
-                annonce = estimation.annonce(w)
-                if annonce:
-                    morceaux.append(annonce)
         self.resume.setText(" ".join(morceaux))
+        self.actualiser()
+
+    def _noter_apercu(self) -> None:
+        w = self.w
+        if w.preview is not None and w.preview is not self._apercu:
+            self._apercu, self._sig_apercu = w.preview, self._signature()
+
+    def _duree_source_gardee(self, s) -> float:
+        """Secondes de film gardées (début, fin, passages enlevés), avant le re-cadencement."""
+        w = self.w
+        info = w.info
+        if info is None:
+            return 0.0
+        try:
+            gardes, _, _ = pipeline.bornes_a_exporter(
+                info.duration, w.trim_start.value(), w.trim_end.value(), list(w._coupes))
+        except pipeline.ToolError:
+            return 0.0
+        if gardes:
+            return sum(b - a for a, b in gardes)
+        return float(info.duration or 0)
+
+    def texte_estimation(self) -> str:
+        """Durée, place et outils, à l'étape « Vérifier et lancer » et à côté de « Lancer »."""
+        w = self.w
+        info = w.info
+        if info is None or not self._film():
+            return ""
+        self._noter_apercu()
+        s = w.settings(with_advice=True)
+        duree = self._duree_source_gardee(s)
+        temps = None
+        apercu = w.preview
+        if self.apercu_vu() and apercu is not None:
+            temps = estimation.secondes(float(getattr(apercu, "restauration_s", 0) or 0),
+                                        float(getattr(apercu, "duration", 0) or 0), duree)
+        dossier = Path(w.out_edit.text() or info.path.parent)
+        return estimation.texte(info, s, dossier, duree, temps,
+                                qtgmc=bool(w.tools.qtgmc_available), ia=bool(w.tools.ai_available))
 
     def actualiser(self) -> None:
         """Appelé à chaque mise à jour de l'écran : l'aperçu vu, et ce qu'il reste à faire."""
         w = self.w
-        if w.preview is not None and w.preview is not self._apercu:
-            self._apercu, self._sig_apercu = w.preview, self._signature()
+        self._noter_apercu()
         if self.pages.currentWidget() is not self._page_fin:
             return
+        self.estimation.setText(self.texte_estimation())
         if self.apercu_vu():
             self.voir.setText("Revoir l'avant / après")
             self.voir.setObjectName("secondaire")
@@ -709,7 +746,6 @@ class Assistant(QWidget):
             self.consigne.setText("Regardez d'abord l'avant / après. « Lancer la restauration » s'allume ensuite.")
         self.voir.style().unpolish(self.voir)
         self.voir.style().polish(self.voir)
-        self._ecrire_resume()
 
     def peut_lancer(self) -> bool:
         return self.pages.currentWidget() is self._page_fin and self.apercu_vu()

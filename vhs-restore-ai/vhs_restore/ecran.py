@@ -40,6 +40,10 @@ QPushButton#section:checked {{
     background-position: center right;
     background-origin: content;
 }}
+QLabel#noteLancer {{
+    color: {theme.TEXTE_DOUX};
+    font-size: 10pt;
+}}
 QPushButton#action[grand="true"] {{
     font-size: 16pt;
     font-weight: 700;
@@ -501,12 +505,13 @@ def installer(w):
     pied.addWidget(w.son_zero)
     pied.addWidget(w.s_cancel)
     w.note_lancer = QLabel()
-    w.note_lancer.setObjectName("note")
+    w.note_lancer.setObjectName("noteLancer")
     w.note_lancer.setWordWrap(True)
     w.note_lancer.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    w.note_lancer.setMaximumWidth(260)
+    w.note_lancer.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+    w.note_lancer.setMaximumHeight(64)
     w.note_lancer.hide()
-    pied.addWidget(w.note_lancer)
+    pied.addWidget(w.note_lancer, 2)
     pied.addWidget(w.run_btn)
     w.run_btn.setProperty("grand", True)
     w.run_btn.setMinimumSize(400, 64)
@@ -599,7 +604,14 @@ def actualiser(w, charge, photo, occupe, termine):
     w.libre.blockSignals(False)
     w.libre.setText("Revenir à l'assistant" if not a.actif else "Réglages libres")
     if not guide:
-        w.note_lancer.hide()
+        texte = ""
+        if a is not None and charge and not photo and not occupe and not termine:
+            texte = a.texte_estimation()
+        if texte:
+            w.note_lancer.setText(texte)
+            w.note_lancer.show()
+        else:
+            w.note_lancer.hide()
     if occupe and getattr(w, "_job", "") == "export":
         w.run_btn.setText("Restauration en cours…")
         w.run_btn.setToolTip("")

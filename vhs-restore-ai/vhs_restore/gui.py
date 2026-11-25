@@ -1754,7 +1754,7 @@ class MainWindow(QMainWindow):
                           "Image trop sombre ou couleurs ternes ? « Lumière et couleurs » les règle "
                           "avant, et la grande image change tout de suite.\n"
                           "3.  « Lancer la restauration » : le logiciel travaille, cela peut prendre du temps. "
-                          "Vous pouvez laisser l'ordinateur faire.\n\n"
+                          + ergonomie.PHRASE_PATIENCE + "\n\n"
                           "Le bouton à utiliser est entouré d'un cadre plus épais. "
                           "La touche Entrée l'active.\n\n"
                           "Votre fichier d'origine n'est jamais modifié : le résultat est enregistré "
@@ -2912,13 +2912,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        texte = f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré »."
-        if not getattr(self, "is_photo", False):
-            from . import estimation
-            annonce = estimation.annonce(self)
-            if annonce:
-                texte += " " + annonce
-        self.status.setText(texte)
+        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré ».")
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True

@@ -1,32 +1,44 @@
-"""Durée gardée, extrapolation, et phrase de place avant de lancer."""
-from vhs_restore import estimation
+"""Durée, place et outils annoncés avant de lancer."""
+from pathlib import Path
+
+from vhs_restore import ergonomie, estimation, pipeline
+from vhs_restore.probe import MediaInfo
+from vhs_restore.profiles import profile_for
 
 
-def test_duree_gardee_deduit_debut_fin_et_coupes():
-    assert estimation.duree_gardee(100, 0, 0, []) == 100
-    # fenêtre 10 s → 80 s, moins le passage 30 s → 40 s
-    assert estimation.duree_gardee(100, 10, 80, [(30, 40)]) == 60
-    # coupe hors de la fenêtre : elle ne change rien
-    assert estimation.duree_gardee(100, 0, 50, [(80, 90)]) == 50
-    # deux coupes qui se touchent ne sont comptées qu'une fois
-    assert estimation.duree_gardee(100, 0, 0, [(10, 20), (15, 25)]) == 85
-    # moins d'une demi-seconde : ignorée
-    assert estimation.duree_gardee(100, 0, 0, [(10, 10.2)]) == 100
+def _info():
+    return MediaInfo(Path("film.avi"), duration=3600, width=720, height=576, scan="tff")
 
 
-def test_extrapoler_depuis_dix_secondes():
-    assert estimation.extrapoler(2.5, 10, 60) == 15
-    assert estimation.extrapoler(0, 10, 60) == 0
-    assert estimation.extrapoler(4, 0, 60) == 0
+def _reglages(cle="equilibre", **kw):
+    return pipeline.Settings(profile_for(cle, "video"), **kw)
 
 
-def test_phrase_duree_et_place():
-    assert estimation.phrase_temps(7200) == "environ 2 heures"
-    assert estimation.phrase_temps(30) == "moins d'une minute"
-    texte = estimation.phrase(7200, 6e9, 120e9)
-    assert texte == ("Durée estimée : environ 2 heures sur cet ordinateur. "
-                     "Il faut environ 6 Go ; il en reste 120 Go.")
-    manque = estimation.phrase(7200, 6e9, 2e9)
-    assert manque.startswith("Il manque de la place")
-    assert "Durée estimée" in manque
-    assert manque.index("Il manque") < manque.index("Durée estimée")
+def test_phrase_deux_heures():
+    assert estimation.phrase_temps(7200) == (
+        "Environ 2 heures sur cet ordinateur. "
+        "Vous pouvez faire autre chose pendant ce temps.")
+    assert estimation.phrase_temps(90 * 60) == (
+        "Environ 1 heure et 30 minutes sur cet ordinateur. "
+        "Vous pouvez faire autre chose pendant ce temps.")
+    assert "minutes" in estimation.phrase_temps(12 * 60)
+
+
+def test_extrapolation_de_l_apercu():
+    assert estimation.secondes(4, 10, 7200) == 2880
+    assert estimation.secondes(0, 10, 100) is None
+    assert estimation.secondes(4, 0, 100) is None
+
+
+def test_place_et_outils(tmp_path):
+    info = _info()
+    phrase, assez = estimation.phrase_place(info, _reglages(), tmp_path, 3600)
+    assert "dossier choisi" in phrase and "Go" in phrase
+    assert assez
+    manquant = MediaInfo(Path("x.avi"), duration=0, width=0, height=0)
+    assert estimation.phrase_place(manquant, _reglages(), tmp_path, None) == ("", True)
+    outils = estimation.phrases_outils(info, _reglages("maximum"), qtgmc=False, ia=False)
+    assert any("désentrelacement le plus fin" in ligne for ligne in outils)
+    assert any("intelligence artificielle" in ligne for ligne in outils)
+    assert estimation.phrases_outils(info, _reglages("fidele"), qtgmc=False, ia=False) == []
+    assert "veille" in ergonomie.PHRASE_PATIENCE

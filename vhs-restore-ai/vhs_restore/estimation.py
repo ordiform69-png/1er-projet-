@@ -1,10 +1,4 @@
-"""Durée et place annoncées avant de lancer.
-
-L'aperçu chronomètre seulement la restauration de ses 10 secondes. On étend
-ce temps à la durée gardée (début, fin et passages enlevés déduits). La place
-vient de pipeline.disk_needs et de l'espace libre du dossier de sortie.
-Aucun filtre n'est modifié.
-"""
+"""Durée, place et outils, dits avant de lancer. N'enchaîne aucun filtre."""
 from __future__ import annotations
 
 import os
@@ -12,87 +6,92 @@ import shutil
 from pathlib import Path
 
 from . import pipeline
-from .tools import ToolError
+
+GO = 1e9
 
 
-def duree_gardee(duree: float, debut: float, fin: float,
-                 coupes: list[tuple[float, float]]) -> float:
-    """Secondes gardées : fenêtre début / fin, moins les passages enlevés."""
-    gardes = pipeline.passages_gardes(float(duree or 0), debut, fin, coupes)
-    return sum(max(0.0, b - a) for a, b in gardes)
+def secondes(restauration_s: float, apercu_s: float, gardee_s: float) -> float | None:
+    """Le temps mesuré sur l'extrait restauré, rapporté à la durée gardée.
+
+    Les trois durées sont celles de la source (l'extrait de l'aperçu, puis le film
+    après le début, la fin et les passages enlevés). None si l'aperçu n'a pas
+    encore été chronométré."""
+    if restauration_s <= 0 or apercu_s <= 0 or gardee_s <= 0:
+        return None
+    return restauration_s * (gardee_s / apercu_s)
 
 
-def extrapoler(secondes_apercu: float, duree_apercu: float, gardee: float) -> float:
-    """Temps estimé pour toute la durée gardée, à partir du chronométrage de l'aperçu."""
-    if secondes_apercu <= 0 or duree_apercu <= 0 or gardee <= 0:
-        return 0.0
-    return secondes_apercu * (gardee / duree_apercu)
-
-
-def phrase_temps(secondes: float) -> str:
-    """« environ 2 heures », « environ 40 minutes », « moins d'une minute »."""
-    if secondes < 45:
-        return "moins d'une minute"
-    if secondes < 90:
-        return "environ 1 minute"
-    if secondes < 3600:
-        return f"environ {max(2, round(secondes / 60))} minutes"
-    if secondes < 5400:
-        return "environ 1 heure"
-    n = max(2, round(secondes / 3600))
-    return f"environ {n} heure" if n == 1 else f"environ {n} heures"
+def phrase_temps(secondes_estimees: float) -> str:
+    """« Environ 2 heures sur cet ordinateur. Vous pouvez faire autre chose pendant ce temps. »"""
+    s = max(0.0, float(secondes_estimees))
+    if s < 90:
+        corps = "1 minute"
+    elif s < 3600:
+        n = max(2, int(round(s / 60)))
+        corps = f"{n} minutes"
+    else:
+        total = max(60, int(round(s / 60 / 15) * 15))
+        h, m = divmod(total, 60)
+        heures = "1 heure" if h == 1 else f"{h} heures"
+        corps = heures if m == 0 else f"{heures} et {m} minutes"
+    return (f"Environ {corps} sur cet ordinateur. "
+            "Vous pouvez faire autre chose pendant ce temps.")
 
 
 def _go(octets: float) -> str:
-    g = max(0.0, octets) / pipeline.GB
+    g = max(0.0, float(octets)) / GO
+    if g < 0.1:
+        return "0,1"
     if g >= 10:
-        return f"{round(g):.0f}"
+        return str(int(round(g)))
     texte = f"{g:.1f}".replace(".", ",")
     return texte[:-2] if texte.endswith(",0") else texte
 
 
-def phrase(secondes: float, besoin: float, libre: float) -> str:
-    """Phrase affichée. S'il manque de la place, cela est dit en premier."""
-    temps = f"Durée estimée : {phrase_temps(secondes)} sur cet ordinateur."
-    place = f"Il faut environ {_go(besoin)} Go ; il en reste {_go(libre)} Go."
-    if libre < besoin * 1.1:
-        return "Il manque de la place : " + place[0].lower() + place[1:] + " " + temps
-    return temps + " " + place
-
-
-def _besoin_et_libre(info, s, gardee: float, dossier: Path) -> tuple[float, float] | None:
-    final, temp = pipeline.disk_needs(info, s, duration=gardee)
+def phrase_place(info, s, dossier: Path, duree: float | None) -> tuple[str, bool]:
+    """(phrase, assez de place). Phrase vide si la taille ne se calcule pas."""
+    dossier = Path(dossier)
+    if info.width <= 0 or info.height <= 0:
+        return "", True
+    if not dossier.exists():
+        dossier = Path(".")
     try:
+        final, temp = pipeline.disk_needs(info, s, None, duree if duree and duree > 0 else None)
         libre = shutil.disk_usage(dossier).free
-        besoin = final
-        if os.stat(dossier).st_dev == os.stat(pipeline._work_root()).st_dev:
-            besoin += temp
-    except OSError:
-        return None
-    return besoin, libre
+        meme_disque = os.stat(dossier).st_dev == os.stat(pipeline._work_root()).st_dev
+    except (OSError, ZeroDivisionError, pipeline.ToolError):
+        return "", True
+    besoin = final + (temp if meme_disque else 0.0)
+    if besoin < 1e6:
+        return "", True
+    assez = libre >= besoin * 1.1
+    if assez:
+        return (f"Il faut environ {_go(besoin)} Go ; il en reste {_go(libre)} Go "
+                "dans le dossier choisi.", True)
+    return (f"Il manque de la place : il faut environ {_go(besoin)} Go, il en reste "
+            f"{_go(libre)} Go dans le dossier choisi.", False)
 
 
-def annonce(w) -> str:
-    """Phrase pour l'écran, ou « » si l'aperçu n'a pas encore chronométré une restauration."""
-    info, preview = w.info, w.preview
-    if info is None or preview is None or getattr(w, "is_photo", False):
-        return ""
-    secondes = float(getattr(preview, "restauration_s", 0) or 0)
-    duree_apercu = float(getattr(preview, "duration", 0) or 0)
-    if secondes <= 0 or duree_apercu <= 0 or not info.duration:
-        return ""
-    try:
-        gardee = duree_gardee(info.duration, w.trim_start.value(), w.trim_end.value(),
-                              list(getattr(w, "_coupes", ()) or ()))
-    except ToolError:
-        return ""
-    estime = extrapoler(secondes, duree_apercu, gardee)
-    if estime <= 0:
-        return ""
-    dossier = Path(w.out_edit.text() or info.path.parent)
-    if not dossier.is_dir():
-        dossier = Path(info.path.parent)
-    place = _besoin_et_libre(info, w.settings(), gardee, dossier)
-    if place is None:
-        return f"Durée estimée : {phrase_temps(estime)} sur cet ordinateur."
-    return phrase(estime, place[0], place[1])
+def phrases_outils(info, s, *, qtgmc: bool, ia: bool) -> list[str]:
+    """Dit ce qui sera remplacé, seulement si le réglage le voulait et qu'il manque."""
+    lignes = []
+    if (s.source == "video" and s.profile.deinterlacer == "qtgmc"
+            and pipeline.effective_scan(info, s) in ("tff", "bff") and not qtgmc):
+        lignes.append("Le désentrelacement le plus fin n'est pas installé : "
+                      "un autre, un peu moins fin, sera utilisé.")
+    if s.profile.ai_default and not ia and not s.use_ai:
+        lignes.append("L'amélioration par intelligence artificielle n'est pas installée : "
+                      "elle ne sera pas utilisée.")
+    return lignes
+
+
+def texte(info, s, dossier: Path, duree: float | None, temps: float | None, *,
+          qtgmc: bool, ia: bool) -> str:
+    lignes = []
+    if temps is not None and temps > 0:
+        lignes.append(phrase_temps(temps))
+    place, _assez = phrase_place(info, s, dossier, duree)
+    if place:
+        lignes.append(place)
+    lignes.extend(phrases_outils(info, s, qtgmc=qtgmc, ia=ia))
+    return "\n".join(lignes)

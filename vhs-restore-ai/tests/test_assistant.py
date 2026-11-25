@@ -147,16 +147,16 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a.voir.click()
     attendre(win)
     assert win.preview is not None and win.run_btn.isEnabled()
-    assert "Durée estimée" in a.resume.text() and "sur cet ordinateur" in a.resume.text()
-    assert "Il faut environ" in a.resume.text() and "il en reste" in a.resume.text()
-    assert win.status.text().startswith("Aperçu prêt") and "Durée estimée" in win.status.text()
-    assert (win.width(), win.height()) == (1280, 641)
+    assert "sur cet ordinateur" in a.estimation.text()
+    assert "dossier choisi" in a.estimation.text()
+    assert win.preview.restauration_s > 0
     win.profile_buttons["fidele"].click()                                  # réglage changé : aperçu à revoir
     assert not win.run_btn.isEnabled() and a.voir.text() == "Voir l'avant / après"
     win.son_zero.click()
     assert win.offset_spin.value() == 0 and win.drift_spin.value() == 0 and not win.son_zero.isVisible()
     win.libre.click()                                                      # « Réglages libres »
     assert win.options.isVisible() and not a.isVisible() and win.run_btn.isEnabled()
+    assert "dossier choisi" in win.note_lancer.text()
     assert win.sections["Couper le film"][1].parent() is not a._page_coupe   # la coupe est rendue
     win.libre.click()
     assert a.isVisible() and not win.options.isVisible()
@@ -176,6 +176,17 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette):
     win.libre.click()
     attendre(win)
     assert (win.width(), win.height()) == (1280, 641)
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance()
+    for pct in (100, 125, 150):
+        win.set_taille_texte(pct, annoncer=False)
+        win.resize(1280, 641)
+        app.processEvents()
+        assert (win.width(), win.height()) == (1280, 641), pct
+        for zone in (z for _, z in win.sections.values() if z.isVisible()):
+            assert zone.horizontalScrollBar().maximum() == 0
+            if pct <= 125:
+                assert zone.verticalScrollBar().maximum() == 0
 
 
 def test_photo_en_trois_etapes(fenetre, tmp_path):
