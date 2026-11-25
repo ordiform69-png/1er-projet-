@@ -253,6 +253,8 @@ def installer(w):
 
 
 def ouvrir(w, nom):
+    w.s_compare.montrer_position = nom == "Couper le film"
+    w.s_compare.update()
     for titre, (bouton, zone) in w.sections.items():
         bouton.setText(("▾  " if titre == nom else "▸  ") + titre)
         bouton.setAccessibleName(titre)

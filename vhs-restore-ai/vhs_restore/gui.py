@@ -21,11 +21,11 @@ from typing import Any, Callable
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QBoxLayout, QButtonGroup,
+from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
+                               QScrollArea, QSizePolicy, QSpinBox,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
 from . import ecran, ergonomie, icons, installer, partage, photo, pipeline, theme, vides, vignettes
@@ -170,32 +170,9 @@ class CompareView(QWidget):
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
-        self._proportion = False
-        self._plafond: Callable[[], int] | None = None
         self._moment: QPixmap | None = None
         self._moment_texte = ""
-
-    def garder_proportions(self, plafond: Callable[[], int] | None = None) -> None:
-        """Hauteur réglée sur la largeur (image 4:3) : le cadre ne s'étire pas en un grand
-        rectangle noir quand la colonne voisine est très haute. `plafond` : hauteur maximale
-        (mode simple : la fenêtre visible, pour voir l'image ET ses boutons sans défiler)."""
-        self._proportion = True
-        self._plafond = plafond
-        self._ajuster_hauteur()
-
-    def _ajuster_hauteur(self) -> None:
-        if not self._proportion:
-            return
-        h = min(620, max(240, (self.width() - 22) * 3 // 4 + 22))   # grand écran : pas un mur noir
-        if self._plafond is not None:
-            h = min(h, max(240, self._plafond()))
-        if abs(self.minimumHeight() - h) > 2 or self.maximumHeight() != h:
-            self.setMinimumHeight(h)
-            self.setMaximumHeight(h)
-
-    def resizeEvent(self, e) -> None:  # noqa: N802
-        super().resizeEvent(e)
-        self._ajuster_hauteur()
+        self.montrer_position = False
 
     def set_still(self, path: Path) -> None:
         pm = QPixmap(str(path))
@@ -207,21 +184,21 @@ class CompareView(QWidget):
         self.before = self.after = None
         self.update()
 
-    def poser_moment(self, chemin: str, temps: float) -> None:
+    def poser_moment(self, chemin: str, temps: float | None) -> None:
         """Image du film tant qu'aucun aperçu n'a été fait. L'aperçu la remplace."""
         pix = QPixmap(chemin)
         if pix.isNull():
             return
         self._moment = pix
-        self._moment_texte = f"Image du film à {_duree(temps)}"
+        self._moment_texte = "Photo d’origine" if temps is None else f"Image du film à {_duree(temps)}"
         self.setAccessibleDescription(self._moment_texte)
-        if self.before is None:
+        if self.before is None or self.montrer_position:
             self.update()
 
     def oublier_moment(self) -> None:
         self._moment = None
         self._moment_texte = ""
-        if self.before is None:
+        if self.before is None or self.montrer_position:
             self.update()
 
     def set_mode(self, mode: str) -> None:
@@ -252,7 +229,7 @@ class CompareView(QWidget):
         p.setPen(Qt.NoPen)
         p.setBrush(QColor("#0a0e13"))
         p.drawRoundedRect(inner, 6, 6)
-        if self.before is None or self.after is None:
+        if self.before is None or self.after is None or self.montrer_position:
             if self._moment is not None and not self._moment.isNull():
                 size = self._moment.size().scaled(inner.size(), Qt.KeepAspectRatio)
                 r = QRect(QPoint(0, 0), size)
@@ -346,33 +323,6 @@ class Statut(QLabel):
         super().setText(_insecables(texte))
 
 
-BIG = "QPushButton{font-size:15pt;padding:12px;min-height:44px}"
-
-
-class _ReelMark(QWidget):
-    """Cassette dessinée : deux bobines et une fenêtre de bande. Pas d'image externe."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.setFixedSize(68, 48)
-
-    def paintEvent(self, _e) -> None:  # noqa: N802
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        p.setPen(QPen(QColor(theme.ACCENT), 1.4))
-        p.setBrush(QColor("#0a2228"))
-        p.drawRoundedRect(1, 6, 66, 36, 6, 6)
-        p.setBrush(QColor("#12343c"))
-        p.drawRoundedRect(18, 14, 32, 16, 2, 2)
-        p.setBrush(Qt.NoBrush)
-        for cx in (16, 52):
-            p.setPen(QPen(QColor("#e8b15a"), 1.6))
-            p.drawEllipse(QPoint(cx, 24), 7, 7)
-            p.drawEllipse(QPoint(cx, 24), 2, 2)
-        p.setPen(QPen(QColor(theme.ACCENT), 1))
-        p.drawLine(23, 24, 45, 24)
-
-
 class _DropFilter(QObject):
     """Accepte un film ou une photo déposé n'importe où sur la page simple."""
 
@@ -390,81 +340,6 @@ class _DropFilter(QObject):
                 self._on(urls[0])
                 return True
         return False
-
-
-class StepButton(QPushButton):
-    """Grand bouton d'étape : numéro dans un cercle, texte aligné à gauche."""
-
-    def __init__(self, number: str, text: str, icon: str = "") -> None:
-        super().__init__(text)
-        self.number = number
-        self.icon_name = icon
-        self.suggested = False           # étape suivante conseillée : cadre plus épais
-        self._echelle = 1.0
-        self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(64)
-        self.setFocusPolicy(Qt.StrongFocus)
-
-    def set_echelle(self, echelle: float) -> None:
-        self._echelle = echelle
-        self.setMinimumHeight(max(64, int(64 * echelle)))
-        self.update()
-
-    def paintEvent(self, _e) -> None:  # noqa: N802
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        principal = self.objectName() == "principal"
-        on = self.isEnabled()
-        if principal and on:
-            bg, fg, border = QColor(theme.AMBRE), QColor(theme.AMBRE_TEXTE), QColor(theme.AMBRE)
-        elif principal:
-            bg, fg = QColor(theme.AMBRE_ETEINT), QColor(theme.AMBRE_ETEINT_TEXTE)
-            border = bg
-        elif on:
-            bg, fg, border = QColor(theme.CARTE), QColor(theme.TEXTE), QColor(theme.ETAPE_CADRE)
-            if self.underMouse():
-                border = QColor(theme.ACCENT)
-                bg = QColor(theme.ETAPE_SURVOL)
-        else:
-            bg, fg, border = QColor(theme.FOND_DESACTIVE), QColor(theme.TEXTE_DESACTIVE), QColor(theme.ETAPE_ETEINT)
-        width = 1.4
-        if self.suggested and on:        # « c'est ici maintenant »
-            width = 3.2
-            border = QColor(theme.TEXTE if principal else theme.ACCENT)
-        p.setPen(QPen(border, width))
-        p.setBrush(bg)
-        p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 12, 12)
-        cx, cy, r = 30, self.height() // 2, 15
-        if principal:
-            p.setPen(Qt.NoPen)
-            p.setBrush(QColor(theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE))
-            p.drawEllipse(QPoint(cx, cy), r, r)
-            p.setPen(QColor(theme.AMBRE if on else theme.AMBRE_ETEINT))
-        else:
-            p.setPen(QPen(QColor(theme.ACCENT if on else theme.ACCENT_SOURD), 1.6))
-            p.setBrush(Qt.NoBrush)
-            p.drawEllipse(QPoint(cx, cy), r, r)
-            p.setPen(fg)
-        f = QFont(theme.BODY_FAMILY or p.font().family())     # police large, plus lisible
-        f.setPointSizeF(14 * self._echelle)
-        f.setBold(True)
-        p.setFont(f)
-        p.drawText(QRect(cx - r, cy - r, r * 2, r * 2), Qt.AlignCenter, self.number)
-        x = 56
-        if self.icon_name:
-            col = (theme.AMBRE_TEXTE if on else theme.AMBRE_ETEINT_TEXTE) if principal else \
-                (theme.ACCENT if on else theme.ICONE_GRISE)
-            p.drawPixmap(x, cy - 12, icons.pixmap(self.icon_name, 24, col))
-            x += 34
-        f.setPointSizeF(16 * self._echelle)
-        f.setBold(True)
-        p.setFont(f)
-        p.setPen(fg)
-        p.drawText(QRect(x, 0, self.width() - x - 12, self.height()), Qt.AlignVCenter | Qt.AlignLeft, self.text())
-        if self.hasFocus():
-            p.setPen(QPen(QColor("#f3d7a1"), 3))
-            p.setBrush(Qt.NoBrush)
-            p.drawRoundedRect(self.rect().adjusted(3, 3, -4, -4), 10, 10)
 
 
 class _HoverHalo(QObject):
@@ -812,37 +687,6 @@ def _memes_coupes(a: list[tuple[float, float]], b: list[tuple[float, float]]) ->
     def cle(xs: list[tuple[float, float]]) -> list[tuple[float, float]]:
         return sorted((round(x, 3), round(y, 3)) for x, y in xs)
     return cle(a) == cle(b)
-
-
-class ImageMoment(QLabel):
-    """Grande image du film à l'endroit du curseur. Le texte alternatif dit l'heure."""
-
-    def __init__(self, hauteur: int) -> None:
-        super().__init__()
-        self._hauteur = hauteur
-        self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(hauteur)
-        self.setMaximumHeight(hauteur)
-        self.setMinimumWidth(0)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setWordWrap(True)
-        self.vider()
-
-    def vider(self) -> None:
-        self.setPixmap(QPixmap())
-        self.setText("Les images du film arrivent.")
-        self.setAccessibleName("Image du film")
-        self.setAccessibleDescription("Image du film, pas encore prête.")
-
-    def montrer(self, chemin: str, temps: float) -> None:
-        pix = QPixmap(chemin)
-        if pix.isNull():
-            return
-        self.setText("")
-        self.setPixmap(pix.scaledToHeight(max(2, self._hauteur - 4), Qt.SmoothTransformation))
-        phrase = f"Image du film à {_duree(temps)}"
-        self.setAccessibleName(phrase)
-        self.setAccessibleDescription(phrase)
 
 
 class _Boite:
@@ -1391,7 +1235,7 @@ class MainWindow(QMainWindow):
         self.s_comment_faire = _bouton_secondaire("Comment faire ?", "Comment faire ?", elargi=False)
         self.s_comment_faire.clicked.connect(self._comment_faire_coupes)
         self.s_couper = _bouton_secondaire("Couper ici", "Couper ici")
-        self.s_couper.setObjectName("action")
+        self.s_couper.setObjectName("couper")
         self.s_couper.clicked.connect(self._couper_ici)
         self.coupes_rapides = []
         for texte, sec in (("Enlever 10 secondes ici", 10),
@@ -1477,7 +1321,7 @@ class MainWindow(QMainWindow):
         self.segments["after"].setAccessibleName("Voir seulement le restauré")
         self.segments["split"].setChecked(True)
         self.s_segments.setVisible(False)
-        self.s_folder = QPushButton("Restaurer tout un dossier (films et photos)…")
+        self.s_folder = QPushButton("Restaurer tout un dossier")
         self.s_folder.setObjectName("secondaire")
         self.s_folder.clicked.connect(self.start_folder)
         self.s_folder.setMinimumHeight(48)
@@ -2090,7 +1934,7 @@ class MainWindow(QMainWindow):
         cible = self._cible_montage()
         if cible is None:
             if self.info is None or getattr(self, "is_photo", False):
-                self._etat("Choisissez d'abord un film.", "Choisissez d'abord un film (carte 01).")
+                self.status.setText("Choisissez d'abord un film.")
             return
         t = self.tools
 
@@ -2297,8 +2141,7 @@ class MainWindow(QMainWindow):
             return
         fini = getattr(self, "_fini_fichier", None)
         if not fini or not Path(fini).is_file():
-            self._etat("Restaurez d'abord le film ou la photo : seul le résultat peut être nommé.",
-                       "Restaurez d'abord (carte 04) : seul le résultat peut être nommé.")
+            self.status.setText("Restaurez d'abord le film ou la photo. Vous pourrez ensuite nommer le résultat.")
             return
         cible = Path(fini)
         est_photo = photo.is_photo(cible)
@@ -2362,7 +2205,7 @@ class MainWindow(QMainWindow):
         cible = self._cible_montage()
         if cible is None:
             if self.info is None or getattr(self, "is_photo", False):
-                self._etat("Choisissez d'abord un film.", "Choisissez d'abord un film (carte 01).")
+                self.status.setText("Choisissez d'abord un film.")
             return
         cle = self._choisir_copie(cible)
         if cle is None:
@@ -2413,7 +2256,7 @@ class MainWindow(QMainWindow):
         """Ouvre le film dans LosslessCut (simple) ou Shotcut (complet), installés d'un clic si besoin."""
         cible = self._cible_montage()
         if cible is None:
-            self._etat("Choisissez d'abord un film.", "Choisissez d'abord un film (carte 01).")
+            self.status.setText("Choisissez d'abord un film.")
             return
         box = QMessageBox(QMessageBox.Question, "Faire un montage",
                           "Quel montage voulez-vous faire ?\n\n"
@@ -2714,7 +2557,8 @@ class MainWindow(QMainWindow):
                                            and self.tools.colorize_available))
 
     def _choisir_comparaison(self, mode: str) -> None:
-        self.s_compare.set_mode(mode)          # le mode simple seulement : l'aperçu avancé se compare
+        self.s_compare.montrer_position = False
+        self.s_compare.set_mode(mode)
         noms = {"before": "Original", "split": "Comparer les deux", "after": "Restauré"}   # à la souris
         self.status.setText(f"Affichage : {noms.get(mode, mode)}.")
 
@@ -2922,7 +2766,7 @@ class MainWindow(QMainWindow):
         self._memoriser_recent(str(info.path))
         self._update_state()
         self._couper_images()
-        self.s_compare.poser_moment(str(info.path), 0)
+        self.s_compare.poser_moment(str(info.path), None)
         self._refresh_hints()
         self.status.setText(f"Photo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
@@ -3038,6 +2882,7 @@ class MainWindow(QMainWindow):
         self.still_combo.setCurrentIndex(idx)
         self._show_still(idx)
         self.segments["split"].setChecked(True)
+        self.compare.montrer_position = False
         self.compare.set_mode("split")
         quand = "" if getattr(self, "is_photo", False) else \
             f" (extrait de {res.start:.0f} s à {res.start + res.duration:.0f} s)"
@@ -3045,19 +2890,13 @@ class MainWindow(QMainWindow):
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        self._etat(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré » "
-                   "sous l'image. Si cela vous plaît : « Lancer la restauration ».",
-                   f"Aperçu prêt{quand}. Déplacez la souris sur l'image pour comparer. "
-                   "Si cela vous plaît : « Lancer la restauration ».")
+        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré ».")
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True
         self.start_preview()
         if not self._busy():
             self._ecoute_demandee = False
-
-    def _etat(self, simple: str, avance: str) -> None:
-        self.status.setText(simple)
 
     def _show_still(self, idx: int) -> None:
         if self.preview and 0 <= idx < len(self.preview.stills):
@@ -3221,10 +3060,7 @@ class MainWindow(QMainWindow):
         heure = getattr(self, "s_moment_heure", None)
         if heure is not None:
             heure.setText(_duree(instant))
-        if not getattr(self, "preview", None):
-            vue = getattr(self, "compare", None)
-            if vue is not None and hasattr(vue, "poser_moment"):
-                vue.poser_moment(chemin, instant)
+        self.s_compare.poser_moment(chemin, instant)
 
     def _demander_moment(self) -> None:
         fab = getattr(self, "_fab", None)
@@ -3236,6 +3072,7 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
+        self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
         self.status.setText(
             f"Vous êtes à {_duree(secondes)}. Cliquez sur « Couper ici », "
@@ -3711,6 +3548,7 @@ class MainWindow(QMainWindow):
         disposition.addWidget(fermer)
         dialogue.resize(640, 360)
         dialogue.exec()
+        dialogue.deleteLater()
 
     def _signaler_fin(self) -> None:
         """Son bref et clignotement dans la barre des tâches : le travail est fini."""
@@ -4067,7 +3905,7 @@ def main() -> int:
     theme.set_mode(str(QSettings("VHSRestoreAI", "VHSRestoreAI").value("affichage", "clair") or "clair"))
     theme.apply(app)
     win = MainWindow()
-    win.show()
+    win.showMaximized()
     if not (win.tools.ffmpeg.path and win.tools.ffprobe.path):
         QMessageBox.critical(win, "FFmpeg manquant",
                              "FFmpeg est nécessaire et n'a pas été trouvé.\n\n"
