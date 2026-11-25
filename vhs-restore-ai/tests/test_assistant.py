@@ -207,3 +207,29 @@ def test_le_son_n_est_plus_garde_d_un_film_a_l_autre(fenetre, cassette, tmp_path
     assert reglages.value("audio_offset_ms") is None
     win2 = ouvrir()
     assert win2.offset_spin.value() == 0 and win2.drift_spin.value() == 0
+
+
+def test_trouver_les_changements_place_sans_couper(fenetre, tmp_path):
+    ouvrir, attendre, _ = fenetre
+    f = tmp_path / "trois.mp4"
+    ff("-f", "lavfi", "-i", "color=c=red:s=160x120:r=25:d=3",
+       "-f", "lavfi", "-i", "color=c=blue:s=160x120:r=25:d=3",
+       "-f", "lavfi", "-i", "testsrc2=s=160x120:r=25:d=3",
+       "-filter_complex", "[0:v][1:v][2:v]concat=n=3:v=1:a=0,format=yuv420p",
+       "-c:v", "libx264", "-crf", "18", str(f))
+    win = ouvrir()
+    win.load_file(str(f))
+    attendre(win)
+    a = win.assistant
+    a.aller(1)
+    assert a.titre.text() == "Début, fin et passages à enlever"
+    assert a.trouver.text() == "Trouver les changements"
+    a.trouver.click()
+    attendre(win)
+    assert a._scenes, a.note_scenes.text()
+    assert a.moments.isVisible() and a.moments_lay.count() >= 2
+    a.moments_lay.itemAt(0).widget().click()
+    assert abs(win.start_spin.value() - 3) <= 0.6
+    assert win._coupes == []
+    assert (win.width(), win.height()) == (1280, 641)
+    assert win.barre.scenes

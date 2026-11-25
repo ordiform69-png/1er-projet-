@@ -807,6 +807,7 @@ class _Ruban(QWidget):
         self._bord_saisi: tuple[int, bool] | None = None
         self._x_appui = 0.0
         self._vignettes: list[QPixmap] = []
+        self.scenes: list[float] = []
         self._compacte = False
         self.setMinimumHeight(56)
         self.setMinimumWidth(0)
@@ -824,6 +825,11 @@ class _Ruban(QWidget):
     def vider_images(self, nombre: int) -> None:
         """Places grises en attendant les petites images. `nombre` 0 : barre comme avant."""
         self._vignettes = [QPixmap() for _ in range(max(0, int(nombre)))]
+        self.update()
+
+    def poser_scenes(self, moments: list[float]) -> None:
+        """Repères des changements de scène. N'enlève rien : ce sont des marques."""
+        self.scenes = [float(m) for m in moments]
         self.update()
 
     def poser_image(self, index: int, chemin: str) -> None:
@@ -992,6 +998,11 @@ class _Ruban(QWidget):
         for a, b in self.coupes:
             xa, xb = self._x_de(a), self._x_de(b)
             p.drawRect(int(xa), r.top() + 4, max(2, int(xb - xa)), r.height() - 8)
+        if self.scenes:
+            p.setPen(QPen(QColor(theme.ACCENT), 2))
+            for moment in self.scenes:
+                xs = int(self._x_de(moment))
+                p.drawLine(xs, r.top() + 2, xs, r.bottom() - 2)
         xp = int(self._x_de(self.position))
         p.setPen(QPen(QColor(theme.TEXTE), 3))
         p.drawLine(xp, r.top(), xp, r.bottom())

@@ -606,7 +606,7 @@ def actualiser(w, charge, photo, occupe, termine):
         else:
             w.note_lancer.hide()
             w.run_btn.setToolTip("")
-        for b in (a.retour, a.suivant, a.chercher, a.grand, a.voir):
+        for b in (a.retour, a.suivant, a.chercher, a.trouver, a.grand, a.voir):
             b.setEnabled(not occupe)
     phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
     w.s_note.setText("L'original est conservé." + (f" Correction du son : {phrase}." if phrase else ""))

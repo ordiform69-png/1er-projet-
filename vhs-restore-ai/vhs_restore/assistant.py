@@ -25,7 +25,7 @@ from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
-from . import photo, pipeline, theme, vides
+from . import photo, pipeline, scenes, theme, vides
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
@@ -276,11 +276,25 @@ class Assistant(QWidget):
         self.chercher = _bouton("Chercher la neige et les écrans vides")
         self.chercher.clicked.connect(self._chercher_vides)
         ligne.addWidget(self.chercher)
+        self.trouver = _bouton("Trouver les changements")
+        self.trouver.setToolTip("Repère où l'image change nettement. Rien n'est coupé.")
+        self.trouver.clicked.connect(self._chercher_scenes)
+        ligne.addWidget(self.trouver)
         self.note_coupe = _texte("Le logiciel trouve la neige, l'écran bleu ou noir du début, de la fin et "
                                  "entre deux scènes. Ces moments ne seront pas restaurés. Vous pouvez aussi "
                                  "passer cette étape.")
         ligne.addWidget(self.note_coupe, 1)
         v.addLayout(ligne)
+        self.note_scenes = _texte()
+        self.note_scenes.hide()
+        v.addWidget(self.note_scenes)
+        self.moments = QWidget()
+        self.moments_lay = QHBoxLayout(self.moments)
+        self.moments_lay.setContentsMargins(0, 0, 0, 0)
+        self.moments_lay.setSpacing(6)
+        self.moments.hide()
+        v.addWidget(self.moments)
+        self._scenes: list[float] = []
         self._place_coupe = v
         return page
 
@@ -443,6 +457,7 @@ class Assistant(QWidget):
         self.note_son.setText("")
         self.regler_son.setChecked(False)
         self._montrer_reglage_son()
+        self._vider_scenes()
         self.aller(0)
 
     def _etape(self) -> int:
@@ -562,6 +577,56 @@ class Assistant(QWidget):
                                 "minutes.")
         w._launch(lambda c, p: vides.detecter_tout(ffmpeg, info.path, info.duration, cancel=c, progress=p),
                   self._vides_trouves)
+
+    def _vider_scenes(self) -> None:
+        self._scenes = []
+        self.note_scenes.hide()
+        self.note_scenes.setText("")
+        while self.moments_lay.count():
+            item = self.moments_lay.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+        self.moments.hide()
+        barre = getattr(self.w, "barre", None)
+        if barre is not None and hasattr(barre, "poser_scenes"):
+            barre.poser_scenes([])
+
+    def _chercher_scenes(self) -> None:
+        w = self.w
+        if w.info is None or w._busy() or not self._film():
+            return
+        self._vider_scenes()
+        self.note_scenes.setText("Recherche des changements : le film est lu en entier.")
+        self.note_scenes.show()
+        ffmpeg = w.tools.ffmpeg.path
+        info = w.info
+        w._launch(lambda c, p: scenes.detecter(ffmpeg, info.path, info.duration, cancel=c, progress=p),
+                  self._scenes_trouvees)
+
+    def _scenes_trouvees(self, moments) -> None:
+        self._scenes = list(moments)
+        barre = getattr(self.w, "barre", None)
+        if barre is not None and hasattr(barre, "poser_scenes"):
+            barre.poser_scenes(self._scenes)
+        while self.moments_lay.count():
+            item = self.moments_lay.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+        if not moments:
+            self.note_scenes.setText("Aucun changement net trouvé. Le film semble d'un seul tenant.")
+            self.moments.hide()
+            return
+        n = len(moments)
+        self.note_scenes.setText(
+            f"{n} changement{'s' if n > 1 else ''} trouvé{'s' if n > 1 else ''}. "
+            "Cliquez sur un moment pour vous y placer, puis « Couper ici » si vous voulez l'enlever.")
+        for t in moments:
+            b = _bouton(scenes.phrase(t))
+            b.setMinimumWidth(0)
+            b.clicked.connect(lambda _c=False, moment=t: self.w._barre_cliquee(moment))
+            self.moments_lay.addWidget(b)
+        self.moments_lay.addStretch(1)
+        self.moments.show()
 
     def _vides_trouves(self, res) -> None:
         passages, duree = res
