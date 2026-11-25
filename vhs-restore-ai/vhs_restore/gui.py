@@ -1772,7 +1772,15 @@ class MainWindow(QMainWindow):
                           "Après le premier clic : " + GUIDE_COUPES_OUVERTE + "\n\n"
                           "Après une coupe : " + GUIDE_COUPES_FAITE + "\n\n"
                           + GUIDE_COUPES_CARRES + "\n\n"
-                          "« A− », « A » et « A+ » en haut à droite agrandissent le texte.", parent=self)
+                          "« A− », « A » et « A+ » en haut à droite agrandissent le texte.\n\n"
+                          "Ce que le logiciel ne peut pas faire :\n\n"
+                          "· il ne retrouve pas un détail absent de la bande ;\n"
+                          "· il ne répare pas un mauvais tracking ni une bande abîmée : "
+                          "il faut renumériser ou couper ;\n"
+                          "· la qualité de la numérisation compte plus que les filtres ;\n"
+                          "· les couleurs restaurées sont une estimation ;\n"
+                          "· l'IA peut inventer des textures : regardez toujours l'avant / après.",
+                          parent=self)
         box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
         box.addButton("C'est parti", QMessageBox.AcceptRole)
         box.exec()
