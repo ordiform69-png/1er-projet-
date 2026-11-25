@@ -1,7 +1,7 @@
 """Assistant pas à pas : une restauration réussie, une étape à la fois.
 
 L'utilisateur (76 ans) ne peut pas « faire n'importe quoi » : une seule chose à faire par
-écran, « Retour » et « Suivant », et « Lancer la restauration » n'est possible qu'après avoir vu
+écran, « ← Revenir » et « Suivant → », et « Lancer la restauration » n'est possible qu'après avoir vu
 l'avant / après avec les réglages choisis. Les réglages par défaut sont sûrs : en cliquant
 toujours sur « Suivant », on obtient déjà un bon résultat. « Réglages libres » ouvre l'écran
 complet (les sections), pour le fils ou plus tard.
@@ -21,8 +21,8 @@ import subprocess
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QSize, QTimer, QUrl, Qt
-from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
+from PySide6.QtCore import QRect, QSize, QTimer, QUrl, Qt
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
 
@@ -41,6 +41,10 @@ PHRASES_RENDU = {
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
+# Repères à gauche de la colonne. False : la même liste, sur une ligne de 30 px au-dessus du titre.
+REPERES_VERTICAUX = True
+LARGEUR_REPERES = 150
+HAUTEUR_REPERES = 30
 ECOUTE = 10.0                       # secondes écoutées au début et à la fin
 PAS_SON = 40                        # ms : une image PAL
 
@@ -175,6 +179,117 @@ def _texte(texte: str = "", nom: str = "") -> QLabel:
     return lab
 
 
+class _Repere(QPushButton):
+    """Une étape : rond numéroté, coche si elle est faite, rond plein si elle est en cours."""
+
+    def __init__(self, vertical: bool) -> None:
+        super().__init__()
+        self._vertical = vertical
+        self._etat = "suite"
+        self._numero = 1
+        self._nom = ""
+        self.setObjectName("repere")
+        self.setFlat(True)
+        self.setCursor(Qt.ArrowCursor)
+        self.setStyleSheet(
+            "QPushButton#repere {background: transparent; border: none; padding: 0; text-align: left;}")
+        if vertical:
+            self.setMinimumHeight(42)
+            self.setMaximumHeight(48)
+            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        else:
+            self.setFixedHeight(HAUTEUR_REPERES)
+            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    def regler(self, numero: int, nom: str, etat: str) -> None:
+        self._numero = numero
+        self._nom = nom
+        self._etat = etat
+        self.setEnabled(etat != "suite")
+        self.setCursor(Qt.PointingHandCursor if etat == "fait" else Qt.ArrowCursor)
+        self.setFocusPolicy(Qt.TabFocus if etat == "fait" else Qt.NoFocus)
+        etat_lu = {"fait": "faite", "cours": "en cours", "suite": "à venir"}[etat]
+        self.setAccessibleName(f"Étape {numero}, {nom}, {etat_lu}")
+        self.setText(f"{'✓' if etat == 'fait' else '●' if etat == 'cours' else numero} {nom}")
+        self.update()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        if self._vertical:
+            return QSize(LARGEUR_REPERES, 44)
+        return QSize(110, HAUTEUR_REPERES)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(0, 42 if self._vertical else HAUTEUR_REPERES)
+
+    def enterEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().leaveEvent(e)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        if self._etat == "cours":
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.TUILE_ACTIVE))
+            p.drawRoundedRect(self.rect().adjusted(0, 1, -1, -1), 8, 8)
+        elif self._etat == "fait" and self.underMouse():
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.SURVOL))
+            p.drawRoundedRect(self.rect().adjusted(0, 1, -1, -1), 8, 8)
+        if self.hasFocus() and self._etat == "fait":
+            p.setPen(QPen(QColor(theme.ACCENT), 2))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 8, 8)
+        d = 26 if self._vertical else 18
+        cy = max(0, (self.height() - d) // 2)
+        rond = QRect(4 if self._vertical else 2, cy, d, d)
+        if self._etat == "suite":
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(theme.TEXTE_DESACTIVE), 2))
+            p.drawEllipse(rond)
+            self._ecrire(p, rond, str(self._numero), theme.TEXTE_DESACTIVE, 8 if self._vertical else 7)
+            couleur_nom, gras = theme.TEXTE_DESACTIVE, False
+        else:
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(theme.VERT))
+            p.drawEllipse(rond)
+            if self._etat == "fait":
+                self._coche(p, rond)
+            else:
+                self._ecrire(p, rond, str(self._numero), theme.VERT_TEXTE, 9 if self._vertical else 7)
+            couleur_nom, gras = theme.TEXTE, self._etat == "cours"
+        font = QFont(self.font())
+        if not self._vertical:
+            font.setPointSizeF(min(font.pointSizeF() or 9, 9))
+        font.setBold(gras)
+        p.setFont(font)
+        x = rond.right() + (8 if self._vertical else 4)
+        zone = QRect(x, 0, max(0, self.width() - x - 2), self.height())
+        p.setPen(QColor(couleur_nom))
+        p.drawText(zone, Qt.AlignVCenter | Qt.AlignLeft,
+                   QFontMetrics(font).elidedText(self._nom, Qt.ElideRight, zone.width()))
+        p.end()
+
+    def _ecrire(self, p: QPainter, rect: QRect, texte: str, couleur: str, pt: float) -> None:
+        p.setPen(QColor(couleur))
+        font = QFont(self.font())
+        font.setBold(True)
+        font.setPointSizeF(pt)
+        p.setFont(font)
+        p.drawText(rect, Qt.AlignCenter, texte)
+
+    def _coche(self, p: QPainter, rect: QRect) -> None:
+        p.setPen(QPen(QColor(theme.VERT_TEXTE), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        c = rect.center()
+        k = 1.0 if self._vertical else 0.7
+        p.drawLine(int(c.x() - 6 * k), int(c.y()), int(c.x() - 1 * k), int(c.y() + 5 * k))
+        p.drawLine(int(c.x() - 1 * k), int(c.y() + 5 * k), int(c.x() + 6 * k), int(c.y() - 5 * k))
+
+
 class Assistant(QWidget):
     def __init__(self, w) -> None:
         super().__init__()
@@ -195,30 +310,58 @@ class Assistant(QWidget):
         self._minuterie = QTimer(self)
         self._minuterie.setInterval(100)
         self._minuterie.timeout.connect(self._pomper)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(6, 2, 6, 2)
-        lay.setSpacing(6)
+        self._reperes_verticaux = REPERES_VERTICAUX
+        self.reperes = QWidget()
+        self.reperes.setObjectName("colonneReperes")
+        self._boutons_reperes: list[_Repere] = []
+        if self._reperes_verticaux:
+            self.reperes.setFixedWidth(LARGEUR_REPERES)
+            self._reperes_lay = QVBoxLayout(self.reperes)
+            cadre = QHBoxLayout(self)
+        else:
+            self.reperes.setFixedHeight(HAUTEUR_REPERES)
+            self._reperes_lay = QHBoxLayout(self.reperes)
+            cadre = QVBoxLayout(self)
+        self._reperes_lay.setContentsMargins(0, 0, 0, 0)
+        self._reperes_lay.setSpacing(2 if not self._reperes_verticaux else 4)
+        cadre.setContentsMargins(6, 2, 6, 2)
+        cadre.setSpacing(6)
+        if self._reperes_verticaux:
+            cadre.addWidget(self.reperes)
+            lay = QVBoxLayout()
+            lay.setSpacing(6)
+            cadre.addLayout(lay, 1)
+        else:
+            cadre.addWidget(self.reperes)
+            lay = cadre
         haut = QHBoxLayout()
+        haut.setSpacing(10)
         self.compteur = QLabel()
         self.compteur.setObjectName("etapeAssistant")
+        self.compteur.setWordWrap(False)
         self.titre = _texte(nom="titreAssistant")
+        self.titre.setWordWrap(False)
         haut.addWidget(self.compteur)
         haut.addWidget(self.titre, 1)
         lay.addLayout(haut)
+        self.rien_a_changer = _texte("Rien à changer ? Cliquez sur Suivant.", "rienAChanger")
+        self.rien_a_changer.setVisible(False)
+        lay.addWidget(self.rien_a_changer)
         self.pages = QStackedWidget()
         lay.addWidget(self.pages, 1)
         nav = QHBoxLayout()
-        self.retour = _bouton("Retour")
-        self.suivant = _bouton("Suivant", "action")
-        for b in (self.retour, self.suivant):
-            b.setMinimumWidth(170)
-            b.setMinimumHeight(52)
+        self.retour = _bouton("← Revenir")
+        self.suivant = _bouton("Suivant →", "action", 64)
+        self.retour.setMinimumWidth(160)
+        self.retour.setMinimumHeight(52)
+        self.suivant.setMinimumWidth(220)
+        self.suivant.setMinimumHeight(64)
         nav.addWidget(self.retour)
         nav.addStretch(1)
         nav.addWidget(self.suivant)
         lay.addLayout(nav)
-        self.retour.clicked.connect(lambda: self.aller(self.pages.currentIndex() - 1))
-        self.suivant.clicked.connect(lambda: self.aller(self.pages.currentIndex() + 1))
+        self.retour.clicked.connect(lambda: self.aller(self._etape() - 1))
+        self.suivant.clicked.connect(lambda: self.aller(self._etape() + 1))
         self._page_rendu = self._construire_rendu()
         self._page_lumiere = lumiere.Panneau(w.lumiere, guide=True)
         self._page_coupe = self._construire_coupe()
@@ -226,6 +369,8 @@ class Assistant(QWidget):
         self._page_fin = self._construire_fin()
         for p in (self._page_rendu, self._page_lumiere, self._page_coupe, self._page_son, self._page_fin):
             self.pages.addWidget(p)
+        self._montrer_reperes(0)
+        self.style_assistant()
 
     # ------------------------------------------------------------ étapes
     def _construire_rendu(self) -> QWidget:
@@ -356,21 +501,30 @@ class Assistant(QWidget):
         return page
 
     def style_assistant(self) -> None:
-        """Gros titres, rendu choisi entouré ; suit le thème et la taille du texte."""
+        """Gros titres, Suivant vert, rendu choisi entouré ; suit le thème et la taille du texte."""
         e = float(getattr(self.w, "_echelle", 1.0) or 1.0)
-        cle = (theme.ACCENT, theme.BORD, theme.CARTE, e)
-        if getattr(self, "_style_cle", None) == cle:
-            return
-        self._style_cle = cle
-        self.setStyleSheet(
-            f"QLabel#etapeAssistant {{font-weight:bold; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
-            f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
-            f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
-            f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
-            f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
-            f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
-            f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
-            f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
+        cle = (theme.ACCENT, theme.BORD, theme.CARTE, theme.TEXTE, theme.VERT, theme.VERT_TEXTE,
+               theme.VERT_SURVOL, theme.VERT_PRESSE, theme.VERT_ETEINT, theme.VERT_ETEINT_TEXTE, e)
+        if getattr(self, "_style_cle", None) != cle:
+            self._style_cle = cle
+            self.setStyleSheet(
+                f"QLabel#etapeAssistant {{font-weight:700; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
+                f"QLabel#titreAssistant {{font-weight:700; font-size:{16 * e:.0f}pt;}}"
+                f"QLabel#rienAChanger {{font-weight:700; font-size:{14 * e:.0f}pt; color:{theme.TEXTE};}}"
+                f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
+                f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
+                f"QLabel#nomReglage, QLabel#valeurReglage {{font-weight:bold;}}"
+                f"QPushButton#action {{color:{theme.VERT_TEXTE}; background:{theme.VERT};"
+                f"font-size:{16 * e:.0f}pt; font-weight:700; border:none; border-radius:12px;"
+                f"padding:8px 18px; min-height:56px;}}"
+                f"QPushButton#action:hover {{background:{theme.VERT_SURVOL};}}"
+                f"QPushButton#action:pressed {{background:{theme.VERT_PRESSE};}}"
+                f"QPushButton#action:disabled {{background:{theme.VERT_ETEINT}; color:{theme.VERT_ETEINT_TEXTE};}}"
+                f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
+                f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
+                f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
+        for b in self._boutons_reperes:
+            b.update()
 
     # ------------------------------------------------------------ navigation
     def _film(self) -> bool:
@@ -384,6 +538,44 @@ class Assistant(QWidget):
         if self.w.info is not None and self.w.info.has_audio:
             etapes.append(("Le son", self._page_son))
         return etapes + [("Vérifier et lancer", self._page_fin)]
+
+    def _nom_court(self, page: QWidget) -> str:
+        if page is self._page_rendu:
+            return "Rendu"
+        if page is self._page_lumiere:
+            return "Lumière"
+        if page is self._page_coupe:
+            return "Coupes"
+        if page is self._page_son:
+            return "Son"
+        return "Lancer"
+
+    def _montrer_reperes(self, index: int) -> None:
+        """Repères alignés sur la liste réelle (sans Son s'il n'y a pas d'audio, sans Coupes pour une photo)."""
+        liste = self._liste()
+        if len(self._boutons_reperes) != len(liste):
+            while self._reperes_lay.count():
+                item = self._reperes_lay.takeAt(0)
+                wd = item.widget()
+                if wd is not None:
+                    wd.setParent(None)
+                    wd.deleteLater()
+            self._boutons_reperes = []
+            for i, (_titre, page) in enumerate(liste):
+                b = _Repere(self._reperes_verticaux)
+                b.clicked.connect(lambda _c=False, n=i: self._clic_repere(n))
+                self._reperes_lay.addWidget(b)
+                self._boutons_reperes.append(b)
+            if self._reperes_verticaux:
+                self._reperes_lay.addStretch(1)
+        for i, (_titre, page) in enumerate(liste):
+            etat = "fait" if i < index else "cours" if i == index else "suite"
+            self._boutons_reperes[i].regler(i + 1, self._nom_court(page), etat)
+
+    def _clic_repere(self, i: int) -> None:
+        """Une étape déjà faite ramène en arrière. L'étape en cours et la suite ne naviguent pas."""
+        if i < self._etape():
+            self.aller(i)
 
     def _en_fond(self, genre: str, travail) -> None:
         generation, annuler = self._generation, self._annuler_fond
@@ -466,6 +658,8 @@ class Assistant(QWidget):
         self.pages.setCurrentWidget(page)
         self.compteur.setText(f"Étape {i + 1} sur {len(liste)}")
         self.titre.setText(titre)
+        self.rien_a_changer.setVisible(page in (self._page_lumiere, self._page_coupe, self._page_son))
+        self._montrer_reperes(i)
         self.retour.setVisible(i > 0)
         self.suivant.setVisible(i < len(liste) - 1)
         if not self.actif:                 # écran complet : rien à préparer pour l'assistant
