@@ -73,10 +73,16 @@ def fenetre(tools, monkeypatch):
         return win
 
     def attendre(win):
+        import time
+        fin = time.monotonic() + 120
         for _ in range(3):
             while win.worker is not None and win.worker.isRunning():
                 app.processEvents()
                 win.worker.wait(20)
+            # images du rendu et proposition de dérive : fils de fond, relevés par un minuteur
+            while getattr(win, "assistant", None) is not None and win.assistant._en_cours and time.monotonic() < fin:
+                app.processEvents()
+                time.sleep(0.02)
             for _ in range(10):
                 app.processEvents()
     yield ouvrir, attendre, ouverts
@@ -172,13 +178,17 @@ def test_photo_en_deux_etapes(fenetre, tmp_path):
     assert a.titre.text() == "Vérifier et lancer" and not a.suivant.isVisible()
 
 
-def test_le_son_n_est_plus_garde_d_un_film_a_l_autre(fenetre, cassette, tmp_path):
+def test_le_son_n_est_plus_garde_d_un_film_a_l_autre(fenetre, cassette, tmp_path, monkeypatch):
     from PySide6.QtCore import QSettings
+    from vhs_restore.gui import MainWindow
     ouvrir, attendre, _ = fenetre
-    QSettings("VHSRestoreAI", "VHSRestoreAI").setValue("audio_drift_ms_per_min", -190)   # ancienne version
+    reglages = QSettings(str(tmp_path / "reglages.ini"), QSettings.IniFormat)   # sous pytest, aucun réglage
+    monkeypatch.setattr(MainWindow, "_prefs", lambda self: reglages)             # n'est lu : on en fournit
+    reglages.setValue("audio_drift_ms_per_min", -190)                            # ancienne version
+    reglages.setValue("audio_offset_ms", -40)
     win = ouvrir()
-    assert win.drift_spin.value() == 0
-    assert QSettings("VHSRestoreAI", "VHSRestoreAI").value("audio_drift_ms_per_min") is None
+    assert win.drift_spin.value() == 0 and win.offset_spin.value() == 0
+    assert reglages.value("audio_drift_ms_per_min") is None and reglages.value("audio_offset_ms") is None
     win.load_file(str(cassette))
     attendre(win)
     win.offset_spin.setValue(-40)
@@ -188,6 +198,8 @@ def test_le_son_n_est_plus_garde_d_un_film_a_l_autre(fenetre, cassette, tmp_path
     win.load_file(str(autre))
     attendre(win)
     assert win.offset_spin.value() == 0                                    # propre à chaque film
-    win.close()
+    win.offset_spin.setValue(120)
+    win.close()                                                            # les réglages sont enregistrés
+    assert reglages.value("audio_offset_ms") is None
     win2 = ouvrir()
     assert win2.offset_spin.value() == 0 and win2.drift_spin.value() == 0
