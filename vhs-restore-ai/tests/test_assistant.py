@@ -140,7 +140,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     decalage, derive = assistant.son_depuis_debut_fin(80, t1, -40, t2)
     assert (win.offset_spin.value(), win.drift_spin.value()) == (decalage, derive)
     assert "Correction du son" in win.s_note.text() and win.son_zero.isVisible()
-    assert a.titre.text() == "Vérifier et lancer" and "Maximum" in a.resume.text()
+    assert a.titre.text() == "Vérifier et lancer" and "Nettoyage au plus fort" in a.resume.text()
     assert "Lumière et couleurs : comme proposé." in a.resume.text()
     assert not win.run_btn.isEnabled()                                     # pas sans l'avant / après
     assert "avant / après" in a.consigne.text() and "avant / après" in win.run_btn.toolTip()
