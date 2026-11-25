@@ -113,7 +113,8 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a = win.assistant
     assert a.isVisible() and not win.options.isVisible()
     assert a.compteur.text() == "Étape 1 sur 5" and a.titre.text() == "Choisir le rendu"
-    assert "Conseillé" in a.tuiles["equilibre"].text()
+    assert "Bien nettoyé, naturel (conseillé)" in a.tuiles["equilibre"].text()
+    assert "Bon équilibre" in a.tuiles["equilibre"].text()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1
     assert all(not t.icon().isNull() for t in a.tuiles.values())           # quatre images à comparer
