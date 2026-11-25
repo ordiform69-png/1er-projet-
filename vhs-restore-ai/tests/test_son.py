@@ -48,7 +48,11 @@ def test_profiles_chains(mono):
     assert pipeline.audio_filters(dataclasses.replace(mono, has_audio=False), S()) == []
     assert not any("bandreject" in f for f in pipeline.audio_filters(mono, S()))   # jamais par défaut
     hum = pipeline.audio_filters(mono, S(audio_mains_hz=50))
-    assert "bandreject=f=50:t=q:w=30" in hum and "bandreject=f=100:t=q:w=30" in hum
+    for f_hz in (50, 100, 150, 200):
+        assert f"bandreject=f={f_hz}:t=q:w=30" in hum
+    hum60 = pipeline.audio_filters(mono, S(audio_mains_hz=60))
+    for f_hz in (60, 120, 180, 240):
+        assert f"bandreject=f={f_hz}:t=q:w=30" in hum60
 
 
 def test_mono_duration_and_offset(mono, tools, tmp_path):
@@ -88,3 +92,34 @@ def test_son_apres_cinq_minutes(tmp_path, tools):
        "-af", "adelay=301000:all=1", "-t", "303", "-c:v", "ffv1", "-c:a", "flac", str(src))
     info = analyze(src, tools)
     assert info.has_audio and not info.audio_silent
+
+
+def test_harmoniques_du_ronflement(tools, tmp_path):
+    """50, 150 et 200 Hz baissent ; une voix à 300 Hz bouge de moins de 1 dB."""
+    from vhs_restore.audio_check import _levels
+    src = tmp_path / "ronflement.mp4"
+    ff("-f", "lavfi", "-i", "testsrc2=s=160x120:r=25:d=3",
+       "-filter_complex",
+       "sine=f=50:sample_rate=48000:d=3,volume=0.2[a];"
+       "sine=f=150:sample_rate=48000:d=3,volume=0.2[b];"
+       "sine=f=200:sample_rate=48000:d=3,volume=0.2[c];"
+       "sine=f=300:sample_rate=48000:d=3,volume=0.2[d];"
+       "[a][b][c][d]amix=inputs=4:duration=first:normalize=0,"
+       "pan=stereo|c0=c0|c1=c0[a]",
+       "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast",
+       "-c:a", "pcm_s16le", str(src))
+    info = analyze(src, tools)
+    sans = pipeline.export(info, S("fidele", restore_audio=False),
+                           tmp_path / "sans.mp4", tools)
+    avec = pipeline.export(info, S("fidele", restore_audio=False, audio_mains_hz=50),
+                           tmp_path / "avec.mp4", tools)
+
+    def rms(path, hz):
+        return _levels(tools.ffmpeg.path, path,
+                       f"pan=mono|c0=0.5*c0+0.5*c1,bandpass=f={hz}:width_type=h:w=8,")[0]["RMS level dB"]
+
+    for hz in (150, 200):
+        baisse = rms(sans, hz) - rms(avec, hz)
+        assert baisse > 12, (hz, baisse)
+    voix = rms(avec, 300) - rms(sans, 300)
+    assert abs(voix) < 1, voix

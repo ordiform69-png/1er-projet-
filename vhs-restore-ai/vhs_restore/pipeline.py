@@ -245,9 +245,9 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
             chain.append("adeclip")
         if s.audio_mains_hz in (50, 60) and _has(present, "bandreject"):
             hz = int(s.audio_mains_hz)
-            # Q élevé = encoche étroite : le bourdonnement, pas la musique grave
-            chain.append(f"bandreject=f={hz}:t=q:w=30")
-            chain.append(f"bandreject=f={hz * 2}:t=q:w=30")
+            # Q élevé = encoche étroite : le bourdonnement et ses harmoniques, pas la voix
+            for n in (1, 2, 3, 4):
+                chain.append(f"bandreject=f={hz * n}:t=q:w=30")
         if s.audio_highpass and _has(present, "highpass"):
             # 6 dB/octave : le vent et les grondements, pas les voix (300 Hz ≈ −0,3 dB)
             chain.append("highpass=f=80:poles=1")
