@@ -477,15 +477,33 @@ class Assistant(QWidget):
         self.w._update_state()
 
     # la section « Couper le film » de l'écran complet sert aussi ici : mêmes commandes
+    def _extras_coupe(self):
+        """Boutons utiles au fils, trop denses pour le parcours guidé."""
+        w = self.w
+        extras = list(getattr(w, "coupes_rapides", ()))
+        for nom in ("details_coupe", "trim_tout"):
+            wd = getattr(w, nom, None)
+            if wd is not None:
+                extras.append(wd)
+        return extras
+
     def _emprunter_coupe(self) -> None:
         zone = self.w.sections["Couper le film"][1]
         if zone.parent() is not self._page_coupe:
             self.w.options.layout().removeWidget(zone)
             self._place_coupe.addWidget(zone, 1)
+        for wd in self._extras_coupe():
+            wd.hide()
+        self.chercher.setText("Chercher la neige…")
+        self.note_coupe.setText("Vous pouvez passer cette étape. Ou le logiciel trouve la neige "
+                                "et les écrans vides pour vous.")
         zone.show()
 
     def _rendre_coupe(self) -> None:
         zone = self.w.sections["Couper le film"][1]
+        for wd in self._extras_coupe():
+            wd.show()
+        self.chercher.setText("Chercher la neige et les écrans vides")
         if zone.parent() is self._page_coupe:
             self._place_coupe.removeWidget(zone)
             lay = self.w.options.layout()
@@ -670,14 +688,26 @@ class Assistant(QWidget):
             return
         if self.apercu_vu():
             self.voir.setText("Revoir l'avant / après")
+            self.voir.setObjectName("secondaire")
+            self.voir.setMinimumHeight(44)
             self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
                                   "« Lancer la restauration », en bas à droite. Sinon, « Retour ».")
         else:
             self.voir.setText("Voir l'avant / après")
+            self.voir.setObjectName("action")
+            self.voir.setMinimumHeight(56)
             self.consigne.setText("Regardez d'abord l'avant / après. « Lancer la restauration » s'allume ensuite.")
+        self.voir.style().unpolish(self.voir)
+        self.voir.style().polish(self.voir)
 
     def peut_lancer(self) -> bool:
         return self.pages.currentWidget() is self._page_fin and self.apercu_vu()
+
+    def phrase_attente(self) -> str:
+        """Pourquoi « Lancer » est éteint, à côté du bouton."""
+        if self.pages.currentWidget() is self._page_fin:
+            return "Regardez d'abord l'avant / après."
+        return "Pas encore. Terminez les étapes."
 
 
 __all__ = ["Assistant", "faire_ecoute", "faire_rendus", "phrase_son", "son_depuis_debut_fin", "suggestion_derive"]

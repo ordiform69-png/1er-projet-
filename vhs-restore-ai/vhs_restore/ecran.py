@@ -350,6 +350,7 @@ def installer(w):
         cv.addWidget(row)
     details_coupe.clicked.connect(dlg.open)
     c.addWidget(details_coupe)
+    w.details_coupe = details_coupe
 
     im = contenu("Régler l'image")
     pleine = QFormLayout()
@@ -480,6 +481,13 @@ def installer(w):
     w.son_zero.hide()
     pied.addWidget(w.son_zero)
     pied.addWidget(w.s_cancel)
+    w.note_lancer = QLabel()
+    w.note_lancer.setObjectName("note")
+    w.note_lancer.setWordWrap(True)
+    w.note_lancer.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    w.note_lancer.setMaximumWidth(260)
+    w.note_lancer.hide()
+    pied.addWidget(w.note_lancer)
     pied.addWidget(w.run_btn)
     w.run_btn.setProperty("grand", True)
     w.run_btn.setMinimumSize(400, 64)
@@ -569,6 +577,8 @@ def actualiser(w, charge, photo, occupe, termine):
     w.libre.setChecked(not a.actif)
     w.libre.blockSignals(False)
     w.libre.setText("Revenir à l'assistant" if not a.actif else "Réglages libres")
+    if not guide:
+        w.note_lancer.hide()
     if occupe and getattr(w, "_job", "") == "export":
         w.run_btn.setText("Restauration en cours…")
         w.run_btn.setToolTip("")
@@ -578,8 +588,13 @@ def actualiser(w, charge, photo, occupe, termine):
         a.style_assistant()
         a.actualiser()
         w.run_btn.setEnabled(a.peut_lancer() and not occupe)
-        if not occupe:
-            w.run_btn.setToolTip("" if a.peut_lancer() else "Regardez d'abord l'avant / après.")
+        if not occupe and not a.peut_lancer():
+            w.note_lancer.setText(a.phrase_attente())
+            w.note_lancer.show()
+            w.run_btn.setToolTip(a.phrase_attente())
+        else:
+            w.note_lancer.hide()
+            w.run_btn.setToolTip("")
         for b in (a.retour, a.suivant, a.chercher, a.grand, a.voir):
             b.setEnabled(not occupe)
     phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
