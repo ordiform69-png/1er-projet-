@@ -18,10 +18,11 @@ import threading
 from fractions import Fraction
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QPointF, QTimer, Qt
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
-from . import photo, pipeline
+from . import photo, pipeline, theme
 from .tools import ff_input, run
 
 # (clé du réglage, nom à l'écran, bouton « moins », bouton « plus »)
@@ -287,8 +288,151 @@ class Lumiere:
         shutil.rmtree(self.dossier, ignore_errors=True)
 
 
+class Jauge(QWidget):
+    """Sept crans dessinés, de −3 à +3. Le milieu est neutre (0).
+
+    Le nombre écrit dessous est exactement l'entier envoyé au moteur
+    (``pipeline.cran``, déjà borné à −3…+3) : aucun autre barème.
+    Un clic choisit le cran ; les flèches gauche et droite avancent d'un cran.
+    Pas de glisser : trop précis.
+    """
+
+    LARGEUR = 168                       # entre 140 et 180 px, comme demandé
+
+    def __init__(self, nom: str, choisir, serre: bool = False) -> None:
+        super().__init__()
+        self._nom = nom
+        self._choisir = choisir
+        self._serre = serre
+        self._texte = "Normal"
+        police = QFont(self.font())
+        police.setBold(True)
+        if police.pointSizeF() < 12:
+            police.setPointSizeF(12.5)
+        self.setFont(police)
+        self.setObjectName("valeurReglage")
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedWidth(self.LARGEUR)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setAccessibleDescription("Sept crans. Le milieu est neutre. "
+                                      "Flèche gauche ou droite : un cran.")
+        self.setToolTip("Cliquez un cran. Le milieu est neutre.")
+        self._ajuster_hauteur()
+        self._nom_accessible()
+
+    def text(self) -> str:
+        return self._texte
+
+    def setText(self, texte: str) -> None:
+        self._texte = texte or "Normal"
+        self._nom_accessible()
+        self.update()
+
+    def _nom_accessible(self) -> None:
+        self.setAccessibleName(f"{self._nom} : {self._texte}")
+
+    def _cran_affiche(self) -> int:
+        brut = self._texte.replace("−", "-").replace("+", "")
+        if brut in ("", "Normal"):
+            return 0
+        try:
+            return pipeline.cran(int(self._texte.replace("−", "-")))
+        except ValueError:
+            return 0
+
+    def _ajuster_hauteur(self) -> None:
+        """Les ronds au-dessus, la valeur en dessous : les deux ne se touchent pas."""
+        texte = QFontMetrics(self.font()).height()
+        diametre = 14 if self._serre else 18
+        ecart = 6 if self._serre else 8
+        self.setFixedHeight(2 + diametre + ecart + texte + 2)
+
+    def _rayon(self) -> float:
+        return 6.0 if self._serre else 8.0
+
+    def _centres(self) -> list[float]:
+        """Abscisses des 7 crans, les mêmes pour le dessin et le clic."""
+        n = 2 * pipeline.CRANS
+        marge = self._rayon() + (3 if self._serre else 4)
+        gauche, droite = marge, max(marge + 1, self.width() - marge)
+        return [gauche + i * (droite - gauche) / n for i in range(n + 1)]
+
+    def cran_sous(self, x: float) -> int:
+        """Cran le plus proche de x (−3…+3)."""
+        xs = self._centres()
+        i = min(range(len(xs)), key=lambda k: abs(xs[k] - float(x)))
+        return i - pipeline.CRANS
+
+    def _poser(self, n: int) -> None:
+        if not self.isEnabled():
+            return
+        n = pipeline.cran(n)
+        if n != self._cran_affiche():
+            self._choisir(n)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Left:
+            self._poser(self._cran_affiche() - 1)
+        elif event.key() == Qt.Key_Right:
+            self._poser(self._cran_affiche() + 1)
+        else:
+            super().keyPressEvent(event)
+
+    def mousePressEvent(self, event) -> None:
+        # le cran est choisi au clic : bouger la souris ensuite ne change rien
+        if event.button() == Qt.LeftButton and self.isEnabled():
+            self.setFocus()
+            self._poser(self.cran_sous(event.position().x()))
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        event.ignore()                 # pas de glisser
+
+    def paintEvent(self, _event) -> None:
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        actif = self.isEnabled()
+        accent = QColor(theme.ACCENT if actif else theme.ACCENT_SOURD)
+        bord = QColor(theme.BORD if actif else theme.BORD_DESACTIVE)
+        fond = QColor(theme.CARTE if actif else theme.FOND_DESACTIVE)
+        encre = QColor(theme.TEXTE if actif else theme.TEXTE_DESACTIVE)
+        p.setFont(self.font())
+        mesures = p.fontMetrics()
+        th = mesures.height()
+        haut_texte = self.height() - th - 1          # la valeur occupe seule cette bande
+        zone = max(8, haut_texte - 3)
+        rayon = min(self._rayon(), max(3.0, zone / 2 - 2))
+        cy = 2 + rayon
+        xs = self._centres()
+        valeur = self._cran_affiche()
+        p.setPen(QPen(bord, 2))
+        p.drawLine(QPointF(xs[0], cy), QPointF(xs[-1], cy))
+        # petit repère du milieu, entre les ronds et le mot, jamais sur le texte
+        tick = cy + rayon + 3
+        if tick < haut_texte - 1:
+            p.setPen(QPen(accent, 2))
+            p.drawLine(QPointF(xs[pipeline.CRANS], tick),
+                       QPointF(xs[pipeline.CRANS], min(haut_texte - 2, tick + 3)))
+        for i, x in enumerate(xs):
+            n = i - pipeline.CRANS
+            plein = n == valeur
+            r = rayon if plein else max(3.0, rayon - 2)
+            p.setPen(QPen(accent if plein or n == 0 else bord, 2))
+            p.setBrush(accent if plein else fond)
+            p.drawEllipse(QPointF(x, cy), r, r)
+        p.setPen(encre)
+        p.drawText(0, haut_texte, self.width(), th, Qt.AlignHCenter | Qt.AlignVCenter, self._texte)
+        if self.hasFocus() and actif:
+            p.setPen(QPen(accent, 1.5))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(1, 1, self.width() - 3, self.height() - 3, 6, 6)
+        p.end()
+
+
 class Panneau(QWidget):
-    """Quatre lignes « Plus sombre · Normal · Plus clair », etc. Deux exemplaires : l'étape de
+    """Quatre lignes « Plus sombre · jauge · Plus clair ». Deux exemplaires : l'étape de
     l'assistant et la section de l'écran complet ; les valeurs sont partagées."""
 
     def __init__(self, lum: Lumiere, guide: bool) -> None:
@@ -296,35 +440,31 @@ class Panneau(QWidget):
         self.lum = lum
         v = QVBoxLayout(self)
         v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(6)
+        v.setSpacing(6 if guide else 4)
         if guide:
-            intro = QLabel("Regardez la grande image : à gauche aujourd'hui, à droite le résultat. "
-                           "Changez si besoin. Si l'image vous plaît, passez à la suite.")
+            intro = QLabel("La grande image change à chaque clic : à gauche avant, à droite après.")
             intro.setWordWrap(True)
             intro.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             v.addWidget(intro)
         grille = QGridLayout()
         grille.setHorizontalSpacing(8)
         grille.setVerticalSpacing(4 if guide else 2)
-        self.lignes: dict[str, tuple[QPushButton, QLabel, QPushButton]] = {}
+        self.lignes: dict[str, tuple[QPushButton, Jauge, QPushButton]] = {}
         for i, (cle, nom, moins, plus) in enumerate(REGLAGES):
             titre = QLabel(nom)
             titre.setObjectName("nomReglage")
             bm, bp = QPushButton(moins), QPushButton(plus)
-            valeur = QLabel()
-            valeur.setAlignment(Qt.AlignCenter)
-            valeur.setMinimumWidth(80)
-            valeur.setObjectName("valeurReglage")
+            jauge = Jauge(nom, lambda n, k=cle: self._poser(k, n), serre=not guide)
             for b, pas, texte in ((bm, -1, moins), (bp, 1, plus)):
                 b.setAccessibleName(f"{nom} : {texte.lower()}")
                 b.setCursor(Qt.PointingHandCursor)
                 b.setMinimumHeight(44 if guide else 36)
                 b.clicked.connect(lambda _c=False, k=cle, n=pas: lum.changer(k, n))
-            grille.addWidget(titre, i, 0)
+            grille.addWidget(titre, i, 0, Qt.AlignVCenter)
             grille.addWidget(bm, i, 1)
-            grille.addWidget(valeur, i, 2)
+            grille.addWidget(jauge, i, 2, Qt.AlignCenter)
             grille.addWidget(bp, i, 3)
-            self.lignes[cle] = (bm, valeur, bp)
+            self.lignes[cle] = (bm, jauge, bp)
         grille.setColumnStretch(1, 1)
         grille.setColumnStretch(3, 1)
         v.addLayout(grille)
@@ -347,12 +487,20 @@ class Panneau(QWidget):
         lum.panneaux.append(self)
         self.actualiser()
 
+    def _poser(self, cle: str, n: int) -> None:
+        """Le cran cliqué ou la flèche : la valeur du moteur, bornée."""
+        n = pipeline.cran(n)
+        if self.lum.valeurs.get(cle) == n:
+            return
+        self.lum.changer(cle, n - self.lum.valeurs[cle])
+
     def actualiser(self) -> None:
         lum, w = self.lum, self.lum.w
         occupe = w._busy()
         for cle, (bm, valeur, bp) in self.lignes.items():
             n = lum.valeurs[cle]
             valeur.setText("Normal" if n == 0 else f"{n:+d}".replace("-", "−"))
+            valeur.setEnabled(not occupe)
             bm.setEnabled(n > -pipeline.CRANS and not occupe)
             bp.setEnabled(n < pipeline.CRANS and not occupe)
         self.remettre.setEnabled(any(lum.valeurs.values()) and not occupe)
