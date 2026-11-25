@@ -42,8 +42,9 @@ PHRASES_RENDU = {
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
 # Repères à gauche de la colonne. False : la même liste, sur une ligne de 30 px au-dessus du titre.
+# Largeur 140 px (le plafond demandé est 150) : à 150, la fenêtre dépasse 1280 quand les images sont prêtes.
 REPERES_VERTICAUX = True
-LARGEUR_REPERES = 150
+LARGEUR_REPERES = 140
 HAUTEUR_REPERES = 30
 ECOUTE = 10.0                       # secondes écoutées au début et à la fin
 PAS_SON = 40                        # ms : une image PAL
@@ -324,7 +325,7 @@ class Assistant(QWidget):
             cadre = QVBoxLayout(self)
         self._reperes_lay.setContentsMargins(0, 0, 0, 0)
         self._reperes_lay.setSpacing(2 if not self._reperes_verticaux else 4)
-        cadre.setContentsMargins(6, 2, 6, 2)
+        cadre.setContentsMargins(2, 2, 2, 2)
         cadre.setSpacing(6)
         if self._reperes_verticaux:
             cadre.addWidget(self.reperes)
