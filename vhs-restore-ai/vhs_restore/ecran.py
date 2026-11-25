@@ -58,6 +58,24 @@ QLabel#etapeAccueil {{
     color: {theme.TEXTE};
     padding: 6px 0px;
 }}
+QLabel#bandeauOriginal {{
+    font-size: {12 * echelle:.0f}pt;
+    font-weight: 600;
+    color: {theme.TEXTE};
+    background: {theme.CARTE};
+    border: 1px solid {theme.BORD};
+    border-radius: 8px;
+    padding: 4px 10px;
+}}
+QPushButton#lien {{
+    font-size: 10pt;
+    font-weight: 400;
+    border: none;
+    background: transparent;
+    color: {theme.ACCENT};
+    padding: 2px 6px;
+    min-height: 0px;
+}}
 QCheckBox[large="true"], QPushButton[large="true"], QLabel[large="true"] {{
     font-size: {max(14, 10 * echelle):.0f}pt;
 }}
@@ -175,6 +193,9 @@ def installer(w):
     w.autre = QPushButton("Choisir un autre film")
     w.autre.clicked.connect(w._choose_file)
     w.libre = QPushButton("Réglages libres")
+    w.libre.setObjectName("lien")
+    w.libre.setFlat(True)
+    w.libre.setCursor(Qt.PointingHandCursor)
     w.libre.setCheckable(True)
     w.libre.setToolTip("Tous les réglages sur un écran, sans l'assistant pas à pas.")
     w.libre.toggled.connect(lambda on: mode_libre(w, on))
@@ -225,6 +246,11 @@ def installer(w):
     w.gauche.addWidget(accueil)
     image = QWidget()
     iv = QVBoxLayout(image)
+    w.bandeau_original = QLabel("Votre original n'est jamais modifié. Une copie sera créée.")
+    w.bandeau_original.setObjectName("bandeauOriginal")
+    w.bandeau_original.setWordWrap(True)
+    w.bandeau_original.setAlignment(Qt.AlignCenter)
+    iv.addWidget(w.bandeau_original)
     iv.addWidget(CadreImage(w.s_compare), 1)
     iv.addWidget(w.s_segments)
     iv.addLayout(ligne(w.start_label, w.start_spin, w.still_combo))
@@ -543,10 +569,17 @@ def actualiser(w, charge, photo, occupe, termine):
     w.libre.setChecked(not a.actif)
     w.libre.blockSignals(False)
     w.libre.setText("Revenir à l'assistant" if not a.actif else "Réglages libres")
+    if occupe and getattr(w, "_job", "") == "export":
+        w.run_btn.setText("Restauration en cours…")
+        w.run_btn.setToolTip("")
+    elif not occupe:
+        w.run_btn.setText("Lancer la restauration")
     if guide:
         a.style_assistant()
         a.actualiser()
         w.run_btn.setEnabled(a.peut_lancer() and not occupe)
+        if not occupe:
+            w.run_btn.setToolTip("" if a.peut_lancer() else "Regardez d'abord l'avant / après.")
         for b in (a.retour, a.suivant, a.chercher, a.grand, a.voir):
             b.setEnabled(not occupe)
     phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
