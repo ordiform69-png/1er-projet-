@@ -1083,7 +1083,7 @@ class Assistant(QWidget):
             self.voir.setObjectName("secondaire")
             self.voir.setMinimumHeight(44)
             self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
-                                  "« Lancer la restauration », en bas à droite. Sinon, « Retour ».")
+                                  "« Lancer la restauration », en bas à droite. Sinon, « ← Revenir ».")
         else:
             self.voir.setText("Voir l'avant / après")
             self.voir.setObjectName("action")

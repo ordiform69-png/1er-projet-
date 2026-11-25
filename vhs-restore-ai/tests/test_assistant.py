@@ -163,20 +163,52 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert a.isVisible() and not win.options.isVisible()
 
 
-def test_chaque_etape_tient_a_1280_641(fenetre, cassette):
+def _dans_fenetre(win, controle) -> bool:
+    from PySide6.QtCore import QPoint, QRect
+    return controle.isVisibleTo(win) and win.rect().contains(
+        QRect(controle.mapTo(win, QPoint()), controle.size()))
+
+
+def _pas_de_defilement_horizontal(win) -> None:
+    from PySide6.QtWidgets import QScrollArea
+    assert not isinstance(win.centralWidget(), QScrollArea)
+    for zone in win.findChildren(QScrollArea):
+        if zone.isVisible():
+            assert zone.horizontalScrollBar().maximum() == 0
+
+
+def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
+    """100, 125 et 150 % : la fenêtre ne grandit pas, film et photo.
+
+    « Suivant » (tant que l'étape n'est pas la dernière) et « Lancer la restauration »
+    restent dans la fenêtre. Pas de défilement horizontal.
+    """
     ouvrir, attendre, _ = fenetre
-    win = ouvrir()
-    win.load_file(str(cassette))
-    attendre(win)
-    a = win.assistant
-    for _ in range(5):
-        assert (win.width(), win.height()) == (1280, 641), a.titre.text()
-        assert win.rect().contains(win.run_btn.geometry().bottomRight())
-        a.suivant.click()
-        attendre(win)
-    win.libre.click()
-    attendre(win)
-    assert (win.width(), win.height()) == (1280, 641)
+    photo = tmp_path / "photo.png"
+    ff("-f", "lavfi", "-i", "testsrc2=s=320x240", "-frames:v", "1", "-update", "1", str(photo))
+    for pct in (100, 125, 150):
+        for chemin, etapes in ((cassette, 5), (photo, 3)):
+            win = ouvrir()
+            win.set_taille_texte(pct, annoncer=False)
+            win.load_file(str(chemin))
+            attendre(win)
+            a = win.assistant
+            for _ in range(etapes):
+                assert (win.width(), win.height()) == (1280, 641), (pct, a.titre.text())
+                _pas_de_defilement_horizontal(win)
+                assert "Lancer la restauration" in win.run_btn.text()
+                assert _dans_fenetre(win, win.run_btn), (pct, a.titre.text())
+                if a.suivant.isVisible():
+                    assert "Suivant" in a.suivant.text()
+                    assert _dans_fenetre(win, a.suivant), (pct, a.titre.text())
+                a.suivant.click()
+                attendre(win)
+            if chemin == cassette and pct == 100:
+                win.libre.click()
+                attendre(win)
+                assert (win.width(), win.height()) == (1280, 641)
+                _pas_de_defilement_horizontal(win)
+            win.close()
 
 
 def test_photo_en_trois_etapes(fenetre, tmp_path):
