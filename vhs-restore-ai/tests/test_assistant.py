@@ -7,6 +7,8 @@ import pytest
 from conftest import ff
 from vhs_restore import assistant
 
+pytestmark = pytest.mark.assistant          # l'assistant est allumé, comme dans le logiciel
+
 
 def test_calcul_decalage_et_derive():
     # 80 ms à 4,5 s et −40 ms à 54 s : la correction appliquée au temps t (décalage − dérive × t / 60)

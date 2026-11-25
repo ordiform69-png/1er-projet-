@@ -17,6 +17,21 @@ FF = shutil.which("ffmpeg")
 pytestmark = pytest.mark.skipif(FF is None, reason="ffmpeg absent")
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "assistant: le test vérifie l'assistant pas à pas (allumé)")
+
+
+@pytest.fixture(autouse=True)
+def _assistant_selon_le_test(request, monkeypatch):
+    """L'assistant s'ouvre d'office dans le logiciel. Les tests de l'écran complet (la grande
+    majorité, écrits avant lui) le gardent éteint ; tests/test_assistant.py le rallume."""
+    try:
+        from vhs_restore import assistant
+    except Exception:          # PySide absent : rien à régler
+        return
+    monkeypatch.setattr(assistant, "PAR_DEFAUT", request.node.get_closest_marker("assistant") is not None)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Python < 3.12 seulement : None n'est pas encore immortel (PEP 683),
     PySide peut abortir au ramasse-miettes final. Protection limitée aux tests.

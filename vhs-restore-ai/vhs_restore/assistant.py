@@ -30,6 +30,9 @@ from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
 RENDUS = ("fidele", "equilibre", "maximum")
+# L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
+# (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
+PAR_DEFAUT = True
 ECOUTE = 10.0                       # secondes écoutées au début et à la fin
 PAS_SON = 40                        # ms : une image PAL
 
@@ -168,7 +171,7 @@ class Assistant(QWidget):
     def __init__(self, w) -> None:
         super().__init__()
         self.w = w
-        self.actif = True
+        self.actif = PAR_DEFAUT
         self._info = None
         self._apercu = None             # l'aperçu vu (objet) et les réglages de cet aperçu
         self._sig_apercu = None
@@ -440,6 +443,9 @@ class Assistant(QWidget):
         self.titre.setText(titre)
         self.retour.setVisible(i > 0)
         self.suivant.setVisible(i < len(liste) - 1)
+        if not self.actif:                 # écran complet : rien à préparer pour l'assistant
+            self.w._update_state()
+            return
         if page is self._page_rendu and not self._rendus:
             self._lancer_rendus()
         if page is self._page_son and self._suggestion is None:
