@@ -300,7 +300,6 @@ def installer(w):
         bornes.addWidget(champ, 1, col)
     c.addLayout(bornes)
     w.barre._compacte = True
-    w.barre.setFixedHeight(60)
     c.addWidget(w.barre)
     c.addLayout(ligne(w.s_guide_coupes, w.s_comment_faire))
     c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
