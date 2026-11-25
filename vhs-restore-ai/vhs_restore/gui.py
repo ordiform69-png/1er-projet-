@@ -246,9 +246,11 @@ class CompareView(QWidget):
             f = p.font()
             f.setPointSizeF(max(f.pointSizeF(), 13))
             p.setFont(f)
-            p.drawText(inner, Qt.AlignCenter,
-                       "L'avant / après apparaîtra ici\n\n"
-                       "(choisissez un film ou une photo, puis « Voir l'avant / après »)")
+            # retour à la ligne : à 150 %, la phrase dépassait du cadre noir et se coupait
+            p.drawText(inner.adjusted(16, 8, -16, -8), Qt.AlignCenter | Qt.TextWordWrap,
+                       _insecables("L'avant / après apparaîtra ici\n\n"
+                                   "(choisissez un film ou une photo, puis « Voir l'avant / après »)")
+                       .replace(" / ", "\u00a0/\u00a0"))
             return
         size = self.before.size().scaled(inner.size(), Qt.KeepAspectRatio)
         r = QRect(QPoint(0, 0), size)
