@@ -113,7 +113,8 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a = win.assistant
     assert a.isVisible() and not win.options.isVisible()
     assert a.compteur.text() == "Étape 1 sur 5" and a.titre.text() == "Choisir le rendu"
-    assert "Conseillé" in a.tuiles["equilibre"].text()
+    assert "Bien nettoyé, naturel (conseillé)" in a.tuiles["equilibre"].text()
+    assert "Bon équilibre" in a.tuiles["equilibre"].text()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1
     assert all(not t.icon().isNull() for t in a.tuiles.values())           # quatre images à comparer
@@ -140,7 +141,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     decalage, derive = assistant.son_depuis_debut_fin(80, t1, -40, t2)
     assert (win.offset_spin.value(), win.drift_spin.value()) == (decalage, derive)
     assert "Correction du son" in win.s_note.text() and win.son_zero.isVisible()
-    assert a.titre.text() == "Vérifier et lancer" and "Maximum" in a.resume.text()
+    assert a.titre.text() == "Vérifier et lancer" and "Nettoyage au plus fort" in a.resume.text()
     assert "Lumière et couleurs : comme proposé." in a.resume.text()
     assert not win.run_btn.isEnabled()                                     # pas sans l'avant / après
     assert "avant / après" in a.consigne.text() and "avant / après" in win.run_btn.toolTip()

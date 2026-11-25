@@ -6,7 +6,7 @@ l'avant / après avec les réglages choisis. Les réglages par défaut sont sûr
 toujours sur « Suivant », on obtient déjà un bon résultat. « Réglages libres » ouvre l'écran
 complet (les sections), pour le fils ou plus tard.
 
-Film : 1. Choisir le rendu (trois images côte à côte) · 2. Lumière et couleurs (la grande image
+Film : 1. Choisir le rendu (liste verticale) · 2. Lumière et couleurs (la grande image
 change tout de suite) · 3. Début, fin et passages à enlever (neige, écran bleu ou noir trouvés
 par le logiciel) · 4. Le son (la voix colle-t-elle aux lèvres ? au début et à la fin) ·
 5. Vérifier et lancer. Photo : 1. Choisir le rendu · 2. Lumière et couleurs · 3. Vérifier et
@@ -21,7 +21,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QRect, QSize, QTimer, QUrl, Qt
+from PySide6.QtCore import QPoint, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
@@ -31,13 +31,16 @@ from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
 RENDUS = ("fidele", "equilibre", "maximum")
-# Une phrase sous chaque image : les noms seuls (« Fidèle », « Équilibré ») ne disent rien.
+# Sous-titre sous le nom. Le nom vient de profiles.py ; « equilibre » ajoute « (conseillé) ».
 PHRASES_RENDU = {
-    "original": "Tel qu'il est",
-    "fidele": "Garde l'aspect d'origine",
-    "equilibre": "Conseillé",
-    "maximum": "Le plus beau, plus long",
+    "original": "",
+    "fidele": "Garde l'aspect d'époque",
+    "equilibre": "Bon équilibre",
+    "maximum": "Plus long",
 }
+# Petites images de l'étape 1 (environ 4:3). L'original est un repère, pas un choix.
+TAILLE_ORIGINAL = QSize(80, 60)
+TAILLE_RENDU = QSize(112, 84)
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
@@ -161,6 +164,123 @@ def faire_ecoute(info, tools, dossier: Path, moment: float, decalage_ms: float,
 
 
 # ---------------------------------------------------------------- l'assistant
+def _nom_etape(cle: str) -> str:
+    """Nom affiché sur la ligne de l'étape 1. « equilibre » porte la mention conseillée."""
+    nom = PROFILES[cle].name
+    return f"{nom} (conseillé)" if cle == "equilibre" else nom
+
+
+def _encre_sur(fond: QColor) -> QColor:
+    """Encre lisible sur la pastille (clair ou sombre)."""
+    lum = 0.2126 * fond.redF() + 0.7152 * fond.greenF() + 0.0722 * fond.blueF()
+    return QColor("#102027" if lum > 0.55 else "#ffffff")
+
+
+class TuileRendu(QToolButton):
+    """Une ligne de l'étape 1. `text()` garde le nom et le sous-titre (les tests lisent les deux).
+
+    L'image est celle posée par `setIcon` : la vraie image du rendu, pas un pictogramme.
+    """
+
+    def __init__(self, nom: str, phrase: str, *, original: bool) -> None:
+        super().__init__()
+        self._original = original
+        self.setText(f"{nom}\n{phrase}" if phrase else nom)
+        self.setAccessibleName(nom)
+        self.setAccessibleDescription(phrase or nom)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setAutoRaise(True)
+        if original:
+            self.setObjectName("tuileOriginal")
+            self.setFocusPolicy(Qt.NoFocus)
+            self.setIconSize(TAILLE_ORIGINAL)
+            self.setMinimumHeight(TAILLE_ORIGINAL.height() + 4)
+        else:
+            self.setObjectName("tuileRendu")
+            self.setCheckable(True)
+            self.setCursor(Qt.PointingHandCursor)
+            self.setFocusPolicy(Qt.StrongFocus)
+            self.setIconSize(TAILLE_RENDU)
+            self.setMinimumHeight(TAILLE_RENDU.height() + 6)
+        self.setAttribute(Qt.WA_Hover, True)
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(280, self.minimumHeight())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(0, self.minimumHeight())
+
+    def enterEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e) -> None:  # noqa: N802
+        self.update()
+        super().leaveEvent(e)
+
+    def paintEvent(self, _e) -> None:  # noqa: N802
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        on = self.isChecked()
+        r = self.rect().adjusted(1, 1, -2, -2)
+        if self._original:
+            p.setBrush(QColor(theme.FOND_DESACTIVE))
+            p.setPen(QPen(QColor(theme.BORD_DESACTIVE), 1))
+        elif on:
+            p.setBrush(QColor(theme.TUILE_ACTIVE))
+            p.setPen(QPen(QColor(theme.ACCENT), 4))
+        else:
+            p.setBrush(QColor(theme.CARTE))
+            p.setPen(QPen(QColor(theme.ACCENT if self.underMouse() else theme.BORD), 1.5))
+        p.drawRoundedRect(r, 8, 8)
+        if self.hasFocus() and not self._original and not on:
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(theme.ACCENT), 2, Qt.DashLine))
+            p.drawRoundedRect(r.adjusted(3, 3, -3, -3), 6, 6)
+        x = r.left() + 8
+        if not self._original:
+            centre = QPoint(x + 12, r.center().y())
+            if on:
+                accent = QColor(theme.ACCENT)
+                p.setPen(Qt.NoPen)
+                p.setBrush(accent)
+                p.drawEllipse(centre, 11, 11)
+                p.setPen(QPen(_encre_sur(accent), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+                cx, cy = centre.x(), centre.y()
+                p.drawLine(cx - 6, cy, cx - 2, cy + 5)
+                p.drawLine(cx - 2, cy + 5, cx + 6, cy - 5)
+            x += 30
+        taille = TAILLE_ORIGINAL if self._original else TAILLE_RENDU
+        cadre = QRect(x, r.center().y() - taille.height() // 2, taille.width(), taille.height())
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(theme.FOND_DESACTIVE))
+        p.drawRoundedRect(cadre, 4, 4)
+        src = self.icon().pixmap(taille * 2)
+        if not src.isNull():
+            image = src.scaled(taille, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            p.drawPixmap(cadre.x() + (cadre.width() - image.width()) // 2,
+                         cadre.y() + (cadre.height() - image.height()) // 2, image)
+        lignes = self.text().split("\n", 1)
+        nom, phrase = lignes[0], lignes[1] if len(lignes) > 1 else ""
+        tx = cadre.right() + 12
+        tw = max(40, r.right() - tx - 6)
+        e = float(getattr(self.window(), "_echelle", 1.0) or 1.0)
+        f = QFont(theme.BODY_FAMILY or p.font().family())
+        f.setBold(True)
+        f.setPointSizeF(max(11, 13 * e))
+        p.setFont(f)
+        p.setPen(QColor(theme.TEXTE_DOUX if self._original else theme.TEXTE))
+        haut_nom = p.fontMetrics().boundingRect(QRect(0, 0, tw, 80), Qt.TextWordWrap, nom).height()
+        p.drawText(QRect(tx, r.top() + 6, tw, haut_nom), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, nom)
+        if phrase:
+            f.setBold(False)
+            f.setPointSizeF(max(10, 11 * e))
+            p.setFont(f)
+            p.setPen(QColor(theme.TEXTE_DOUX))
+            p.drawText(QRect(tx, r.top() + 8 + haut_nom, tw, r.height() - haut_nom - 12),
+                       Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, phrase)
+
+
 def _bouton(texte: str, nom: str = "secondaire", haut: int = 48) -> QPushButton:
     b = QPushButton(texte)
     b.setObjectName(nom)
@@ -377,40 +497,35 @@ class Assistant(QWidget):
         page = QWidget()
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
-        v.addWidget(_texte("Quel résultat préférez-vous ? Cliquez sur l'image qui vous plaît. "
-                           "Si vous hésitez, prenez « Équilibré »."))
-        grille = QGridLayout()
-        grille.setSpacing(8)
+        v.setSpacing(4)
+        conseil = PROFILES["equilibre"].name
+        v.addWidget(_texte("Quel résultat préférez-vous ? Cliquez sur la ligne qui vous plaît. "
+                           f"Si vous hésitez, prenez « {conseil} »."))
+        liste = QVBoxLayout()
+        liste.setSpacing(4)
         self.tuiles: dict[str, QToolButton] = {}
         self._groupe = QButtonGroup(self)
         self._groupe.setExclusive(True)
-        for col, cle in enumerate(("original", *RENDUS)):
-            t = QToolButton()
-            t.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            t.setIconSize(QSize(160, 120))
-            t.setMinimumSize(150, 170)
-            t.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            t.setObjectName("tuileRendu")
-            nom = "Aujourd'hui" if cle == "original" else PROFILES[cle].name
-            phrase = PHRASES_RENDU.get(cle, "")
-            t.setText(f"{nom}\n{phrase}" if phrase else nom)
-            t.setAccessibleName(nom)
-            if cle != "original":
-                t.setCheckable(True)
-                t.setCursor(Qt.PointingHandCursor)
-                self._groupe.addButton(t)
-                t.clicked.connect(lambda _c=False, k=cle: self._choisir_rendu(k))
-            else:                       # repère seulement ; désactivée, l'image serait grisée
-                t.setFocusPolicy(Qt.NoFocus)
-                t.setObjectName("tuileOriginal")
-            grille.addWidget(t, 0, col)
+        origine = TuileRendu("Votre cassette, sans changement", "", original=True)
+        liste.addWidget(origine)
+        self.tuiles["original"] = origine
+        for cle in RENDUS:
+            t = TuileRendu(_nom_etape(cle), PHRASES_RENDU.get(cle, ""), original=False)
+            self._groupe.addButton(t)
+            t.clicked.connect(lambda _c=False, k=cle: self._choisir_rendu(k))
+            liste.addWidget(t)
             self.tuiles[cle] = t
-        v.addLayout(grille)
+        v.addLayout(liste)
         self.note_rendu = _texte()
         v.addWidget(self.note_rendu)
-        self.grand = _bouton("Voir ces images en grand")
+        self.grand = QPushButton("Voir ces images en grand")
+        self.grand.setObjectName("lien")
+        self.grand.setFlat(True)
+        self.grand.setCursor(Qt.PointingHandCursor)
+        self.grand.setAccessibleName("Voir ces images en grand")
+        self.grand.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.grand.clicked.connect(self._voir_en_grand)
-        v.addWidget(self.grand)
+        v.addWidget(self.grand, 0, Qt.AlignLeft)
         v.addStretch(1)
         return page
 
@@ -601,7 +716,7 @@ class Assistant(QWidget):
             if genre == "rendus":
                 if isinstance(res, BaseException):
                     self.note_rendu.setText("Les images n'ont pas pu être préparées. Choisissez d'après les noms, "
-                                            "ou passez à l'étape suivante : « Équilibré » est conseillé.")
+                                            "ou passez à l'étape suivante : « Bien nettoyé, naturel » est conseillé.")
                 else:
                     self._rendus_prets(res)
             elif genre == "suggestion":
@@ -729,11 +844,20 @@ class Assistant(QWidget):
     def _rendus_prets(self, sorties: dict[str, Path]) -> None:
         self._rendus = sorties
         for cle, chemin in sorties.items():
+            tuile = self.tuiles.get(cle)
+            if tuile is None:
+                continue
             pix = QPixmap(str(chemin))
-            if not pix.isNull():
-                self.tuiles[cle].setIcon(QIcon(pix))
-        self.note_rendu.setText("Choisissez en regardant : le rendu entouré sera utilisé. « Équilibré » est "
-                                "conseillé si vous hésitez.")
+            if pix.isNull():
+                continue
+            tuile.setIcon(QIcon(pix))
+            if cle == "original":
+                tuile.setAccessibleDescription("Image d'origine de votre cassette, sans changement.")
+            else:
+                tuile.setAccessibleDescription(f"Aperçu réel du rendu {PROFILES[cle].name}.")
+        conseil = PROFILES["equilibre"].name
+        self.note_rendu.setText("Le rendu entouré sera utilisé. "
+                                f"« {conseil} » est conseillé si vous hésitez.")
 
     def _choisir_rendu(self, cle: str) -> None:
         bouton = self.w.profile_buttons.get(cle)
