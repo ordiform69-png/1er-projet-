@@ -30,6 +30,13 @@ from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
 RENDUS = ("fidele", "equilibre", "maximum")
+# Une phrase sous chaque image : les noms seuls (« Fidèle », « Équilibré ») ne disent rien.
+PHRASES_RENDU = {
+    "original": "Tel qu'il est",
+    "fidele": "Garde l'aspect d'origine",
+    "equilibre": "Conseillé",
+    "maximum": "Le plus beau, plus long",
+}
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
@@ -223,8 +230,8 @@ class Assistant(QWidget):
         page = QWidget()
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
-        v.addWidget(_texte("Quel rendu préférez-vous ? Cliquez sur l'image qui vous plaît. "
-                           "L'image de gauche est le film tel qu'il est aujourd'hui."))
+        v.addWidget(_texte("Quel résultat préférez-vous ? Cliquez sur l'image qui vous plaît. "
+                           "Si vous hésitez, prenez « Équilibré »."))
         grille = QGridLayout()
         grille.setSpacing(8)
         self.tuiles: dict[str, QToolButton] = {}
@@ -238,7 +245,8 @@ class Assistant(QWidget):
             t.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             t.setObjectName("tuileRendu")
             nom = "Aujourd'hui" if cle == "original" else PROFILES[cle].name
-            t.setText(nom)
+            phrase = PHRASES_RENDU.get(cle, "")
+            t.setText(f"{nom}\n{phrase}" if phrase else nom)
             t.setAccessibleName(nom)
             if cle != "original":
                 t.setCheckable(True)
@@ -265,7 +273,7 @@ class Assistant(QWidget):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(4)
         ligne = QHBoxLayout()
-        self.chercher = _bouton("Chercher la neige et les écrans vides", "action")
+        self.chercher = _bouton("Chercher la neige et les écrans vides")
         self.chercher.clicked.connect(self._chercher_vides)
         ligne.addWidget(self.chercher)
         self.note_coupe = _texte("Le logiciel trouve la neige, l'écran bleu ou noir du début, de la fin et "
@@ -281,18 +289,24 @@ class Assistant(QWidget):
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        v.addWidget(_texte("La voix colle-t-elle aux lèvres ? Écoutez le début, puis la fin. Si la voix "
-                           "arrive après les lèvres, appuyez sur « − ». Si elle arrive avant, sur « + ». "
-                           "Réécoutez jusqu'à ce que ce soit juste."))
+        v.addWidget(_texte("La voix colle-t-elle aux lèvres ? Écoutez le début, puis la fin. "
+                           "Si c'est juste, passez à la suite."))
+        self.regler_son = _bouton("Le son est en retard ?")
+        self.regler_son.setCheckable(True)
+        self.regler_son.clicked.connect(self._montrer_reglage_son)
+        v.addWidget(self.regler_son)
+        self.aide_son = _texte("Si la voix arrive après les lèvres, « Voix trop tard ». "
+                               "Si elle arrive avant, « Voix trop tôt ». Puis réécoutez.")
+        self.aide_son.hide()
+        v.addWidget(self.aide_son)
         self.rangs_son = {}
+        self._reglages_son = []
         for cle in ("debut", "fin"):
             h = QHBoxLayout()
             lab = QLabel()
-            lab.setMinimumWidth(170)
+            lab.setMinimumWidth(150)
             ecouter = _bouton("Écouter")
-            moins, plus = _bouton("−"), _bouton("+")
-            for b in (moins, plus):
-                b.setFixedWidth(56)
+            moins, plus = _bouton("Voix trop tard"), _bouton("Voix trop tôt")
             moins.setAccessibleName("Avancer le son")
             plus.setAccessibleName("Retarder le son")
             champ = QSpinBox()
@@ -301,13 +315,17 @@ class Assistant(QWidget):
             champ.setSuffix(" ms")
             champ.setMinimumHeight(48)
             champ.setAccessibleName("Décalage " + ("au début" if cle == "debut" else "à la fin"))
+            champ.hide()                       # « ms » est du jargon : les boutons suffisent
             moins.clicked.connect(champ.stepDown)
             plus.clicked.connect(champ.stepUp)
+            moins.hide()
+            plus.hide()
             ecouter.clicked.connect(lambda _c=False, k=cle: self._ecouter(k))
             for wd in (lab, ecouter, moins, champ, plus):
                 h.addWidget(wd)
             v.addLayout(h)
             self.rangs_son[cle] = (lab, ecouter, champ)
+            self._reglages_son.extend((moins, plus))
         self.note_son = _texte()
         v.addWidget(self.note_son)
         self.appliquer_derive = _bouton("Appliquer la correction proposée")
@@ -330,6 +348,7 @@ class Assistant(QWidget):
         self.voir.clicked.connect(self.w.start_preview)
         v.addWidget(self.voir)
         self.consigne = _texte()
+        self.consigne.setObjectName("consigneAssistant")
         v.addWidget(self.consigne)
         v.addStretch(1)
         return page
@@ -342,7 +361,8 @@ class Assistant(QWidget):
             return
         self._style_cle = cle
         self.setStyleSheet(
-            f"QLabel#etapeAssistant {{font-weight:bold; color:{theme.ACCENT}; font-size:{12 * e:.0f}pt;}}"
+            f"QLabel#etapeAssistant {{font-weight:bold; color:{theme.ACCENT}; font-size:{16 * e:.0f}pt;}}"
+            f"QLabel#consigneAssistant {{font-weight:bold; font-size:{13 * e:.0f}pt;}}"
             f"QLabel#titreAssistant {{font-weight:bold; font-size:{15 * e:.0f}pt;}}"
             f"QLabel#resumeAssistant {{font-size:{12 * e:.0f}pt;}}"
             f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
@@ -421,6 +441,8 @@ class Assistant(QWidget):
             champ.setValue(int(round(self.w.offset_spin.value())))
         self.appliquer_derive.hide()
         self.note_son.setText("")
+        self.regler_son.setChecked(False)
+        self._montrer_reglage_son()
         self.aller(0)
 
     def _etape(self) -> int:
@@ -455,15 +477,33 @@ class Assistant(QWidget):
         self.w._update_state()
 
     # la section « Couper le film » de l'écran complet sert aussi ici : mêmes commandes
+    def _extras_coupe(self):
+        """Boutons utiles au fils, trop denses pour le parcours guidé."""
+        w = self.w
+        extras = list(getattr(w, "coupes_rapides", ()))
+        for nom in ("bornes_coupe", "trim_tout"):     # début / fin et « Ici » : écran complet seulement
+            wd = getattr(w, nom, None)
+            if wd is not None:
+                extras.append(wd)
+        return extras
+
     def _emprunter_coupe(self) -> None:
         zone = self.w.sections["Couper le film"][1]
         if zone.parent() is not self._page_coupe:
             self.w.options.layout().removeWidget(zone)
             self._place_coupe.addWidget(zone, 1)
+        for wd in self._extras_coupe():
+            wd.hide()
+        self.chercher.setText("Chercher la neige…")
+        self.note_coupe.setText("Vous pouvez passer cette étape. Ou le logiciel trouve la neige "
+                                "et les écrans vides pour vous.")
         zone.show()
 
     def _rendre_coupe(self) -> None:
         zone = self.w.sections["Couper le film"][1]
+        for wd in self._extras_coupe():
+            wd.show()
+        self.chercher.setText("Chercher la neige et les écrans vides")
         if zone.parent() is self._page_coupe:
             self._place_coupe.removeWidget(zone)
             lay = self.w.options.layout()
@@ -554,6 +594,13 @@ class Assistant(QWidget):
                                 "restauré. Les carrés blancs se tirent pour ajuster." + refus)
 
     # ------------------------------------------------------------ 3. son
+    def _montrer_reglage_son(self) -> None:
+        """Le décalage reste caché : la plupart des cassettes n'en ont pas besoin."""
+        montre = self.regler_son.isChecked()
+        self.aide_son.setVisible(montre)
+        for b in self._reglages_son:
+            b.setVisible(montre)
+
     def _ecouter(self, cle: str) -> None:
         w = self.w
         if w.info is None or w._busy():
@@ -641,15 +688,26 @@ class Assistant(QWidget):
             return
         if self.apercu_vu():
             self.voir.setText("Revoir l'avant / après")
+            self.voir.setObjectName("secondaire")
+            self.voir.setMinimumHeight(44)
             self.consigne.setText("Vous avez vu l'avant / après. Si le résultat vous plaît, cliquez sur "
                                   "« Lancer la restauration », en bas à droite. Sinon, « Retour ».")
         else:
             self.voir.setText("Voir l'avant / après")
-            self.consigne.setText("Regardez d'abord l'avant / après (10 secondes du film) : la restauration "
-                                  "complète peut durer longtemps. « Lancer la restauration » s'allume ensuite.")
+            self.voir.setObjectName("action")
+            self.voir.setMinimumHeight(56)
+            self.consigne.setText("Regardez d'abord l'avant / après. « Lancer la restauration » s'allume ensuite.")
+        self.voir.style().unpolish(self.voir)
+        self.voir.style().polish(self.voir)
 
     def peut_lancer(self) -> bool:
         return self.pages.currentWidget() is self._page_fin and self.apercu_vu()
+
+    def phrase_attente(self) -> str:
+        """Pourquoi « Lancer » est éteint, à côté du bouton."""
+        if self.pages.currentWidget() is self._page_fin:
+            return "Regardez d'abord l'avant / après."
+        return "Pas encore. Terminez les étapes."
 
 
 __all__ = ["Assistant", "faire_ecoute", "faire_rendus", "phrase_son", "son_depuis_debut_fin", "suggestion_derive"]
