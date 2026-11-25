@@ -166,7 +166,7 @@ class CompareView(QWidget):
         self.after: QPixmap | None = None
         self.split = 0.5
         self.mode = "split"              # split (glisser) | before (original seul) | after (restauré seul)
-        self.after_label = "RESTAURÉ"
+        self.after_label = "APRÈS"
         self.setMinimumSize(480, 220)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
@@ -209,7 +209,9 @@ class CompareView(QWidget):
         self.update()
 
     def set_after_label(self, text: str) -> None:
-        """Étiquette de droite : « RESTAURÉ », ou « COULEURS IA » pour une photo colorisée."""
+        """Étiquette de droite : « APRÈS », ou « COULEURS IA » pour une photo colorisée."""
+        if text == "RESTAURÉ":
+            text = "APRÈS"
         self.after_label = text
         self.update()
 
@@ -258,7 +260,7 @@ class CompareView(QWidget):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         if self.mode in ("before", "after"):          # une seule image, plein cadre
             p.drawPixmap(r, self.before if self.mode == "before" else self.after)
-            self._badges(p, r, ("ORIGINAL",) if self.mode == "before" else (self.after_label,))
+            self._badges(p, r, ("AVANT",) if self.mode == "before" else (self.after_label,))
             return
         p.drawPixmap(r, self.after)
         cut = int(r.width() * self.split)
@@ -271,20 +273,21 @@ class CompareView(QWidget):
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(theme.MONITEUR_ACCENT))
         p.drawEllipse(QPoint(x, r.center().y()), 5, 5)
-        self._badges(p, r, ("ORIGINAL", self.after_label))
+        self._badges(p, r, ("AVANT", self.after_label))
 
     def _badges(self, p: QPainter, r: QRect, texts: tuple) -> None:
-        """Pastilles « ORIGINAL » (à gauche) et « RESTAURÉ » (à droite) sur l'image."""
+        """Pastilles « AVANT » (à gauche) et « APRÈS » (à droite) sur l'image.
+        « COULEURS IA » reste tel quel quand la photo est colorisée."""
         f = p.font()
         f.setPointSizeF(max(f.pointSizeF(), 13))
         f.setBold(True)
         p.setFont(f)
         fm = p.fontMetrics()
         h = fm.height() + 10
-        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("ORIGINAL", self.after_label)) + 36
-        etroit = r.width() < largeur    # photo en hauteur : « Restauré » passe en bas
+        largeur = sum(fm.horizontalAdvance(t) + 22 for t in ("AVANT", self.after_label)) + 36
+        etroit = r.width() < largeur    # photo en hauteur : « Après » passe en bas
         for text in texts:
-            left = text == "ORIGINAL"
+            left = text == "AVANT"
             w = fm.horizontalAdvance(text) + 22
             y = r.bottom() - h - 12 if (etroit and not left) else r.y() + 12
             box = QRect(r.x() + 12 if left else r.right() - w - 12, y, w, h)
