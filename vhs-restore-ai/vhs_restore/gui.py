@@ -3801,6 +3801,9 @@ class MainWindow(QMainWindow):
         self._update_state()
 
     def closeEvent(self, e) -> None:  # noqa: N802
+        assistant = getattr(self, "assistant", None)
+        if assistant is not None:                   # images du rendu en préparation : FFmpeg arrêté
+            assistant.arreter()
         if self._busy():
             if getattr(self, "_fermeture_demandee", False):
                 e.ignore()

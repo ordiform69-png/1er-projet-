@@ -20,7 +20,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QSize, QUrl, Qt
+from PySide6.QtCore import QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QSpinBox, QStackedWidget, QToolButton, QVBoxLayout, QWidget)
@@ -71,7 +71,8 @@ def suggestion_derive(ffprobe: str, chemin: Path) -> tuple[float, float] | None:
     estimées. None : rien à proposer."""
     try:
         r = run_capture([ffprobe, "-v", "error", "-show_entries",
-                         "format=format_name:stream=codec_type,duration", "-of", "json", str(chemin)], timeout=60)
+                         "format=format_name:stream=codec_type,duration:stream_tags=DURATION", "-of", "json",
+                         str(chemin)], timeout=60)
         d = json.loads(r.stdout or "{}")
     except (ToolError, ValueError, OSError, subprocess.TimeoutExpired):
         return None
@@ -79,9 +80,13 @@ def suggestion_derive(ffprobe: str, chemin: Path) -> tuple[float, float] | None:
         return None
     durees = {}
     for st in d.get("streams", []):
+        valeur = st.get("duration") or (st.get("tags") or {}).get("DURATION")   # MKV : dans les étiquettes
         try:
-            durees.setdefault(st.get("codec_type"), float(st["duration"]))
-        except (KeyError, TypeError, ValueError):
+            if isinstance(valeur, str) and ":" in valeur:
+                h, m, sec = valeur.split(":")
+                valeur = int(h) * 3600 + int(m) * 60 + float(sec)
+            durees.setdefault(st.get("codec_type"), float(valeur))
+        except (TypeError, ValueError):
             continue
     v, a = durees.get("video"), durees.get("audio")
     if not v or not a or v < 60:
@@ -168,7 +173,17 @@ class Assistant(QWidget):
         self._apercu = None             # l'aperçu vu (objet) et les réglages de cet aperçu
         self._sig_apercu = None
         self._rendus: dict[str, Path] = {}
-        self._etapes: list[tuple[str, QWidget, object]] = []
+        # travaux de fond (images du rendu, proposition de dérive) : fils démons, comme les petites
+        # images de la timeline. Ils n'occupent pas le travail principal : « Voir l'avant / après »
+        # reste possible tout de suite. Un minuteur relève les résultats dans le fil de l'écran.
+        self._generation = 0
+        self._annuler_fond = threading.Event()
+        self._verrou = threading.Lock()
+        self._fond: list[tuple[int, str, object]] = []
+        self._en_cours = 0
+        self._minuterie = QTimer(self)
+        self._minuterie.setInterval(100)
+        self._minuterie.timeout.connect(self._pomper)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(6, 2, 6, 2)
         lay.setSpacing(6)
@@ -344,8 +359,48 @@ class Assistant(QWidget):
             etapes.append(("Le son", self._page_son))
         return etapes + [("Vérifier et lancer", self._page_fin)]
 
+    def _en_fond(self, genre: str, travail) -> None:
+        generation, annuler = self._generation, self._annuler_fond
+
+        def corps() -> None:
+            try:
+                res = travail(annuler)
+            except BaseException as exc:       # rapporté à l'écran, jamais perdu en silence
+                res = exc
+            with self._verrou:
+                self._fond.append((generation, genre, res))
+        self._en_cours += 1
+        threading.Thread(target=corps, name=f"vhs-assistant-{genre}", daemon=True).start()
+        self._minuterie.start()
+
+    def _pomper(self) -> None:
+        with self._verrou:
+            arrives, self._fond = self._fond, []
+        for generation, genre, res in arrives:
+            self._en_cours -= 1
+            if generation != self._generation:
+                continue                          # résultat d'un film précédent
+            if genre == "rendus":
+                if isinstance(res, BaseException):
+                    self.note_rendu.setText("Les images n'ont pas pu être préparées. Choisissez d'après les noms, "
+                                            "ou passez à l'étape suivante : « Équilibré » est conseillé.")
+                else:
+                    self._rendus_prets(res)
+            elif genre == "suggestion":
+                self._suggestion_trouvee(None if isinstance(res, BaseException) else res)
+        if self._en_cours <= 0:
+            self._en_cours = 0
+            self._minuterie.stop()
+
+    def arreter(self) -> None:
+        """Fermeture ou nouveau film : les travaux de fond s'arrêtent (FFmpeg tué)."""
+        self._annuler_fond.set()
+        self._annuler_fond = threading.Event()
+        self._generation += 1
+
     def demarrer(self) -> None:
         """Nouveau film ou nouvelle photo : on repart de la première étape."""
+        self.arreter()
         self._info = self.w.info
         self._apercu, self._sig_apercu, self._rendus = None, None, {}
         self._suggestion = None
@@ -417,15 +472,16 @@ class Assistant(QWidget):
     # ------------------------------------------------------------ 1. rendu
     def _lancer_rendus(self) -> None:
         w = self.w
-        if w.info is None or w._busy():
+        if w.info is None:
             return
         info, base = w.info, w.settings(with_advice=True)
         moment = float(w.start_spin.value()) or float(info.duration or 0) * 0.3
-        dossier = w.preview_dir / f"rendus_{id(info)}"
+        dossier = w.preview_dir / f"rendus_{self._generation}"
         est_photo = not self._film()
+        self._rendus = {"": Path()}             # en cours : pas de second lancement
         self.note_rendu.setText("Préparation des images à comparer (quelques secondes)…")
-        w._launch(lambda c, p: faire_rendus(info, base, w.tools, dossier, moment, est_photo, cancel=c, progress=p),
-                  self._rendus_prets)
+        self._en_fond("rendus", lambda annuler: faire_rendus(info, base, w.tools, dossier, moment, est_photo,
+                                                              cancel=annuler))
 
     def _rendus_prets(self, sorties: dict[str, Path]) -> None:
         self._rendus = sorties
@@ -443,7 +499,7 @@ class Assistant(QWidget):
         self.note_rendu.setText(f"Rendu choisi : {PROFILES[cle].name}.")
 
     def _voir_en_grand(self) -> None:
-        if self._rendus:
+        if self._rendus and "" not in self._rendus:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(next(iter(self._rendus.values())).parent)))
 
     # ------------------------------------------------------------ 2. coupes
@@ -509,11 +565,11 @@ class Assistant(QWidget):
     def _chercher_suggestion(self) -> None:
         w = self.w
         info = w.info
-        if info is None or w._busy() or len(getattr(info, "parts", ()) or ()) > 1:
+        if info is None or len(getattr(info, "parts", ()) or ()) > 1:
             return
         ffprobe = w.tools.ffprobe.path
         self._suggestion = False
-        w._launch(lambda c, p: suggestion_derive(ffprobe, info.path), self._suggestion_trouvee)
+        self._en_fond("suggestion", lambda _annuler: suggestion_derive(ffprobe, info.path))
 
     def _suggestion_trouvee(self, res) -> None:
         self._suggestion = res or False
