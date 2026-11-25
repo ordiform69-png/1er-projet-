@@ -49,7 +49,7 @@ REQUIRED_FILTERS = ("idet", "bwdif", "hqdn3d", "removegrain", "eq", "cas", "scal
                     "signalstats", "fieldmatch", "deflicker", "setpts", "atempo")
 STAB_FILTERS = ("vidstabdetect", "vidstabtransform")   # libvidstab : facultatif
 AUDIO_FILTERS = ("afftdn", "adeclick", "dynaudnorm", "adelay", "atrim", "bandreject", "arnndn",
-                 "adeclip", "pan", "highpass", "equalizer")  # facultatifs
+                 "adeclip", "pan", "highpass", "equalizer", "aeval")  # facultatifs
 
 
 class ToolError(RuntimeError):

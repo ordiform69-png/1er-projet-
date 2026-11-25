@@ -213,6 +213,11 @@ def _has(present: frozenset[str] | None, name: str) -> bool:
     return present is None or name in present
 
 
+# Valeur invalide (NaN, infini) remplacée par du silence. RNNoise (arnndn) en a produit à la fin
+# d'un film chez l'utilisateur : l'encodeur AAC refuse alors tout (« Input contains NaN »).
+GARDE_NAN = "aeval='if(isnan(val(ch))+isinf(val(ch)),0,val(ch))':c=same"
+
+
 def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
                   skip_afftdn: bool = False, apply_offset: bool = True,
                   apply_drift: bool = True,
@@ -254,6 +259,8 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
         if (speech and rnnoise and not skip_afftdn and _has(present, "arnndn")):
             mix = 0.55 if p.afftdn_nr >= 12 else 0.35
             chain.append(f"arnndn=m={_ff_filter_path(rnnoise)}:mix={mix}")
+            if _has(present, "aeval"):
+                chain.append(GARDE_NAN)
         elif p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
             chain.append(f"afftdn=nr={p.afftdn_nr:g}:nf=-50:tn=1")
         if p.loudnorm and _has(present, "dynaudnorm"):

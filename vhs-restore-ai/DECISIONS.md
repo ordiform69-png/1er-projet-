@@ -909,3 +909,9 @@ plus bas ou méthode « fast » finissent. Un raccord de coupe ou une cassette p
 cas chez l'utilisateur. Tous les encodages AAC passent par `tools.AAC` (« -aac_coder fast »).
 Le silence ajouté au bout d'un morceau est aussi borné (`apad=whole_dur`). Test :
 `tests/test_aac_ffmpeg9.py` (échoue en 60 s au lieu de bloquer).
+
+Chez l'utilisateur (journal du 24 et du 25 novembre), deux restaurations avec « Souffle de la voix »
+(RNNoise) ont échoué à la toute fin du film : « [aac] Input contains (near) NaN/+-Inf ». Les seules
+restaurations du journal qui ont échoué sont celles avec arnndn. Une garde `aeval` (`GARDE_NAN`)
+suit désormais arnndn : toute valeur invalide devient du silence. Reproduit avec une source
+contenant des NaN : sans garde, même erreur ; avec garde, fichier complet (`tests/test_aac_ffmpeg9.py`).
