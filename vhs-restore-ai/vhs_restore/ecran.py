@@ -57,6 +57,9 @@ QLabel#etapeAccueil {{
     color: {theme.TEXTE};
     padding: 6px 0px;
 }}
+QCheckBox[large="true"], QPushButton[large="true"], QLabel[large="true"] {{
+    font-size: {max(14, 10 * echelle):.0f}pt;
+}}
 """
 
 
@@ -104,6 +107,53 @@ class CadreImage(QWidget):
         hauteur = (largeur - 22) * 3 // 4 + 22
         self.vue.setGeometry((self.width() - largeur) // 2, (self.height() - hauteur) // 2,
                              largeur, hauteur)
+
+
+def _hauteur_texte(label) -> int:
+    """Hauteur réelle d'un libellé qui revient à la ligne (pas la hauteur déjà écrasée)."""
+    largeur = label.width() if label.width() > 80 else 640
+    rect = label.fontMetrics().boundingRect(0, 0, largeur, 2000, int(Qt.TextWordWrap), label.text())
+    return max(rect.height() + 2, 1)
+
+
+def ajuster_qualite(w) -> None:
+    """Tuiles plus grandes tant que le conseil d'analyse est caché.
+    Avec le conseil, elles baissent juste assez pour que le texte reste entier."""
+    if not getattr(w, "profile_buttons", None):
+        return
+    conseil = w.s_advice.isVisible()
+    photo = bool(getattr(w, "is_photo", False))
+    if photo:
+        tuile = 112
+    elif conseil:
+        tuile = 80
+    else:
+        tuile = 108
+    for bouton in w.profile_buttons.values():
+        bouton.setMinimumHeight(tuile)
+    if w.profile_desc.text():
+        w.profile_desc.setMinimumHeight(_hauteur_texte(w.profile_desc))
+    if w.s_colorize_note.isVisible() and w.s_colorize_note.text():
+        w.s_colorize_note.setMinimumHeight(_hauteur_texte(w.s_colorize_note))
+
+
+def ajuster_son(w) -> None:
+    """« Régler le son » replié : commandes plus grandes. Déplié : taille d'origine,
+    sinon la section ne tient plus dans l'écran à 125 %."""
+    grand = not w.plus_son.isChecked()
+    for bouton, haut in ((w.ecouter, 64), (w.plus_son, 56), (w.audio_check, 48),
+                         (w.libelle_decalage, 0)):
+        bouton.setProperty("large", True if grand else False)
+        if haut:
+            bouton.setMinimumHeight(haut if grand else 0)
+        bouton.style().unpolish(bouton)
+        bouton.style().polish(bouton)
+    for bouton in (w._son_moins, w._son_plus):
+        bouton.setMinimumHeight(52 if grand else 32)
+        bouton.setProperty("large", True if grand else False)
+        bouton.style().unpolish(bouton)
+        bouton.style().polish(bouton)
+    w.offset_spin.setMinimumHeight(52 if grand else 44)
 
 
 def installer(w):
@@ -225,6 +275,7 @@ def installer(w):
         return w.sections[nom][1].widget().layout()
 
     q = contenu("Qualité")
+    q.setSpacing(3)
     q.addLayout(ligne(*w.profile_buttons.values()))
     q.addWidget(w.profile_desc)
     q.addWidget(w._row_res)
@@ -233,6 +284,11 @@ def installer(w):
     q.addWidget(w.s_colorize_note)
     q.addLayout(ligne(w._out_btn, w.out_edit))
     q.addLayout(ligne(w.s_advice, w.s_aide_conseil))
+    for wd, haut in ((w.ai_check, 40), (w.s_colorize, 36),
+                     (w.s_advice, 36), (w._out_btn, 44), (w.res_combo, 36)):
+        if haut:
+            wd.setMinimumHeight(haut)
+        wd.setProperty("large", True)
 
     c = contenu("Couper le film")
     bornes = QGridLayout()
@@ -334,9 +390,11 @@ def installer(w):
     plus.setAccessibleName("Retarder le son")
     moins.clicked.connect(w.offset_spin.stepDown)
     plus.clicked.connect(w.offset_spin.stepUp)
-    moins.setFixedWidth(42)
-    plus.setFixedWidth(42)
-    son.addLayout(ligne(QLabel("Décalage entre la voix et les lèvres"), moins, w.offset_spin, plus))
+    moins.setFixedWidth(48)
+    plus.setFixedWidth(48)
+    w._son_moins, w._son_plus = moins, plus
+    w.libelle_decalage = QLabel("Décalage entre la voix et les lèvres")
+    son.addLayout(ligne(w.libelle_decalage, moins, w.offset_spin, plus))
     w.ecouter = QPushButton("Écouter ces 10 secondes")
     w.ecouter.clicked.connect(w._ecouter_extrait)
     son.addWidget(w.ecouter)
@@ -346,6 +404,7 @@ def installer(w):
     w.plus_son = QPushButton("Plus de réglages…")
     w.plus_son.setCheckable(True)
     son.addWidget(w.plus_son)
+    w.plus_son.toggled.connect(lambda _on: ajuster_son(w))
     fin = QWidget()
     fg = QGridLayout(fin)
     fg.setContentsMargins(0, 1, 0, 1)
@@ -397,6 +456,8 @@ def installer(w):
         combo.setMinimumContentsLength(8)
         combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
     ouvrir(w, "Qualité")
+    ajuster_son(w)
+    ajuster_qualite(w)
 
 
 def ouvrir(w, nom):

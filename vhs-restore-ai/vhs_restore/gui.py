@@ -424,7 +424,7 @@ class ProfileTile(QPushButton):
         self.icon_name, self.tagline = icon, tagline
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(88)
+        self.setMinimumHeight(104)
         self.setMinimumWidth(150)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -444,18 +444,18 @@ class ProfileTile(QPushButton):
             p.setPen(QPen(QColor(theme.ACCENT if self.underMouse() and en else theme.BORD), 1.2))
         p.drawRoundedRect(r, 12, 12)
         col = theme.ACCENT if (on or self.underMouse()) and en else theme.ACCENT_SOURD
-        p.drawPixmap(14, 14, icons.pixmap(self.icon_name, 28, col))
+        p.drawPixmap(16, 16, icons.pixmap(self.icon_name, 32, col))
         f = QFont(theme.DISPLAY_FAMILY or p.font().family())
-        f.setPointSizeF(15)
+        f.setPointSizeF(17)
         f.setBold(True)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE))
-        p.drawText(QRect(50, 10, r.width() - 56, 34), Qt.AlignVCenter | Qt.AlignLeft, self.text())
+        p.drawText(QRect(56, 12, r.width() - 68, 38), Qt.AlignVCenter | Qt.AlignLeft, self.text())
         f = QFont(theme.BODY_FAMILY or p.font().family())
-        f.setPointSizeF(11.5)
+        f.setPointSizeF(13)
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX))
-        p.drawText(QRect(14, 46, r.width() - 22, r.height() - 50), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
+        p.drawText(QRect(16, 54, r.width() - 24, r.height() - 62), Qt.AlignLeft | Qt.TextWordWrap, self.tagline)
         if on:                                    # voyant allumé
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(theme.ACCENT))
@@ -2668,6 +2668,9 @@ class MainWindow(QMainWindow):
         )
         if getattr(self, "run_btn", None) is not None:
             self.run_btn.setFixedSize(400, 64)
+        if getattr(self, "profile_buttons", None):
+            ecran.ajuster_qualite(self)
+            ecran.ajuster_son(self)
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
         pref = self._prefs()
@@ -2765,6 +2768,7 @@ class MainWindow(QMainWindow):
         self.s_colorize.setVisible(info.black_and_white)
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(info.black_and_white)
+        ecran.ajuster_qualite(self)
         self.drop.setText(info.path.name)
         self._memoriser_recent(str(info.path))
         self._update_state()
@@ -2827,6 +2831,7 @@ class MainWindow(QMainWindow):
         self.s_advice.setVisible(bool(self.advice))
         self.s_aide_conseil.setVisible(bool(self.advice))
         self.s_aide_couleur.setVisible(False)
+        ecran.ajuster_qualite(self)
         self.channel_combo.setCurrentIndex(0)
         self.declip_check.setChecked(False)
         self._refresh_hints()
