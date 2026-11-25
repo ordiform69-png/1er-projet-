@@ -299,31 +299,40 @@ def installer(w):
     bornes = QGridLayout()
     bornes.setHorizontalSpacing(8)
     bornes.setVerticalSpacing(0)
-    for col, (libelle, champ) in enumerate((("Le film commence à", w.trim_start),
-                                             ("Le film s'arrête à", w.trim_end))):
+    # « Ici » à côté de chaque champ : le moment choisi sur la barre devient le début ou la fin
+    # (même ligne que le champ : la section tient sans défiler à 125 %)
+    for col, (libelle, champ, ici, nom) in enumerate((
+            ("Le film commence à", w.trim_start, w.trim_ici_debut, "Le film commence ici"),
+            ("Le film s'arrête à", w.trim_end, w.trim_ici_fin, "Le film s'arrête ici"))):
+        ici.setText("Ici")
+        ici.setAccessibleName(nom)
+        ici.setToolTip(nom + " : au moment choisi sur la barre (« Début de l'extrait »).")
         bornes.addWidget(QLabel(libelle), 0, col)
-        bornes.addWidget(champ, 1, col)
+        bornes.addLayout(ligne(champ, ici), 1, col)
     c.addLayout(bornes)
     w.barre._compacte = True
     c.addWidget(w.barre)
+    liste = QGridLayout()                        # passages enlevés, « Remettre » : sous la barre,
+    liste.setHorizontalSpacing(12)               # deux par ligne (8 au plus)
+    liste.setVerticalSpacing(2)
+    for i, (_, _, row) in enumerate(w._passage_lignes):
+        liste.addWidget(row, i // 2, i % 2)
+    c.addLayout(liste)
     c.addLayout(ligne(w.s_guide_coupes, w.s_comment_faire))
     c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
     durees = w.coupes_rapides
     c.addLayout(ligne(*durees))
     c.addWidget(w.s_passages_note)
-    details_coupe = QPushButton("Détails des coupes…")
-    dlg = QDialog(w)
-    dlg.setWindowTitle("Détails des coupes")
-    cv = QVBoxLayout(dlg)
-    cv.addWidget(w.s_moment_heure)
-    cv.addWidget(w.s_trim_note)
-    cv.addLayout(ligne(w.trim_ici_debut, w.trim_ici_fin))
-    cv.addLayout(ligne(w.trim_passage_deb, w.trim_passage_fin))
-    cv.addWidget(w.s_trim_voir)
-    for _, _, row in w._passage_lignes:
-        cv.addWidget(row)
-    details_coupe.clicked.connect(dlg.open)
-    c.addWidget(details_coupe)
+    # ancienne façon en deux boutons, l'heure du moment, « Montrer ce début », et la phrase sur
+    # le début et la fin : doublons de « Couper ici », de l'image de gauche, de l'aperçu et de la
+    # phrase sous les boutons. Gardés (tests, raccourcis), cachés.
+    cache = QWidget()
+    cv = QVBoxLayout(cache)
+    for wd in (w.s_moment_heure, w.trim_passage_deb, w.trim_passage_fin, w.s_trim_voir, w.s_trim_note):
+        cv.addWidget(wd)
+    cache.hide()
+    c.addWidget(cache)
+    w._coupe_cachee = cache
 
     im = contenu("Régler l'image")
     pleine = QFormLayout()

@@ -34,9 +34,11 @@ def test_passages_au_milieu(tools, samples):
     win.sections["Couper le film"][0].click()
     assert win.s_couper.isVisible()
     assert not win.trim_passage_deb.isVisible() and not win.trim_passage_fin.isVisible()
-    _cliquer(win, "Détails des coupes")
-    assert win.trim_passage_deb.isVisible() and win.trim_passage_fin.isVisible()
-    win.trim_passage_deb.window().close()
+    # plus de fenêtre « Détails des coupes » : tout est dans la section
+    assert not [b for b in win.findChildren(QPushButton) if "Détails des coupes" in b.text()]
+    zone = win.sections["Couper le film"][1]
+    for b in (win.trim_ici_debut, win.trim_ici_fin):
+        assert b.isVisible() and zone.isAncestorOf(b)
     win.start_spin.setValue(10)
     win.s_couper.click()
     assert "reprend" in win.s_couper.text()
@@ -49,6 +51,8 @@ def test_passages_au_milieu(tools, samples):
     assert win._coupes[0][1] == pytest.approx(25)
     libelles = [lb.text() for lb in win.findChildren(QLabel) if lb.text().startswith("De ")]
     assert libelles
+    ligne = win._passage_lignes[0][2]                     # le passage et « Remettre », dans la section
+    assert ligne.isVisible() and zone.isAncestorOf(ligne)
     assert any("10" in t for t in libelles)
     assert any("seconde" in t or "min" in t for t in libelles)
 
