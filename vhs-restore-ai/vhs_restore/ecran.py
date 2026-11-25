@@ -5,6 +5,64 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
+from . import theme
+
+
+def regles(echelle: float) -> str:
+    """Styles de l'écran unique. La feuille du mode simple les ajoute (elle remplace le reste)."""
+    bas = theme._icon(f"chevron-down{theme.CHEVRONS}.svg")
+    haut = theme._icon(f"chevron-up{theme.CHEVRONS}.svg")
+    return f"""
+QPushButton#section {{
+    text-align: left;
+    font-weight: 700;
+    font-size: 14pt;
+    min-height: 44px;
+    max-height: 44px;
+    padding: 0px 36px 0px 12px;
+    border-radius: 10px;
+    border: 1px solid {theme.BORD};
+    background-color: {theme.CARTE};
+    color: {theme.TEXTE};
+    background-image: url("{bas}");
+    background-repeat: no-repeat;
+    background-position: center right;
+    background-origin: content;
+}}
+QPushButton#section:checked {{
+    background-color: {theme.TUILE_ACTIVE};
+    border: 2px solid {theme.ACCENT};
+    color: {theme.TEXTE};
+    font-weight: 700;
+    background-image: url("{haut}");
+    background-repeat: no-repeat;
+    background-position: center right;
+    background-origin: content;
+}}
+"""
+
+
+class _Formes:
+    """Deux colonnes de réglages, avec le même setRowVisible qu'un QFormLayout."""
+
+    def __init__(self) -> None:
+        self._ou: dict = {}
+        self._labels: dict = {}
+
+    def add(self, form, label, widget) -> None:
+        form.addRow(label, widget)
+        self._ou[widget] = form
+
+    def setRowVisible(self, widget, visible: bool) -> None:
+        form = self._ou.get(widget)
+        if form is not None:
+            form.setRowVisible(widget, visible)
+            return
+        widget.setVisible(visible)
+        label = getattr(self, "_labels", {}).get(widget)
+        if label is not None:
+            label.setVisible(visible)
+
 
 def ligne(*widgets):
     box = QHBoxLayout()
@@ -106,17 +164,22 @@ def installer(w):
     w.sections = {}
     for nom in ("Qualité", "Couper le film", "Régler l'image", "Régler le son"):
         bouton = QPushButton(nom)
+        bouton.setObjectName("section")
         bouton.setCheckable(True)
+        bouton.setCursor(Qt.PointingHandCursor)
+        bouton.setMinimumHeight(44)
+        bouton.setMaximumHeight(44)
+        bouton.setMinimumWidth(0)
+        bouton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zone = QScrollArea()
         zone.setWidgetResizable(True)
         zone.setFrameShape(QFrame.NoFrame)
         panneau = QWidget()
         disposition = QVBoxLayout(panneau)
         disposition.setContentsMargins(4, 2, 4, 2)
-        disposition.setSpacing(3)
+        disposition.setSpacing(2)
         disposition.setAlignment(Qt.AlignTop)
         zone.setWidget(panneau)
-        bouton.setStyleSheet("text-align:left; padding:1px 8px;")
         ov.addWidget(bouton)
         ov.addWidget(zone, 1)
         zone.hide()
@@ -138,11 +201,15 @@ def installer(w):
 
     c = contenu("Couper le film")
     bornes = QGridLayout()
+    bornes.setHorizontalSpacing(8)
+    bornes.setVerticalSpacing(0)
     for col, (libelle, champ) in enumerate((("Le film commence à", w.trim_start),
                                              ("Le film s'arrête à", w.trim_end))):
         bornes.addWidget(QLabel(libelle), 0, col)
         bornes.addWidget(champ, 1, col)
     c.addLayout(bornes)
+    w.barre._compacte = True
+    w.barre.setFixedHeight(60)
     c.addWidget(w.barre)
     c.addLayout(ligne(w.s_guide_coupes, w.s_comment_faire))
     c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
@@ -164,11 +231,26 @@ def installer(w):
     c.addWidget(details_coupe)
 
     im = contenu("Régler l'image")
-    w.image_form = QFormLayout()
+    pleine = QFormLayout()
+    pleine.setVerticalSpacing(2)
+    pleine.setContentsMargins(0, 0, 0, 0)
+    couple = QHBoxLayout()
+    couple.setSpacing(8)
+    w.image_form = _Formes()
     for combo in (w.source_combo, w.scan_combo, w.dar_combo, w.cadence_combo):
         row = w.info_form.takeRow(combo)
-        w.image_form.addRow(row.labelItem.widget(), combo)
-    im.addLayout(w.image_form)
+        label = row.labelItem.widget()
+        label.setMinimumWidth(0)
+        combo.setMinimumWidth(0)
+        combo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        if combo in (w.scan_combo, w.dar_combo):
+            couple.addWidget(label)
+            couple.addWidget(combo, 1)
+            w.image_form._labels[combo] = label
+        else:
+            w.image_form.add(pleine, label, combo)
+    im.addLayout(pleine)
+    im.addLayout(couple)
     for case, libelle in ((w.dust_check, "Poussières et rayures"), (w.tape_check, "Bruit de bande"),
                           (w.chroma_check, "Couleur des décrochages"), (w.dropout_check, "Taches isolées"),
                           (w.hq_check, "Débruitage haute qualité"), (w.stab_check, "Stabiliser l’image"),
@@ -176,13 +258,40 @@ def installer(w):
         case.setToolTip(case.text() + "\n" + case.toolTip())
         case.setText(libelle)
     grid = QGridLayout()
+    grid.setHorizontalSpacing(8)
+    grid.setVerticalSpacing(0)
     im.addLayout(grid)
-    for index, widget in enumerate((w._row_deint, w._row_mask, w._row_chroma, w._row_edge)):
-        grid.addWidget(widget, index, 0, 1, 2)
+    for widget in (w._row_deint, w._row_mask, w._row_edge, w._row_chroma):
+        widget.setMinimumWidth(0)
+    grid.addWidget(w._row_deint, 0, 0, 1, 2)
+    grid.addWidget(w._row_mask, 1, 0, 1, 2)
+    # Libellé au-dessus du champ : côte à côte, la somme des deux lignes
+    # dépassait la colonne à 150 % (défilement horizontal interdit).
+    for row in (w._row_edge, w._row_chroma):
+        lay = row.layout()
+        lay.setSpacing(0)
+        champs = []
+        while lay.count():
+            item = lay.takeAt(0)
+            if item.widget() is not None:
+                champs.append(item.widget())
+        pile = QVBoxLayout()
+        pile.setSpacing(0)
+        pile.setContentsMargins(0, 0, 0, 0)
+        for champ in champs:
+            champ.setMinimumWidth(0)
+            pile.addWidget(champ)
+        host = QWidget()
+        host.setLayout(pile)
+        host.setMinimumWidth(0)
+        lay.addWidget(host)
+    grid.addWidget(w._row_edge, 2, 0)
+    grid.addWidget(w._row_chroma, 2, 1)
     for index, widget in enumerate((
                                     w.cast_check, w.hq_check, w.stab_check, w.flicker_check,
                                     w.dust_check, w.tape_check, w.dropout_check, w.chroma_check)):
-        grid.addWidget(widget, 4 + index // 2, index % 2)
+        widget.setMinimumWidth(0)
+        grid.addWidget(widget, 3 + index // 2, index % 2)
 
     son = contenu("Régler le son")
     moins, plus = QPushButton("−"), QPushButton("+")
@@ -211,8 +320,8 @@ def installer(w):
     fg.addLayout(ligne(QLabel("Dérive"), w.drift_spin), 2, 0)
     fg.addWidget(w.mains_combo, 2, 1)
     w.mains_combo.setMinimumContentsLength(8)
-    fg.addWidget(w.copy_combo, 3, 0, 1, 2)
-    fg.addWidget(w.channel_combo, 4, 0, 1, 2)
+    fg.addWidget(w.copy_combo, 3, 0)
+    fg.addWidget(w.channel_combo, 3, 1)
     son.addLayout(ligne(w.s_hear_orig, w.s_hear_new))
     son.addWidget(fin)
     fin.hide()
@@ -256,7 +365,7 @@ def ouvrir(w, nom):
     w.s_compare.montrer_position = nom == "Couper le film"
     w.s_compare.update()
     for titre, (bouton, zone) in w.sections.items():
-        bouton.setText(("▾  " if titre == nom else "▸  ") + titre)
+        bouton.setText(titre)
         bouton.setAccessibleName(titre)
         bouton.setChecked(titre == nom)
         zone.setVisible(titre == nom)

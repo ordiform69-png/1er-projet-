@@ -2664,6 +2664,7 @@ class MainWindow(QMainWindow):
             f"QLabel#nomFilm {{font-size: {16 * self._echelle}pt; font-weight: bold;}}"
             "QPushButton {padding: 3px 6px;} QCheckBox {spacing: 4px;}"
             f"QPushButton[conseille=true] {{border: 2px solid {theme.ACCENT};}}"
+            + ecran.regles(self._echelle)
         )
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
