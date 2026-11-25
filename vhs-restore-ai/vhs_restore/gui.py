@@ -2912,7 +2912,13 @@ class MainWindow(QMainWindow):
         if getattr(self, "_ecoute_demandee", False):
             self._ecoute_demandee = False
             self._play_restored()
-        self.status.setText(f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré ».")
+        texte = f"Aperçu prêt{quand}. Comparez avec les boutons « Original » et « Restauré »."
+        if not getattr(self, "is_photo", False):
+            from . import estimation
+            annonce = estimation.annonce(self)
+            if annonce:
+                texte += " " + annonce
+        self.status.setText(texte)
 
     def _ecouter_extrait(self) -> None:
         self._ecoute_demandee = True

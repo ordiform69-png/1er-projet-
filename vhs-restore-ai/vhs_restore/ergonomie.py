@@ -6,7 +6,8 @@ et quoi faire ; le détail technique reste disponible, jamais en premier.
 """
 from __future__ import annotations
 
-PHRASE_PATIENCE = "Vous pouvez utiliser l'ordinateur ou le laisser travailler."
+PHRASE_PATIENCE = ("Vous pouvez utiliser l'ordinateur ou le laisser travailler. "
+                   "L'ordinateur ne se mettra pas en veille.")
 PHRASE_COUPES_DOSSIER = ("Les coupes de ce film ne seront pas appliquées aux autres fichiers du dossier. "
                          "Chaque film part en entier.")
 
