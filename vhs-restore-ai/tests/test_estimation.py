@@ -30,6 +30,7 @@ def test_phrase_duree_et_place():
     assert manque.startswith("Il manque de la place")
     assert "Durée estimée" in manque
     assert manque.index("Il manque") < manque.index("Durée estimée")
+    assert "Il faut environ 0,1 Go" in estimation.phrase(30, 2e6, 120e9)     # jamais « 0 Go »
 
 
 def fenetre_factice(tmp_path, cle, restauration_s=3.0, duree=3600.0):

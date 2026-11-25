@@ -56,7 +56,7 @@ def phrase_temps(secondes: float) -> str:
 
 
 def _go(octets: float) -> str:
-    g = max(0.0, octets) / pipeline.GB
+    g = max(0.1, max(0.0, octets) / pipeline.GB)       # jamais « 0 Go » : un film court prend un peu de place
     if g >= 10:
         return f"{round(g):.0f}"
     texte = f"{g:.1f}".replace(".", ",")
