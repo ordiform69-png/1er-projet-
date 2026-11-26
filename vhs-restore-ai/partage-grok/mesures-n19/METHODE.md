@@ -41,11 +41,10 @@ seulement (`analyze` est noté à part).
 
 - **Une fois** : `pipeline.export` tel qu'il existe aujourd'hui (chemin unique).
   Cette mesure peut tourner avant R1.
-- **Par parties** : `vhs_restore.reprise.restaurer` (constantes de production :
-  parties de 10 min, seuil de 20 min, chauffe de 8 s). Un film de 3 min est
-  sous le seuil de 20 min : le script force le découpage en trois parties de
-  60 s (chauffe de production 8 s) pour mesurer le surcoût des raccords,
-  attendu de quelques pourcents. Cette mesure attend R1.
+- **Par parties** : `pipeline.export` après R1 (constantes forcées : parties
+  de 60 s, seuil 1 s, chauffe de production 8 s). Un film de 3 min est sous
+  le seuil de production (20 min) : sans ce forçage, l'export resterait en
+  une fois. Le surcoût des raccords est attendu de quelques pourcents.
 
 Trois passages, on retient la **médiane**, en secondes d'horloge et en
 secondes de calcul par minute de film.

@@ -146,30 +146,25 @@ def mesurer_une_fois(cle: str, src: Path, work: Path, n_runs: int) -> dict:
 
 def mesurer_parties(cle: str, src: Path, work: Path, n_runs: int) -> dict:
     detect_tools, analyze, profile_for, pipeline = _prep()
-    try:
-        from vhs_restore import reprise
-    except ImportError as exc:
-        raise RuntimeError(
-            "vhs_restore.reprise est absent : la mesure par parties attend l'agent R1 "
-            "(branche grok/reprise-moteur)."
-        ) from exc
+    from vhs_restore import reprise
     tools = detect_tools()
     t_an0 = time.perf_counter()
     info = analyze(src, tools)
     t_analyze = time.perf_counter() - t_an0
     s = reglages(pipeline, profile_for)
     # Film de 3 min < seuil de 20 min : on force le découpage pour mesurer les raccords.
+    # API réelle (R1) : pipeline.export s'appuie sur reprise.DUREE_PARTIE / SEUIL / CHAUFFE.
     reprise.DUREE_PARTIE = PARTIE_MESURE
     reprise.SEUIL = 1.0
     reprise.CHAUFFE = CHAUFFE_MESURE
-    racine = work / "reprise-dossiers"
-    racine.mkdir(parents=True, exist_ok=True)
-    reprise.dossier_racine = lambda: racine
+    local = work / "localapp"
+    local.mkdir(parents=True, exist_ok=True)
+    os.environ["LOCALAPPDATA"] = str(local)
     runs = []
     for i in range(n_runs):
         dest = work / f"parties-{cle}-{i + 1}.mp4"
         t0 = time.perf_counter()
-        reprise.restaurer(info, s, dest, tools)
+        pipeline.export(info, s, dest, tools)
         wall = time.perf_counter() - t0
         runs.append({"run": i + 1, "wall_s": wall, "s_par_minute": wall / DUREE * 60.0})
         dest.unlink(missing_ok=True)
