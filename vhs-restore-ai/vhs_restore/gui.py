@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, scenes, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -56,10 +56,13 @@ def _eteindre_a_la_sortie() -> None:
             fab = getattr(win, "_fab", None)
             if fab is not None:
                 fab.stop()
-            for nom in ("_pompe", "_replan_images", "_attente_moment"):
+            for nom in ("_pompe", "_replan_images", "_attente_moment", "_timer_scenes"):
                 timer = getattr(win, nom, None)
                 if timer is not None:
                     timer.stop()
+            suivi = getattr(win, "_suivi_scenes", None)
+            if suivi is not None:
+                suivi.arreter()
             for fil in list(getattr(win, "_fils", []) or []):
                 try:
                     if fil.isRunning():
@@ -1376,6 +1379,10 @@ class MainWindow(QMainWindow):
         self._attente_moment.setSingleShot(True)
         self._attente_moment.setInterval(120)
         self._attente_moment.timeout.connect(self._demander_moment)
+        self._suivi_scenes: scenes.Suivi | None = None
+        self._timer_scenes = QTimer(self)
+        self._timer_scenes.setInterval(200)
+        self._timer_scenes.timeout.connect(self._pomper_scenes)
 
         # Import
         self.drop = DropZone()
@@ -2778,6 +2785,7 @@ class MainWindow(QMainWindow):
         self.s_fini.setVisible(False)
         self._fini_fichier = None              # montage / passages vides : sur ce nouveau film
         self._montage_en_attente = None
+        self._arreter_scenes()
         self.progress.setRange(0, 0)  # animation indéterminée
         if photo.is_photo(path):
             self.status.setText("Analyse de la photo…")
@@ -2888,6 +2896,7 @@ class MainWindow(QMainWindow):
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
+        self._lancer_scenes()
         self._lancer_images()
 
     def _question_vitesse(self, demande):
@@ -3081,6 +3090,42 @@ class MainWindow(QMainWindow):
         vue = getattr(self, "compare", None)
         if vue is not None and hasattr(vue, "oublier_moment"):
             vue.oublier_moment()
+
+    def _arreter_scenes(self) -> None:
+        timer = getattr(self, "_timer_scenes", None)
+        if timer is not None:
+            timer.stop()
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is not None:
+            suivi.arreter()
+
+    def _lancer_scenes(self) -> None:
+        """Lecture des scènes après l'ouverture, sans bloquer l'écran."""
+        self._arreter_scenes()
+        info = self.info
+        if info is None or getattr(self, "is_photo", False):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg:
+            info.scenes_vues = True
+            return
+        self._suivi_scenes = scenes.Suivi()
+        self._suivi_scenes.lancer(info, ffmpeg)
+        self._timer_scenes.start()
+
+    def _pomper_scenes(self) -> None:
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is None or not suivi.terminee():
+            return
+        self._timer_scenes.stop()
+        info = self.info
+        if info is None or suivi.info is not info or not getattr(info, "scenes_vues", False):
+            return
+        if getattr(self, "lumiere", None) is not None:
+            self.lumiere.scenes_pretes()
+        if getattr(self, "assistant", None) is not None:
+            self.assistant.actualiser()
+        self._update_state()
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
@@ -3496,6 +3541,9 @@ class MainWindow(QMainWindow):
             return
         self.status.setText(f"Restauration vers {out.name}…")
         def restaurer(c, p):
+            suivi = getattr(self, "_suivi_scenes", None)
+            if suivi is not None and suivi.info is info and not getattr(info, "scenes_vues", False):
+                suivi.attendre(p, c)
             duree = sum(b - a for a, b in gardes) if gardes else info.duration
             choix = self._choix_ia(info, s, duree, c, p)
             cible = pipeline.unique_output_path(info, choix, out_dir)

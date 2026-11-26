@@ -38,17 +38,23 @@ PAS = 1.0 / CADENCE
 DUREE_MIN = 2.0                  # une scène plus courte rejoint la voisine
 FONDU = 0.5                      # passage progressif, sauf coupure franche
 PAS_FONDU = 0.05                 # un cran du fondu (pas une commande par image du film)
-# Écart moyen RVB (0-255) entre deux images réduites.
-# testsrc2, 5 i/s : au plus ~9 d'une image à la suivante, ~12 depuis la première
-# sur 20 s. Une coupure de lumière ou de couleur (intérieur / extérieur) dépasse 18.
-SEUIL_FRANC = 18.0
-SEUIL_DOUX = 20.0
-ANNONCE_S = 3.0                  # au-delà, la durée est dite dans l'attente
-BUDGET_MAX = 900.0               # au-delà, on garde la correction unique
+# Le saut est comparé à la variation des images voisines, pas à un seuil fixe.
+# Film de Claude (160×90, 5 i/s) : 11,9 à la coupure de 40 s, 6,8 au plus ailleurs.
+# Un seuil fixe de 18 rate cette coupure ; un plan dont la lumière monte doucement
+# a le même petit saut d'une image à l'autre, donc pas de coupure.
+FACTEUR_SAUT = 1.45
+MARGE_SAUT = 3.0
+PLANCHER_SAUT = 9.2               # sous le saut de 11,9, au-dessus du 6,8 et du mouvement de testsrc2
+FENETRE_SAUT = 6                    # images voisines prises en compte, de chaque côté
+BUDGET_MAX = 900.0               # plafond seulement si on le demande ; la restauration n'en a pas
 
 
 class _TropLong(Exception):
     """L'analyse dépasse le temps prévu. Ce n'est pas une erreur du film."""
+
+
+class _Annule(Exception):
+    """L'utilisateur a changé de film ou arrêté : on ne touche pas au résultat."""
 
 
 @dataclass(frozen=True)
@@ -140,25 +146,34 @@ def _scene_de(images: list[Image], debut: float, fin: float, franche: bool) -> S
                  (r, g, b))
 
 
+def _est_coupure(i: int, images: list[Image], sauts: list[float]) -> bool:
+    """Vrai si l'image i ouvre un nouveau plan : le saut dépasse nettement la variation
+    voisine, et l'image d'après reste du nouveau côté (pas un parasite d'une image)."""
+    if i < 1 or i + 2 >= len(images):
+        return False
+    saut = sauts[i]
+    voisins = [sauts[j] for j in range(max(1, i - FENETRE_SAUT), min(len(images), i + 1 + FENETRE_SAUT))
+               if j != i]
+    if len(voisins) < 3:
+        return False
+    ref = max(voisins)
+    if saut < max(PLANCHER_SAUT, ref * FACTEUR_SAUT, ref + MARGE_SAUT):
+        return False
+    return _ecart(images[i + 2], images[i - 1]) >= max(MARGE_SAUT, saut * 0.6)
+
+
 def segmenter(images: list[Image], *, pas: float = PAS, duree_min: float = DUREE_MIN,
               duree: float = 0.0) -> tuple[Scene, ...]:
     """Découpe, puis rattache toute scène plus courte que 2 s à la voisine la plus proche."""
     if not images:
         return ()
+    sauts = [0.0] + [_ecart(images[i], images[i - 1]) for i in range(1, len(images))]
     bornes = [0]
     franches = [False]
-    ancre = images[0]
     for i in range(1, len(images)):
-        saut = _ecart(images[i], images[i - 1])
-        depuis = _ecart(images[i], ancre)
-        if saut >= SEUIL_FRANC:
+        if _est_coupure(i, images, sauts):
             bornes.append(i)
             franches.append(True)
-            ancre = images[i]
-        elif depuis >= SEUIL_DOUX and images[i].t - images[bornes[-1]].t >= duree_min:
-            bornes.append(i)
-            franches.append(False)
-            ancre = images[i]
     morceaux = [(bornes[k], bornes[k + 1] if k + 1 < len(bornes) else len(images), franches[k])
                 for k in range(len(bornes))]
 
@@ -233,9 +248,12 @@ def _arreter(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5)
 
 
-def _lire(ffmpeg: str, entrees: list[str], budget: float) -> list[Image]:
-    """Lit le film réduit. Trop long ou illisible : lève, sans rien corriger de travers."""
-    if budget <= 0:
+def _lire(ffmpeg: str, entrees: list[str], budget: float | None, *,
+          annuler=None, progres=None, duree: float = 0.0) -> list[Image]:
+    """Lit le film réduit. Trop long ou illisible : lève, sans rien corriger de travers.
+
+    `budget` à None : pas de plafond (la restauration attend la fin)."""
+    if budget is not None and budget <= 0:
         raise _TropLong()
     # Niveaux au format signalstats (pleine image, 5 i/s), puis image réduite pour la
     # couleur et les coupures. Une seule lecture.
@@ -286,12 +304,19 @@ def _lire(ffmpeg: str, entrees: list[str], budget: float) -> list[Image]:
     interrompu = False
     try:
         while True:
-            reste = budget - (time.monotonic() - debut)
-            if reste <= 0:
+            if annuler is not None and annuler.is_set():
                 interrompu = True
-                raise _TropLong()
+                raise _Annule()
+            if budget is None:
+                attente = 0.5
+            else:
+                reste = budget - (time.monotonic() - debut)
+                if reste <= 0:
+                    interrompu = True
+                    raise _TropLong()
+                attente = min(0.5, max(0.05, reste))
             try:
-                bloc = file.get(timeout=min(0.5, reste))
+                bloc = file.get(timeout=attente)
             except Empty:
                 if proc.poll() is not None and file.empty():
                     break
@@ -304,6 +329,8 @@ def _lire(ffmpeg: str, entrees: list[str], budget: float) -> list[Image]:
             while len(buf) >= taille:
                 images.append(mesurer_image(bytes(buf[:taille]), len(images) * PAS))
                 del buf[:taille]
+            if progres is not None and duree > 0 and images:
+                progres(min(0.99, images[-1].t / duree))
     finally:
         if not interrompu:
             try:
@@ -339,23 +366,27 @@ def _entrees(morceaux: list[Path]) -> tuple[list[str], tempfile.TemporaryDirecto
 
 
 def analyser(ffmpeg: str, path: str | Path, *, budget: float | None = None,
-             duree: float = 0.0, morceaux: list[Path] | None = None) -> tuple[Scene, ...]:
+             duree: float = 0.0, morceaux: list[Path] | None = None,
+             sans_plafond: bool = False, annuler=None, progres=None) -> tuple[Scene, ...]:
     """Scènes du film. Le temps est celui de la source, DVD compris (morceaux à la suite)."""
     chemins = list(morceaux) if morceaux else _morceaux_de(Path(path))
-    if budget is None:
+    if sans_plafond:
+        budget = None
+    elif budget is None:
         budget = _budget(duree, len(chemins))
     entrees, dossier = _entrees(chemins)
     try:
         try:
-            images = _lire(ffmpeg, entrees, budget)
-        except _TropLong:
+            images = _lire(ffmpeg, entrees, budget, annuler=annuler, progres=progres, duree=duree)
+        except (_TropLong, _Annule):
             raise
         except Exception:
             if len(chemins) == 1:
                 raise
             # un morceau illisible ne doit pas empêcher le premier
             log.warning("scènes : lecture du DVD réunie impossible, premier morceau seul", exc_info=True)
-            images = _lire(ffmpeg, ["-i", str(chemins[0])], budget)
+            images = _lire(ffmpeg, ["-i", str(chemins[0])], budget, annuler=annuler, progres=progres,
+                           duree=duree)
     finally:
         if dossier is not None:
             dossier.cleanup()
@@ -376,12 +407,19 @@ def mesure_unique(ffmpeg: str, path: str | Path, *, budget: float | None = None,
     return _scene_de(images, 0.0, max(fin, duree), False)
 
 
-def attacher(info, ffmpeg: str) -> float:
-    """Remplit `info.scenes`. Retourne les secondes ajoutées. N'échoue jamais."""
+def attacher(info, ffmpeg: str, *, sans_plafond: bool = False, annuler=None, progres=None) -> float:
+    """Remplit `info.scenes`. Retourne les secondes ajoutées. N'échoue jamais.
+
+    Sans plafond : la restauration attend la fin. Une annulation ne marque pas
+    l'analyse comme terminée, pour pouvoir la relancer."""
     debut = time.monotonic()
     trop_long = False
+    annule = False
     try:
-        info.scenes = analyser(ffmpeg, info.path, duree=float(info.duration or 0.0))
+        info.scenes = analyser(ffmpeg, info.path, duree=float(info.duration or 0.0),
+                               sans_plafond=sans_plafond, annuler=annuler, progres=progres)
+    except _Annule:
+        annule = True
     except _TropLong:
         info.scenes = ()
         trop_long = True
@@ -391,16 +429,78 @@ def attacher(info, ffmpeg: str) -> float:
         log.warning("scènes : analyse impossible, correction unique conservée", exc_info=True)
     secondes = time.monotonic() - debut
     info.scenes_secondes = secondes
+    if not annule:
+        info.scenes_vues = True
     if trop_long:
         info.warnings.append(
             "L'analyse des scènes n'a pas pu finir : la lumière et les couleurs "
             "seront corrigées une seule fois pour tout le film.")
-    elif secondes >= ANNONCE_S and info.scenes:
-        info.warnings.append(
-            "L'analyse de la lumière, scène par scène, a pris "
-            f"{int(round(secondes))} secondes.")
-    log.info("scènes : %d, %.2f s ajoutées", len(info.scenes), secondes)
+    log.info("scènes : %d, %.2f s", len(getattr(info, "scenes", ()) or ()), secondes)
     return secondes
+
+
+class Suivi:
+    """Lecture des scènes en arrière-plan, après l'ouverture du film."""
+
+    def __init__(self) -> None:
+        self.info = None
+        self.fraction = 0.0
+        self._annule = threading.Event()
+        self._fini = threading.Event()
+        self._fini.set()
+        self._fil: threading.Thread | None = None
+
+    def lancer(self, info, ffmpeg: str) -> None:
+        self.arreter()
+        annule = threading.Event()
+        fini = threading.Event()
+        self._annule = annule
+        self._fini = fini
+        self._ffmpeg = ffmpeg
+        self.info = info
+        self.fraction = 0.0
+        info.scenes = ()
+        info.scenes_vues = False
+
+        def avance(frac: float) -> None:
+            self.fraction = frac
+
+        def corps() -> None:
+            try:
+                attacher(info, ffmpeg, sans_plafond=True, annuler=annule, progres=avance)
+            finally:
+                fini.set()
+
+        self._fil = threading.Thread(target=corps, name="vhs-scenes", daemon=True)
+        self._fil.start()
+
+    def arreter(self) -> None:
+        self._annule.set()
+        fil = self._fil
+        if fil is not None and fil.is_alive() and threading.current_thread() is not fil:
+            fil.join(timeout=3)
+
+    def terminee(self) -> bool:
+        return self._fini.is_set()
+
+    def attendre(self, progress, annuler) -> None:
+        """La restauration finit l'analyse déjà lancée, sans plafond d'abandon."""
+        info = self.info
+        if info is None or getattr(info, "scenes_vues", False):
+            return
+        if self.terminee() and getattr(self, "_ffmpeg", None):
+            self.lancer(info, self._ffmpeg)
+        from .tools import Cancelled
+        while not self._fini.wait(0.25):
+            if annuler is not None and annuler.is_set():
+                self._annule.set()
+                raise Cancelled()
+            if progress is not None:
+                progress(min(0.99, max(0.0, self.fraction)), "Analyse des scènes…")
+        if annuler is not None and annuler.is_set():
+            raise Cancelled()
+        if progress is not None:
+            progress(1.0, "Analyse des scènes…")
 
 
 # ---------------------------------------------------------------- filtres

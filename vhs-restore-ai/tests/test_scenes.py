@@ -70,24 +70,14 @@ def test_coupure_franche_sans_fondu():
     assert all("enable=" not in x for x in bloc)
 
 
-def test_passage_doux_sur_une_demi_seconde():
+def test_lumiere_douce_reste_une_seule_scene():
+    """Un plan dont la lumière monte régulièrement n'est pas découpé."""
     images = []
-    for i in range(40):                      # 8 s, la lumière monte sans à-coup
+    for i in range(40):                      # 8 s, +3 niveaux à chaque image
         images.append(scenes.Image(i * 0.2, 40 + i * 3, 40 + i * 3, 40 + i * 3,
-                                   40 + i * 1.5, 70 + i * 1.5))
+                                   40 + i * 1.5, 80 + i * 1.5))
     trouvees = scenes.segmenter(images, duree=8.0)
-    assert len(trouvees) >= 2
-    assert any(not sc.franche for sc in trouvees[1:])
-    s = dataclasses.replace(neutre(), level_black=0.3, level_white=0.7)
-    pts = scenes.points_de_commande(trouvees, s)
-    bornes = {round(sc.debut, 3) for sc in trouvees}
-    entre = [p for p in pts if round(p[0], 3) not in bornes]
-    assert entre, pts
-    # le fondu reste dans une fenêtre de 0,5 s autour d'une frontière douce
-    douces = [sc.debut for sc in trouvees[1:] if not sc.franche]
-    assert douces
-    for instant, _valeur in entre:
-        assert any(abs(instant - bord) <= 0.25 + 1e-6 for bord in douces)
+    assert len(trouvees) == 1, [(round(s.debut, 2), round(s.fin, 2)) for s in trouvees]
 
 
 @pytest.fixture(scope="module")
@@ -95,6 +85,7 @@ def film(tmp_path_factory, tools):
     dossier = tmp_path_factory.mktemp("trois-scenes")
     chemins = recette.fabriquer(tools.ffmpeg.path, dossier)
     info = analyze(chemins["film"], tools)
+    scenes.attacher(info, tools.ffmpeg.path)
     return chemins, info
 
 
@@ -265,6 +256,7 @@ def test_dvd_en_plusieurs_morceaux(film, tools, tmp_path):
        "-f", "vob", str(v2))
     from vhs_restore.dvd import open_media
     dvd = open_media(v1, tools)
+    scenes.attacher(dvd, tools.ffmpeg.path)
     assert len(dvd.parts) == 2
     assert len(dvd.scenes) >= 2, [(round(s.debut, 2), round(s.fin, 2)) for s in dvd.scenes]
     assert any(s.debut < 24 <= s.fin or (s.debut >= 23 and s.fin > 28) for s in dvd.scenes)
@@ -294,6 +286,50 @@ def test_reglages_utilisateur_par_dessus(film, tools):
     assert (teinte[0] - teinte[2]) > (sans_teinte[0] - sans_teinte[2]) + 1.0
 
 
+GRAPHE_CLAUDE = (
+    "testsrc2=s=720x576:r=25:d=20,eq=brightness=-0.15:saturation=0.7,"
+    "colorchannelmixer=rr=1.15:bb=0.85[a];"
+    "testsrc2=s=720x576:r=25:d=20[b];"
+    "testsrc2=s=720x576:r=25:d=20,eq=brightness=0.12,colorchannelmixer=rr=0.88:bb=1.12[c];"
+    "[a][b][c]concat=n=3,noise=alls=10:allf=t,interlace,format=yuv422p,setsar=16/15[v]"
+)
+
+
+@pytest.fixture(scope="module")
+def film_claude(tmp_path_factory, tools):
+    dossier = tmp_path_factory.mktemp("claude")
+    film = dossier / "trois-plans.mkv"
+    ff("-filter_complex", GRAPHE_CLAUDE, "-map", "[v]", "-c:v", "ffv1", str(film))
+    info = analyze(film, tools)
+    scenes.attacher(info, tools.ffmpeg.path)
+    return film, info
+
+
+def test_coupure_de_40s_sans_fausse_coupure(film_claude):
+    """Même image, lampe qui change : la coupure à 40 s (écart 11,9) est vue, pas le bruit."""
+    _film, info = film_claude
+    debuts = [round(s.debut, 2) for s in info.scenes]
+    print(f"MESURE claude analyse_s={info.scenes_secondes:.2f} debuts={debuts}")
+    assert len(info.scenes) == 3, debuts
+    assert abs(info.scenes[1].debut - 20.0) <= 0.4
+    assert abs(info.scenes[2].debut - 40.0) <= 0.4
+    normale = next(s for s in info.scenes if s.debut <= 30.0 < s.fin)
+    _lo, _hi, rr, gg, bb = scenes._valeurs(
+        normale, dataclasses.replace(neutre(), level_black=0.2, level_white=0.8))
+    print(f"GAINS scene normale rr={rr:.4f} gg={gg:.4f} bb={bb:.4f}")
+    assert abs(rr - 1) <= 0.02 and abs(gg - 1) <= 0.02 and abs(bb - 1) <= 0.02, (rr, gg, bb)
+
+
+def test_plan_unique_a_la_lumiere_douce(tools, tmp_path):
+    film = tmp_path / "doux.mkv"
+    ff("-f", "lavfi", "-i",
+       "nullsrc=s=320x240:r=25:d=12,format=yuv444p,geq=lum='clip(40+10*T,0,255)':cb=128:cr=128",
+       "-c:v", "ffv1", str(film))
+    info = analyze(film, tools)
+    scenes.attacher(info, tools.ffmpeg.path)
+    assert len(info.scenes) == 1, [(round(s.debut, 2), round(s.fin, 2)) for s in info.scenes]
+
+
 def test_analyse_impossible_ou_trop_longue(tools, tmp_path, monkeypatch):
     info = MediaInfo(path=tmp_path / "absent.mkv", width=320, height=180,
                      fps=Fraction(25), duration=10)
@@ -308,6 +344,8 @@ def test_analyse_impossible_ou_trop_longue(tools, tmp_path, monkeypatch):
     ff("-f", "lavfi", "-i", "testsrc2=size=160x120:rate=25", "-t", "1", "-c:v", "ffv1", str(petit))
     monkeypatch.setattr(scenes, "_budget", lambda duree, n: 0.0)
     lu = analyze(petit, tools)
+    scenes.attacher(lu, tools.ffmpeg.path)
     assert lu.scenes == ()
     assert any("une seule fois" in w for w in lu.warnings)
+    assert not any("a pris" in w for w in lu.warnings)
     assert "sendcmd=" not in pipeline.filter_chain(lu, s)

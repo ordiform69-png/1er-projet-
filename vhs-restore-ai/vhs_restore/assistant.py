@@ -1086,7 +1086,12 @@ class Assistant(QWidget):
 
     # ------------------------------------------------------------ 4. vérifier et lancer
     def _signature(self) -> str:
-        return repr(dataclasses.astuple(self.w.settings(with_advice=True)))
+        """Réglages, et si l'analyse des scènes est finie : l'avant / après d'avant n'est plus le bon."""
+        info = getattr(self.w, "info", None)
+        pretes = True
+        if info is not None and not getattr(self.w, "is_photo", False):
+            pretes = bool(getattr(info, "scenes_vues", False))
+        return repr((dataclasses.astuple(self.w.settings(with_advice=True)), pretes))
 
     def apercu_vu(self) -> bool:
         return self.w.preview is not None and self._sig_apercu == self._signature()
