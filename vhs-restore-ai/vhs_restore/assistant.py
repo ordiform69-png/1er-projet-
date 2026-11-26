@@ -998,9 +998,10 @@ class Assistant(QWidget):
     def _vides_trouves(self, res) -> None:
         passages, _duree = res
         self.w._proposer_passages_vides(passages)
-        if passages:
-            phrase = ("Les passages vides sont en bleu sur la barre. "
-                      "Choisissez un passage, puis cliquez sur « Enlever ».")
+        if self.w.barre.passage_vide is not None:
+            phrase = "Cliquez sur une zone bleue pour choisir son passage."
+        elif passages:
+            phrase = "Les passages détectés sont déjà hors de la copie."
         else:
             phrase = "Aucune neige ni écran vide trouvé."
         self.w.status.setText(phrase)

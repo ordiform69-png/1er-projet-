@@ -134,11 +134,14 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     attendre(win)
     assert win.trim_start.value() == win.trim_end.value() == 0 and not win._coupes
     assert len(win.barre.passages_vides) == 2, a.note_coupe.text()
-    from PySide6.QtWidgets import QPushButton
-    enlever = next(b for b in a._page_coupe.findChildren(QPushButton) if b.text() == "Enlever")
+    enlever = win.enlever_passage
     assert enlever.isVisible()
+    assert enlever.text() == "Enlever 0:00 – 0:03"
+    assert win.enlever_tous_passages.isVisible()
     enlever.click()  # neige au début
     assert enlever.isVisible()
+    assert enlever.text() == "Enlever 1:03 – 1:06"
+    assert not win.enlever_tous_passages.isVisible()
     enlever.click()  # écran bleu à la fin
     assert not enlever.isVisible()
     gardes = pipeline.passages_gardes(
@@ -215,6 +218,20 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
             attendre(win)
             a = win.assistant
             for i in range(etapes):
+                if chemin == cassette and i == 2:
+                    from PySide6.QtWidgets import QPushButton
+                    from vhs_restore.vides import Passage
+                    a._vides_trouves(([Passage(0, 3, "neige"), Passage(63, 66, "écran bleu")], 66))
+                    attendre(win)
+                    boutons = {b.text(): b for b in a._page_coupe.findChildren(QPushButton)}
+                    for texte in ("Zoom −", "Zoom +", "Tout le film", "Enlever 0:00 – 0:03", "Tout enlever"):
+                        assert 36 <= boutons[texte].height() <= 44
+                        assert _dans_fenetre(win, boutons[texte]), (pct, texte)
+                    _pas_de_defilement_horizontal(win)
+                    if pct <= 125:
+                        zone = win.sections["Couper le film"][1]
+                        assert zone.verticalScrollBar().maximum() == a.pages_zone.verticalScrollBar().maximum() == 0
+                    a._vides_trouves(([], 66))
                 if i == etapes - 1:                    # la vraie fin : après l'avant / après
                     a.voir.click()
                     attendre(win)

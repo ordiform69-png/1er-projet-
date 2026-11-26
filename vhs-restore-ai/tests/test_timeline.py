@@ -367,8 +367,6 @@ def test_passages_bleus_opaques_sur_les_vignettes(mode):
 def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
     from types import SimpleNamespace
 
-    from PySide6.QtWidgets import QPushButton
-
     from vhs_restore import vides
 
     app = QApplication.instance() or QApplication([])
@@ -376,6 +374,7 @@ def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
     try:
         win.info = _info(tmp_path / "Film.mpg", duration=300, fps=Fraction(25))
         win.info.scenes = [SimpleNamespace(debut=0), SimpleNamespace(debut=63.0)]
+        win._update_state()
         win._rafraichir_barre()
         win.barre.resize(500, 64)
         assert win.barre.aimanter(63.2) == 63.0
@@ -386,13 +385,92 @@ def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
         assert win.barre.passage_vide is neige
         assert win._coupes == []
         assert win.trim_start.value() == win.trim_end.value() == 0
-        enlever = next(b for b in win.findChildren(QPushButton) if b.text() == "Enlever")
+        enlever = win.enlever_passage
+        assert enlever.text() == "Enlever 1:00 – 1:03"
         enlever.click()
         assert win._coupes == [(60, 63)]
         assert win.barre.passage_vide is None
         win.s_passage_annuler.click()
         assert win._coupes == []
         assert win.barre.passage_vide is neige
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_choisir_un_passage_bleu_ou_tous(tools, tmp_path):
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=90)
+        win._update_state()
+        win.start_spin.setRange(0, 90)
+        win.start_spin.setValue(72)
+        win.barre.resize(450, 64)
+        passages = [Passage(0, 3, "neige ou écran gris"), Passage(20, 24, "écran noir"),
+                    Passage(70, 74, "écran bleu ou coloré")]
+        win._proposer_passages_vides(passages)
+        assert not win._coupes
+        assert win.enlever_passage.text() == "Enlever 1:10 – 1:14"
+        assert not win.enlever_tous_passages.isHidden()
+
+        zone = win.barre._zone()
+        QTest.mouseClick(win.barre, Qt.LeftButton, Qt.NoModifier,
+                         QPoint(round(win.barre._x_de(22)), zone.center().y()))
+        assert win.enlever_passage.text() == "Enlever 0:20 – 0:24"
+        assert "Enlever 0:20 – 0:24" in win.status.text()
+        assert not win._coupes
+
+        win.enlever_tous_passages.click()
+        assert win._coupes == [(0, 3), (20, 24), (70, 74)]
+        assert win.enlever_passage.isHidden() and win.enlever_tous_passages.isHidden()
+        win.s_passage_annuler.click()
+        assert win._coupes == [(0, 3), (20, 24)]
+        assert win.enlever_passage.text() == "Enlever 1:10 – 1:14"
+        assert win.enlever_tous_passages.isHidden()
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_clic_sur_une_zone_bleue_de_trois_pixels():
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    barre = BarreFilm()
+    try:
+        barre.resize(400, 64)
+        barre.definir(10_800, 0, 0, 0, [])
+        neige = Passage(600, 603, "neige")
+        barre.passages_vides = (neige,)
+        temps = []
+        barre.clique.connect(temps.append)
+        x = int(barre._x_de(neige.debut)) + 2
+        assert barre._temps(x) > neige.fin
+        QTest.mouseClick(barre, Qt.LeftButton, Qt.NoModifier, QPoint(x, barre._zone().center().y()))
+        assert barre.passage_vide is neige and 600 <= temps[0] < 603
+    finally:
+        barre.close()
+        app.processEvents()
+
+
+@pytest.mark.parametrize("raison", ["film entier", "plus de huit"])
+def test_tout_enlever_refuse_sans_appliquer_de_coupe(tools, tmp_path, raison):
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=90)
+        win._update_state()
+        win._rafraichir_barre()
+        bornes = [(0, 40), (40, 90)] if raison == "film entier" else [(t, t + 2) for t in range(5, 90, 10)]
+        win._proposer_passages_vides([Passage(a, b, "écran noir") for a, b in bornes])
+        win.enlever_tous_passages.click()
+        assert not win._coupes
+        assert ("Gardez au moins" if raison == "film entier" else "huit passages") in win.status.text()
     finally:
         win.close()
         app.processEvents()

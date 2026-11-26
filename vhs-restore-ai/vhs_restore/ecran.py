@@ -400,22 +400,27 @@ def installer(w):
     w.chercher_neige_libre.setMinimumHeight(38)
     w.chercher_neige_libre.clicked.connect(lambda: w.assistant._chercher_vides())
     zoom.addWidget(w.chercher_neige_libre)
-    enlever = QPushButton("Enlever")
-    enlever.setMinimumHeight(38)
-    enlever.clicked.connect(w._enlever_passage_vide)
+    c.addLayout(zoom)
+    w.enlever_passage = QPushButton()
+    w.enlever_passage.setMinimumHeight(38)
+    w.enlever_passage.clicked.connect(w._enlever_passage_vide)
+    w.enlever_tous_passages = QPushButton("Tout enlever")
+    w.enlever_tous_passages.setMinimumHeight(38)
+    w.enlever_tous_passages.setToolTip("Enlever tous les passages bleus de la copie.")
+    w.enlever_tous_passages.clicked.connect(w._tout_enlever_vides)
 
     def afficher_passage_vide():
         passage = w.barre.passage_vide
-        enlever.setVisible(passage is not None)
+        w.enlever_passage.setVisible(passage is not None)
+        w.enlever_tous_passages.setVisible(sum(1 for _ in w.barre.passages_proposes()) > 1)
         if passage is not None:
-            from .vides import decrire
-            enlever.setToolTip(decrire(passage))
-            enlever.setAccessibleName("Enlever le passage vide " + decrire(passage))
+            debut, fin = (lecteur.horloge(round(t)).removeprefix("0") for t in w.barre.bornes_passage(passage))
+            w.enlever_passage.setText(f"Enlever {debut} – {fin}")
+            w.enlever_passage.setToolTip(passage.genre.capitalize())
 
     w.barre.passage_choisi.connect(afficher_passage_vide)
-    zoom.addWidget(enlever)
-    enlever.hide()
-    c.addLayout(zoom)
+    c.addLayout(ligne(w.enlever_passage, w.enlever_tous_passages))
+    afficher_passage_vide()
     liste = QGridLayout()                        # passages enlevés, « Remettre » : sous la barre,
     liste.setHorizontalSpacing(12)               # deux par ligne (8 au plus)
     liste.setVerticalSpacing(2)
@@ -682,6 +687,8 @@ def actualiser(w, charge, photo, occupe, termine):
     w.commandes_lecture.setVisible(film)
     w.lire_film.setEnabled(film and not occupe)
     w.verifier_coupe.setEnabled(film and not occupe and w._a_une_coupe())
+    w.enlever_passage.setEnabled(film and not occupe)
+    w.enlever_tous_passages.setEnabled(film and not occupe)
     w.choisir.setEnabled(not occupe)
     w.details.setVisible(charge)
     w.etapes.setVisible(not charge and not termine)
