@@ -1,18 +1,38 @@
-# Essai n°18 : aucun poids, aucune image, aucune vidéo dans le dépôt.
-*.onnx
-*.onnx.data
-*.pt
-*.pth
-*.npz
+# Banc n°18 : rien de binaire dans le dépôt (images, vidéos, poids, caches).
+cache/
+sorties/
+__pycache__/
 *.png
 *.jpg
 *.jpeg
 *.webp
+*.tif
+*.tiff
+*.bmp
 *.mp4
 *.mkv
 *.avi
 *.mov
+*.webm
+*.m2ts
+*.mts
+*.vob
+*.mpg
+*.mpeg
+*.wmv
+*.ts
+*.y4m
 *.yuv
+*.rgb
+*.onnx
+*.pth
+*.pt
+*.safetensors
+*.bin
+*.pkl
+# Ajouts F2 (juge) : poids ONNX externes et dossiers de travail.
+*.onnx.data
+*.npz
 *.raw
 resultats/
 travail/
