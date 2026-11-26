@@ -144,6 +144,132 @@ def test_texte_sans_defilement_horizontal(app, tools):
             win.close()
 
 
+def test_phrases_de_reprise():
+    """Textes exacts : 5 parties sur 11 font 45 %, comme l'exemple de la demande."""
+    ouv = ergonomie.message_ouverture(5, 11)
+    assert ouv == ("Une restauration de ce film s'était arrêtée à 45 %. "
+                   "« Lancer la restauration » la reprendra.")
+    assert "45 %" in ouv and "reprendra" in ouv
+    assert ergonomie.message_progression(6, 12) == "Reprise : 6 parties sur 12 déjà faites."
+    assert ergonomie.message_progression(1, 12) == "Reprise : 1 partie sur 12 déjà faite."
+    arret = ergonomie.message_arret()
+    assert arret == "Arrêté. Les parties déjà restaurées sont gardées : relancez pour reprendre."
+    for texte in (ouv, ergonomie.message_progression(6, 12), arret):
+        bas = f" {texte.lower()} "
+        assert "morceau" not in bas and "chunk" not in bas
+        assert " tu " not in bas and " te " not in bas
+    assert ergonomie.lire_reprise(object(), object()) is None
+
+
+def _brancher_reprise(monkeypatch, faux):
+    """Le faux module doit être celui que `from . import reprise` retrouve."""
+    import sys
+
+    import vhs_restore
+
+    monkeypatch.setitem(sys.modules, "vhs_restore.reprise", faux)
+    monkeypatch.setattr(vhs_restore, "reprise", faux)
+
+
+def test_lecture_reprise_tolerante(monkeypatch):
+    """Moteur inutilisable : rien. Signatures de reprise.py : 5 parties sur 11, puis 6 sur 12."""
+    import types
+
+    info = types.SimpleNamespace(duration=3600.0, path="film.mp4")
+    faux = types.ModuleType("vhs_restore.reprise")
+
+    def applicable(info, reglages, passages=None, start=None, duration=None):
+        return passages != "non"
+
+    faux.applicable = applicable
+    faux.dossier = lambda info, reglages, passages=None, start=None, duration=None: "dossier"
+    faux.parties_faites = lambda dossier: list(range(5))
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(11))
+    _brancher_reprise(monkeypatch, faux)
+    etat = ergonomie.lire_reprise(info, object(), passages=None, gardes=[(0.0, 3600.0)])
+    assert etat is not None and (etat.faites, etat.total, etat.en_parties) == (5, 11, True)
+    assert "45 %" in etat.phrase_ouverte()
+    assert etat.phrase_en_cours() == "Reprise : 5 parties sur 11 déjà faites."
+    assert ergonomie.message_ouverture(etat.faites, etat.total) == etat.phrase_ouverte()
+    assert ergonomie.lire_reprise(info, object(), passages="non", gardes=[(0.0, 20.0)]) is None
+
+    faux.parties_faites = lambda dossier: list(range(6))
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(12))
+    etat = ergonomie.lire_reprise(info, object(), gardes=[(0.0, 3600.0)])
+    assert etat is not None and etat.phrase_en_cours() == "Reprise : 6 parties sur 12 déjà faites."
+    assert "50 %" in etat.phrase_ouverte()
+
+
+@pytest.mark.assistant
+def test_reprise_annoncee_a_l_ecran(app, tools, tmp_path, monkeypatch):
+    """Ligne d'état, résumé « Vérifier et lancer », reprise, arrêt et erreur. Fenêtre 1280 × 641."""
+    import types
+    from fractions import Fraction
+
+    from PySide6.QtWidgets import QScrollArea
+
+    from vhs_restore.probe import MediaInfo
+
+    faux = types.ModuleType("vhs_restore.reprise")
+    faux.applicable = lambda info, reglages, passages=None, start=None, duration=None: True
+    faux.dossier = lambda info, reglages, passages=None, start=None, duration=None: tmp_path
+    faux.parties_faites = lambda dossier: list(range(5))
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(11))
+    _brancher_reprise(monkeypatch, faux)
+    vus = []
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: vus.append(self.text()) or 0)
+
+    chemin = tmp_path / "famille.mp4"
+    chemin.write_bytes(b"x")
+    info = MediaInfo(path=chemin, duration=3600, width=720, height=576, fps=Fraction(25, 1),
+                     has_audio=True, scenes_vues=True, suggested_source="video", scan="progressive")
+    win = MainWindow(tools)
+    win.info = info
+    win.is_photo = False
+    win.assistant._info = info
+    win.status.setText(f"Vidéo analysée : {info.path.name}. Étape suivante : « Voir l'avant / après ».")
+    win._annoncer_reprise_ouverte()
+    assert "arrêtée à 45 %" in win.status.text()
+    assert "Lancer la restauration" in win.status.text()
+    assert "«\u00a0Lancer la restauration\u00a0»" in win.status.text()
+
+    win.show()
+    win.assistant.pages.setCurrentWidget(win.assistant._page_fin)
+    win._update_state()
+    assert "arrêtée à 45 %" in win.assistant.resume.text()
+    assert "morceau" not in win.assistant.resume.text().lower()
+    for pct in (100, 150):
+        win.set_taille_texte(pct, annoncer=False)
+        win.resize(1280, 641)
+        app.processEvents()
+        assert (win.width(), win.height()) == (1280, 641)
+        for zone in win.findChildren(QScrollArea):
+            if zone.isVisible():
+                assert zone.horizontalScrollBar().maximum() == 0
+
+    etat = win._etat_reprise()
+    win._job = "export"
+    win._reprise_courante = etat
+    win.eta = Eta()
+    win._on_progress(0.2, "Restauration")
+    assert win.status.text().startswith("Reprise : 5 parties sur 11 déjà faites.")
+    assert "Restauration" in win.status.text()
+    assert ergonomie.PHRASE_PATIENCE in win.status.text()
+    win._on_cancelled()
+    assert win.status.text() == ergonomie.message_arret()
+    win._reprise_courante = etat
+    win._job = "export"
+    win._on_failed("erreur bizarre xyz")
+    assert win.status.text() == ergonomie.message_arret()
+    assert vus and vus[-1].startswith(ergonomie.message_arret())
+    assert "n'a pas abouti" in vus[-1]
+    win._reprise_courante = None
+    win._job = "export"
+    win._on_cancelled()
+    assert "cliquez sur" in win.status.text()
+    win.close()
+
+
 def test_fichier_recent_absent(app, tools, monkeypatch):
     textes = []
     monkeypatch.setattr(QMessageBox, "exec", lambda self: textes.append(self.text()) or 0)

@@ -6,10 +6,67 @@ et quoi faire ; le détail technique reste disponible, jamais en premier.
 """
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
+
 PHRASE_PATIENCE = ("Vous pouvez utiliser l'ordinateur ou le laisser travailler. "
                    "L'ordinateur ne se mettra pas en veille.")
 PHRASE_COUPES_DOSSIER = ("Les coupes de ce film ne seront pas appliquées aux autres fichiers du dossier. "
                          "Chaque film part en entier.")
+
+log = logging.getLogger("vhs_restore")
+
+# Interface fixe de reprise.py, appelée directement :
+#   applicable(info, reglages, passages=None, start=None, duration=None) -> bool
+#   dossier(info, reglages, passages=None, start=None, duration=None) -> Path
+#   parties_faites(dossier) -> parties déjà complètes
+#   decouper(passages, duree_partie=None, chauffe=None) -> parties (la longueur est le total)
+# `passages` de l'export vaut None si le film part en entier. Le décompte utilise `gardes`.
+
+
+def insecables(texte: str) -> str:
+    """Espaces insécables dans « … », comme la ligne d'état."""
+    return texte.replace("« ", "«\u00a0").replace(" »", "\u00a0»")
+
+
+def message_ouverture(faites: int, total: int) -> str:
+    """Annonce à l'ouverture. Le pourcentage est la part des parties déjà faites."""
+    faites, total = int(faites), int(total)
+    pct = round(faites / total * 100) if total else 0
+    pct = max(0, min(100, pct))
+    return (f"Une restauration de ce film s'était arrêtée à {pct} %. "
+            "« Lancer la restauration » la reprendra.")
+
+
+def message_progression(faites: int, total: int) -> str:
+    """Ligne affichée pendant que la restauration reprend."""
+    faites, total = int(faites), int(total)
+    if faites == 1:
+        return f"Reprise : 1 partie sur {total} déjà faite."
+    return f"Reprise : {faites} parties sur {total} déjà faites."
+
+
+def message_arret() -> str:
+    return "Arrêté. Les parties déjà restaurées sont gardées : relancez pour reprendre."
+
+
+@dataclass(frozen=True)
+class Reprise:
+    """Ce que l'écran a besoin de savoir. `en_parties` : un arrêt gardera le travail."""
+
+    faites: int
+    total: int
+    en_parties: bool
+
+    def phrase_ouverte(self) -> str:
+        if self.faites <= 0 or self.total <= 0 or self.faites > self.total:
+            return ""
+        return message_ouverture(self.faites, self.total)
+
+    def phrase_en_cours(self) -> str:
+        if self.faites <= 0 or self.total <= 0 or self.faites > self.total:
+            return ""
+        return message_progression(self.faites, self.total)
 
 
 def expliquer(message: str) -> tuple[str, str]:
@@ -95,11 +152,48 @@ def memoriser_recent(liste: list[str], chemin: str, maxi: int = 5) -> list[str]:
     return out
 
 
-def montrer_erreur(parent, message: str) -> None:
-    """Boîte lisible : quoi faire, puis le détail technique derrière un bouton."""
+def lire_reprise(info, reglages, *, passages=None, gardes=None, start=None, duration=None) -> Reprise | None:
+    """État d'une restauration interrompue, ou None si le moteur ne la reprendra pas.
+
+    `passages` est celui de l'export (None si le film part en entier). `gardes` est la liste
+    des intervalles gardés, passée à `reprise.decouper` pour compter les parties.
+    """
+    if info is None or reglages is None:
+        return None
+    try:
+        from . import reprise
+    except ImportError:
+        return None
+    except Exception:
+        log.warning("reprise : module illisible", exc_info=True)
+        return None
+    try:
+        if not reprise.applicable(info, reglages, passages=passages, start=start, duration=duration):
+            return None
+        gardes_liste = list(gardes or [])
+        if not gardes_liste:
+            duree = float(getattr(info, "duration", 0) or 0)
+            if duree > 0:
+                gardes_liste = [(0.0, duree)]
+        total = len(reprise.decouper(gardes_liste)) if gardes_liste else 0
+        chemin = reprise.dossier(info, reglages, passages=passages, start=start, duration=duration)
+        faites = len(reprise.parties_faites(chemin))
+    except Exception:
+        log.warning("reprise : appel impossible", exc_info=True)
+        return None
+    return Reprise(max(0, faites), max(0, total), True)
+
+
+def montrer_erreur(parent, message: str, *, complement: str = "") -> None:
+    """Boîte lisible : quoi faire, puis le détail technique derrière un bouton.
+
+    `complement` : phrase ajoutée devant (reprise gardée), sans remplacer l'explication.
+    """
     from PySide6.QtWidgets import QApplication, QMessageBox
 
     clair, detail = expliquer(message)
+    if complement:
+        clair = complement + "\n\n" + clair
     box = QMessageBox(QMessageBox.Warning, "Une étape n'a pas abouti", clair, parent=parent)
     box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 520px; font-size: 14pt; }")
     details = box.addButton("Détails pour l'aide", QMessageBox.ActionRole)

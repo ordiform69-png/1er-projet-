@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, Q
                                QLayout, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
-from . import estimation, lumiere, photo, pipeline, theme, vides
+from . import ergonomie, estimation, lumiere, photo, pipeline, theme, vides
 from .advice import ligne_assistant
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
@@ -428,6 +428,7 @@ class _Resume(QLabel):
         super().__init__()
         self.setWordWrap(True)
         self.setTextFormat(Qt.RichText)
+        self.setMinimumWidth(0)
         self.setObjectName("resumeAssistant")
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
@@ -1160,6 +1161,11 @@ class Assistant(QWidget):
         s = w.settings(with_advice=True)
         lecture: list[str] = []
         lignes: list[str] = []
+        reprise = self.w.phrase_reprise_ouverte() if self._film() else ""
+        if reprise:
+            lecture.append(reprise)
+            lignes.append('<span style="font-size:115%; font-weight:bold;">'
+                          f"{html.escape(ergonomie.insecables(reprise))}</span>")
 
         def ligne(libelle: str, valeur: str) -> None:
             lecture.append(f"{libelle} {valeur}")
