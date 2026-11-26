@@ -259,3 +259,42 @@ Fichier en conflit : `vhs-restore-ai/vhs_restore/gui.py` (contenu, both modified
 - `grok/reprise` : voir le commit de mise à jour de ce rapport (les mesures de (b) sont à `a7bc0865ace8014d9e0fa4d48e3c18502090910a`).
 - `grok/reprise-essai-fusion` : `a500b6a5733f373ac712d1baf50f1abc4a34f7ee` (inchangé après l'abandon de la tentative timeline).
 - `grok/qualite` : toujours `97d1f4d139befafe52f806862299c16d2d02d74b` (aucun commit, aucun push).
+
+## Corrections
+
+Demande lue en entier, section 1 de `DEMANDE-GROK-CORRECTIONS-N19-COPIE.md` au commit `8405e32` de `ccr-5856e8d6-8xt8uh`. Travail sur `grok/reprise` à partir de `99dd9bf`. Correctif : `4f0fd767a46dd8a39da59b176e092b9c02772caf`. `pipeline.py`, `estimation.py` et `reprise.py` n'ont pas été touchés. Aucune nouvelle dépendance. Pas de fusion, pas de pull request.
+
+### Cause
+
+`ergonomie.lire_reprise` devinait l'interface de `reprise.py` (`_appelable`, `_invoquer`, noms de secours `etat`, `situation`, `interrompue`, `en_parties`, `eligible`). Cette devinette ne correspond pas aux signatures fixes.
+
+En plus, une fois `pipeline` importé, `vhs_restore.reprise` est déjà lié au vrai module. `from . import reprise` retrouve cet attribut et ignore un remplacement de `sys.modules` seul. Les deux tests ne faisaient que ce remplacement : `lire_reprise` appelait donc le vrai `reprise.py`. Sur un objet sans `duration`, `applicable` lève `AttributeError` et la lecture rend `None` (`test_lecture_reprise_tolerante`). À l'écran, le vrai dossier de parties est vide : 0 partie faite, la phrase d'ouverture reste vide, « …arrêtée à 45 %… » n'apparaît pas (`test_reprise_annoncee_a_l_ecran`).
+
+### Ce qui a changé
+
+Fichiers : `vhs_restore/ergonomie.py`, `tests/test_ergonomie.py`.
+
+Fonctions supprimées dans `ergonomie.py` : `_Echec`, `_module_reprise`, `_appelable`, `_invoquer`, `_entier`, `_compte`, `_lire_attribut`, `_interpreter`, `_lire_applicable`. L'import `inspect` part avec elles.
+
+`lire_reprise` appelle maintenant, directement :
+
+- `reprise.applicable(info, reglages, passages=passages, start=start, duration=duration)`
+- `reprise.dossier(info, reglages, passages=passages, start=start, duration=duration)`
+- `reprise.parties_faites(chemin)`
+- `reprise.decouper(gardes)` — les intervalles gardés ; `passages` de l'export vaut `None` quand le film part en entier, et `decouper` a besoin de la liste.
+
+Un import impossible, un appel qui échoue, ou `applicable` faux : `None`. Les phrases d'écran n'ont pas changé (vouvoiement, « partie », fenêtre 1280×641 inchangée).
+
+Les deux tests utilisent ces signatures (faux module). Le faux est aussi posé sur l'attribut `vhs_restore.reprise`, sinon `from . import reprise` continuerait de voir le vrai module. Le secours `etat` → `(6, 12)` a été retiré avec la devinette ; les mêmes phrases (« Reprise : 6 parties sur 12 déjà faites. », « 50 % ») passent par `parties_faites` et `decouper`. Rien de la liste demandée n'a été retiré : 5 parties sur 11, « 45 % », « Reprise : 5 parties sur 11 déjà faites. », message d'ouverture, message d'arrêt, message d'erreur. Aucun test supprimé ni sauté.
+
+### Résultats des tests
+
+26 nov. 2026, vers 23 h 43 Europe/Paris (CET). `QT_QPA_PLATFORM=offscreen`, `timeout 900`. Interpréteur `python3` (`python` absent du PATH). FFmpeg du système : 6.1.1-3ubuntu5. Une seule commande, les trois fichiers ensemble :
+
+`35 passed in 173.86s (0:02:53)` — code de sortie 0. Aucun échec, aucun test sauté.
+
+| Fichier | Passés | Échoués |
+|---|---|---|
+| `tests/test_ergonomie.py` | 10 | 0 |
+| `tests/test_reprise.py` | 16 | 0 |
+| `tests/test_assistant.py` | 9 | 0 |
