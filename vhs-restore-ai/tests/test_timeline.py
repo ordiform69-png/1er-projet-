@@ -329,6 +329,41 @@ def test_zoom_et_clavier_sur_trois_heures():
     app.processEvents()
 
 
+@pytest.mark.parametrize("mode", ["clair", "sombre"])
+def test_passages_bleus_opaques_sur_les_vignettes(mode):
+    from PySide6.QtGui import QColor, QPixmap
+    from vhs_restore import theme, vides
+
+    app = QApplication.instance() or QApplication([])
+    ancien = theme.MODE
+    theme.set_mode(mode)
+    barre = BarreFilm()
+    try:
+        barre.resize(400, 64)
+        barre.definir(100, 5, 0, 0, [(55, 65)])
+        barre.passages_vides = (vides.Passage(20, 50, "neige ou écran gris"),
+                                vides.Passage(50, 85, "écran noir"))
+        barre.choisir_passage(barre.passages_vides[0])
+        vignette = QPixmap(160, 120)
+        vignette.fill(QColor("red"))
+        barre.vider_images(4, dict.fromkeys(range(4), vignette))
+        image = barre.grab().toImage()
+        r = barre._zone()
+        for temps, bleu in ((24, "#104596"), (75, "#2165c3")):
+            x = round(barre._x_de(temps))
+            assert image.pixelColor(x, r.top()) == QColor(bleu)
+            assert image.pixelColor(x, r.bottom()) == QColor(bleu)
+        assert image.pixelColor(int(barre._x_de(20)), r.center().y()) == QColor("#dbeaff")
+        assert image.pixelColor(round(barre._x_de(60)), r.top() + 9) != QColor("#2165c3")
+        assert any(image.pixelColor(x, y) == QColor("white")
+                   for x in range(round(barre._x_de(26)), round(barre._x_de(44)))
+                   for y in range(r.top() + 3, r.bottom() - 2))
+    finally:
+        barre.close()
+        theme.set_mode(ancien)
+        app.processEvents()
+
+
 def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
     from types import SimpleNamespace
 

@@ -16,7 +16,7 @@ import atexit
 import weakref
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QSignalBlocker, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
@@ -953,14 +953,23 @@ class _Ruban(QWidget):
         return choisi
 
     def passage_a(self, temps: float) -> vides.Passage | None:
-        fin = self.fin or self.duree
         for passage in self.passages_vides:
-            a, b = passage.debut, passage.fin
-            if not a <= temps <= b or b <= self.debut or a >= fin:
-                continue
-            if not any(debut <= a and b <= fin for debut, fin in self.coupes):
+            if any(a <= temps < b for a, b in self._plages_proposees(passage)):
                 return passage
         return None
+
+    def _plages_proposees(self, passage: vides.Passage) -> Iterator[tuple[float, float]]:
+        """Parties encore gardées d’une zone bleue, d’après les coupes et les bornes."""
+        debut = max(self.debut, passage.debut)
+        fin = min(self.fin or self.duree, passage.fin)
+        for a, b in sorted(self.coupes):
+            if a >= fin:
+                break
+            if debut < a:
+                yield debut, a
+            debut = max(debut, b)
+        if debut < fin:
+            yield debut, fin
 
     def choisir_passage(self, passage: vides.Passage | None) -> None:
         self.passage_vide = passage
@@ -1127,13 +1136,7 @@ class _Ruban(QWidget):
             p.fillRect(rectangle, dore)
             p.fillRect(rectangle, QBrush(QColor(theme.AMBRE_TEXTE), Qt.BDiagPattern))
         origine, limite = self._fenetre()
-        for passage in self.passages_vides:
-            a, b = passage.debut, passage.fin
-            if b <= origine or a >= limite or self.passage_a((a + b) / 2) is None:
-                continue
-            xa, xb = int(self._x_de(max(a, origine))), int(self._x_de(min(b, limite)))
-            p.fillRect(xa, r.top() + 4, max(3, xb - xa), 9,
-                       QColor("#7ee7f7" if passage == self.passage_vide else "#58a6c2"))
+        self._dessiner_passages_vides(p, r, origine, limite)
         p.setPen(QPen(QColor(theme.ACCENT), 2))
         for repere in self.reperes:
             if origine <= repere <= limite:
@@ -1162,6 +1165,34 @@ class _Ruban(QWidget):
             p.setPen(QColor(theme.TEXTE))
             self._dessiner_heures(p, bas, origine, limite)
         p.end()
+
+    def _dessiner_passages_vides(self, p: QPainter, r: QRect, origine: float, limite: float) -> None:
+        p.save()
+        p.setClipRect(r, Qt.IntersectClip)
+        p.setPen(QColor("#ffffff"))
+        mesures = p.fontMetrics()
+        for passage in self.passages_vides:
+            if passage.fin <= origine or passage.debut >= limite:
+                continue
+            choisi = passage is self.passage_vide
+            bleu = QColor("#104596" if choisi else "#2165c3")
+            bord = QColor("#dbeaff" if choisi else "#10284d")
+            nom = "Neige ?" if passage.genre.startswith("neige") else "Écran vide ?"
+            for a, b in self._plages_proposees(passage):
+                a, b = max(a, origine), min(b, limite)
+                if b <= a:
+                    continue
+                x, fin = int(self._x_de(a)), int(self._x_de(b))
+                rectangle = QRect(x, r.top(), max(3, fin - x), r.height())
+                p.fillRect(rectangle, bleu)
+                if rectangle.width() >= 5:
+                    epaisseur = 2 if choisi else 1
+                    p.fillRect(rectangle.x(), rectangle.y(), epaisseur, rectangle.height(), bord)
+                    p.fillRect(rectangle.right() - epaisseur + 1, rectangle.y(),
+                               epaisseur, rectangle.height(), bord)
+                if rectangle.width() >= mesures.horizontalAdvance(nom) + 12 and r.height() >= mesures.height():
+                    p.drawText(rectangle, Qt.AlignCenter, nom)
+        p.restore()
 
 
     def _dessiner_heures(self, p: QPainter, bas: QRect, debut: float, fin: float) -> None:
