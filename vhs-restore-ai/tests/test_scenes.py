@@ -285,7 +285,10 @@ def test_reglages_utilisateur_par_dessus(film, tools):
     s0 = apply(base, advise(info))
     avec = dataclasses.replace(s0, lumiere=2, teinte=2)
     chaine = pipeline.filter_chain(info, avec, origine=0.0)
-    assert "sendcmd=" in chaine and "gamma=1.2" in chaine
+    # lumiere=+2 : cran de gamma 1,2. Agent B remplace eq=...:gamma=1.2 par lutyuv
+    # (exposant 1/1,2 = 0,83333333). Les deux formes expriment le même réglage.
+    assert "sendcmd=" in chaine
+    assert "gamma=1.2" in chaine or ("lutyuv=" in chaine and "0.83333333" in chaine)
     assert "enable=" not in chaine
     ffmpeg = tools.ffmpeg.path
     sans_teinte = _rgb(ffmpeg, chemins["film"], 16.0, pipeline.filter_chain(info, s0, origine=16.0))
