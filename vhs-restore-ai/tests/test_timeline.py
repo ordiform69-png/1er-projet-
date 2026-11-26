@@ -236,6 +236,38 @@ def test_apercu_avance_recoit_limage_du_moment(tools, samples, tmp_path):
         win.close()
 
 
+def test_legende_de_l_image_du_film_tient_sur_deux_lignes(tmp_path):
+    from PySide6.QtGui import QFont
+    from vhs_restore.gui import CompareView
+
+    app = QApplication.instance() or QApplication([])
+    vue = CompareView()
+    try:
+        vue.setMinimumSize(0, 0)
+        vue.resize(200, 140)
+        vue.setFont(QFont("Sans Serif", 15))
+        image = QImage(160, 120, QImage.Format_RGB32)
+        image.fill(Qt.black)
+        chemin = str(tmp_path / "image.png")
+        assert image.save(chemin)
+        vue.poser_moment(chemin, 7)
+        assert vue.accessibleDescription() == "Image du film à 7 secondes"
+
+        # Le cadre est sombre : les pixels clairs révèlent les lignes effectivement dessinées.
+        rendu = vue.grab().toImage()
+        marges = vue.rect().adjusted(19, 19, -20, -20)
+        assert vue.fontMetrics().horizontalAdvance(vue._moment_texte) > marges.width()
+        pixels = [(x, y) for y in range(12, rendu.height() - 12)
+                  for x in range(12, rendu.width() - 12)
+                  if rendu.pixelColor(x, y).lightness() > 200]
+        assert pixels and all(marges.contains(QPoint(x, y)) for x, y in pixels)
+        lignes = [y for _, y in pixels]
+        assert max(lignes) - min(lignes) > vue.fontMetrics().height()
+    finally:
+        vue.close()
+        app.processEvents()
+
+
 def test_cinq_films_effacent_les_dossiers(tools, samples, monkeypatch):
     def lent(*args, **kwargs):
         annuler = args[6] if len(args) > 6 else kwargs.get("annuler")

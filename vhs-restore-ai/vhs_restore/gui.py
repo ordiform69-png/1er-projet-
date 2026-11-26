@@ -242,7 +242,8 @@ class CompareView(QWidget):
                 f = p.font()
                 f.setPointSizeF(max(f.pointSizeF(), 13))
                 p.setFont(f)
-                p.drawText(inner.adjusted(8, 8, -8, -8), Qt.AlignBottom | Qt.AlignHCenter, self._moment_texte)
+                p.drawText(inner.adjusted(8, 8, -8, -8),
+                           Qt.AlignBottom | Qt.AlignHCenter | Qt.TextWordWrap, self._moment_texte)
                 return
             p.setPen(QColor(theme.MONITEUR_TEXTE))
             f = p.font()
