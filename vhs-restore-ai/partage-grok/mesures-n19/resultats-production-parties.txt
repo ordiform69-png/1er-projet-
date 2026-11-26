@@ -1,0 +1,21 @@
+Temps de restauration n°19 — mode parties
+Date : 2026-11-26 20:45:52 Europe/Paris (UTC+1)
+SHA : 213ace1f6c40677ec55f928b13d796f3d1f0f4c7
+Branche : grok/reprise
+Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 13176.7 Mio), Linux 6.12.113+
+FFmpeg : ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+Méthode : voir METHODE.md — constantes de production, film 25 min
+
+=== ffv1_422 (yuv422p, scan=tff, 1500.0 s) ===
+  analyze=7.011 s
+  constantes : partie=600.0 s, seuil=1200.0 s, chauffe=8.0 s, production=True, découpage=[(0.0, 600.0), (600.0, 1200.0), (1200.0, 1500.0)]
+  run 1: 441.152 s → 17.65 s/min | RAM dispo min 12751.4 Mio (début 13176.5, fin 13283.7)
+  run 2: 448.103 s → 17.92 s/min | RAM dispo min 12986.6 Mio (début 13274.1, fin 13685.4)
+  médiane : 444.628 s (17.79 s de calcul par minute de film)
+
+=== mpeg2_420 (yuv420p, scan=tff, 1500.0 s) ===
+  analyze=2.857 s
+  constantes : partie=600.0 s, seuil=1200.0 s, chauffe=8.0 s, production=True, découpage=[(0.0, 600.0), (600.0, 1200.0), (1200.0, 1500.0)]
+  run 1: 419.500 s → 16.78 s/min | RAM dispo min 13462.5 Mio (début 13658.1, fin 13714.1)
+  run 2: 399.956 s → 16.00 s/min | RAM dispo min 13459.4 Mio (début 13704.3, fin 13641.9)
+  médiane : 409.728 s (16.39 s de calcul par minute de film)
