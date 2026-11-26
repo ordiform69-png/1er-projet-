@@ -69,6 +69,46 @@ def test_possible_seulement_quand_cest_sur():
     assert not reprise.possible(s, 4000, cadence=False, bande=True)
 
 
+def test_applicable_dossier_et_parties_faites(tmp_path, monkeypatch):
+    """Signatures lues par l'écran : applicable, dossier, parties_faites, decouper."""
+    film = tmp_path / "cassette.mp4"
+    film.write_bytes(b"abcdef")
+    info = MediaInfo(path=film, duration=3600, fps=Fraction(25, 1))
+    s = pipeline.Settings(PROFILES["fidele"])
+    assert reprise.applicable(info, s, passages=None) is True
+    gardes = reprise.intervalles(info, None, None, None)
+    assert len(reprise.decouper(gardes)) == 6
+
+    assert reprise.applicable(MediaInfo(path=film, duration=60, fps=Fraction(25, 1)), s) is False
+    assert reprise.applicable(info, dataclasses.replace(s, use_ai=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, dust=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, stabilize=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, tape_noise=True)) is False
+    pellicule = pipeline.Settings(profile_for("fidele", "film"), source="film",
+                                  playback_fps=Fraction(24, 1))
+    assert reprise.applicable(info, pellicule) is False
+    # Début et fin seuls : la durée gardée, pas le film entier.
+    assert reprise.applicable(info, s, start=0, duration=60) is False
+    assert reprise.applicable(info, s, passages=[(0.0, 1000.0), (1500.0, 3600.0)]) is True
+
+    local = tmp_path / "loc"
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    chemin = reprise.dossier(info, s, passages=None)
+    assert chemin == reprise.racine() / reprise.calculer_cle(info, s, [(0.0, 3600.0)])
+    assert not chemin.exists()
+    assert reprise.parties_faites(chemin) == []
+
+    chemin.mkdir(parents=True)
+    reprise.fichier(chemin, 1).write_bytes(b"x" * 40)
+    assert reprise.parties_faites(chemin) == []
+    reprise.ecrire_temoin(reprise.temoin(chemin, 1), 600)
+    reprise.fichier(chemin, 2).write_bytes(b"y" * 40)
+    reprise.ecrire_temoin(reprise.temoin(chemin, 2), 600)
+    (chemin / "partie-0003.mp4").write_bytes(b"trop court")
+    assert reprise.parties_faites(chemin) == [reprise.fichier(chemin, 1), reprise.fichier(chemin, 2)]
+    assert not (chemin / "manifeste.json").exists()
+
+
 def test_cle_change_avec_reglages_scenes_et_passages(tmp_path, monkeypatch):
     film = tmp_path / "cassette.mp4"
     film.write_bytes(b"abcdef")

@@ -94,6 +94,43 @@ def decouper(passages: list[tuple[float, float]],
     return parties
 
 
+def _bornes(info, passages, start, duration) -> list[tuple[float, float]]:
+    """Intervalles gardés, comme à l'export. Un seul passage sans début ni durée : cet intervalle."""
+    if passages is not None and len(passages) == 1 and start is None and duration is None:
+        a, b = passages[0]
+        return [(float(a), float(b))] if float(b) - float(a) >= _EPS else []
+    return intervalles(info, start, duration, passages)
+
+
+def _cadence_changee(info, reglages) -> bool:
+    """Même règle que pipeline.retime : pellicule dont la cadence de tournage n'est pas celle du fichier."""
+    fps = getattr(reglages, "playback_fps", None)
+    return getattr(reglages, "source", "video") == "film" and bool(fps) and fps != getattr(info, "fps", None)
+
+
+def _bande_reparee(reglages) -> bool:
+    """Même règle que pipeline._tape_job."""
+    if getattr(reglages, "source", "video") == "film":
+        return False
+    return bool(getattr(reglages, "tape_noise", False) or getattr(reglages, "chroma_repair", False)
+                or getattr(reglages, "dropouts", False))
+
+
+def applicable(info, reglages, passages=None, start=None, duration=None) -> bool:
+    """Vrai si cet export sera découpé en parties. L'écran s'en sert pour annoncer la reprise.
+
+    `passages` : None si le film part en entier, sinon les intervalles gardés.
+    `start` et `duration` : le même couple que l'export, quand seul le début ou la fin est coupé.
+    """
+    gardes = _bornes(info, passages, start, duration)
+    if not gardes:
+        return False
+    duree = sum(max(0.0, b - a) for a, b in gardes)
+    if not possible(reglages, duree, cadence=_cadence_changee(info, reglages), bande=_bande_reparee(reglages)):
+        return False
+    return len(decouper(gardes)) >= 2
+
+
 def chauffe_partie(debut: float, passages: list[tuple[float, float]],
                    chauffe: float | None = None) -> float:
     """Chauffe réelle : pas avant le début du passage gardé, jamais dans un trou."""
@@ -155,6 +192,14 @@ def _signature_scenes(info) -> list:
     return out
 
 
+def dossier(info, reglages, passages=None, start=None, duration=None) -> Path:
+    """Dossier des parties pour cette clé. Ne crée rien et n'efface rien : l'écran ne fait que lire."""
+    gardes = _bornes(info, passages, start, duration)
+    if not gardes:
+        gardes = [(0.0, float(getattr(info, "duration", 0) or 0.0))]
+    return racine() / calculer_cle(info, reglages, gardes)
+
+
 def calculer_cle(info, s, passages: list[tuple[float, float]]) -> str:
     """Empreinte du film, des réglages (scènes comprises) et du découpage."""
     charge = {
@@ -176,6 +221,19 @@ def fichier(dossier: Path, index: int) -> Path:
 
 def temoin(dossier: Path, index: int) -> Path:
     return dossier / f"partie-{index:04d}.temoin"
+
+
+def parties_faites(dossier) -> list[Path]:
+    """Parties déjà complètes : fichier définitif et témoin. L'écran en compte la longueur."""
+    dossier = Path(dossier)
+    if not dossier.is_dir():
+        return []
+    faites: list[Path] = []
+    for chemin in sorted(dossier.glob("partie-*.temoin")):
+        film = chemin.with_suffix(".mp4")
+        if film.is_file() and film.stat().st_size >= 32 and lire_temoin(chemin) is not None:
+            faites.append(film)
+    return faites
 
 
 def ecrire_temoin(path: Path, duree: float) -> None:
