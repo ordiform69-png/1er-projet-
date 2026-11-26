@@ -36,8 +36,8 @@ POIDS_RETENUS = ("lol_v1", "lol_v2")
 
 
 def dossier_cache() -> Path:
-    """Poids et ONNX : hors du dépôt (VHS_N18_CACHE, sinon ~/.cache/vhs-restore-n18/iat)."""
-    d = Path(os.environ.get("VHS_N18_CACHE") or Path.home() / ".cache" / "vhs-restore-n18") / "iat"
+    """Poids et ONNX : essais/n18/cache/iat (ignoré par git, comme le cache du banc F4) ou VHS_N18_CACHE."""
+    d = Path(os.environ.get("VHS_N18_CACHE") or ICI / "cache") / "iat"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

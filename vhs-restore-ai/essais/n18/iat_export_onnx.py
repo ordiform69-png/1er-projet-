@@ -11,7 +11,7 @@ un environnement séparé, jamais dans celui du logiciel :
      iat_<poids>_global.onnx  : image -> (gamma, matrice 3 x 3)          [partie globale seule]
      iat_<poids>_complet.onnx : image -> (mul, add, gamma, matrice)      [modèle complet]
 3. vérifie onnxruntime contre PyTorch (écart max) et écrit export_iat.json (empreintes SHA-256).
-Rien n'est écrit dans le dépôt : tout va dans le cache (VHS_N18_CACHE ou ~/.cache/vhs-restore-n18).
+Rien n'est commité : tout va dans essais/n18/cache/iat/ (ignoré par git) ou VHS_N18_CACHE.
 """
 from __future__ import annotations
 
