@@ -84,6 +84,37 @@ Quatre lectures de la ligne centrale (ligne 288, paire, compatible 4:2:0) :
 
 Indicateurs : nombre de niveaux distincts, saut maximal entre voisins, saut moyen des sauts non nuls, min/max. La ligne brute (720 échantillons) est conservée dans `rampe-ligne-<phase>.csv` pour une comparaison point par point.
 
+
+## 2.bis Marches dans les dégradés — recette de l'agent B
+
+Document de référence (après fusion de B) : `recette-agent-B.md`. Recette distincte
+de la rampe 16 bits ci-dessus, et c'est celle qui « tranche » le gain 10 bits.
+
+- Une image 720 × 576, format `yuv420p10le`.
+- Luma, colonne `x` : `180 + arrondi(x × 520 / 719)` (codes 10 bits, 180 à 700).
+- Chroma U = V = 512 (plans 360 × 288).
+- Réglages forcés : profil Fidèle sans débruitage ni netteté, progressif,
+  lumière +2 (gamma 1,2), noirs 0,2, blancs 0,75 (pas d'analyse).
+
+Trois lectures de la ligne 288, `format=gray` :
+
+1. **Référence 8 bits** (la mesure « avant » comparable au test de B) :
+   `format=yuv420p,<colorlevels de la chaîne>,eq=contrast=1:saturation=1:gamma=1.2,format=yuv420p`.
+   B a mesuré en FFmpeg 6.1 : 117 niveaux, saut max 5, saut moyen 1,581, moyenne 125,18.
+2. **Chaîne moteur appliquée au 10 bits** : `pipeline.filter_chain` tel quel. Sur la
+   base 8 bits, `colorlevels`/`eq` lancés directement sur du `yuv420p10le` écrasent
+   l'image (1 niveau, Y = 10) — d'où la conversion préalable de la référence.
+3. **Fichier livré** : `pipeline.export` vers MP4 H.264 8 bits.
+
+Indicateurs : niveaux distincts, saut max, saut moyen des sauts non nuls, moyenne
+de la ligne. Ligne brute : `rampe-ligne-<phase>-B.csv`.
+
+```bash
+# Ajouter uniquement cette mesure aux résultats « avant » déjà publiés (ne pas
+# écraser scènes, temps, rampe E) :
+python3 mesurer.py --phase avant --seulement-degrades-B
+```
+
 ## 3. Temps de restauration par minute de film
 
 Même film à 3 scènes (32 s). Réglages typiques d'une restauration, pas le profil « nu » :

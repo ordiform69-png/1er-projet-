@@ -27,6 +27,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone, timedelta
+from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]  # vhs-restore-ai/
@@ -35,7 +36,7 @@ if str(ROOT) not in sys.path:
 
 from vhs_restore import pipeline  # noqa: E402
 from vhs_restore.advice import advise, apply  # noqa: E402
-from vhs_restore.probe import analyze  # noqa: E402
+from vhs_restore.probe import MediaInfo, analyze  # noqa: E402
 from vhs_restore.profiles import profile_for  # noqa: E402
 from vhs_restore.tools import detect_tools  # noqa: E402
 
@@ -73,6 +74,11 @@ DUREE_RAMPE = 4.0
 RAMPE_YMIN, RAMPE_YMAX = 48, 176
 LUMIERE_GAMMA = 2  # cran utilisateur : gamma = 1 + 0,10 × 2 = 1,2 via eq (8 bits)
 NB_RUNS_TEMPS = 3
+# Recette agent B (recette-agent-B.md / tests/test_precision.py) : rampe déjà en
+# 10 bits, une seule image, niveaux forcés 0,2–0,75, lumière +2. Distincte de la
+# rampe 16 bits grise ci-dessus. Y en codes 10 bits, chroma neutre.
+RAMPE_B_Y0, RAMPE_B_Y1, RAMPE_B_CHROMA = 180, 700, 512
+RAMPE_B_NOIR, RAMPE_B_BLANC = 0.2, 0.75
 PARIS = timezone(timedelta(hours=1), name="Europe/Paris")  # heure d'hiver 2026-11
 
 
@@ -140,6 +146,115 @@ def ecrire_rampe_16b(dest_raw: Path, n_images: int) -> None:
     with dest_raw.open("wb") as f:
         for _ in range(n_images):
             f.write(frame)
+
+
+def ecrire_rampe_b_10b(dest: Path) -> None:
+    """Une image yuv420p10le : Y = 180 + arrondi(x × 520 / 719), U = V = 512."""
+    row = bytearray()
+    for x in range(LARGEUR):
+        v = RAMPE_B_Y0 + int(round(x * (RAMPE_B_Y1 - RAMPE_B_Y0) / (LARGEUR - 1)))
+        row += v.to_bytes(2, "little")
+    y = bytes(row) * HAUTEUR
+    chroma = (RAMPE_B_CHROMA.to_bytes(2, "little") * (LARGEUR // 2)) * (HAUTEUR // 2)
+    dest.write_bytes(y + chroma + chroma)
+
+
+def _info_rampe_b(path: Path) -> MediaInfo:
+    return MediaInfo(path=path, width=LARGEUR, height=HAUTEUR, fps=Fraction(25),
+                     duration=1 / CADENCE, dar=Fraction(4, 3), sar=Fraction(1),
+                     scan="progressive", pix_fmt="yuv420p10le")
+
+
+def reglages_rampe_b() -> pipeline.Settings:
+    """Niveaux forcés 0,2 / 0,75, lumière +2, profil Fidèle nu (recette B)."""
+    return dataclasses.replace(
+        reglages_nu(), lumiere=LUMIERE_GAMMA,
+        level_black=RAMPE_B_NOIR, level_white=RAMPE_B_BLANC,
+    )
+
+
+def _ligne_gray_ffmpeg(ffmpeg: str, raw: bytes, vf: str) -> list[int]:
+    r = subprocess.run(
+        [ffmpeg, "-hide_banner", "-loglevel", "error",
+         "-f", "rawvideo", "-pix_fmt", "yuv420p10le",
+         "-s", f"{LARGEUR}x{HAUTEUR}", "-i", "pipe:0",
+         "-vf", vf + ("" if vf.endswith("format=gray") or ",format=gray" in vf
+                      else ",format=gray"),
+         "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+        input=raw, capture_output=True,
+    )
+    if r.returncode or len(r.stdout) < LARGEUR * HAUTEUR:
+        raise RuntimeError(f"rampe B ffmpeg a échoué : {(r.stderr or b'')[-800:]!r}")
+    offset = (HAUTEUR // 2) * LARGEUR
+    return list(r.stdout[offset:offset + LARGEUR])
+
+
+def mesurer_degrades_b(ffmpeg: str, work: Path, tools) -> tuple[dict, list[int], list[int], list[int]]:
+    """Rampe 10 bits de l'agent B : référence 8 bits, chaîne moteur, export livré.
+
+    Sur la base 8 bits, colorlevels/eq appliqués directement à du yuv420p10le
+    écrasent l'image (1 niveau). La référence de B convertit d'abord en
+    format=yuv420p, puis applique les mêmes colorlevels et eq=gamma=1.2.
+    C'est cette référence (117 niveaux, saut max 5, mesuré par B en FFmpeg 6.1)
+    que l'on compare à la chaîne moteur et au MP4 livré.
+    """
+    work.mkdir(parents=True, exist_ok=True)
+    raw_path = work / "rampe-B.yuv"
+    ecrire_rampe_b_10b(raw_path)
+    raw = raw_path.read_bytes()
+    src = work / "rampe-B.mkv"
+    ff(ffmpeg, "-f", "rawvideo", "-pix_fmt", "yuv420p10le",
+       "-s", f"{LARGEUR}x{HAUTEUR}", "-r", str(CADENCE),
+       "-i", str(raw_path), "-frames:v", "1",
+       "-c:v", "ffv1", "-pix_fmt", "yuv420p10le", str(src))
+
+    s = reglages_rampe_b()
+    info_construit = _info_rampe_b(raw_path)
+    chaine_moteur = pipeline.filter_chain(info_construit, s)
+    niveaux = next((f for f in chaine_moteur.split(",") if f.startswith("colorlevels=")), None)
+    if niveaux is None:
+        raise RuntimeError(f"pas de colorlevels dans la chaîne moteur : {chaine_moteur}")
+    chaine_ref_8b = (
+        f"format=yuv420p,{niveaux},eq=contrast=1:saturation=1:gamma=1.2,format=yuv420p"
+    )
+
+    ligne_ref = _ligne_gray_ffmpeg(ffmpeg, raw, chaine_ref_8b)
+    ligne_moteur = _ligne_gray_ffmpeg(ffmpeg, raw, chaine_moteur)
+
+    info_fichier = analyze(src, tools)
+    chaine_export = pipeline.filter_chain(info_fichier, s)
+    out_mp4 = pipeline.export(info_fichier, s, work / "rampe-B-restauree.mp4", tools)
+    r = subprocess.run(
+        [ffmpeg, "-hide_banner", "-loglevel", "error", "-i", str(out_mp4),
+         "-frames:v", "1", "-an", "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+        capture_output=True,
+    )
+    if r.returncode or len(r.stdout) < LARGEUR * HAUTEUR:
+        raise RuntimeError(f"extraction MP4 rampe B échouée : {(r.stderr or b'')[-400:]!r}")
+    offset = (HAUTEUR // 2) * LARGEUR
+    ligne_mp4 = list(r.stdout[offset:offset + LARGEUR])
+
+    def bloc(ligne, chaine=None, extra=None):
+        d = {**stats_marches(ligne), "unite": "0-255", "moyenne_ligne": (sum(ligne) / len(ligne)) if ligne else None}
+        if chaine is not None:
+            d["chaine"] = chaine
+        if extra:
+            d.update(extra)
+        return d
+
+    data = {
+        "recette": "agent-B",
+        "description": "yuv420p10le, 1 image 720×576, Y 180–700, U=V=512, niveaux forcés 0,2/0,75, lumière +2",
+        "reference_8bits": bloc(ligne_ref, chaine_ref_8b),
+        "chaine_moteur_sur_10bits": bloc(ligne_moteur, chaine_moteur),
+        "fichier_livre_mp4": bloc(ligne_mp4, chaine_export),
+        "pix_fmt_source": info_fichier.pix_fmt,
+        "color_range": info_fichier.color_range,
+        "level_black": RAMPE_B_NOIR,
+        "level_white": RAMPE_B_BLANC,
+        "lumiere_cran": LUMIERE_GAMMA,
+    }
+    return data, ligne_ref, ligne_moteur, ligne_mp4
 
 
 def fabriquer_sources(ffmpeg: str, work: Path) -> dict[str, Path]:
@@ -423,6 +538,31 @@ def texte_resume(data: dict) -> str:
             f"saut max={bloc['saut_max']}, saut moyen (non nul)={_n(bloc.get('saut_moyen_non_nul'))}, "
             f"Y {bloc['ymin']}–{bloc['ymax']}"
         )
+    if data.get("degrades_B"):
+        b = data["degrades_B"]
+        lignes += [
+            "",
+            "=== Marches dans les dégradés — recette agent B ===",
+            f"Rampe yuv420p10le, 1 image, Y codes 10 bits {RAMPE_B_Y0}–{RAMPE_B_Y1}, "
+            f"U=V={RAMPE_B_CHROMA}, niveaux forcés {RAMPE_B_NOIR}/{RAMPE_B_BLANC}, "
+            f"lumière +{LUMIERE_GAMMA} (gamma 1,2).",
+        ]
+        for nom, lab in (
+            ("reference_8bits", "référence 8 bits (format=yuv420p + colorlevels + eq)"),
+            ("chaine_moteur_sur_10bits", "chaîne moteur appliquée au 10 bits"),
+            ("fichier_livre_mp4", "fichier livré (pipeline.export, MP4 8 bits)"),
+        ):
+            bloc = b.get(nom) or {}
+            if "niveaux_distincts" not in bloc:
+                continue
+            lignes.append(
+                f"  {lab}: niveaux distincts={bloc['niveaux_distincts']}/{bloc['n_pixels']}, "
+                f"saut max={bloc['saut_max']}, saut moyen (non nul)={_n(bloc.get('saut_moyen_non_nul'))}, "
+                f"moyenne={_n(bloc.get('moyenne_ligne'))}, Y {bloc['ymin']}–{bloc['ymax']}"
+            )
+            if bloc.get("chaine"):
+                lignes.append(f"    chaîne : {bloc['chaine']}")
+
     t = data["temps"]
     lignes += [
         "",
@@ -469,7 +609,11 @@ def main() -> int:
     ap.add_argument("--workdir", type=Path, default=Path("/tmp/mesures-n17"))
     ap.add_argument("--outdir", type=Path, default=ici)
     ap.add_argument("--runs", type=int, default=NB_RUNS_TEMPS)
+    ap.add_argument("--seulement-degrades-B", action="store_true",
+                    help="N'ajoute que la rampe 10 bits de l'agent B, sans refaire scènes/temps/rampe E.")
     args = ap.parse_args()
+    if args.seulement_degrades_B:
+        return _ajouter_degrades_b(args, ici)
     work = args.workdir / args.phase
     if work.exists():
         shutil.rmtree(work)
@@ -555,6 +699,10 @@ def main() -> int:
         "gamma": 1 + pipeline.PAS_LUMIERE * pipeline.cran(LUMIERE_GAMMA),
     }
 
+    print("Mesure des marches (rampe 10 bits, recette agent B)…")
+    degrades_b, ligne_b_ref, ligne_b_moteur, ligne_b_mp4 = mesurer_degrades_b(
+        ffmpeg, work / "rampe-B", tools)
+
     print(f"Temps de restauration ({args.runs} runs, profil équilibré)…")
     s_temps = apply(reglages_restauration(), conseils_film)
     chaine_temps = pipeline.filter_chain(info_film, s_temps)
@@ -602,6 +750,7 @@ def main() -> int:
         "chaine_unique_nu": pipeline.filter_chain(info_film, s_unique),
         "scenes": scenes_out,
         "degrades": degrades,
+        "degrades_B": degrades_b,
         "temps": temps,
         "export_unique_nu_s": duree_unique,
     }
@@ -645,11 +794,107 @@ def main() -> int:
         for x in range(LARGEUR):
             w.writerow([x, ligne_src16[x], ligne_src8[x], ligne_filtre[x], ligne_mp4[x]])
 
+    csv_degrades_b = outdir / f"resultats-{suffixe}-degrades-B.csv"
+    csv_ligne_b = outdir / f"rampe-ligne-{suffixe}-B.csv"
+    _ecrire_fichiers_b(csv_degrades_b, csv_ligne_b, args.phase, degrades_b,
+                       ligne_b_ref, ligne_b_moteur, ligne_b_mp4)
+
     print()
     print(texte_resume(data))
     print("Fichiers écrits :")
-    for p in (json_path, txt_path, csv_scenes, csv_degrades, csv_temps, csv_ligne):
-        print(f"  {p}")
+    for pth in (json_path, txt_path, csv_scenes, csv_degrades, csv_temps, csv_ligne,
+                csv_degrades_b, csv_ligne_b):
+        print(f"  {pth}")
+    return 0
+
+
+def _ecrire_fichiers_b(csv_degrades_b: Path, csv_ligne_b: Path, phase: str, degrades_b: dict,
+                       ligne_ref: list[int], ligne_moteur: list[int], ligne_mp4: list[int]) -> None:
+    rows = []
+    for nom in ("reference_8bits", "chaine_moteur_sur_10bits", "fichier_livre_mp4"):
+        row = {"phase": phase, "recette": "agent-B", "mesure": nom}
+        row.update({k: v for k, v in degrades_b[nom].items() if k != "chaine"})
+        rows.append(row)
+    ecrire_csv(csv_degrades_b, rows)
+    with csv_ligne_b.open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["x", "reference_8bits", "chaine_moteur_sur_10bits", "fichier_livre_mp4"])
+        for x in range(LARGEUR):
+            w.writerow([x, ligne_ref[x], ligne_moteur[x], ligne_mp4[x]])
+
+
+def _ajouter_degrades_b(args, ici: Path) -> int:
+    """Ajoute la mesure recette B aux résultats existants, sans refaire le reste."""
+    tools = detect_tools()
+    if not tools.ffmpeg.path:
+        print("ffmpeg introuvable", file=sys.stderr)
+        return 2
+    ffmpeg = tools.ffmpeg.path
+    outdir = args.outdir
+    work = args.workdir / f"{args.phase}-rampe-B"
+    if work.exists():
+        shutil.rmtree(work)
+    work.mkdir(parents=True)
+    print(f"Phase {args.phase} — seulement dégradés recette B")
+    degrades_b, ligne_ref, ligne_moteur, ligne_mp4 = mesurer_degrades_b(ffmpeg, work, tools)
+
+    json_path = outdir / f"resultats-{args.phase}.json"
+    txt_path = outdir / f"resultats-{args.phase}.txt"
+    if json_path.is_file():
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+    else:
+        racine_git = ROOT.parent
+        br = subprocess.run(["git", "-C", str(racine_git), "rev-parse", "--abbrev-ref", "HEAD"],
+                            capture_output=True, text=True)
+        data = {"phase": args.phase, "date": maintenant(), "sha": sha_depot(racine_git),
+                "branche": br.stdout.strip() if br.returncode == 0 else "?",
+                "materiel": materiel(), "degrades": {}, "scenes": [], "temps": {}}
+    data["degrades_B"] = degrades_b
+    data["date_degrades_B"] = maintenant()
+    data["sha_degrades_B"] = sha_depot(ROOT.parent)
+    json_path.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+
+    # Ajouter la section B au texte, sans écraser les notes déjà présentes.
+    b_txt_lines = [
+        "",
+        f"=== Marches dans les dégradés — recette agent B (ajout {data['date_degrades_B']}, SHA {data['sha_degrades_B']}) ===",
+        f"Rampe yuv420p10le, 1 image, Y codes 10 bits {RAMPE_B_Y0}–{RAMPE_B_Y1}, "
+        f"U=V={RAMPE_B_CHROMA}, niveaux forcés {RAMPE_B_NOIR}/{RAMPE_B_BLANC}, "
+        f"lumière +{LUMIERE_GAMMA} (gamma 1,2). Moteur encore à la base 8 bits.",
+    ]
+    for nom, lab in (
+        ("reference_8bits", "référence 8 bits (format=yuv420p + colorlevels + eq)"),
+        ("chaine_moteur_sur_10bits", "chaîne moteur appliquée au 10 bits"),
+        ("fichier_livre_mp4", "fichier livré (pipeline.export, MP4 8 bits)"),
+    ):
+        bloc = degrades_b[nom]
+        b_txt_lines.append(
+            f"  {lab}: niveaux distincts={bloc['niveaux_distincts']}/{bloc['n_pixels']}, "
+            f"saut max={bloc['saut_max']}, saut moyen (non nul)={_n(bloc.get('saut_moyen_non_nul'))}, "
+            f"moyenne={_n(bloc.get('moyenne_ligne'))}, Y {bloc['ymin']}–{bloc['ymax']}"
+        )
+        if bloc.get("chaine"):
+            b_txt_lines.append(f"    chaîne : {bloc['chaine']}")
+    b_txt_lines.append("")
+    if txt_path.is_file():
+        prev = txt_path.read_text(encoding="utf-8")
+        if "recette agent B" in prev:
+            # replace previous B section if re-run
+            start = prev.find("=== Marches dans les dégradés — recette agent B")
+            if start >= 0:
+                prev = prev[:start].rstrip() + "\n"
+        txt_path.write_text(prev.rstrip() + "\n" + "\n".join(b_txt_lines), encoding="utf-8")
+    else:
+        txt_path.write_text("\n".join(b_txt_lines), encoding="utf-8")
+
+    csv_degrades_b = outdir / f"resultats-{args.phase}-degrades-B.csv"
+    csv_ligne_b = outdir / f"rampe-ligne-{args.phase}-B.csv"
+    _ecrire_fichiers_b(csv_degrades_b, csv_ligne_b, args.phase, degrades_b,
+                       ligne_ref, ligne_moteur, ligne_mp4)
+    print("\n".join(b_txt_lines))
+    print("Fichiers écrits :")
+    for pth in (json_path, txt_path, csv_degrades_b, csv_ligne_b):
+        print(f"  {pth}")
     return 0
 
 

@@ -73,3 +73,12 @@ Notes d'interprétation (moteur actuel, inchangé) :
 - Dégradés : la rampe 16 bits a 720 niveaux distincts ; après la chaîne
   8 bits (niveaux + eq gamma 1,2) il en reste 123 avant x264, 124 dans le
   MP4 livré, avec un saut max de 2 (au lieu de 1 pour une rampe 8 bits naïve).
+
+=== Marches dans les dégradés — recette agent B (ajout 2026-11-26 04:22:09 Europe/Paris (UTC+1), SHA fac1bb49ca3916f08d8089db911552b3f1f0bf70) ===
+Rampe yuv420p10le, 1 image, Y codes 10 bits 180–700, U=V=512, niveaux forcés 0.2/0.75, lumière +2 (gamma 1,2). Moteur encore à la base 8 bits.
+  référence 8 bits (format=yuv420p + colorlevels + eq): niveaux distincts=117/720, saut max=5, saut moyen (non nul)=1.581, moyenne=125.182, Y 28–213
+    chaîne : format=yuv420p,colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,format=yuv420p
+  chaîne moteur appliquée au 10 bits: niveaux distincts=1/720, saut max=0, saut moyen (non nul)=0, moyenne=10, Y 10–10
+    chaîne : colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,setsar=16/15,format=yuv420p
+  fichier livré (pipeline.export, MP4 8 bits): niveaux distincts=1/720, saut max=0, saut moyen (non nul)=0, moyenne=10, Y 10–10
+    chaîne : colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,setsar=16/15,format=yuv420p

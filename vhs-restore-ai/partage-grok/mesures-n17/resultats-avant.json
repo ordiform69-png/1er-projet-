@@ -377,5 +377,55 @@
     "mediane_wall_s": 5.321962604000873,
     "mediane_s_par_minute": 9.978679882501638
   },
-  "export_unique_nu_s": 1.4159531990007963
+  "export_unique_nu_s": 1.4159531990007963,
+  "degrades_B": {
+    "recette": "agent-B",
+    "description": "yuv420p10le, 1 image 720×576, Y 180–700, U=V=512, niveaux forcés 0,2/0,75, lumière +2",
+    "reference_8bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 117,
+      "saut_max": 5,
+      "saut_moyen": 0.3518776077885953,
+      "saut_moyen_non_nul": 1.58125,
+      "n_sauts_non_nuls": 160,
+      "ymin": 28,
+      "ymax": 213,
+      "unite": "0-255",
+      "moyenne_ligne": 125.18194444444444,
+      "chaine": "format=yuv420p,colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,format=yuv420p"
+    },
+    "chaine_moteur_sur_10bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 1,
+      "saut_max": 0,
+      "saut_moyen": 0.0,
+      "saut_moyen_non_nul": 0,
+      "n_sauts_non_nuls": 0,
+      "ymin": 10,
+      "ymax": 10,
+      "unite": "0-255",
+      "moyenne_ligne": 10.0,
+      "chaine": "colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,setsar=16/15,format=yuv420p"
+    },
+    "fichier_livre_mp4": {
+      "n_pixels": 720,
+      "niveaux_distincts": 1,
+      "saut_max": 0,
+      "saut_moyen": 0.0,
+      "saut_moyen_non_nul": 0,
+      "n_sauts_non_nuls": 0,
+      "ymin": 10,
+      "ymax": 10,
+      "unite": "0-255",
+      "moyenne_ligne": 10.0,
+      "chaine": "colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,setsar=16/15,format=yuv420p"
+    },
+    "pix_fmt_source": "yuv420p10le",
+    "color_range": "tv",
+    "level_black": 0.2,
+    "level_white": 0.75,
+    "lumiere_cran": 2
+  },
+  "date_degrades_B": "2026-11-26 04:22:09 Europe/Paris (UTC+1)",
+  "sha_degrades_B": "fac1bb49ca3916f08d8089db911552b3f1f0bf70"
 }
