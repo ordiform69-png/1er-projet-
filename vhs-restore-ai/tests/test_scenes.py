@@ -286,38 +286,67 @@ def test_reglages_utilisateur_par_dessus(film, tools):
     assert (teinte[0] - teinte[2]) > (sans_teinte[0] - sans_teinte[2]) + 1.0
 
 
-GRAPHE_CLAUDE = (
-    "testsrc2=s=720x576:r=25:d=20,eq=brightness=-0.15:saturation=0.7,"
-    "colorchannelmixer=rr=1.15:bb=0.85[a];"
-    "testsrc2=s=720x576:r=25:d=20[b];"
-    "testsrc2=s=720x576:r=25:d=20,eq=brightness=0.12,colorchannelmixer=rr=0.88:bb=1.12[c];"
-    "[a][b][c]concat=n=3,noise=alls=10:allf=t,interlace,format=yuv422p,setsar=16/15[v]"
-)
+_SCENE_A = ("testsrc2=s=720x576:r=25:d=20,eq=brightness=-0.15:saturation=0.7,"
+            "colorchannelmixer=rr=1.15:bb=0.85[a]")
+_SCENE_B = "testsrc2=s=720x576:r=25:d=20[b]"
+_SCENE_C = ("testsrc2=s=720x576:r=25:d=20,eq=brightness=0.12,"
+            "colorchannelmixer=rr=0.88:bb=1.12[c]")
+_FIN = "format=yuv422p,setsar=16/15[v]"
+
+# Quatre variantes du même film : la coupure à 40 s (lampe) doit rester visible
+# sans le bruit, sans l'entrelacement, et avec des écrans noir et bleu autour.
+VARIANTES_CLAUDE = {
+    "origine": (
+        f"{_SCENE_A};{_SCENE_B};{_SCENE_C};"
+        f"[a][b][c]concat=n=3,noise=alls=10:allf=t,interlace,{_FIN}",
+        (0.0, 20.0, 40.0),
+    ),
+    "sans_entrelacement": (
+        f"{_SCENE_A};{_SCENE_B};{_SCENE_C};"
+        f"[a][b][c]concat=n=3,noise=alls=10:allf=t,{_FIN}",
+        (0.0, 20.0, 40.0),
+    ),
+    "sans_bruit": (
+        f"{_SCENE_A};{_SCENE_B};{_SCENE_C};"
+        f"[a][b][c]concat=n=3,interlace,{_FIN}",
+        (0.0, 20.0, 40.0),
+    ),
+    "ecrans": (
+        "color=c=black:s=720x576:r=25:d=3[k];"
+        f"{_SCENE_A};{_SCENE_B};{_SCENE_C};"
+        "color=c=0x1030c8:s=720x576:r=25:d=3[u];"
+        f"[k][a][b][c][u]concat=n=5,noise=alls=10:allf=t,interlace,{_FIN}",
+        (0.0, 3.0, 23.0, 43.0, 63.0),
+    ),
+}
 
 
-@pytest.fixture(scope="module")
-def film_claude(tmp_path_factory, tools):
-    dossier = tmp_path_factory.mktemp("claude")
-    film = dossier / "trois-plans.mkv"
-    ff("-filter_complex", GRAPHE_CLAUDE, "-map", "[v]", "-c:v", "ffv1", str(film))
+@pytest.fixture(scope="module", params=tuple(VARIANTES_CLAUDE))
+def variante_claude(request, tmp_path_factory, tools):
+    nom = request.param
+    graphe, attendus = VARIANTES_CLAUDE[nom]
+    dossier = tmp_path_factory.mktemp(f"claude-{nom}")
+    film = dossier / "film.mkv"
+    ff("-filter_complex", graphe, "-map", "[v]", "-c:v", "ffv1", str(film))
     info = analyze(film, tools)
     scenes.attacher(info, tools.ffmpeg.path)
-    return film, info
+    return nom, info, attendus
 
 
-def test_coupure_de_40s_sans_fausse_coupure(film_claude):
-    """Même image, lampe qui change : la coupure à 40 s (écart 11,9) est vue, pas le bruit."""
-    _film, info = film_claude
+def test_variantes_de_la_coupure_a_40s(variante_claude):
+    """Les quatre films : mêmes scènes, avec ou sans bruit, entrelacement, écrans."""
+    nom, info, attendus = variante_claude
     debuts = [round(s.debut, 2) for s in info.scenes]
-    print(f"MESURE claude analyse_s={info.scenes_secondes:.2f} debuts={debuts}")
-    assert len(info.scenes) == 3, debuts
-    assert abs(info.scenes[1].debut - 20.0) <= 0.4
-    assert abs(info.scenes[2].debut - 40.0) <= 0.4
-    normale = next(s for s in info.scenes if s.debut <= 30.0 < s.fin)
+    print(f"MESURE {nom} analyse_s={info.scenes_secondes:.2f} debuts={debuts}")
+    assert len(info.scenes) == len(attendus), (nom, debuts, attendus)
+    for trouve, voulu in zip(info.scenes, attendus):
+        assert abs(trouve.debut - voulu) <= 0.4, (nom, debuts, attendus)
+    # la scène « normale » (entre la lampe orangée et la lampe bleue)
+    normale = next(s for s in info.scenes if abs(s.debut - (23.0 if nom == "ecrans" else 20.0)) <= 0.4)
     _lo, _hi, rr, gg, bb = scenes._valeurs(
         normale, dataclasses.replace(neutre(), level_black=0.2, level_white=0.8))
-    print(f"GAINS scene normale rr={rr:.4f} gg={gg:.4f} bb={bb:.4f}")
-    assert abs(rr - 1) <= 0.02 and abs(gg - 1) <= 0.02 and abs(bb - 1) <= 0.02, (rr, gg, bb)
+    print(f"GAINS {nom} rr={rr:.4f} gg={gg:.4f} bb={bb:.4f}")
+    assert abs(rr - 1) <= 0.02 and abs(gg - 1) <= 0.02 and abs(bb - 1) <= 0.02, (nom, rr, gg, bb)
 
 
 def test_plan_unique_a_la_lumiere_douce(tools, tmp_path):
