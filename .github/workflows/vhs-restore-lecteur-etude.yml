@@ -1,0 +1,58 @@
+# Étude n°13 étape 2 : taille de Qt Multimedia dans le paquet Windows,
+# et stries d'un film entrelacé dans le lecteur.
+# Workflow séparé : il ne modifie pas vhs-restore-windows.yml.
+# Rien n'est livré au client. Aucun zip ni DLL n'est publié.
+name: Étude lecteur (n°13 étape 2)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - grok/lecteur-mesures
+    paths:
+      - ".github/workflows/vhs-restore-lecteur-etude.yml"
+      - ".github/workflows/essai-lecteur-n13.ps1"
+      - ".github/workflows/mesure-stries-n13.py"
+
+permissions:
+  contents: read
+
+jobs:
+  etude-lecteur:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances Python (mêmes que la fabrication Windows)
+        working-directory: vhs-restore-ai
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt -r requirements-poussieres.txt -r requirements-couleurs.txt pyinstaller==6.22.3
+
+      - name: FFmpeg et modèle de colorisation (même script que l'installation utilisateur)
+        working-directory: vhs-restore-ai
+        shell: pwsh
+        run: ./scripts/installer_outils.ps1 -AvecCouleurs
+
+      - name: Tailles du paquet et stries du lecteur
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./.github/workflows/essai-lecteur-n13.ps1
+
+      - name: Reprendre les chiffres dans le journal
+        if: always()
+        shell: pwsh
+        run: |
+          $f = "vhs-restore-ai/partage-grok/etude-lecteur-n13/mesures.txt"
+          if (Test-Path $f) { Get-Content -LiteralPath $f } else { Write-Output "Pas de mesures.txt" }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: etude-lecteur-n13-${{ github.run_number }}
+          path: vhs-restore-ai/partage-grok/etude-lecteur-n13
+          retention-days: 90
+          if-no-files-found: warn
