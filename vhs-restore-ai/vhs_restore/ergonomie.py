@@ -6,7 +6,6 @@ et quoi faire ; le détail technique reste disponible, jamais en premier.
 """
 from __future__ import annotations
 
-import inspect
 import logging
 from dataclasses import dataclass
 
@@ -17,15 +16,12 @@ PHRASE_COUPES_DOSSIER = ("Les coupes de ce film ne seront pas appliquées aux au
 
 log = logging.getLogger("vhs_restore")
 
-# Lecture du moteur `reprise.py` (autre agent). Sur cette branche le fichier n'existe pas encore :
-# tout appel échoue en silence et l'écran se comporte comme aujourd'hui.
-# Noms attendus (demande n°19, repris par les tests de la branche grok/reprise) :
-#   applicable(info, reglages, passages=None) -> bool
-#   dossier(info, reglages, passages=None) -> Path
-#   parties_faites(dossier) -> séquence des parties déjà complètes
-#   decouper(passages) -> liste des parties (la longueur est le total)
-#   et, à défaut de ce qui précède : etat / situation / interrompue
-# `passages` : intervalles gardés, ou None si le film part en entier.
+# Interface fixe de reprise.py, appelée directement :
+#   applicable(info, reglages, passages=None, start=None, duration=None) -> bool
+#   dossier(info, reglages, passages=None, start=None, duration=None) -> Path
+#   parties_faites(dossier) -> parties déjà complètes
+#   decouper(passages, duree_partie=None, chauffe=None) -> parties (la longueur est le total)
+# `passages` de l'export vaut None si le film part en entier. Le décompte utilise `gardes`.
 
 
 def insecables(texte: str) -> str:
@@ -156,11 +152,14 @@ def memoriser_recent(liste: list[str], chemin: str, maxi: int = 5) -> list[str]:
     return out
 
 
-class _Echec:
-    """L'appel au moteur a échoué : on n'invente pas un état."""
+def lire_reprise(info, reglages, *, passages=None, gardes=None, start=None, duration=None) -> Reprise | None:
+    """État d'une restauration interrompue, ou None si le moteur ne la reprendra pas.
 
-
-def _module_reprise():
+    `passages` est celui de l'export (None si le film part en entier). `gardes` est la liste
+    des intervalles gardés, passée à `reprise.decouper` pour compter les parties.
+    """
+    if info is None or reglages is None:
+        return None
     try:
         from . import reprise
     except ImportError:
@@ -168,146 +167,19 @@ def _module_reprise():
     except Exception:
         log.warning("reprise : module illisible", exc_info=True)
         return None
-    return reprise
-
-
-def _appelable(mod, noms: tuple[str, ...]):
-    for nom in noms:
-        fn = getattr(mod, nom, None)
-        if callable(fn) and not isinstance(fn, type):
-            return fn
-    return None
-
-
-def _invoquer(fn, *args, **kwargs):
-    """Appelle `fn` avec les arguments que sa signature accepte. None si l'appel casse."""
     try:
-        params = inspect.signature(fn).parameters
-    except (TypeError, ValueError):
-        params = None
-    if params is not None and not any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
-        kwargs = {cle: val for cle, val in kwargs.items() if cle in params}
-    try:
-        return fn(*args, **kwargs)
-    except TypeError:
-        if not kwargs:
-            log.warning("reprise : appel impossible", exc_info=True)
-            return _Echec()
-        try:
-            return fn(*args)
-        except Exception:
-            log.warning("reprise : appel impossible", exc_info=True)
-            return _Echec()
+        if not reprise.applicable(info, reglages, passages=passages, start=start, duration=duration):
+            return None
+        gardes_liste = list(gardes or [])
+        if not gardes_liste:
+            duree = float(getattr(info, "duration", 0) or 0)
+            if duree > 0:
+                gardes_liste = [(0.0, duree)]
+        total = len(reprise.decouper(gardes_liste)) if gardes_liste else 0
+        chemin = reprise.dossier(info, reglages, passages=passages, start=start, duration=duration)
+        faites = len(reprise.parties_faites(chemin))
     except Exception:
         log.warning("reprise : appel impossible", exc_info=True)
-        return _Echec()
-
-
-def _entier(valeur, defaut: int | None = None) -> int | None:
-    if isinstance(valeur, bool) or valeur is None:
-        return defaut
-    try:
-        return int(round(float(valeur)))
-    except (TypeError, ValueError):
-        return defaut
-
-
-def _compte(valeur) -> int | None:
-    if isinstance(valeur, bool) or valeur is None or isinstance(valeur, _Echec):
-        return None
-    nombre = _entier(valeur)
-    if nombre is not None:
-        return nombre
-    try:
-        return len(list(valeur))
-    except TypeError:
-        return None
-
-
-def _lire_attribut(objet, *noms):
-    if isinstance(objet, dict):
-        for nom in noms:
-            if nom in objet:
-                return objet[nom]
-        return None
-    for nom in noms:
-        if hasattr(objet, nom):
-            return getattr(objet, nom)
-    return None
-
-
-def _interpreter(brut) -> Reprise | None:
-    """Accepte (faites, total), (faites, total, pourcent ignoré) ou un objet / dict nommé."""
-    if brut is None or brut is False or isinstance(brut, _Echec):
-        return None
-    if brut is True:
-        return Reprise(0, 0, True)
-    faites = total = None
-    en_parties = None
-    if isinstance(brut, (tuple, list)):
-        if len(brut) < 2:
-            return None
-        faites, total = _entier(brut[0], 0), _entier(brut[1], 0)
-    else:
-        faites = _entier(_lire_attribut(brut, "faites", "fait", "parties_faites", "deja"))
-        total = _entier(_lire_attribut(brut, "total", "parties", "nombre"))
-        drapeau = _lire_attribut(brut, "en_parties", "garde", "applicable")
-        if isinstance(drapeau, bool):
-            en_parties = drapeau
-    if faites is None or total is None:
-        return Reprise(0, 0, True) if en_parties else None
-    faites, total = max(0, faites), max(0, total)
-    if en_parties is None:
-        en_parties = faites > 0 or total > 1
-    if not en_parties and faites <= 0:
-        return None
-    return Reprise(faites, total, bool(en_parties) or faites > 0)
-
-
-def lire_reprise(info, reglages, *, passages=None, gardes=None, start=None, duration=None) -> Reprise | None:
-    """État d'une restauration interrompue, ou None si le moteur ne la reprendra pas.
-
-    `passages` est celui de l'export (None si le film part en entier). `gardes` est la liste
-    des intervalles gardés, utilisée seulement pour compter les parties.
-    """
-    mod = _module_reprise()
-    if mod is None or info is None or reglages is None:
-        return None
-    applicable = _appelable(mod, ("applicable", "en_parties", "eligible"))
-    if applicable is not None:
-        return _lire_applicable(mod, applicable, info, reglages, passages, gardes, start, duration)
-    fn = _appelable(mod, ("etat", "situation", "interrompue"))
-    if fn is None:
-        return None
-    return _interpreter(_invoquer(fn, info, reglages, passages=passages, start=start, duration=duration))
-
-
-def _lire_applicable(mod, applicable, info, reglages, passages, gardes, start, duration) -> Reprise | None:
-    rep = _invoquer(applicable, info, reglages, passages=passages, start=start, duration=duration)
-    if isinstance(rep, _Echec):
-        return None
-    if rep is False:
-        return None
-    concerne = True if rep is True else None
-    gardes_liste = list(gardes or [])
-    if not gardes_liste:
-        duree = float(getattr(info, "duration", 0) or 0)
-        if duree > 0:
-            gardes_liste = [(0.0, duree)]
-    total = 0
-    decouper = _appelable(mod, ("decouper",))
-    if decouper is not None and gardes_liste:
-        total = _compte(_invoquer(decouper, gardes_liste)) or 0
-    faites = 0
-    dossier = _appelable(mod, ("dossier",))
-    faits = _appelable(mod, ("parties_faites",))
-    if dossier is not None and faits is not None:
-        chemin = _invoquer(dossier, info, reglages, passages=passages, start=start, duration=duration)
-        if not isinstance(chemin, _Echec) and chemin is not None:
-            compte = _compte(_invoquer(faits, chemin))
-            if compte is not None:
-                faites = compte
-    if concerne is None and faites <= 0 and total <= 1:
         return None
     return Reprise(max(0, faites), max(0, total), True)
 

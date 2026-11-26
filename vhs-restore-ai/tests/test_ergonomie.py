@@ -161,31 +161,41 @@ def test_phrases_de_reprise():
     assert ergonomie.lire_reprise(object(), object()) is None
 
 
-def test_lecture_reprise_tolerante(monkeypatch):
-    """Sans reprise.py : rien. Avec l'interface décrite : 5 parties sur 11, sinon un état nommé."""
+def _brancher_reprise(monkeypatch, faux):
+    """Le faux module doit être celui que `from . import reprise` retrouve."""
     import sys
+
+    import vhs_restore
+
+    monkeypatch.setitem(sys.modules, "vhs_restore.reprise", faux)
+    monkeypatch.setattr(vhs_restore, "reprise", faux)
+
+
+def test_lecture_reprise_tolerante(monkeypatch):
+    """Moteur inutilisable : rien. Signatures de reprise.py : 5 parties sur 11, puis 6 sur 12."""
     import types
 
     info = types.SimpleNamespace(duration=3600.0, path="film.mp4")
     faux = types.ModuleType("vhs_restore.reprise")
 
-    def applicable(info, s, passages=None):
+    def applicable(info, reglages, passages=None, start=None, duration=None):
         return passages != "non"
 
     faux.applicable = applicable
-    faux.dossier = lambda info, s, passages=None: "dossier"
+    faux.dossier = lambda info, reglages, passages=None, start=None, duration=None: "dossier"
     faux.parties_faites = lambda dossier: list(range(5))
-    faux.decouper = lambda passages, duree_partie=None: list(range(11))
-    monkeypatch.setitem(sys.modules, "vhs_restore.reprise", faux)
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(11))
+    _brancher_reprise(monkeypatch, faux)
     etat = ergonomie.lire_reprise(info, object(), passages=None, gardes=[(0.0, 3600.0)])
     assert etat is not None and (etat.faites, etat.total, etat.en_parties) == (5, 11, True)
     assert "45 %" in etat.phrase_ouverte()
     assert etat.phrase_en_cours() == "Reprise : 5 parties sur 11 déjà faites."
+    assert ergonomie.message_ouverture(etat.faites, etat.total) == etat.phrase_ouverte()
     assert ergonomie.lire_reprise(info, object(), passages="non", gardes=[(0.0, 20.0)]) is None
 
-    del faux.applicable, faux.dossier, faux.parties_faites, faux.decouper
-    faux.etat = lambda info, s, passages=None, start=None, duration=None: (6, 12)
-    etat = ergonomie.lire_reprise(info, object())
+    faux.parties_faites = lambda dossier: list(range(6))
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(12))
+    etat = ergonomie.lire_reprise(info, object(), gardes=[(0.0, 3600.0)])
     assert etat is not None and etat.phrase_en_cours() == "Reprise : 6 parties sur 12 déjà faites."
     assert "50 %" in etat.phrase_ouverte()
 
@@ -193,7 +203,6 @@ def test_lecture_reprise_tolerante(monkeypatch):
 @pytest.mark.assistant
 def test_reprise_annoncee_a_l_ecran(app, tools, tmp_path, monkeypatch):
     """Ligne d'état, résumé « Vérifier et lancer », reprise, arrêt et erreur. Fenêtre 1280 × 641."""
-    import sys
     import types
     from fractions import Fraction
 
@@ -202,11 +211,11 @@ def test_reprise_annoncee_a_l_ecran(app, tools, tmp_path, monkeypatch):
     from vhs_restore.probe import MediaInfo
 
     faux = types.ModuleType("vhs_restore.reprise")
-    faux.applicable = lambda info, s, passages=None, start=None, duration=None: True
-    faux.dossier = lambda info, s, passages=None, start=None, duration=None: tmp_path
+    faux.applicable = lambda info, reglages, passages=None, start=None, duration=None: True
+    faux.dossier = lambda info, reglages, passages=None, start=None, duration=None: tmp_path
     faux.parties_faites = lambda dossier: list(range(5))
-    faux.decouper = lambda passages, duree_partie=None: list(range(11))
-    monkeypatch.setitem(sys.modules, "vhs_restore.reprise", faux)
+    faux.decouper = lambda passages, duree_partie=None, chauffe=None: list(range(11))
+    _brancher_reprise(monkeypatch, faux)
     vus = []
     monkeypatch.setattr(QMessageBox, "exec", lambda self: vus.append(self.text()) or 0)
 
