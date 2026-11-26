@@ -134,8 +134,10 @@ Les trois tests d'export 80 s et le test DVD, qui échouaient encore après `0bc
 ## Non testé
 
 - `tests/test_ergonomie.py` (ajout R2 : phrases, lecture tolérante, annonce à l'écran 1280×641) : **non cité** par la demande, donc non lancé.
-- Mesure par parties avec les constantes de *production* (parties de 10 min, seuil de 20 min) : un film de 3 min ne déclencherait pas le découpage ; le script force 60 s / 1 s / 8 s, comme prévu dans `METHODE.md`.
-- Box en FFmpeg 7.1.5 uniquement (la demande mentionne aussi 6.1 et 9.1 sous Windows).
+- FFmpeg 6.1 : non lancé (non demandé dans cette relance).
+- Les deux points ci-dessous, indiqués dans la première version de ce rapport, ont été couverts le 26 nov. 2026 au soir — voir « Demandes de Claude avant fusion » :
+  - `test_reprise.py` sous FFmpeg 9.1, sur le SHA `6a4c60b` ;
+  - mesure avec les constantes de production (parties de 10 min, film de 25 min).
 
 ## Bloqué
 
@@ -173,3 +175,87 @@ Avant `3dc94d2` : `open_media` annonçait **40,032 s**. La 2ᵉ partie était at
 - Dossier Linux : `~/.local/share/VHSRestoreAI/reprise` (demande, et `racine()` de R1), pas `~/.local/state`.
 - Messages d'écran dans `ergonomie.py` (R2), pas dans `reprise.py`.
 - Seuil de production 20 min vs film de mesure 3 min : le script force le découpage, écrit dans `METHODE.md`.
+
+## Demandes de Claude avant fusion (26 nov. 2026, Europe/Paris UTC+1)
+
+Trois points demandés avant une fusion réelle. `grok/qualite` n'a pas été touchée (aucun commit, aucun push). Tests uniquement les fichiers cités, aucun relâché, moteur non modifié par R3. Les tests de (a) ont été lancés **avant** la série officielle de (b), et ceux de (c) **après** : pas de concurrence CPU avec les mesures de 25 min, donc pas de biais de charge sur les chiffres retenus.
+
+### a) `test_reprise.py` sur `6a4c60b`, FFmpeg 7.1.5 et 9.1
+
+Relance sur le SHA du merge du 2e correctif R1 : `6a4c60ba9d2bfca0940b09b207fdaaa18a3b36c8`, copie détachée `/workspace/ctrl-vhs/reprise-6a4c60b` (`grok/reprise` n'a pas été déplacée pour ces tests). `QT_QPA_PLATFORM=offscreen`, `timeout 900`.
+
+**FFmpeg 7.1.5** (binaire système `/usr/bin/ffmpeg`), 26 nov. 2026 vers 20:00 Europe/Paris (UTC+1) :
+
+```
+ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+built with gcc 14 (Debian 14.2.0-19)
+libavutil      59. 39.100 / 59. 39.100
+libavcodec     61. 19.101 / 61. 19.101
+libavformat    61.  7.103 / 61.  7.103
+```
+
+Résultat : **16 passés en 40,17 s**. Aucun échec.
+
+**FFmpeg 9.1** (build statique Linux amd64 de Martin Riedl, version 9.1 « Gauss » du 20 nov. 2026 ; bibliothèques identiques à l'annonce officielle : libavutil 61.19.100, libavcodec 63.24.100, libavformat 63.16.100). BtbN ne proposait alors qu'un 9.0, johnvansickle un 7.0.2. Le build a été récupéré hors dépôt dans `/workspace/outils-ffmpeg/ffmpeg-9.1/` (`https://ffmpeg.martin-riedl.de/redirect/latest/linux/amd64/release/ffmpeg.zip` et `ffprobe.zip`) et placé en tête du `PATH` uniquement pour ce lancement, avec `VHSRA_FFMPEG` / `VHSRA_FFPROBE`. Ce n'est pas une dépendance du projet. `detect_tools()` a bien vu ces binaires.
+
+```
+ffmpeg version 9.1-https://www.martin-riedl.de Copyright (c) 2000-2026 the FFmpeg developers
+built with gcc 12 (Debian 12.2.0-14+deb12u1)
+libavutil      61. 19.100 / 61. 19.100
+libavcodec     63. 24.100 / 63. 24.100
+libavformat    63. 16.100 / 63. 16.100
+libavfilter    12.  8.100 / 12.  8.100
+```
+
+Résultat : **16 passés en 25,18 s**. Aucun échec. Rien à détailler ; le moteur n'a pas été modifié, aucun test n'a été relâché.
+
+### b) Surcoût des parties de production (10 min) sur un film de 25 min
+
+Film de synthèse **1500 s** (25 min), 720×576 entrelacé TFF, son PCM, hors dépôt (`/tmp/mesures-n19/films-1500s/`) : FFV1 4:2:2 (1,9 Gio) et MPEG-2 4:2:0 (1,6 Gio). Justification : le seuil de production est 20 min ; 21 min donnerait un reste d'1 min (toujours > chauffe de 8 s, donc une 3ᵉ partie à part), trop court pour un reliquat typique ; 25 min donne 10 + 10 + 5 min, au-dessus du seuil, sans rallonger démesurément l'horloge.
+
+Profil Équilibré, `preset=medium`, crf=18, bwdif TFF, pas d'IA ni de stabilisation. Constantes de production (`DUREE_PARTIE=600`, `SEUIL=1200`, `CHAUFFE=8`), non forcées pour le mode « par parties ». Découpage réel constaté : `(0, 600), (600, 1200), (1200, 1500)`.
+
+**Deux passages** par mode et par format. Idéalement 2–3 ; trois passages auraient ajouté environ une demi-heure après déjà ~27 min pour « une fois » et ~29 min pour « par parties ». Les deux passages FFV1 et « une fois » MPEG-2 sont peu dispersés. Le MPEG-2 « par parties » l'est un peu plus (419,500 / 399,956 s) ; la série n'a pas été rejetée (un troisième passage n'a pas été lancé). Médiane = `statistics.median` (moyenne des deux valeurs). Machine : Xeon 8 cœurs, 16 Gio, pas de swap, **FFmpeg 7.1.5-0+deb13u1**. RAM disponible autour de 12–13 Gio pendant la série officielle (minimum observé : 12 330 Mio, FFV1 « une fois » run 2). Disque : ~117 Gio libres sur `/`, ~86 Gio sur `/workspace` ; aucun gêne.
+
+Point de méthode : sur un film ≥ 20 min, `pipeline.export` emprunte automatiquement le chemin par parties. Une première tentative « une fois » sans précaution l'a confirmé (`ffmpeg -t 600`, dossier sous `~/.local/share/VHSRestoreAI/reprise`). Elle a été **arrêtée et écartée**, le cache utilisateur nettoyé, et le script corrigé : en mode une-fois, `reprise.SEUIL` est relevé temporairement au-dessus de la durée du film (sans modifier le moteur committé), et `LOCALAPPDATA` est isolé sous le dossier de travail. Vérification : l'export unique lit le film entier, sans `-frames:v` ni dossier de parties.
+
+SHA des mesures (script) : `213ace1f6c40677ec55f928b13d796f3d1f0f4c7`. Horodatage : « une fois » à partir de 20:18:42, « par parties » à partir de 20:45:52 Europe/Paris (UTC+1), fin 21:14.
+
+| Film | Une fois (médiane, 2 passages) | Par parties (médiane, 2 passages) | Écart |
+|---|---|---|---|
+| FFV1 4:2:2 | 431,406 s (17,26 s/min) — 427,426 / 435,385 | 444,628 s (17,79 s/min) — 441,152 / 448,103 | **+13,222 s (+3,1 %)** |
+| MPEG-2 4:2:0 | 374,477 s (14,98 s/min) — 375,740 / 373,214 | 409,728 s (16,39 s/min) — 419,500 / 399,956 | **+35,251 s (+9,4 %)** |
+
+La chauffe seule ajoute 8 s × 2 parties suivantes / 1500 s = **+1,07 %** de source. Le surcoût FFV1 sur 25 min (+3,1 %) se rapproche de cet ordre, bien plus bas que les +6,1 % du film de 3 min (où la chauffe pesait déjà +8,9 % de source). Le MPEG-2 reste plus élevé (+9,4 %, contre +11,7 % sur 3 min). Fichiers : `partage-grok/mesures-n19/resultats-production-une-fois.*` et `resultats-production-parties.*`. Les séries 3 min déjà publiées ne sont pas écrasées.
+
+### c) Branche d'essai `grok/reprise-essai-fusion`
+
+Créée depuis `grok/reprise` @ `a7bc0865ace8014d9e0fa4d48e3c18502090910a` (après les résultats de (b)), poussée, sans toucher à `grok/qualite`.
+
+Fusion `--no-ff` de `grok/qualite` @ `97d1f4d139befafe52f806862299c16d2d02d74b` : **aucun conflit**. Fichiers entrants : `vhs_restore/scenes.py`, `tests/test_scenes.py`, `partage-grok/RAPPORT-N17-POUR-CLAUDE.md`, `partage-grok/mesures-n17/resultats-corrections-tour2-variantes-claude.txt`. Merge `a500b6a5733f373ac712d1baf50f1abc4a34f7ee` (parents `a7bc086` et `97d1f4d`), poussé.
+
+Tests sur `a500b6a`, FFmpeg 7.1.5-0+deb13u1, `QT_QPA_PLATFORM=offscreen`, `timeout 900`, 21:15–21:18 Europe/Paris (UTC+1), un fichier après l'autre :
+
+| Fichier | Résultat |
+|---|---|
+| `tests/test_reprise.py` | **16 passés** en 40,92 s |
+| `tests/test_scenes.py` | **16 passés** en 125,65 s (jeu paramétré du 2e tour inclus) |
+
+Aucune assertion relâchée, moteur non modifié.
+
+Ensuite, tentative `git merge --no-ff --no-commit origin/gpt/timeline-retouches`. Tête vérifiée : `c753474f99771171b753dd14222731bfa1d383f4` (« Timeline : consigner les vérifications du deuxième tour »). **Un seul fichier en conflit**, puis `git merge --abort`. Rien de cette tentative n'est committé ; `grok/reprise-essai-fusion` est restée à `a500b6a`.
+
+Fichier en conflit : `vhs-restore-ai/vhs_restore/gui.py` (contenu, both modified). Deux blocs :
+
+1. **Imports** (lignes 31–35 du fichier en conflit). `HEAD` (n°19 / R2) importe `scenes` (et `ergonomie`, déjà présent des deux côtés) mais pas le lecteur. `origin/gpt/timeline-retouches` importe `lecteur` et `raccord`, mais **pas** `scenes`. Il faudra l'union : `scenes`, `lecteur` et `raccord`.
+2. **Après l'analyse d'une vidéo** (lignes 3177–3182), juste avant `self._lancer_images()`. `HEAD` ajoute `self._lancer_scenes()` puis `self._annoncer_reprise_ouverte()` (n°17 / n°19). La timeline ajoute `self.barre.zoomer()` (lecteur). Les trois appels sont complémentaires ; une résolution correcte les garderait tous les trois, sans en supprimer.
+
+`vhs_restore/assistant.py` a aussi été touché des deux côtés mais s'est **fusionné tout seul** (pas de marqueurs). Les autres fichiers de la timeline (lecteur, raccord, tests du lecteur et de la timeline, `ecran.py`, `vignettes.py`, demandes et rapports GPT, etc.) sont entrés sans conflit. Ils n'ont pas été gardés : la fusion a été annulée.
+
+**Ordre prévu par Claude (n°17, puis timeline et lecteur, puis n°19).** D'après cette sonde : le 2e tour des scènes (n°17) et la timeline ne se chevauchent pas sur le code (`scenes.py` / `test_scenes.py` d'un côté, lecteur / raccord / `gui.py` / `assistant.py` de l'autre). Fusionner n°17 puis la timeline ne devrait donc pas buter sur les scènes. Le point dur est l'arrivée de n°19 (surtout R2 : `gui.py`, et dans une moindre mesure `assistant.py`) **par-dessus** la timeline : on retrouvera les deux mêmes blocs de `gui.py` (imports ; hooks après analyse). L'ordre inverse que nous avons sondé (n°17 déjà dans `grok/reprise`, puis n°19, puis la timeline par-dessus) produit le même conflit sur `gui.py`, parce que n°17 ne touche pas ce fichier. Dans les deux ordres, il faudra conserver les comportements des deux côtés (scènes, annonce de reprise, zoom du lecteur). `assistant.py` pourra encore se fusionner seul, mais il faudra relire le résultat. Cette sonde ne remplace pas une fusion réelle dans l'ordre de Claude.
+
+### Hashes à l'issue de a/b/c
+
+- `grok/reprise` : voir le commit de mise à jour de ce rapport (les mesures de (b) sont à `a7bc0865ace8014d9e0fa4d48e3c18502090910a`).
+- `grok/reprise-essai-fusion` : `a500b6a5733f373ac712d1baf50f1abc4a34f7ee` (inchangé après l'abandon de la tentative timeline).
+- `grok/qualite` : toujours `97d1f4d139befafe52f806862299c16d2d02d74b` (aucun commit, aucun push).
