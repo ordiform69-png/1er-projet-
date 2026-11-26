@@ -20,12 +20,12 @@ from typing import Any, Callable
 
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox,
+                               QScrollArea, QSizePolicy, QSpinBox, QToolTip,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
 from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
@@ -868,11 +868,14 @@ class _Ruban(QWidget):
     def definir(self, duree: float, position: float, debut: float, fin: float,
                 coupes: list[tuple[float, float]]) -> None:
         # Ne pas interrompre un glisser : cette méthode est rappelée pendant qu'on tire un bord.
+        ancienne_duree = self.duree
         self.duree = max(0.0, float(duree or 0))
         self.position = float(position or 0)
         self.debut = float(debut or 0)
         self.fin = float(fin or 0)
         self.coupes = list(coupes)
+        if self.duree != ancienne_duree:
+            self.zoomer()
         if self._amplitude:
             a, b = self._fenetre()
             if not a <= self.position <= b:
@@ -901,7 +904,7 @@ class _Ruban(QWidget):
 
 
     def _zone(self):
-        bas = 22 if self.height() >= 80 else 10
+        bas = 22 if self.height() >= 64 else 10
         return self.rect().adjusted(1, 16, -1, -bas)
 
     def _x_de(self, t: float) -> float:
@@ -928,9 +931,10 @@ class _Ruban(QWidget):
             return None
         choisi: tuple[int, bool] | None = None
         ecart = self.PRISE_BORD + 1.0
+        origine, limite = self._fenetre()
         for i, (a, b) in enumerate(self.coupes):
             for est_fin, moment in ((False, a), (True, b)):
-                if not self._fenetre()[0] <= moment <= self._fenetre()[1]:
+                if not origine <= moment <= limite:
                     continue
                 d = abs(float(x) - self._x_de(moment))
                 if d <= self.PRISE_BORD and d < ecart:
@@ -1031,6 +1035,35 @@ class _Ruban(QWidget):
         else:
             super().keyPressEvent(event)
 
+    @staticmethod
+    def _heure(temps: float, millisecondes: bool = True) -> str:
+        secondes, fraction = divmod(round(max(0.0, temps) * 1000), 1000)
+        heures, reste = divmod(secondes, 3600)
+        minutes, secondes = divmod(reste, 60)
+        base = f"{heures:d}:{minutes:02d}:{secondes:02d}"
+        return f"{base},{fraction:03d}" if millisecondes else base
+
+    def event(self, event) -> bool:
+        if event.type() == QEvent.ToolTip and self.duree > 0:
+            temps = self._temps(event.pos().x())
+            contenu = self._heure(temps)
+            passage = self.passage_a(temps)
+            if passage is not None:
+                contenu += f" · {passage.genre.capitalize()} détecté"
+            elif any(a <= temps < b for a, b in self.coupes) or temps < self.debut or temps > (self.fin or self.duree):
+                contenu += " · Passage retiré"
+            QToolTip.showText(event.globalPos(), contenu, self)
+            return True
+        return super().event(event)
+
+    def _rectangle_temps(self, r: QRect, a: float, b: float) -> QRect:
+        origine, limite = self._fenetre()
+        a, b = max(a, origine), min(b, limite)
+        if b <= a:
+            return QRect()
+        x, fin = int(self._x_de(a)), int(self._x_de(b))
+        return QRect(x, r.top() + 4, max(2, fin - x), r.height() - 8)
+
     def _dessiner_images(self, p: QPainter, r: QRect) -> None:
         """Petites images du film, ou un gris tant qu'elles ne sont pas prêtes."""
         n = len(self._vignettes)
@@ -1077,9 +1110,11 @@ class _Ruban(QWidget):
         if a_images:
             bleu.setAlpha(55)
             dore.setAlpha(150)
-        p.setBrush(bleu)
-        x0, x1 = self._x_de(self.debut), self._x_de(fin)
-        p.drawRect(int(x0), r.top() + 4, max(2, int(x1 - x0)), r.height() - 8)
+        p.fillRect(self._rectangle_temps(r, self.debut, fin), bleu)
+        for a, b in ((0.0, self.debut), (fin, self.duree), *self.coupes):
+            rectangle = self._rectangle_temps(r, a, b)
+            p.fillRect(rectangle, dore)
+            p.fillRect(rectangle, QBrush(QColor(theme.AMBRE_TEXTE), Qt.BDiagPattern))
         origine, limite = self._fenetre()
         for passage in self.passages_vides:
             a, b = passage.debut, passage.fin
@@ -1093,35 +1128,43 @@ class _Ruban(QWidget):
             if origine <= repere <= limite:
                 x = int(self._x_de(repere))
                 p.drawLine(x, r.bottom() - 8, x, r.bottom())
-        p.setPen(Qt.NoPen)
-        p.setBrush(dore)
-        for a, b in self.coupes:
-            xa, xb = self._x_de(a), self._x_de(b)
-            p.drawRect(int(xa), r.top() + 4, max(2, int(xb - xa)), r.height() - 8)
         xp = int(self._x_de(self.position))
-        p.setPen(QPen(QColor(theme.TEXTE), 3))
+        p.setPen(QPen(QColor("#111820"), 5))
         p.drawLine(xp, r.top(), xp, r.bottom())
-        p.setPen(Qt.NoPen)
-        p.setBrush(QColor(theme.TEXTE))
-        p.drawPolygon([QPoint(xp, r.top() - 1), QPoint(xp - 7, r.top() - 12), QPoint(xp + 7, r.top() - 12)])
-        cote = 12
-        milieu = r.top() + 4 + (r.height() - 8) / 2.0
-        p.setPen(QPen(QColor("#1a1206"), 1))
+        p.setPen(QPen(QColor("#ffffff"), 2))
+        p.drawLine(xp, r.top(), xp, r.bottom())
+        p.setPen(QPen(QColor("#111820"), 1))
         p.setBrush(QColor("#ffffff"))
+        p.drawPolygon([QPoint(xp, r.top() - 1), QPoint(xp - 7, r.top() - 12), QPoint(xp + 7, r.top() - 12)])
+        milieu = r.center().y()
+        p.setPen(QPen(QColor(theme.AMBRE_TEXTE), 2))
         for a, b in self.coupes:
             for moment in (a, b):
-                cx = self._x_de(moment)
-                p.drawRoundedRect(int(round(cx - cote / 2)), int(round(milieu - cote / 2)), cote, cote, 2, 2)
+                if origine <= moment <= limite:
+                    cx = int(self._x_de(moment))
+                    p.drawRoundedRect(cx - 9, milieu - 13, 18, 26, 3, 3)
+                    p.drawLine(cx - 2, milieu - 6, cx - 2, milieu + 6)
+                    p.drawLine(cx + 2, milieu - 6, cx + 2, milieu + 6)
         p.restore()
-        if self.height() >= 80 or self._amplitude:
-            debut, fin_visible = self._fenetre()
-            haut = self.height() - (18 if self.height() >= 80 else 10)
-            bas = QRect(4, haut, max(0, self.width() - 8), self.height() - haut)
-            p.setPen(QColor(theme.TEXTE_DOUX))
-            p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, _duree(debut))
-            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree((debut + fin_visible) / 2))
-            p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(fin_visible))
+        if self.height() >= 64:
+            bas = QRect(5, r.bottom() + 1, max(0, self.width() - 10), self.height() - r.bottom() - 1)
+            p.setPen(QColor(theme.TEXTE))
+            self._dessiner_heures(p, bas, origine, limite)
         p.end()
+
+
+    def _dessiner_heures(self, p: QPainter, bas: QRect, debut: float, fin: float) -> None:
+        precis = fin - debut < 10
+        gauche, droite = self._heure(debut, precis), self._heure(fin, precis)
+        mesure = p.fontMetrics().horizontalAdvance
+        if mesure(gauche) + mesure(droite) + 10 > bas.width():
+            p.drawText(bas, Qt.AlignCenter, self._heure(self.position, precis))
+            return
+        p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, gauche)
+        p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, droite)
+        milieu = self._heure((debut + fin) / 2, precis)
+        if 2 * max(mesure(gauche), mesure(droite)) + mesure(milieu) + 20 < bas.width():
+            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, milieu)
 
 
 class BarreFilm(_Ruban):
