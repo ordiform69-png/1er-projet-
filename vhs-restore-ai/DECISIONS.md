@@ -1020,3 +1020,31 @@ Non vérifié : un vrai écran autre que celui du père ; texte plus grand autom
 - Défaut trouvé par ce test et corrigé : la fenêtre naît à 1100 × 760 (texte plafonné à 100 %),
   et la ligne qui réappliquait la taille après le chargement des réglages enregistrait ce 100 % :
   le 125 % du père aurait été perdu à chaque lancement. Elle reprend désormais le choix voulu.
+
+## Qualité de restauration (demandes n°17 et n°18)
+
+Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
+
+- **Lumière et couleurs scène par scène** (`scenes.py`) : les niveaux et la dominante sont mesurés
+  par scène (images réduites, 5 par seconde) et appliqués par commandes (`sendcmd`), avec les mêmes
+  plafonds qu'avant et un passage progressif hors coupure franche. L'analyse tourne en
+  arrière-plan après l'ouverture ; tant qu'elle n'est pas finie, correction unique ; un avant /
+  après vu avant la fin est à revoir ; la restauration attend la fin si besoin. Détection des
+  coupures vérifiée sur 8 films d'essai (changement de lumière seul, vraie coupure, sans bruit,
+  sans entrelacement, écrans noir et bleu, lumière qui monte doucement, scintillement VHS, fondu).
+- **Calcul en 10 bits** jusqu'à l'encodage (le fichier livré reste en 8 bits) : `eq` (8 bits
+  seulement) remplacé par `lutyuv`, même rendu à 1/255 près ; dégradés de 1 à 159 niveaux.
+- **Contrôle de la numérisation** (`probe.py`, `advice.py`) : copie déjà compressée, déjà réduite
+  ou désentrelacée, noirs ou blancs écrasés ; aucune fausse alerte sur une capture sans
+  compression.
+- Temps de restauration mesuré par Claude sur des films proches de vraies captures (720 × 576
+  entrelacé, son, niveaux appliqués) : +13 % en FFV1 4:2:2, +6 % en MPEG-2 4:2:0.
+- **QTGMC non embarqué** (étude de l'agent D) : +111 Mo au paquet et environ 14 images par seconde
+  sur un PC modeste (3 h 30 de désentrelacement pour une cassette de 2 h).
+- **Pas d'IA d'analyse ajoutée** (essai n°18) : un juge de qualité (CLIP-IQA+, DBCNN) choisissant
+  lumière et couleurs abîme les photos intactes (24 sur 24, mesuré par Claude) ; IAT éloigne
+  l'image de l'original ; les modèles VHS d'OpenModelDB demandent des centaines d'heures pour une
+  cassette sans faire mieux. Essais sur dégradations simulées seulement : à refaire sur de vrais
+  extraits si l'utilisateur en fournit (`essais/n18/`).
+- **Real-ESRGAN gardé** (choix de l'utilisateur) : code BSD-3 ; ses poids sont appris sur DIV2K,
+  réservé à la recherche académique. Accepté pour un usage familial gratuit.
