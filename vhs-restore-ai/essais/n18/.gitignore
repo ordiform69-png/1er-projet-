@@ -1,0 +1,18 @@
+# Essai n°18 : aucun poids, aucune image, aucune vidéo dans le dépôt.
+*.onnx
+*.onnx.data
+*.pt
+*.pth
+*.npz
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.yuv
+*.raw
+resultats/
+travail/
