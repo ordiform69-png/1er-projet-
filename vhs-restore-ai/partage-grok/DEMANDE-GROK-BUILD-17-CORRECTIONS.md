@@ -47,9 +47,11 @@ testsrc2=s=720x576:r=25:d=20,eq=brightness=0.12,colorchannelmixer=rr=0.88:bb=1.1
 [a][b][c]concat=n=3,noise=alls=10:allf=t,interlace,format=yuv422p,setsar=16/15[v]
 ```
 
-Ici, seules la lumière et la couleur changent à 40 s (même image, comme une lampe qu'on allume) ;
-l'écart moyen dépasse pourtant le seuil SEUIL_FRANC. Résultat : 2 scènes (0–20 s, 20–60 s) au
-lieu de 3. La coupure à 40 s (normale → claire et
+Ici, seules la lumière et la couleur changent à 40 s (même image, comme une lampe qu'on allume).
+Mesuré par Claude (images réduites 160 × 90, 5 i/s) : l'écart des moyennes RVB vaut 11,9 à la
+coupure et 6,8 au plus ailleurs ; l'écart pixel à pixel 25,1 contre 20,7. Le saut est net mais
+reste sous SEUIL_FRANC (18). Piste : un seuil relatif (saut nettement au-dessus de la variation
+voisine) plutôt qu'absolu. Résultat : 2 scènes (0–20 s, 20–60 s) au lieu de 3. La coupure à 40 s (normale → claire et
 bleutée) n'est pas vue : les deux scènes sont moyennées, la scène normale reçoit une correction
 dont elle n'a pas besoin (rouge +7 %), la scène bleutée n'est corrigée qu'à moitié.
 
