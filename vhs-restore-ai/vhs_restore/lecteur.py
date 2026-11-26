@@ -30,6 +30,8 @@ class Lecteur(QObject):
         self.mode = ""
         self.plages: tuple[tuple[float, float], ...] = ()
         self._saut: int | None = None
+        self._reprendre: bool | None = None
+        self._essais_reprise = 0
         self._attente = QTimer(self, singleShot=True, interval=8000)
         self._attente.timeout.connect(lambda: self._echec("Le lecteur n’a reçu aucune image à temps."))
         if QMediaPlayer is None:
@@ -49,7 +51,7 @@ class Lecteur(QObject):
         self.media.setVideoOutput(self.video)
         self.media.positionChanged.connect(self._position_changee)
         self.media.durationChanged.connect(lambda _: self.etat.emit())
-        self.media.playbackStateChanged.connect(lambda _: self.etat.emit())
+        self.media.playbackStateChanged.connect(self._etat_lecture)
         self.media.mediaStatusChanged.connect(self._etat_media)
         self.media.errorOccurred.connect(lambda _, raison: self._echec(raison))
         self.video.videoSink().videoFrameChanged.connect(self._image)
@@ -60,6 +62,8 @@ class Lecteur(QObject):
 
     @property
     def joue(self) -> bool:
+        if self._reprendre is True:
+            return True
         return self.media is not None and self.media.playbackState() == QMediaPlayer.PlayingState
 
     def ouvrir(self, chemin: Path, mode: str, *, debut: float = 0,
@@ -72,6 +76,7 @@ class Lecteur(QObject):
             self._initialiser()
         self.mode = mode
         self.plages = plages
+        self._reprendre = None
         self._saut = round(1000 * debut) if debut > 0 else None
         self._attente.start()
         self.media.setSource(QUrl.fromLocalFile(str(chemin.resolve())))
@@ -79,12 +84,30 @@ class Lecteur(QObject):
             self.media.play()
             self.etat.emit()
 
+    def remplacer(self, chemin: Path) -> None:
+        """Ouvre un autre fichier à la même position. Lecture ou pause reste ce qu'elle était."""
+        if self.mode != "original" or self.media is None or self.video is None:
+            return
+        jouait = self.media.playbackState() == QMediaPlayer.PlayingState or self._reprendre is True
+        pos = self._saut if self._saut is not None else self.media.position()
+        self._reprendre = jouait
+        self._essais_reprise = 0
+        self._saut = max(0, int(pos))
+        self._attente.start()
+        self.media.setSource(QUrl.fromLocalFile(str(Path(chemin).resolve())))
+        if jouait:
+            self.media.play()
+        self.etat.emit()
+
     def basculer(self) -> None:
         if not self.actif or self.media is None:
             return
         if self.joue:
+            if self._reprendre is True:
+                self._reprendre = False
             self.media.pause()
         else:
+            self._reprendre = None
             if self.media.mediaStatus() == QMediaPlayer.EndOfMedia:
                 self.media.setPosition(0)
             self.media.play()
@@ -103,6 +126,8 @@ class Lecteur(QObject):
         self.mode = ""
         self.plages = ()
         self._saut = None
+        self._reprendre = None
+        self._essais_reprise = 0
         self._attente.stop()
         self.media.stop()
         self.media.setSource(QUrl())
@@ -126,9 +151,27 @@ class Lecteur(QObject):
         if not self.actif:
             return
         if etat in (QMediaPlayer.LoadedMedia, QMediaPlayer.BufferedMedia):
+            if self._saut is not None and not self.media.isSeekable():
+                self.etat.emit()
+                return
             self._faire_saut()
+            if self._reprendre is True and self.media.playbackState() != QMediaPlayer.PlayingState:
+                self.media.play()
+            elif self._reprendre is False:
+                if self.media.playbackState() != QMediaPlayer.PausedState:
+                    self.media.pause()
+                self._reprendre = None
         if etat == QMediaPlayer.EndOfMedia and self.mode == "raccord":
             self.fermer()
+        self.etat.emit()
+
+    def _etat_lecture(self, etat) -> None:
+        if self._reprendre is True and etat == QMediaPlayer.PlayingState:
+            self._reprendre = None
+        elif (self._reprendre is True and etat == QMediaPlayer.StoppedState
+              and self._saut is None and self.actif and self._essais_reprise < 3):
+            self._essais_reprise += 1
+            self.media.play()
         self.etat.emit()
 
     def _position_changee(self, millisecondes: int) -> None:

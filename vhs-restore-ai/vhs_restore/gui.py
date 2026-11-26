@@ -28,7 +28,8 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox, QToolTip,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline, raccord, theme, vides, vignettes
+from . import (copie_lecture, ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline,
+               raccord, theme, vides, vignettes)
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -56,7 +57,10 @@ def _eteindre_a_la_sortie() -> None:
             fab = getattr(win, "_fab", None)
             if fab is not None:
                 fab.stop()
-            for nom in ("_pompe", "_replan_images", "_attente_moment"):
+            copie = getattr(win, "_copie", None)
+            if copie is not None:
+                copie.stop()
+            for nom in ("_pompe", "_replan_images", "_attente_moment", "_attente_copie", "_pompe_copie"):
                 timer = getattr(win, nom, None)
                 if timer is not None:
                     timer.stop()
@@ -70,8 +74,17 @@ def _eteindre_a_la_sortie() -> None:
             pass
     try:
         vignettes.tuer_extractions()
+        copie_lecture.tuer()
     except Exception:
         pass
+    for win in list(_FENETRES):
+        copie = getattr(win, "_copie", None)
+        if copie is not None:
+            copie.fil.join(2)
+            try:
+                win._copie = None
+            except RuntimeError:
+                pass
     for win in list(_FENETRES):
         fab = getattr(win, "_fab", None)
         if fab is None:
@@ -798,6 +811,72 @@ class _Fab:
     def stop(self) -> None:
         self.annuler.set()
         for proc in list(self._procs_lot) + list(self._procs_moment):
+            try:
+                if proc.poll() is None:
+                    proc.kill()
+            except OSError:
+                pass
+
+
+class _Copie:
+    """Copie de lecture, dans un fil à part, après l'analyse des scènes.
+
+    Le fil est un démon : la fermeture de Python ne plante pas. FFmpeg est tué
+    à l'annulation. `scenes` dit si l'analyse des scènes occupe encore ce film.
+    """
+
+    _GRACE = 0.4
+
+    def __init__(self, ffmpeg: str, info: MediaInfo, dest: Path,
+                 scenes: Callable[[], bool]) -> None:
+        self.ffmpeg, self.info, self.dest = ffmpeg, info, dest
+        self.scenes = scenes
+        self.annuler = threading.Event()
+        self.fini = threading.Event()
+        self.chemin: Path | None = None
+        self.procs: list = []
+        self.fil = threading.Thread(target=self._corps, name="vhs-lecture", daemon=True)
+
+    def start(self) -> None:
+        self.fil.start()
+
+    def _attendre_scenes(self) -> bool:
+        """Vrai quand l'analyse des scènes ne tourne plus. Faux si on a annulé.
+
+        Un court délai laisse l'analyse démarrer si elle est lancée dans le même
+        tour d'ouverture, juste après la planification.
+        """
+        grace = time.monotonic() + self._GRACE
+        while True:
+            if self.annuler.is_set():
+                return False
+            try:
+                occupe = bool(self.scenes())
+            except Exception:
+                occupe = False
+            if occupe:
+                grace = None
+            elif grace is None or time.monotonic() >= grace:
+                return True
+            if self.annuler.wait(0.05):
+                return False
+
+    def _corps(self) -> None:
+        copie_lecture.priorite_basse()
+        try:
+            if not self._attendre_scenes() or self.annuler.is_set():
+                return
+            if copie_lecture.preparer(self.ffmpeg, self.info, self.dest, self.annuler, self.procs):
+                if not self.annuler.is_set():
+                    self.chemin = self.dest
+        except Exception:
+            log.exception("copie de lecture")
+        finally:
+            self.fini.set()
+
+    def stop(self) -> None:
+        self.annuler.set()
+        for proc in list(self.procs):
             try:
                 if proc.poll() is None:
                     proc.kill()
@@ -1589,6 +1668,15 @@ class MainWindow(QMainWindow):
         self._gen_images = 0
         self._fab: _Fab | None = None
         self._dossier_images: Path | None = None
+        self._copie: _Copie | None = None
+        self._dossier_copie: Path | None = None
+        self._copie_prete: Path | None = None
+        self._attente_copie = QTimer(self)
+        self._attente_copie.setSingleShot(True)
+        self._attente_copie.timeout.connect(self._lancer_copie)
+        self._pompe_copie = QTimer(self)
+        self._pompe_copie.setInterval(100)
+        self._pompe_copie.timeout.connect(self._pomper_copie)
         self._boite = _Boite()
         self._pompe = QTimer(self)
         self._pompe.setInterval(40)
@@ -3123,6 +3211,10 @@ class MainWindow(QMainWindow):
                             "Étape suivante : « Voir l'avant / après ».")
         self.barre.zoomer()
         self._lancer_images()
+        # Après l'analyse des scènes : le fil attend qu'elle ait fini avant FFmpeg.
+        # Un appel à `_lancer_scenes` dans cette méthode, avant ou après cette ligne,
+        # reste vu : le minuteur ne part qu'une fois `_loaded` rendu à l'écran.
+        self._planifier_copie()
 
     def _question_vitesse(self, demande):
         from .eta import describe
@@ -3203,19 +3295,151 @@ class MainWindow(QMainWindow):
         if self.preview and 0 <= idx < len(self.preview.stills):
             self.compare.set_still(self.preview.stills[idx])
 
+    def _scenes_occupent(self, info: MediaInfo) -> bool:
+        """Vrai tant que l'analyse des scènes de ce film n'a pas fini."""
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is None or getattr(suivi, "info", None) is not info:
+            return False
+        terminee = getattr(suivi, "terminee", None)
+        try:
+            if callable(terminee):
+                return not bool(terminee())
+        except Exception:
+            return False
+        return not bool(getattr(info, "scenes_vues", True))
+
+    def _chemin_lecture(self) -> Path | None:
+        """La copie si elle est prête, sinon l'original. None pour un DVD encore en plusieurs morceaux."""
+        pret = getattr(self, "_copie_prete", None)
+        if pret is not None and pret.is_file():
+            return pret
+        if len(self.info.parts) > 1:
+            return None
+        return self.info.path
+
+    def _planifier_copie(self) -> None:
+        """Lance la copie au prochain tour d'écran, seulement pour un film entrelacé."""
+        self._arreter_copie()
+        info = self.info
+        if info is None or getattr(self, "is_photo", False) or not copie_lecture.voulu(info):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg or not info.duration or info.duration <= 0:
+            return
+        if not copie_lecture.assez_de_place(info, Path(tempfile.gettempdir())):
+            return
+        self._copie_info = info
+        self._attente_copie.setInterval(0)
+        self._attente_copie.start()
+
+    def _lancer_copie(self) -> None:
+        info = getattr(self, "_copie_info", None)
+        if info is None or info is not self.info or not copie_lecture.voulu(info):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg:
+            return
+        dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_lecture_"))
+        copie_lecture.retenir(dossier)
+        self._dossier_copie = dossier
+        self._copie_prete = None
+        dest = dossier / "lecture.mp4"
+        self._copie = _Copie(ffmpeg, info, dest, lambda: self._scenes_occupent(info))
+        self._copie.start()
+        self._pompe_copie.start()
+
+    def _pomper_copie(self) -> None:
+        job = getattr(self, "_copie", None)
+        if job is None or not job.fini.is_set():
+            return
+        self._pompe_copie.stop()
+        chemin = job.chemin
+        if chemin is not None and chemin.is_file() and not job.annuler.is_set() and job.info is self.info:
+            self._copie_prete = chemin
+            self._basculer_vers_copie(chemin)
+            return
+        self._effacer_dossier_copie()
+
+    def _basculer_vers_copie(self, chemin: Path) -> None:
+        """Le film en cours passe sur la copie, à la même position, sans message."""
+        lecteur = getattr(self, "lecteur", None)
+        if lecteur is None or not lecteur.actif or lecteur.mode != "original" or lecteur.media is None:
+            return
+        actuel = lecteur.media.source().toLocalFile()
+        try:
+            if actuel and Path(actuel).resolve() == chemin.resolve():
+                return
+        except OSError:
+            return
+        lecteur.remplacer(chemin)
+
+    def _lecteur_sur_copie(self, dossier: Path) -> bool:
+        lecteur = getattr(self, "lecteur", None)
+        if lecteur is None or not lecteur.actif or lecteur.media is None:
+            return False
+        actuel = lecteur.media.source().toLocalFile()
+        if not actuel:
+            return False
+        try:
+            Path(actuel).resolve().relative_to(dossier.resolve())
+        except (OSError, ValueError):
+            return False
+        return True
+
+    def _effacer_dossier_copie(self) -> None:
+        dossier = getattr(self, "_dossier_copie", None)
+        self._dossier_copie = None
+        self._copie_prete = None
+        if dossier is None:
+            return
+        copie_lecture.oublier(dossier)
+        shutil.rmtree(dossier, ignore_errors=True)
+
+    def _arreter_copie(self) -> None:
+        """Annule la copie en cours et efface son dossier. N'attend pas à l'écran."""
+        attente = getattr(self, "_attente_copie", None)
+        if attente is not None:
+            attente.stop()
+        pompe = getattr(self, "_pompe_copie", None)
+        if pompe is not None:
+            pompe.stop()
+        self._copie_info = None
+        job = getattr(self, "_copie", None)
+        dossier = getattr(self, "_dossier_copie", None)
+        self._copie = None
+        self._dossier_copie = None
+        self._copie_prete = None
+        if job is not None:
+            job.stop()
+        if dossier is not None and self._lecteur_sur_copie(dossier):
+            self.lecteur.fermer()
+
+        def _nettoyer() -> None:
+            if job is not None:
+                job.fil.join(8)
+            if dossier is not None:
+                copie_lecture.oublier(dossier)
+                shutil.rmtree(dossier, ignore_errors=True)
+
+        if job is not None or dossier is not None:
+            fil = threading.Thread(target=_nettoyer, name="vhs-lecture-fin", daemon=True)
+            _NETTOYEURS.append(fil)
+            fil.start()
+
     def _lire_film(self) -> None:
         if self._busy() or not self._film_pour_coupe():
             return
         if self.lecteur.actif:
             self.lecteur.basculer()
             return
-        if len(self.info.parts) > 1:
+        chemin = self._chemin_lecture()
+        if chemin is None:
             self.status.setText("Ce DVD a plusieurs morceaux. Déplacez-vous avec les petites images.")
             return
         debut = self.start_spin.value()
         if debut >= self.info.duration:
             debut = 0.0
-        self.lecteur.ouvrir(self.info.path, "original", debut=debut)
+        self.lecteur.ouvrir(chemin, "original", debut=debut)
 
     def _play_compare(self) -> None:
         if self.preview and not self._busy():
@@ -3402,6 +3626,7 @@ class MainWindow(QMainWindow):
 
     def _couper_images(self) -> None:
         """Arrête la fabrication et remet l'écran. Le dossier part une fois les fils arrêtés."""
+        self._arreter_copie()
         self._arreter_images()
         self._replan_images.stop()
         self._cache_vignettes.clear()
