@@ -22,3 +22,22 @@ L'assemblage avec `grok/qualite` donne un seul conflit d'une ligne (Claude le r�
 
 Mêmes règles qu'avant (branche `gpt/timeline`, un commit par point, fenêtre jamais agrandie,
 aucun test affaibli, ni fusion ni pull request). Rapport : compléter `RAPPORT-GPT-TIMELINE.md`.
+
+## Deuxième tour (après `4c48695`, `gpt/timeline-retouches`)
+
+Vérifié par Claude (captures de l'étape « Couper le film », 100 et 150 %) : boutons à 38 points,
+passages bleus bien visibles, « Enlever 0:00 – 0:03 » et « Tout enlever » : bien. Reste :
+
+1. **Phrase guide sous les boutons** (« 1. Glissez jusqu'au début… ») : à 100 %, « Couper ici »
+   est encore séparé de « » » en fin de ligne (la retouche a porté sur « Comment faire ? », pas
+   sur cette phrase) ; à 150 %, la fin de la phrase est rognée. Espaces insécables ici aussi, et la
+   phrase prend la hauteur dont elle a besoin (jamais rognée ; la page de l'assistant peut défiler
+   à 150 %, pas à 100 et 125 %).
+2. **« Lire le film » ne doit pas être vert.** Le vert est réservé à l'action principale de l'écran
+   (« Suivant → », « Voir l'avant / après », « Lancer la restauration ») : deux grands boutons verts
+   côte à côte, un homme de 76 ans ne sait plus lequel presser. Style des boutons secondaires (fond
+   clair, bord), même taille.
+3. Détail : à 150 %, « Image du film à 7 secondes » est rognée dans le cadre de l'image (texte plus
+   petit ou sur deux lignes).
+
+Mêmes règles. Branche `gpt/timeline-retouches`. Rapport : compléter `RAPPORT-GPT-TIMELINE.md`.
