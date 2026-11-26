@@ -1,0 +1,78 @@
+image,sujet,variante,zone,psnr,ssim,delta_e,hf_rapport,hf_ecart,secondes_par_image,film_2h_heures,coeurs,largeur,hauteur,tuile,banc
+interieur-vikstejn,intérieur sombre,degradee,image entière,19.022313,0.515006,14.923914,0.422935,42.209609,,,8,720,576,,F4 banc.py
+interieur-vikstejn,intérieur sombre,sans_ia,image entière,18.451894,0.628039,15.115525,0.474955,42.606596,0.047354,2.367684,8,720,576,,F4 banc.py
+interieur-vikstejn,intérieur sombre,vhs_sharpen,image entière,12.859018,0.466500,19.336239,0.284931,40.529820,83.789091,4189.454567,8,720,576,256,F4 banc.py
+interieur-vikstejn,intérieur sombre,baldrick,image entière,18.556669,0.533113,14.297761,0.280549,40.731137,65.920112,3296.005624,8,720,576,256,F4 banc.py
+interieur-vikstejn,intérieur sombre,vhs_film_2x,image entière,16.513976,0.524476,16.863516,0.595434,45.933738,73.992966,3699.648291,8,720,576,256,F4 banc.py
+interieur-vikstejn,intérieur sombre,realesrgan_x4plus,image entière,19.809973,0.632508,12.283909,0.416130,39.832202,74.802230,3740.111523,8,720,576,256,F4 banc.py
+interieur-vikstejn,intérieur sombre,rendu_maximum,image entière,18.848817,0.656551,15.027449,0.450812,38.358604,23.971302,1198.565082,8,720,576,256,F4 banc.py
+exterieur-hautefort,extérieur,degradee,image entière,18.869374,0.360703,15.059238,0.524967,35.395045,,,8,720,576,,F4 banc.py
+exterieur-hautefort,extérieur,sans_ia,image entière,18.689711,0.565407,12.997104,0.520095,34.546211,0.012294,0.614681,8,720,576,,F4 banc.py
+exterieur-hautefort,extérieur,vhs_sharpen,image entière,13.794431,0.501852,19.761733,0.387176,32.833295,32.230958,1611.547923,8,720,576,256,F4 banc.py
+exterieur-hautefort,extérieur,baldrick,image entière,17.612697,0.471369,17.890636,0.320551,32.372742,38.678018,1933.900900,8,720,576,256,F4 banc.py
+exterieur-hautefort,extérieur,vhs_film_2x,image entière,17.632358,0.404290,15.294531,0.825214,43.182524,21.614145,1080.707267,8,720,576,256,F4 banc.py
+exterieur-hautefort,extérieur,realesrgan_x4plus,image entière,18.654577,0.583322,12.551917,0.312076,30.360435,26.579701,1328.985037,8,720,576,256,F4 banc.py
+exterieur-hautefort,extérieur,rendu_maximum,image entière,17.596920,0.523255,14.327702,0.410281,30.367776,29.214855,1460.742741,8,720,576,256,F4 banc.py
+visages-krampf,visages,degradee,image entière,22.631861,0.463556,10.715163,2.845540,14.198712,,,8,720,576,,F4 banc.py
+visages-krampf,visages,degradee,"visage 1 (230,90,230x210)",21.501605,0.462015,11.587144,2.593159,16.103669,,,8,720,576,,F4 banc.py
+visages-krampf,visages,degradee,"visage 2 (400,0,150x150)",21.666614,0.486989,12.361487,2.353666,16.327449,,,8,720,576,,F4 banc.py
+visages-krampf,visages,sans_ia,image entière,21.982361,0.845124,12.028013,2.052796,10.491088,0.012055,0.602757,8,720,576,,F4 banc.py
+visages-krampf,visages,sans_ia,"visage 1 (230,90,230x210)",20.542536,0.804880,12.670066,2.413827,14.936659,,,8,720,576,,F4 banc.py
+visages-krampf,visages,sans_ia,"visage 2 (400,0,150x150)",20.362120,0.785222,12.827093,2.321045,16.031828,,,8,720,576,,F4 banc.py
+visages-krampf,visages,vhs_sharpen,image entière,12.582948,0.775342,15.819912,2.073899,11.082228,28.421615,1421.080772,8,720,576,256,F4 banc.py
+visages-krampf,visages,vhs_sharpen,"visage 1 (230,90,230x210)",12.708660,0.742511,19.575756,1.764096,11.852070,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,vhs_sharpen,"visage 2 (400,0,150x150)",13.704588,0.701668,17.532942,1.213236,10.051945,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,baldrick,image entière,24.060052,0.830005,10.118372,1.134369,6.976650,21.098504,1054.925211,8,720,576,256,F4 banc.py
+visages-krampf,visages,baldrick,"visage 1 (230,90,230x210)",22.926867,0.799778,9.937219,1.253387,9.222849,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,baldrick,"visage 2 (400,0,150x150)",20.650923,0.749381,11.531761,1.248749,10.282168,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,vhs_film_2x,image entière,21.123723,0.769114,11.007246,2.295545,12.152959,46.454442,2322.722110,8,720,576,256,F4 banc.py
+visages-krampf,visages,vhs_film_2x,"visage 1 (230,90,230x210)",19.110111,0.588538,12.054977,4.082187,24.786578,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,vhs_film_2x,"visage 2 (400,0,150x150)",18.953899,0.573272,12.699881,3.775825,25.405580,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,realesrgan_x4plus,image entière,24.438311,0.944346,9.697829,0.383264,4.416873,39.518487,1975.924348,8,720,576,256,F4 banc.py
+visages-krampf,visages,realesrgan_x4plus,"visage 1 (230,90,230x210)",22.934662,0.918700,9.602098,0.336671,5.580842,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,realesrgan_x4plus,"visage 2 (400,0,150x150)",23.115961,0.911019,9.345697,0.390664,6.129648,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,rendu_maximum,image entière,22.712726,0.938942,11.418608,0.418736,4.285559,30.428075,1521.403768,8,720,576,256,F4 banc.py
+visages-krampf,visages,rendu_maximum,"visage 1 (230,90,230x210)",21.305043,0.916785,12.371316,0.467735,5.704160,,,8,720,576,256,F4 banc.py
+visages-krampf,visages,rendu_maximum,"visage 2 (400,0,150x150)",20.975059,0.890266,12.443523,0.537326,6.346785,,,8,720,576,256,F4 banc.py
+peau-main,peau,degradee,image entière,20.148795,0.412815,13.991427,1.081050,21.437166,,,8,720,576,,F4 banc.py
+peau-main,peau,sans_ia,image entière,19.031184,0.682361,15.266656,1.048664,20.846062,0.013248,0.662375,8,720,576,,F4 banc.py
+peau-main,peau,vhs_sharpen,image entière,11.808198,0.512081,23.718202,0.714585,18.212043,22.022410,1101.120488,8,720,576,256,F4 banc.py
+peau-main,peau,baldrick,image entière,19.369970,0.642297,13.440310,0.551969,16.663981,21.655063,1082.753140,8,720,576,256,F4 banc.py
+peau-main,peau,vhs_film_2x,image entière,17.738367,0.406823,16.003016,2.783729,43.108601,22.198232,1109.911618,8,720,576,256,F4 banc.py
+peau-main,peau,realesrgan_x4plus,image entière,21.292524,0.712826,11.386145,0.145230,14.092002,23.712348,1185.617384,8,720,576,256,F4 banc.py
+peau-main,peau,rendu_maximum,image entière,19.938299,0.752415,14.323603,0.241886,13.945868,24.293861,1214.693031,8,720,576,256,F4 banc.py
+ciel-tegucigalpa,ciel,degradee,image entière,19.294570,0.481058,14.432971,0.768950,27.081042,,,8,720,576,,F4 banc.py
+ciel-tegucigalpa,ciel,sans_ia,image entière,18.513833,0.693195,14.756384,0.801000,26.920791,0.012078,0.603915,8,720,576,,F4 banc.py
+ciel-tegucigalpa,ciel,vhs_sharpen,image entière,13.338403,0.589057,19.239132,0.512171,23.599975,25.687810,1284.390492,8,720,576,256,F4 banc.py
+ciel-tegucigalpa,ciel,baldrick,image entière,17.681368,0.624082,16.675036,0.462136,23.358037,24.821404,1241.070209,8,720,576,256,F4 banc.py
+ciel-tegucigalpa,ciel,vhs_film_2x,image entière,16.937400,0.570406,17.038828,0.852549,28.814882,23.438615,1171.930726,8,720,576,256,F4 banc.py
+ciel-tegucigalpa,ciel,realesrgan_x4plus,image entière,19.218764,0.740139,12.345785,0.510565,20.482345,25.992232,1299.611598,8,720,576,256,F4 banc.py
+ciel-tegucigalpa,ciel,rendu_maximum,image entière,18.375377,0.739932,14.385390,0.579663,20.226808,24.665865,1233.293229,8,720,576,256,F4 banc.py
+f3-mire-texte,texte (mire F3),degradee,image entière,19.844191,0.419081,13.179667,1.376625,24.876380,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),degradee,"texte 1 (40,40,640x120)",18.879835,0.520129,13.635620,0.851402,32.896776,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),degradee,"texte 2 (40,200,640x120)",18.477943,0.489311,13.823900,0.812267,32.781770,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),degradee,"texte 3 (40,360,640x180)",19.525096,0.390417,13.282949,1.227838,26.434517,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),sans_ia,image entière,19.830714,0.818979,15.069975,1.075353,20.525063,0.011404,0.570196,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),sans_ia,"texte 1 (40,40,640x120)",19.008867,0.817446,15.222056,0.748625,29.519978,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),sans_ia,"texte 2 (40,200,640x120)",18.602580,0.801862,15.495044,0.712491,29.066170,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),sans_ia,"texte 3 (40,360,640x180)",19.480957,0.797918,15.237758,0.944794,21.997275,,,8,720,576,,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_sharpen,image entière,11.500878,0.719292,17.577447,1.060344,22.593746,18.099316,904.965818,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_sharpen,"texte 1 (40,40,640x120)",11.300851,0.677936,18.152576,0.589922,29.877670,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_sharpen,"texte 2 (40,200,640x120)",11.208357,0.668898,18.441993,0.590578,31.488841,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_sharpen,"texte 3 (40,360,640x180)",11.424233,0.703462,17.746440,0.982019,24.373208,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),baldrick,image entière,19.855507,0.801029,16.809469,0.599497,15.889297,21.114138,1055.706893,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),baldrick,"texte 1 (40,40,640x120)",18.413467,0.778463,17.522376,0.493175,26.013564,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),baldrick,"texte 2 (40,200,640x120)",18.029671,0.756869,17.600175,0.448334,25.459690,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),baldrick,"texte 3 (40,360,640x180)",19.724093,0.779855,16.780141,0.495448,17.151777,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_film_2x,image entière,18.010082,0.596262,15.037746,1.869987,28.300687,22.646089,1132.304443,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_film_2x,"texte 1 (40,40,640x120)",16.078068,0.628471,16.911749,1.058599,33.301709,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_film_2x,"texte 2 (40,200,640x120)",16.602759,0.622691,16.518342,1.132180,35.066977,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),vhs_film_2x,"texte 3 (40,360,640x180)",18.151549,0.575392,14.750507,1.846001,31.566981,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),realesrgan_x4plus,image entière,23.200679,0.978996,12.479853,1.145803,7.287186,23.783133,1189.156635,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),realesrgan_x4plus,"texte 1 (40,40,640x120)",23.550393,0.978008,12.057866,1.125371,9.498458,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),realesrgan_x4plus,"texte 2 (40,200,640x120)",22.950484,0.974869,12.322011,1.107701,11.565722,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),realesrgan_x4plus,"texte 3 (40,360,640x180)",22.105338,0.964948,12.773443,1.119447,10.863775,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),rendu_maximum,image entière,21.478931,0.976108,14.939859,1.155555,7.738789,14.129486,706.474304,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),rendu_maximum,"texte 1 (40,40,640x120)",21.737125,0.973554,14.493603,1.166148,9.608362,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),rendu_maximum,"texte 2 (40,200,640x120)",21.146893,0.969493,14.836475,1.123933,12.924926,,,8,720,576,256,F4 banc.py + mire F3
+f3-mire-texte,texte (mire F3),rendu_maximum,"texte 3 (40,360,640x180)",20.706821,0.961335,15.221620,1.101833,11.697599,,,8,720,576,256,F4 banc.py + mire F3
