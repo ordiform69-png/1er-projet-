@@ -121,3 +121,61 @@ def test_texte_agrandi_selon_l_ecran(tools, largeur, hauteur, plafond, monkeypat
             assert round(win._echelle * 100) == 150 and win._taille_btns[150].isEnabled()
     finally:
         win.close()
+
+
+def test_texte_au_premier_lancement_selon_l_ecran():
+    """Zone utile de l'écran (sans la barre des tâches), en points logiques."""
+    from vhs_restore.ecran import texte_selon_ecran
+    assert texte_selon_ecran(1280, 688) == 100          # 1920 × 1080 à 150 % (le père)
+    assert texte_selon_ecran(1366, 728) == 100          # 1366 × 768 à 100 %
+    assert texte_selon_ecran(1536, 824) == 100          # 1920 × 1080 à 125 %
+    assert texte_selon_ecran(1920, 1032) == 125         # 1920 × 1080 à 100 %
+    assert texte_selon_ecran(2560, 1392) == 150         # 2560 × 1440 à 100 %
+    assert texte_selon_ecran(2560, 1408) == 150         # 4K à 150 %
+
+
+def test_premier_lancement_sur_grand_ecran(tools, tmp_path, monkeypatch):
+    """Aucun choix enregistré : texte à 125 % sur un écran 1920 × 1080 sans zoom ; un choix
+    enregistré l'emporte toujours."""
+    from PySide6.QtCore import QRect, QSettings
+    from PySide6.QtGui import QScreen
+    from PySide6.QtWidgets import QApplication
+    from vhs_restore.gui import MainWindow
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(QScreen, "availableGeometry", lambda self: QRect(0, 0, 1920, 1032))
+    for enregistre, attendu in ((None, 125), (100, 100)):
+        reglages = QSettings(str(tmp_path / f"prefs-{enregistre}.ini"), QSettings.IniFormat)
+        if enregistre is not None:
+            reglages.setValue("texte", enregistre)
+        monkeypatch.setattr(MainWindow, "_prefs", lambda self, r=reglages: r)
+        win = MainWindow(tools)
+        try:
+            win.show()
+            win.resize(1920, 1001)                       # fenêtre agrandie sur cet écran
+            for _ in range(5):
+                app.processEvents()
+            assert round(win._echelle * 100) == attendu, enregistre
+        finally:
+            win.close()
+
+
+def test_le_choix_enregistre_survit_au_demarrage(tools, tmp_path, monkeypatch):
+    """La fenêtre naît petite (1100 × 760, texte plafonné) puis s'agrandit : le 125 % enregistré
+    doit revenir, et rester enregistré."""
+    from PySide6.QtCore import QSettings
+    from PySide6.QtWidgets import QApplication
+    from vhs_restore.gui import MainWindow
+    app = QApplication.instance() or QApplication([])
+    reglages = QSettings(str(tmp_path / "prefs.ini"), QSettings.IniFormat)
+    reglages.setValue("texte", 125)
+    monkeypatch.setattr(MainWindow, "_prefs", lambda self: reglages)
+    win = MainWindow(tools)
+    try:
+        win.show()
+        win.resize(1280, 641)                            # agrandie sur l'écran du père
+        for _ in range(5):
+            app.processEvents()
+        assert round(win._echelle * 100) == 125
+        assert int(reglages.value("texte")) == 125
+    finally:
+        win.close()

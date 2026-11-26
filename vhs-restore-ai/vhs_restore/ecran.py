@@ -539,6 +539,19 @@ def installer(w):
 BAS = 600       # hauteur utile sous laquelle l'écran se resserre
 
 
+def texte_selon_ecran(largeur: int, hauteur: int) -> int:
+    """Taille du texte au premier lancement, d'après l'écran (hors barre des tâches, en points
+    logiques). Grand écran sans zoom de Windows (1920 × 1080 à 100 % : 1920 × 1032), le texte
+    normal y paraît petit : 125 %. Très grand (2560 × 1440 à 100 %, 4K à 150 %) : 150 %. Écran du
+    père (1920 × 1080 à 150 % : 1280 × 688) et plus petits : 100 %. Les boutons A−, A, A+
+    changent ensuite ce choix, qui est gardé."""
+    if largeur >= 2400 and hauteur >= 1300:
+        return 150
+    if largeur >= 1700 and hauteur >= 950:
+        return 125
+    return 100
+
+
 def adapter(w) -> None:
     """Appelé quand la fenêtre change de taille. Écran bas : bouton « Lancer » et boutons de
     l'assistant moins hauts, petites images de l'étape 1 réduites."""

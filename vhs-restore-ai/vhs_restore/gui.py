@@ -1730,7 +1730,9 @@ class MainWindow(QMainWindow):
 
         self.profile_buttons["equilibre"].setChecked(True)
         self._load_prefs()
-        self.set_taille_texte(round(self._echelle * 100), annoncer=False)
+        # le choix voulu, pas celui que la petite fenêtre de départ (1100 × 760) a plafonné :
+        # la fenêtre agrandie le rétablit
+        self.set_taille_texte(getattr(self, "_texte_voulu", round(self._echelle * 100)), annoncer=False)
 
     # ------------------------------------------------------------ état
     def _refresh_tools(self) -> None:
@@ -3936,7 +3938,12 @@ class MainWindow(QMainWindow):
             self.out_edit.setText(out)
             self._out_manual = True
         try:
-            pct = int(float(s.value("texte", 100) or 100))
+            choisi = s.value("texte", None)
+            if choisi is None:               # premier lancement : selon la taille de l'écran
+                ecr = self.screen().availableGeometry() if self.screen() is not None else None
+                pct = ecran.texte_selon_ecran(ecr.width(), ecr.height()) if ecr is not None else 100
+            else:
+                pct = int(float(choisi or 100))
         except (TypeError, ValueError):
             pct = 100
         self.set_taille_texte(pct, annoncer=False)

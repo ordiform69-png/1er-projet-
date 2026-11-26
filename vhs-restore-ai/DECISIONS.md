@@ -1014,3 +1014,9 @@ défilement sur 1024 × 689, 1093 × 535, 1366 × 689, 1536 × 785, 1920 × 1001
 (`tests/test_ecrans.py`). Sous 641 px de haut, les sections des réglages libres défilent (40 à
 72 px à 1093 × 535). Limite de temps de la fabrication Windows : 120 min (tests : 68 min).
 Non vérifié : un vrai écran autre que celui du père ; texte plus grand automatique sur grand écran.
+- Premier lancement (aucun choix enregistré) : texte selon l'écran (`ecran.texte_selon_ecran`) :
+  125 % sur 1920 × 1080 sans zoom (zone utile 1920 × 1032), 150 % sur 2560 × 1440 ou 4K à 150 %,
+  100 % ailleurs (dont l'écran du père). Un choix enregistré l'emporte toujours.
+- Défaut trouvé par ce test et corrigé : la fenêtre naît à 1100 × 760 (texte plafonné à 100 %),
+  et la ligne qui réappliquait la taille après le chargement des réglages enregistrait ce 100 % :
+  le 125 % du père aurait été perdu à chaque lancement. Elle reprend désormais le choix voulu.
