@@ -2690,8 +2690,16 @@ class MainWindow(QMainWindow):
         self._retenir_dossier(str(Path(path).parent))
         self.load_file(path)
 
+    def taille_texte_max(self) -> int:
+        """Le plus grand texte qui tient sans défilement de côté. Écran étroit (moins de 1280 px
+        utiles : 1024 × 768, 1366 × 768 à 125 %…) ou bas (moins de 600 px) : 100 % seulement."""
+        return 100 if self.width() < 1280 or self.height() < 600 else 150
+
     def set_taille_texte(self, pct: int, annoncer: bool = True) -> None:
         pct = 150 if pct >= 140 else 125 if pct >= 110 else 100
+        self._texte_voulu = pct                      # gardé : il revient sur un écran plus grand
+        self._texte_plafond = self.taille_texte_max()
+        pct = min(pct, self._texte_plafond)
         self._echelle = pct / 100
         self._simple.setStyleSheet(
             f"QLabel, QPushButton, QCheckBox, QComboBox, QLineEdit, QAbstractSpinBox "
@@ -2702,17 +2710,23 @@ class MainWindow(QMainWindow):
             + ecran.regles(self._echelle)
         )
         if getattr(self, "run_btn", None) is not None:
-            self.run_btn.setFixedSize(400, 64)
+            self.run_btn.setFixedWidth(400)
+            self._serre = None
+            ecran.adapter(self)                      # hauteur du bouton selon l'écran
         if getattr(self, "profile_buttons", None):
             ecran.ajuster_qualite(self)
             ecran.ajuster_son(self)
         for valeur, bouton in self._taille_btns.items():
             bouton.setChecked(valeur == pct)
+            bouton.setEnabled(valeur <= self._texte_plafond)
+            bouton.setToolTip("" if valeur <= self._texte_plafond else
+                              "L'écran est trop petit pour un texte plus grand.")
         pref = self._prefs()
         if pref is not None:
-            pref.setValue("texte", pct)
+            pref.setValue("texte", self._texte_voulu)
         if annoncer:
-            self.status.setText(f"Taille du texte : {pct} %.")
+            self.status.setText(f"Taille du texte : {pct} %." + (
+                " L'écran est trop petit pour l'agrandir davantage." if pct < self._texte_voulu else ""))
 
     def _expliquer_conseil(self) -> None:
         detail = self.s_advice.toolTip() or "Aucun défaut particulier n'a été repéré."
@@ -3843,6 +3857,11 @@ class MainWindow(QMainWindow):
         else:
             self.progress.setValue(1000)
         self._update_state()
+
+    def resizeEvent(self, e) -> None:  # noqa: N802
+        super().resizeEvent(e)
+        if hasattr(self, "run_btn"):
+            ecran.adapter(self)          # écran bas : boutons et petites images resserrés
 
     def closeEvent(self, e) -> None:  # noqa: N802
         assistant = getattr(self, "assistant", None)

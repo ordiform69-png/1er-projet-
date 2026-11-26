@@ -76,6 +76,9 @@ QPushButton#lien {{
     padding: 2px 6px;
     min-height: 0px;
 }}
+QPushButton[serre="true"] {{
+    min-height: 40px;
+}}
 QLabel#nomReglage, QLabel#valeurReglage {{
     font-weight: 700;
 }}
@@ -256,6 +259,9 @@ def installer(w):
     iv.addWidget(w.bandeau_original)
     iv.addWidget(CadreImage(w.s_compare), 1)
     iv.addWidget(w.s_segments)
+    # écran de 1024 px : le champ peut se réduire (sa largeur conseillée vient du plus long
+    # moment possible), et la liste des images aussi
+    w.start_spin.setMinimumWidth(140)
     iv.addLayout(ligne(w.start_label, w.start_spin, w.still_combo))
     iv.addLayout(ligne(w.preview_btn, w.play_btn))
     w.gauche.addWidget(image)
@@ -444,6 +450,7 @@ def installer(w):
     plus.setFixedWidth(48)
     w._son_moins, w._son_plus = moins, plus
     w.libelle_decalage = QLabel("Décalage entre la voix et les lèvres")
+    w.libelle_decalage.setWordWrap(True)          # deux lignes sur un écran de 1024 px
     son.addLayout(ligne(w.libelle_decalage, moins, w.offset_spin, plus))
     w.ecouter = QPushButton("Écouter ces 10 secondes")
     w.ecouter.clicked.connect(w._ecouter_extrait)
@@ -518,12 +525,42 @@ def installer(w):
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         combo.setMinimumContentsLength(8)
         combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 24)
+    w.still_combo.setMinimumContentsLength(6)      # « Image 2/3 » : assez court pour 1024 px
     ouvrir(w, "Qualité")
     ajuster_son(w)
     ajuster_qualite(w)
     w.assistant = Assistant(w)
     w.assistant.hide()
     droite.insertWidget(droite.indexOf(w.options), w.assistant, 1)
+    w._serre = None                   # l'assistant existe maintenant : l'adapter à la hauteur
+    adapter(w)
+
+
+BAS = 600       # hauteur utile sous laquelle l'écran se resserre
+
+
+def adapter(w) -> None:
+    """Appelé quand la fenêtre change de taille. Écran bas : bouton « Lancer » et boutons de
+    l'assistant moins hauts, petites images de l'étape 1 réduites."""
+    plafond = w.taille_texte_max()
+    if getattr(w, "_texte_plafond", plafond) != plafond and hasattr(w, "_texte_voulu"):
+        w.set_taille_texte(w._texte_voulu, annoncer=False)     # écran agrandi ou réduit
+        return                                                  # (et rappelle adapter)
+    serre = w.height() < BAS
+    if getattr(w, "_serre", None) == serre:
+        return
+    w._serre = serre
+    h = 48 if serre else 64
+    w.run_btn.setMinimumHeight(h)
+    w.run_btn.setMaximumHeight(h)
+    a = getattr(w, "assistant", None)
+    if a is not None:
+        a.serrer(serre)
+    # la feuille de style impose 58 px aux boutons verts : levée sur un écran bas
+    for b in (w.run_btn, *((a.suivant, a.retour) if a is not None else ())):
+        b.setProperty("serre", serre)
+        b.style().unpolish(b)
+        b.style().polish(b)
 
 
 def mode_libre(w, libre: bool) -> None:

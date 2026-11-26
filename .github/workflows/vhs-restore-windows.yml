@@ -16,7 +16,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 90   # les tests de l'écran unique et de l'assistant prennent environ 45 min
+    timeout-minutes: 120  # tests : 68 min sur Windows (n°154), plus les écrans standard
     defaults:
       run:
         shell: pwsh

@@ -987,3 +987,30 @@ Corrigé à la fusion (mesuré à 100, 125 et 150 % de texte, fenêtre 1280 × 6
 Résultat : aucun défilement à 100 et 125 %, à chaque étape, après l'avant / après et en revenant
 à « Lumière et couleurs » ; 3 px à l'étape 1 à 150 %. `test_chaque_etape_tient_a_1280_641`
 clique désormais « Voir l'avant / après » et vérifie l'absence de défilement à 100 et 125 %.
+
+## Écrans standard
+
+Demande de l'utilisateur : le logiciel doit tenir sur les tailles d'écran courantes, pas seulement
+sur celui de son père. La fenêtre s'ouvre agrandie ; sa taille utile = largeur / zoom de Windows,
+hauteur / zoom − 79 (barre des tâches et titre ; 1920 × 1080 à 150 % donne 1280 × 641, mesuré).
+
+Mesuré avant : à 1024 px de large, la fenêtre débordait (1028 px, boutons « ← Revenir » 160 px et
+« Suivant → » 220 px au minimum) et « Régler l'image » défilait de côté après un aperçu ; à
+1093 × 535 (1366 × 768 à 125 %, 1920 × 1080 à 175 %), l'assistant défilait (jusqu'à 67 px à
+l'étape 1) ; sur grand écran, « Suivant → » s'étirait sur toute la largeur.
+
+- Largeurs minimales réduites (Revenir 120, Suivant 170, champ « Début de l'extrait » 140, liste
+  « Image 2/3 » 6 caractères), « Décalage entre la voix et les lèvres » sur deux lignes.
+- Écran bas (moins de 600 px utiles) : boutons verts et petites images de l'étape 1 resserrés
+  (`ecran.adapter`, propriété `serre`, la feuille de style imposait 58 px).
+- Texte agrandi : sur un écran de moins de 1280 px de large ou de 600 px de haut, « A » et « A+ »
+  sont grisés et le texte reste à 100 % (à 125 et 150 %, les sections défilaient de côté). Le
+  choix est gardé et revient sur un écran plus grand.
+- Grand écran : la place libre va avant « Suivant → », qui garde sa taille.
+
+Résultat, texte à 100 %, assistant complet (avec l'avant / après) et réglages libres : aucune
+fenêtre qui déborde, aucun défilement de côté, « Lancer » et « Suivant » visibles, assistant sans
+défilement sur 1024 × 689, 1093 × 535, 1366 × 689, 1536 × 785, 1920 × 1001 et 2560 × 1361
+(`tests/test_ecrans.py`). Sous 641 px de haut, les sections des réglages libres défilent (40 à
+72 px à 1093 × 535). Limite de temps de la fabrication Windows : 120 min (tests : 68 min).
+Non vérifié : un vrai écran autre que celui du père ; texte plus grand automatique sur grand écran.

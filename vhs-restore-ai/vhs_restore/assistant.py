@@ -569,11 +569,12 @@ class Assistant(QWidget):
         nav = QHBoxLayout()
         self.retour = _bouton("← Revenir")
         self.suivant = _bouton("Suivant →", "action", 60)
-        self.retour.setMinimumWidth(160)
-        self.retour.setMinimumHeight(52)
-        self.suivant.setMinimumWidth(220)
-        self.suivant.setMinimumHeight(60)
+        # largeurs minimales modestes : la fenêtre doit tenir sur un écran de 1024 px de large
+        self.retour.setMinimumWidth(120)
+        self.suivant.setMinimumWidth(170)
+        self.serrer(False)
         nav.addWidget(self.retour)
+        nav.addStretch(0)              # grand écran : la place libre va ici, « Suivant » ne s'étire pas
         nav.addWidget(self.rien_a_changer, 1)
         nav.addWidget(self.suivant)
         lay.addLayout(nav)
@@ -590,6 +591,19 @@ class Assistant(QWidget):
         self.style_assistant()
 
     # ------------------------------------------------------------ étapes
+    def serrer(self, serre: bool) -> None:
+        """Écran bas (moins de 600 px utiles : 1366 × 768 à 125 %, 1920 × 1080 à 175 %) : boutons et
+        petites images un peu plus bas, pour que chaque étape tienne sans défiler."""
+        self.retour.setMinimumHeight(44 if serre else 52)
+        self.suivant.setMinimumHeight(46 if serre else 60)
+        for t in getattr(self, "tuiles", {}).values():
+            taille = TAILLE_ORIGINAL if t.objectName() == "tuileOriginal" else TAILLE_RENDU
+            if serre:
+                taille = QSize(taille.width() * 2 // 3, taille.height() * 2 // 3)
+            t.setIconSize(taille)
+            t.setMinimumHeight(taille.height() + (8 if t.objectName() == "tuileOriginal" else 6))
+            t.updateGeometry()
+
     def _construire_rendu(self) -> QWidget:
         page = QWidget()
         v = QVBoxLayout(page)
