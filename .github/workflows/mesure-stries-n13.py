@@ -188,12 +188,12 @@ def fabriquer(ffmpeg: str, dossier: Path, brut: Path) -> list[tuple[str, Path]]:
         ("DV", dossier / "mire-dv.avi", [
             "-vf", "setfield=tff",
             "-c:v", "dvvideo", "-pix_fmt", "yuv420p", "-aspect", "4:3",
-            "-flags", "+ildct+ilme", "-top", "1", "-field_order", "tt",
+            "-flags", "+ildct+ilme", "-field_order", "tt",
             "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2",
         ]),
         ("DVD", dossier / "mire-dvd.mpg", [
             "-target", "pal-dvd", "-vf", "setfield=tff", "-aspect", "4:3",
-            "-flags", "+ildct+ilme", "-top", "1", "-field_order", "tt",
+            "-flags", "+ildct+ilme", "-field_order", "tt",
         ]),
     )
     for _nom, chemin, options in cibles:
@@ -387,43 +387,47 @@ def mesurer(sortie: Path) -> list[str]:
 
     travail = sortie / "_travail"
     travail.mkdir(parents=True, exist_ok=True)
-    brut = travail / "mire.gray"
-    sources = fabriquer(ffmpeg, travail, brut)
-    for nom, avec in (("FILTRE", False), ("FILTRE_BWDIF", True)):
-        chemin = travail / f"{nom}.png"
-        filtre_temoin(ffmpeg, brut, chemin, avec)
-        mesures = analyser(QImage(str(chemin)))
-        publier(lignes, nom, mesures)
-        enregistrer_crop(QImage(str(chemin)), mesures, sortie / f"{nom.lower()}-crop.png")
-    for nom, chemin in sources:
-        info = sonder(ffprobe, chemin)
-        resultat(lignes, f"{nom}_CODEC", str(info.get("codec_name")))
-        resultat(lignes, f"{nom}_BALAYAGE", str(info.get("field_order")))
-        resultat(lignes, f"{nom}_TAILLE_SOURCE", f"{info.get('width')}x{info.get('height')}")
-        resultat(lignes, f"{nom}_CADENCE", str(info.get("avg_frame_rate")))
-        resultat(lignes, f"{nom}_IMAGES", str(info.get("nb_frames")))
-        resultat(lignes, f"{nom}_TRAME_ENTRELACEE", str(info.get("interlaced_frame")))
-        resultat(lignes, f"{nom}_TRAME_HAUTE_DABORD", str(info.get("top_field_first")))
-        resultat(lignes, f"{nom}_OCTETS", str(chemin.stat().st_size))
-        if not entrelace_tff(info):
-            raise RuntimeError(
-                f"{nom} n'est pas marqué entrelacé TFF : field_order={info.get('field_order')} "
-                f"interlaced_frame={info.get('interlaced_frame')} top_field_first={info.get('top_field_first')}"
+    try:
+        brut = travail / "mire.gray"
+        sources = fabriquer(ffmpeg, travail, brut)
+        for nom, avec in (("FILTRE", False), ("FILTRE_BWDIF", True)):
+            chemin = travail / f"{nom}.png"
+            filtre_temoin(ffmpeg, brut, chemin, avec)
+            mesures = analyser(QImage(str(chemin)))
+            publier(lignes, nom, mesures)
+            enregistrer_crop(QImage(str(chemin)), mesures, sortie / f"{nom.lower()}-crop.png")
+        for nom, chemin in sources:
+            info = sonder(ffprobe, chemin)
+            resultat(lignes, f"{nom}_CODEC", str(info.get("codec_name")))
+            resultat(lignes, f"{nom}_BALAYAGE", str(info.get("field_order")))
+            resultat(lignes, f"{nom}_TAILLE_SOURCE", f"{info.get('width')}x{info.get('height')}")
+            resultat(lignes, f"{nom}_CADENCE", str(info.get("avg_frame_rate")))
+            resultat(lignes, f"{nom}_IMAGES", str(info.get("nb_frames")))
+            resultat(lignes, f"{nom}_TRAME_ENTRELACEE", str(info.get("interlaced_frame")))
+            resultat(lignes, f"{nom}_TRAME_HAUTE_DABORD", str(info.get("top_field_first")))
+            resultat(lignes, f"{nom}_OCTETS", str(chemin.stat().st_size))
+            if not entrelace_tff(info):
+                raise RuntimeError(
+                    f"{nom} n'est pas marqué entrelacé TFF : field_order={info.get('field_order')} "
+                    f"interlaced_frame={info.get('interlaced_frame')} top_field_first={info.get('top_field_first')}"
+                )
+            refs = ecrire_reference(ffmpeg, chemin, sortie, nom, 15)
+            publier(lignes, f"{nom}_FFMPEG_SANS", refs["sans"])
+            publier(lignes, f"{nom}_FFMPEG_BWDIF", refs["bwdif"])
+            lecture = lire_via_processus(chemin, sortie, nom, lignes)
+            verdict = conclure(
+                lecture["d1"], lecture["d2"],
+                refs["sans"]["d1"], refs["sans"]["d2"], refs["bwdif"]["d1"],
             )
-        refs = ecrire_reference(ffmpeg, chemin, sortie, nom, 15)
-        publier(lignes, f"{nom}_FFMPEG_SANS", refs["sans"])
-        publier(lignes, f"{nom}_FFMPEG_BWDIF", refs["bwdif"])
-        lecture = lire_via_processus(chemin, sortie, nom, lignes)
-        verdict = conclure(
-            lecture["d1"], lecture["d2"],
-            refs["sans"]["d1"], refs["sans"]["d2"], refs["bwdif"]["d1"],
-        )
-        resultat(lignes, f"{nom}_VERDICT", verdict)
-    # Les PNG pleins de travail ne sont pas des artefacts : trop lourds, et la mire vidéo non plus.
-    for chemin in travail.glob("*"):
-        chemin.unlink(missing_ok=True)
-    travail.rmdir()
-    return lignes
+            resultat(lignes, f"{nom}_VERDICT", verdict)
+        return lignes
+    finally:
+        # La mire brute pèse 20 Mo : elle ne doit pas partir dans l'artefact.
+        if travail.exists():
+            for reste in travail.glob("*"):
+                reste.unlink(missing_ok=True)
+            travail.rmdir()
+
 
 
 def main() -> int:
