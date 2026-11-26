@@ -18,6 +18,10 @@ de l'utilisateur (76 ans). Code dans `vhs-restore-ai/`, décisions dans
 
 ## Règles de travail
 
+- L'exe : seulement quand l'utilisateur le demande. Ne pas le relancer, ne pas surveiller sa
+  fabrication, ne pas programmer de rappel dessus, ne pas en reparler de soi-même (chaque
+  fabrication coûte une heure de GitHub). Se concentrer sur ce qui est demandé, avec conseils.
+
 - Branche `ccr-5856e8d6-8xt8uh` seulement. Jamais de pull request.
 - Fusionner une branche des bots seulement quand l'utilisateur écrit « fusionner ».
 - « Ne lance pas l'exe » : pousser avec `[skip ci]` ; plus tard, lancer la fabrication par
