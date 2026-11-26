@@ -1088,6 +1088,9 @@ class MainWindow(QMainWindow):
         self.tools = tools or detect_tools()
         self.info: MediaInfo | None = None
         self.worker: Worker | None = None
+        self._reprise_courante = None
+        self._reprise_bornes = None
+        self._cache_reprise = None
         self.preview: pipeline.PreviewResult | None = None
         self.preview_dir = Path(tempfile.mkdtemp(prefix="vhsrestore_apercu_"))
         self._coupes: list[tuple[float, float]] = []
@@ -2485,6 +2488,8 @@ class MainWindow(QMainWindow):
         self.image_form.setRowVisible(self.cadence_combo, src == "film" and not photo_mode)
         self._masquer_recent_courant()
         ecran.actualiser(self, loaded, photo_mode, busy, fini)
+        if not busy:
+            self.suivre_annonce_reprise(self.phrase_reprise_ouverte() if self._film_pour_coupe() else "")
 
     def _masquer_recent_courant(self) -> None:
         """Le fichier déjà ouvert ne reste pas proposé : un clic dessus ne ferait rien de neuf."""
@@ -2817,6 +2822,8 @@ class MainWindow(QMainWindow):
             self.status.setText("Un traitement est en cours : attendez la fin ou cliquez sur « Arrêter ».")
             return
         self.s_fini.setVisible(False)
+        self._cache_reprise = None
+        self._reprise_courante = None
         self._fini_fichier = None              # montage / passages vides : sur ce nouveau film
         self._montage_en_attente = None
         self._arreter_scenes()
@@ -2931,6 +2938,7 @@ class MainWindow(QMainWindow):
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
         self._lancer_scenes()
+        self._annoncer_reprise_ouverte()
         self._lancer_images()
 
     def _question_vitesse(self, demande):
@@ -3160,6 +3168,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "assistant", None) is not None:
             self.assistant.actualiser()
         self._update_state()
+        self._annoncer_reprise_ouverte()
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
@@ -3538,6 +3547,119 @@ class MainWindow(QMainWindow):
         self.status.setText(f"L'aperçu partira à {_duree(self.start_spin.value())}. "
                             "Cliquez sur « Voir l'avant / après ».")
 
+    def _contexte_reprise(self):
+        """Film, réglages et intervalles gardés, tels que l'export les recevra."""
+        if not self._film_pour_coupe():
+            return None
+        info = self.info
+        try:
+            reglages = self.settings()
+        except Exception:
+            return None
+        debut = float(self.trim_start.value()) if hasattr(self, "trim_start") else 0.0
+        fin = float(self.trim_end.value()) if hasattr(self, "trim_end") else 0.0
+        try:
+            gardes, start, length = pipeline.bornes_a_exporter(
+                float(info.duration or 0), debut, fin, list(self._coupes))
+        except ToolError:
+            return None
+        passages = None
+        if gardes:
+            a, b = gardes[0]
+            entier = len(gardes) == 1 and a <= 1e-3 and (
+                not info.duration or b >= float(info.duration) - 1e-3)
+            if not entier:
+                passages = gardes
+        return info, reglages, passages, gardes, start, length
+
+    def _etat_reprise(self):
+        """Lecture du moteur, mise en cache tant que le film et les réglages ne changent pas."""
+        ctx = self._contexte_reprise()
+        if ctx is None:
+            return None
+        info, reglages, passages, gardes, start, length = ctx
+        try:
+            fichier = info.path.stat()
+            identite = (str(info.path), fichier.st_size, fichier.st_mtime_ns)
+        except OSError:
+            identite = (str(info.path), None, None)
+        cle = (identite, repr(dataclasses.astuple(reglages)), passages, tuple(gardes or ()),
+               start, length, bool(getattr(info, "scenes_vues", False)),
+               repr(getattr(info, "scenes", ())))
+        cache = getattr(self, "_cache_reprise", None)
+        if cache is not None and cache[0] == cle:
+            return cache[1]
+        etat = ergonomie.lire_reprise(info, reglages, passages=passages, gardes=gardes,
+                                      start=start, duration=length)
+        self._cache_reprise = (cle, etat)
+        return etat
+
+    def phrase_reprise_ouverte(self) -> str:
+        """Phrase d'ouverture, vide tant que les scènes (dans la clé) ne sont pas connues."""
+        if not self._film_pour_coupe() or not getattr(self.info, "scenes_vues", False):
+            return ""
+        etat = self._etat_reprise()
+        return "" if etat is None else etat.phrase_ouverte()
+
+    def _noter_reprise(self, info=None, reglages=None) -> None:
+        """Mémorise l'état pour la ligne « pendant » et le message d'arrêt.
+
+        Sans arguments : lu dans l'écran (fil de l'interface). Avec le film et les réglages :
+        le fil de travail, qui ne touche pas aux widgets ; les intervalles sont ceux figés au lancement.
+        """
+        if info is None or reglages is None:
+            ctx = self._contexte_reprise()
+            if ctx is None:
+                self._reprise_courante = None
+                self._reprise_bornes = None
+                return
+            info, reglages, passages, gardes, start, length = ctx
+            self._reprise_bornes = (passages, gardes, start, length)
+        else:
+            passages, gardes, start, length = getattr(
+                self, "_reprise_bornes", (None, None, None, None))
+        try:
+            self._reprise_courante = ergonomie.lire_reprise(
+                info, reglages, passages=passages, gardes=gardes, start=start, duration=length)
+        except Exception:
+            log.warning("reprise : annonce impossible", exc_info=True)
+            self._reprise_courante = None
+
+    def _reprise_garde(self) -> bool:
+        etat = getattr(self, "_reprise_courante", None)
+        return bool(etat is not None and etat.en_parties)
+
+    def _ligne_reprise(self) -> str:
+        etat = getattr(self, "_reprise_courante", None)
+        return "" if etat is None else etat.phrase_en_cours()
+
+    def suivre_annonce_reprise(self, phrase: str) -> None:
+        """Si la ligne d'état annonce encore la reprise, elle suit le pourcentage actuel."""
+        if not hasattr(self, "status"):
+            return
+        actuel = self.status.text().replace("\u00a0", " ")
+        if "s'était arrêtée" not in actuel:
+            return
+        if phrase:
+            if phrase not in actuel:
+                self.status.setText(phrase)
+            return
+        nom = self.info.path.name if self.info is not None else ""
+        self.status.setText(f"Vidéo analysée : {nom}. Étape suivante : « Voir l'avant / après »."
+                            if nom else "Prêt.")
+
+    def _annoncer_reprise_ouverte(self) -> None:
+        if self._busy() or not self._film_pour_coupe():
+            return
+        if not getattr(self.info, "scenes_vues", False):
+            return
+        phrase = self.phrase_reprise_ouverte()
+        if not phrase:
+            return
+        actuel = self.status.text()
+        if actuel.startswith("Vidéo analysée") or "s'était arrêtée" in actuel:
+            self.status.setText(phrase)
+
     def start_export(self) -> None:
         if not self.info or self._busy():
             return
@@ -3573,13 +3695,17 @@ class MainWindow(QMainWindow):
             self.status.setText(ergonomie.expliquer(str(exc))[0])
             ergonomie.montrer_erreur(self, str(exc))
             return
-        self.status.setText(f"Restauration vers {out.name}…")
+        self._noter_reprise()
+        ligne = self._ligne_reprise()
+        texte = f"Restauration vers {out.name}…"
+        self.status.setText(f"{ligne}\n{texte}" if ligne else texte)
         def restaurer(c, p):
             suivi = getattr(self, "_suivi_scenes", None)
             if suivi is not None and suivi.info is info and not getattr(info, "scenes_vues", False):
                 suivi.attendre(p, c)
             duree = sum(b - a for a, b in gardes) if gardes else info.duration
             choix = self._choix_ia(info, s, duree, c, p)
+            self._noter_reprise(info, choix)
             cible = pipeline.unique_output_path(info, choix, out_dir)
             return pipeline.export(info, choix, cible, self.tools, cancel=c, progress=p,
                                    start=start, duration=length, passages=gardes if len(gardes) > 1 else None)
@@ -3820,9 +3946,14 @@ class MainWindow(QMainWindow):
         if not self._busy():
             return
         if confirmer and self._travail_long():
-            texte = "Arrêter maintenant ?\n\nLe travail déjà fait sur ce film sera perdu."
-            if getattr(self, "_job", "") == "dossier":
-                texte += "\nLes films déjà terminés, eux, restent."
+            if getattr(self, "_job", "") == "export" and self._reprise_garde():
+                texte = ("Arrêter maintenant ?\n\n"
+                         "Les parties déjà restaurées seront gardées. "
+                         "Vous pourrez relancer pour reprendre.")
+            else:
+                texte = "Arrêter maintenant ?\n\nLe travail déjà fait sur ce film sera perdu."
+                if getattr(self, "_job", "") == "dossier":
+                    texte += "\nLes films déjà terminés, eux, restent."
             if not self._question("Arrêter", texte, "Oui, arrêter", "Non, continuer"):
                 if self._busy():
                     self.status.setText("Le travail continue.")
@@ -3843,6 +3974,8 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ worker
     def _launch(self, fn: Callable, on_success: Callable[[Any], None], job: str = "") -> None:
         self._job = job
+        if job != "export":
+            self._reprise_courante = None
         self._debut_travail = time.monotonic()
         self._fini_a_rendre = job in ("vides", "vides_copie", "separation", "installation", "nommer",
                                       "partage") and self.s_fini.isVisible()
@@ -3878,23 +4011,36 @@ class MainWindow(QMainWindow):
         self.progress.setValue(int(frac * 1000))
         left = self.eta.update(frac) if getattr(self, "eta", None) else ""
         texte = f"{msg} — encore {left}" if left else f"{msg} {frac * 100:.0f} %"
+        ligne = self._ligne_reprise()
+        if ligne and not str(msg).startswith("Reprise"):
+            texte = ligne + "\n" + texte
         if getattr(self, "_job", "") in _TRAVAUX_LONGS:
             texte += "\n" + ergonomie.PHRASE_PATIENCE
         self.status.setText(texte)
 
     def _on_failed(self, msg: str) -> None:
-        clair, _ = ergonomie.expliquer(msg)
-        self.status.setText(clair)
+        garde = getattr(self, "_job", "") == "export" and self._reprise_garde()
+        if garde:
+            self.status.setText(ergonomie.message_arret())
+        else:
+            clair, _ = ergonomie.expliquer(msg)
+            self.status.setText(clair)
         self.s_fini.setVisible(False)
         self._rendre_fini()
         self._montage_en_attente = None
         if self.s_fini.isHidden():
-            self._info_suite("<b>Cela n'a pas abouti.</b> ")
-        ergonomie.montrer_erreur(self, msg)
+            if garde:
+                self._info_suite("<b>Arrêté.</b> Les parties déjà restaurées sont gardées. ")
+            else:
+                self._info_suite("<b>Cela n'a pas abouti.</b> ")
+        ergonomie.montrer_erreur(self, msg, complement=ergonomie.message_arret() if garde else "")
 
     def _on_cancelled(self) -> None:
         job = getattr(self, "_job", "")
-        if job == "export":                     # « Restaurer » ne vaut que pour une restauration
+        garde = job == "export" and self._reprise_garde()
+        if garde:
+            texte = ergonomie.message_arret()
+        elif job == "export":                   # « Restaurer » ne vaut que pour une restauration
             quoi = "Votre photo n'a pas été modifiée." if getattr(self, "is_photo", False) \
                 else "Votre film n'a pas été modifié."
             texte = f"Arrêté. {quoi} Pour recommencer, cliquez sur « Lancer la restauration »."
@@ -3912,7 +4058,10 @@ class MainWindow(QMainWindow):
         self._rendre_fini()
         self._montage_en_attente = None
         if self.s_fini.isHidden():
-            self._info_suite("<b>Arrêté.</b> Rien n'a été modifié. ")
+            if garde:
+                self._info_suite("<b>Arrêté.</b> Les parties déjà restaurées sont gardées. ")
+            else:
+                self._info_suite("<b>Arrêté.</b> Rien n'a été modifié. ")
 
     def _rendre_fini(self) -> None:
         """Copie sans passages vides annulée ou impossible : l'écran « C'est prêt » du film revient
@@ -3929,6 +4078,8 @@ class MainWindow(QMainWindow):
             fini.fn = None  # libère les médias et les fonctions capturés
         if fini is not self.worker:
             return
+        self._cache_reprise = None
+        self._reprise_courante = None
         if getattr(self, "_fermeture_demandee", False):
             QTimer.singleShot(0, self.close)
             return
@@ -3936,7 +4087,8 @@ class MainWindow(QMainWindow):
         self.check_btn.setText("Vérifier l'installation")
         self.progress.setRange(0, 1000)
         if not self.status.text().startswith(("Terminé", "Aperçu prêt", "Comparez avec les boutons",
-                                              "Vidéo analysée", "Photo analysée")):
+                                              "Vidéo analysée", "Photo analysée")) \
+                and "s'était arrêtée" not in self.status.text():
             self.progress.setValue(0)
         else:
             self.progress.setValue(1000)
