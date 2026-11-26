@@ -4,6 +4,7 @@ Depuis ``vhs-restore-ai/`` :
 
     python essais/n18/f3_vhs.py                      # banc commun de F4 (images d'origine connues)
     python essais/n18/f3_vhs.py --extraits <dossier> # en plus : vrais extraits (pas d'origine connue)
+    python essais/n18/f3_vhs.py --chrono 3           # temps seulement (machine au repos), f3_chrono.csv
 
 Dépendances : onnxruntime, onnx, numpy et FFmpeg (ce que le logiciel a déjà). Les fichiers .onnx
 sont produits À PART, une fois, par ``f3_convertir_onnx.py`` (torch + spandrel, dépendances d'essai
@@ -249,6 +250,32 @@ COLONNES = ["image", "sujet", "variante", "zone", "psnr", "ssim", "delta_e", "hf
             "secondes_par_image", "film_2h_heures", "coeurs", "largeur", "hauteur", "tuile", "banc"]
 
 
+def chrono(args, v: "Variantes", mach: dict, sortie: Path) -> int:
+    """Temps seulement, à lancer sur une machine au repos : N passes de chaque variante sur la même image."""
+    origine = banc.charger_references(args.cache_banc)[0].rgb
+    extrait = banc.degrader(origine)
+    rows = []
+    for nom in v.noms:
+        if nom == "degradee":
+            continue
+        ts = []
+        for _ in range(args.chrono):
+            charge = os.getloadavg()[0] if hasattr(os, "getloadavg") else float("nan")
+            _, dt = v.appliquer(nom, extrait.images, extrait.milieu)
+            ts.append(dt)
+        med = statistics.median(ts)
+        print(f"  {nom:18s} médiane {med:.3f} s/image  (min {min(ts):.3f}, max {max(ts):.3f}, charge {charge:.1f})")
+        rows.append({"variante": nom, "passes": len(ts), "secondes_par_image_mediane": med,
+                     "secondes_par_image_min": min(ts), "secondes_par_image_max": max(ts),
+                     "taille_image": f"{L}x{H}", "tuile": args.tuile, "film_2h_images": IMAGES_FILM_2H,
+                     "film_2h_heures": med * IMAGES_FILM_2H / 3600,
+                     "formule": "heures = s/image x 180000 / 3600", **mach,
+                     "charge_1min_fin": round(os.getloadavg()[0], 1) if hasattr(os, "getloadavg") else ""})
+    banc.ecrire_csv(sortie / "f3_chrono.csv", rows, list(rows[0].keys()))
+    print(f"Écrit : {sortie / 'f3_chrono.csv'}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--extraits", type=Path, help="dossier de vrais extraits (vidéos ou images), hors dépôt")
@@ -258,6 +285,8 @@ def main() -> int:
     ap.add_argument("--coeurs", type=int, default=banc.coeurs(), help="fils de calcul ONNX Runtime")
     ap.add_argument("--tuile", type=int, default=256, help="taille des tuiles (0 = image entière)")
     ap.add_argument("--sans-mire", action="store_true", help="ne pas ajouter la mire de texte F3")
+    ap.add_argument("--chrono", type=int, default=0, metavar="N",
+                    help="temps seulement : N passes par variante sur la 1re image du banc (f3_chrono.csv)")
     args = ap.parse_args()
     sortie = args.sortie.resolve()
     racine_git = DEPOT.parent.resolve()
@@ -270,6 +299,8 @@ def main() -> int:
     v = Variantes(args)
     print("Chaîne « Bien nettoyé, naturel » :", v.chaine)
     print("Pré-filtres « maximum » :", v.pre_max)
+    if args.chrono:
+        return chrono(args, v, mach, sortie)
     temps: dict[str, list[float]] = {}
     lignes: list[dict] = []
 
