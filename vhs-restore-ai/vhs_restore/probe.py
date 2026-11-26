@@ -76,6 +76,8 @@ class MediaInfo:
     parts: tuple[Path, ...] = ()          # DVD : morceaux VOB d'un même titre, dans l'ordre
     output_stem: str = ""                 # nom du film restauré si différent du fichier (VTS_01)
     concat_list: Path | None = None       # liste concat FFmpeg, dossier temporaire
+    scenes: tuple = ()                     # lumière et couleurs par scène ; vide = correction unique
+    scenes_secondes: float = 0.0           # durée ajoutée par cette analyse
 
     @property
     def interlaced(self) -> bool:
@@ -491,4 +493,11 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
             info.wind = chk.wind
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
     info.suggested_source, info.source_reason = suggest_source(info)
+    # Lumière et couleurs par scène. Impossible ou trop long : on garde la mesure unique,
+    # l'ouverture du film ne doit pas échouer.
+    try:
+        from . import scenes
+        scenes.attacher(info, tools.ffmpeg.path)
+    except Exception:
+        info.scenes = ()
     return info
