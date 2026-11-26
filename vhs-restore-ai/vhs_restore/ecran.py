@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from . import icons, lumiere, theme
+from . import icons, lecteur, lumiere, theme
 from .assistant import Assistant, phrase_son
 
 
@@ -257,7 +257,34 @@ def installer(w):
     w.bandeau_original.setWordWrap(True)
     w.bandeau_original.setAlignment(Qt.AlignCenter)
     iv.addWidget(w.bandeau_original)
-    iv.addWidget(CadreImage(w.s_compare), 1)
+    w.moniteur = QStackedWidget()
+    w.s_compare.setMinimumSize(0, 0)
+    w.moniteur.addWidget(w.s_compare)
+    w.lecteur = lecteur.Lecteur(w)
+    if w.lecteur.video is not None:
+        w.moniteur.addWidget(w.lecteur.video)
+    w.lecteur.position.connect(w._position_lecteur)
+    w.lecteur.etat.connect(w._etat_lecteur)
+    w.lecteur.echec.connect(w._echec_lecteur)
+    iv.addWidget(CadreImage(w.moniteur), 1)
+    w.barre._compacte = True
+    iv.addWidget(w.barre)
+    w.lire_film = QPushButton("Lire le film")
+    w.lire_film.setObjectName("action")
+    w.lire_film.setMinimumHeight(40)
+    w.lire_film.clicked.connect(w._lire_film)
+    w.heure_lecture = QLabel("00:00 / 00:00")
+    w.heure_lecture.setAccessibleName("Temps écoulé et durée")
+    w.revenir_image = QPushButton("Image fixe")
+    w.revenir_image.setToolTip("Arrêter la lecture et revoir l’image fixe.")
+    w.revenir_image.clicked.connect(w._arreter_lecture)
+    w.revenir_image.hide()
+    w.commandes_lecture = QWidget()
+    commandes = ligne(w.lire_film, w.heure_lecture, w.revenir_image)
+    commandes.setContentsMargins(0, 0, 0, 0)
+    commandes.setStretch(0, 1)
+    w.commandes_lecture.setLayout(commandes)
+    iv.addWidget(w.commandes_lecture)
     iv.addWidget(w.s_segments)
     # écran de 1024 px : le champ peut se réduire (sa largeur conseillée vient du plus long
     # moment possible), et la liste des images aussi
@@ -353,8 +380,6 @@ def installer(w):
     w.bornes_coupe.setLayout(bornes)
     bornes.setContentsMargins(0, 0, 0, 0)
     c.addWidget(w.bornes_coupe)
-    w.barre._compacte = True
-    c.addWidget(w.barre)
     eloigner, rapprocher, tout_le_film = (QPushButton(texte) for texte in ("−", "+", "Tout le film"))
     for bouton, sens, nom in ((eloigner, -1, "Voir une plus grande partie du film"),
                                (rapprocher, 1, "Zoomer autour du moment choisi"),
@@ -640,6 +665,11 @@ def actualiser(w, charge, photo, occupe, termine):
     w.titre_fichier.setText(w.info.path.name if charge else "VHS Restore AI")
     w.titre_fichier.setToolTip(w.titre_fichier.text())
     w.gauche.setCurrentIndex(int(charge))
+    film = charge and not photo
+    w.barre.setVisible(film)
+    w.barre.setEnabled(film and not occupe)
+    w.commandes_lecture.setVisible(film)
+    w.lire_film.setEnabled(film and not occupe)
     w.choisir.setEnabled(not occupe)
     w.details.setVisible(charge)
     w.etapes.setVisible(not charge and not termine)

@@ -18,7 +18,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable
 
-from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
+from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QSignalBlocker, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
 from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox, QToolTip,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -813,6 +813,7 @@ class _Ruban(QWidget):
     borde = Signal(int, bool, float)
     borde_fini = Signal()
     valider = Signal()
+    lire = Signal()
     largeur_changee = Signal(int)
     zoom_change = Signal(bool, bool)
     passage_choisi = Signal()
@@ -1038,6 +1039,9 @@ class _Ruban(QWidget):
                 cible = self.position + sens * pas
             self.clique.emit(max(0.0, min(self.duree, cible)))
             event.accept()
+        elif event.key() == Qt.Key_Space:
+            event.accept()
+            self.lire.emit()
         elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
             event.accept()
             self.valider.emit()
@@ -1388,6 +1392,7 @@ class MainWindow(QMainWindow):
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
+        self.barre.lire.connect(self._lire_film)
         self.barre.largeur_changee.connect(self._replanifier_images)
         self.barre.fenetre_changee.connect(self._vignettes_hors_plage)
         self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
@@ -2746,6 +2751,7 @@ class MainWindow(QMainWindow):
                                            and self.tools.colorize_available))
 
     def _choisir_comparaison(self, mode: str) -> None:
+        self._arreter_lecture()
         self.s_compare.montrer_position = False
         self.s_compare.set_mode(mode)
         noms = {"before": "Avant", "split": "Les deux", "after": "Après"}   # à la souris
@@ -3125,9 +3131,65 @@ class MainWindow(QMainWindow):
         if self.preview and 0 <= idx < len(self.preview.stills):
             self.compare.set_still(self.preview.stills[idx])
 
+    def _lire_film(self) -> None:
+        if self._busy() or not self._film_pour_coupe():
+            return
+        if self.lecteur.actif:
+            self.lecteur.basculer()
+            return
+        if len(self.info.parts) > 1:
+            self.status.setText("Ce DVD a plusieurs morceaux. Déplacez-vous avec les petites images.")
+            return
+        debut = self.start_spin.value()
+        if debut >= self.info.duration:
+            debut = 0.0
+        self.lecteur.ouvrir(self.info.path, "original", debut=debut)
+
     def _play_compare(self) -> None:
-        if self.preview:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.compare)))
+        if self.preview and not self._busy():
+            debut, duree = self.preview.start, self.preview.duration
+            self.lecteur.ouvrir(self.preview.compare, "comparaison", plages=((debut, debut + duree),))
+
+    def _etat_lecteur(self) -> None:
+        actif = self.lecteur.actif and self.lecteur.video is not None
+        self.moniteur.setCurrentWidget(self.lecteur.video if actif else self.s_compare)
+        self.revenir_image.setVisible(actif)
+        self.lire_film.setText("Pause" if self.lecteur.joue else ("Reprendre" if actif else "Lire le film"))
+        self._heure_lecteur()
+
+    def _heure_lecteur(self) -> None:
+        if self.lecteur.actif and self.lecteur.mode != "original":
+            media = self.lecteur.media
+            ici, duree = media.position() / 1000, media.duration() / 1000
+        else:
+            ici = self.start_spin.value()
+            duree = self.info.duration if self._film_pour_coupe() else 0
+        self.heure_lecture.setText(f"{lecteur.horloge(ici)} / {lecteur.horloge(duree)}")
+
+    def _position_lecteur(self, temps: float) -> None:
+        if not self._film_pour_coupe():
+            return
+        if self.lecteur.mode == "original":
+            with QSignalBlocker(self.start_spin):
+                self.start_spin.setValue(temps)
+        self.barre.definir(self.info.duration, temps, self.trim_start.value(),
+                          self.trim_end.value(), self._coupes)
+        self._heure_lecteur()
+
+    def _arreter_lecture(self) -> None:
+        if self.lecteur.actif:
+            original = self.lecteur.mode == "original"
+            self.lecteur.fermer()
+            self.s_compare.montrer_position = original
+            self.s_compare.update()
+            self._rafraichir_barre()
+
+    def _echec_lecteur(self, raison: str) -> None:
+        log.info("Lecture intégrée : %s", raison)
+        self.s_compare.montrer_position = True
+        self.s_compare.update()
+        self._rafraichir_barre()
+        self.status.setText("Ce fichier ne peut pas être lu ici. Utilisez les petites images pour vous déplacer.")
 
     def _play_original(self) -> None:
         if self.preview and self.preview.original:
@@ -3187,7 +3249,9 @@ class MainWindow(QMainWindow):
             barre.definir(self.info.duration, self.start_spin.value(),
                           self.trim_start.value(), self.trim_end.value(), self._coupes)
         self._actualiser_reperes()
-        if hasattr(self, "_attente_moment"):
+        if hasattr(self, "lecteur"):
+            self._heure_lecteur()
+        if hasattr(self, "_attente_moment") and not (hasattr(self, "lecteur") and self.lecteur.actif):
             self._attente_moment.start()
 
     def _actualiser_reperes(self) -> None:
@@ -3314,6 +3378,8 @@ class MainWindow(QMainWindow):
         self.s_compare.poser_moment(chemin, instant)
 
     def _demander_moment(self) -> None:
+        if hasattr(self, "lecteur") and self.lecteur.actif:
+            return
         fab = getattr(self, "_fab", None)
         if fab is None or not self._film_pour_coupe():
             return
@@ -3323,6 +3389,9 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
+        if self.lecteur.actif and self.lecteur.mode != "original":
+            self._arreter_lecture()
+        self.lecteur.aller(secondes)
         self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
         temps = self.start_spin.value()
@@ -3983,6 +4052,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ worker
     def _launch(self, fn: Callable, on_success: Callable[[Any], None], job: str = "") -> None:
+        self._arreter_lecture()
         self._job = job
         self._debut_travail = time.monotonic()
         self._fini_a_rendre = job in ("vides", "vides_copie", "separation", "installation", "nommer",
@@ -4089,6 +4159,7 @@ class MainWindow(QMainWindow):
             ecran.adapter(self)          # écran bas : boutons et petites images resserrés
 
     def closeEvent(self, e) -> None:  # noqa: N802
+        self.lecteur.fermer()
         assistant = getattr(self, "assistant", None)
         if assistant is not None:                   # images du rendu en préparation : FFmpeg arrêté
             assistant.arreter()
