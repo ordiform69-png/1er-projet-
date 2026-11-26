@@ -21,8 +21,10 @@ from .vignettes import entree
 log = logging.getLogger("vhs_restore")
 
 LARGEUR_MAX = 720
-# Marge au-dessus d'un H.264 veryfast en 720 px, et la réécriture de faststart.
-_OCTETS_PAR_SECONDE = 25_000_000 / 8 * 2
+# Copie H.264 veryfast CRF 27 en 720 px. Mesure : 1,3 Mbit/s sur une mire
+# 720×576 entrelacée. Réserve 4 Mbit/s (image plus bruitée) et le double
+# pour la réécriture faststart.
+_OCTETS_PAR_SECONDE = 4_000_000 / 8 * 2
 
 _VERROU = threading.Lock()
 _PROCS: list[subprocess.Popen] = []
@@ -106,7 +108,7 @@ def commande(ffmpeg: str, info: MediaInfo, dest: Path) -> list[str]:
            *entree(info),
            "-map", "0:v:0",
            "-vf", filtre(info),
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p"]
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "27", "-pix_fmt", "yuv420p"]
     if info.has_audio:
         cmd += ["-map", "0:a:0", *AAC, "-b:a", "160k"]
     else:

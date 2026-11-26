@@ -177,13 +177,15 @@ def test_la_commande_couvre_tout_le_titre_dvd(tmp_path):
     cmd = copie_lecture.commande("ffmpeg", info, tmp_path / "lecture.mp4")
     assert cmd[cmd.index("-f") + 1] == "concat"
     assert "bwdif=mode=send_frame:parity=tff" in " ".join(cmd)
-    assert "veryfast" in cmd and "aac" in cmd and "-aac_coder" in cmd
+    assert "veryfast" in cmd and cmd[cmd.index("-crf") + 1] == "27"
+    assert "aac" in cmd and "-aac_coder" in cmd
     assert input_args(info)[0] == "-f"
 
 
 def test_pas_assez_de_place_ne_fabrique_rien(tmp_path, monkeypatch):
     info = MediaInfo(path=tmp_path / "film.mpg", scan="tff", height=576, dar=Fraction(4, 3),
                      duration=3600, fps=Fraction(25))
+    assert copie_lecture.besoin_octets(info) == int(3600 * 4_000_000 / 8 * 2) + 1_048_576
     monkeypatch.setattr(shutil, "disk_usage", lambda _p: shutil._ntuple_diskusage(0, 0, 10))
     assert copie_lecture.assez_de_place(info, tmp_path) is False
     dest = tmp_path / "lecture.mp4"
@@ -314,7 +316,7 @@ def test_changement_de_film_arrete_et_ne_laisse_rien(tmp_path, tools, samples, m
         assert commandes, "FFmpeg n'a pas été lancé"
         ligne = " ".join(commandes[-1])
         assert "bwdif=mode=send_frame" in ligne
-        assert "veryfast" in ligne and "aac" in ligne
+        assert "veryfast" in ligne and "-crf 27" in ligne and "aac" in ligne
         assert dossier is not None and dossier.is_dir()
         win.load_file(str(samples["prog"]))
         attendre(app, lambda: win.info is not None and win.info.path.name == samples["prog"].name
