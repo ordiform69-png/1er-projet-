@@ -1048,3 +1048,27 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   extraits si l'utilisateur en fournit (`essais/n18/`).
 - **Real-ESRGAN gardé** (choix de l'utilisateur) : code BSD-3 ; ses poids sont appris sur DIV2K,
   réservé à la recherche académique. Accepté pour un usage familial gratuit.
+
+## Timeline, lecteur, copie de lecture et reprise (n°13 étape 2, n°19, ChatGPT)
+
+- **Timeline** (ChatGPT, `gpt/timeline` puis `gpt/timeline-retouches`) : zoom autour du curseur,
+  « Tout le film », flèches (1 s, 10 s, une image) ; « Chercher la neige… » propose les passages
+  vides en bleu, à enlever un par un (« Enlever 0:00 – 0:03 ») ou ensemble (« Tout enlever ») :
+  plus rien n'est enlevé d'office ; repères de scène (analyse de la n°17) ; boutons de 38 points.
+- **Lecteur intégré** (Grok) : une barre sous l'image, « Lire le film » (bouton clair : le vert
+  reste à l'action principale), « Vérifier la coupe » (3 s de chaque côté du raccord, avec le son,
+  désentrelacé). Qt Multimedia : +10 Mo au paquet compressé.
+- **Copie de lecture** : un film entrelacé s'affichait strié pendant la lecture (écart entre
+  lignes 17 dans le lecteur, 0 avec bwdif). Une copie désentrelacée, réduite à 720 px, CRF 27
+  (environ 0,55 Go par heure), est préparée en arrière-plan, en priorité basse, APRÈS l'analyse
+  des scènes (mesuré : analyse finie à 11,1 s, copie lancée à 11,2 s) ; le lecteur passe dessus à
+  la même position. Film progressif : l'original. Place réservée : 4 Mbit/s, doublée (le fichier
+  est réécrit à la fin).
+- **Reprise** (n°19) : un film gardé de 20 minutes ou plus est restauré par parties de
+  10 minutes, chaque partie lue 8 s plus tôt puis la chauffe retirée ; parties gardées dans le
+  profil local, vérifiées, reprise automatique ; à l'ouverture, « Une restauration de ce film
+  s'était arrêtée à … % ». Pas de reprise avec l'IA, les poussières, la réparation de bande, un
+  changement de cadence ou la stabilisation (travail sur tout le film). Surcoût mesuré avec de
+  vraies parties : +3 % (FFV1) à +9 % (MPEG-2).
+- Fabrication Windows : un seul test échouait depuis la n°155 (1 px de défilement de côté à
+  1024 px dans « Lumière et couleurs », polices Windows) ; corrigé, marge de 82 px.
