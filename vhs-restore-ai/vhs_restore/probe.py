@@ -77,7 +77,8 @@ class MediaInfo:
     output_stem: str = ""                 # nom du film restauré si différent du fichier (VTS_01)
     concat_list: Path | None = None       # liste concat FFmpeg, dossier temporaire
     scenes: tuple = ()                     # lumière et couleurs par scène ; vide = correction unique
-    scenes_secondes: float = 0.0           # durée ajoutée par cette analyse
+    scenes_secondes: float = 0.0           # durée de la lecture des scènes
+    scenes_vues: bool = False              # l'analyse des scènes est finie (même si elle n'a rien trouvé)
     # Numérisation : ce qui est déjà perdu ne se corrige pas. Mesures seulement.
     video_bitrate: int = 0                 # débit vidéo (bit/s), 0 si inconnu
     bits_per_pixel: float | None = None    # bits par pixel et par image
@@ -511,13 +512,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         int(_num((a or {}).get("sample_rate"))), int(_num((a or {}).get("channels"))))
     info.bits_per_pixel = bits_per_pixel(info.video_bitrate, info.width, info.height, info.fps)
     measure_capture(info, tools.ffmpeg.path, start)
-    # Lumière et couleurs par scène. Impossible ou trop long : on garde la mesure unique,
-    # l'ouverture du film ne doit pas échouer.
-    try:
-        from . import scenes
-        scenes.attacher(info, tools.ffmpeg.path)
-    except Exception:
-        info.scenes = ()
+    # Les scènes se lisent ensuite, en arrière-plan : l'ouverture du film ne les attend pas.
     return info
 
 

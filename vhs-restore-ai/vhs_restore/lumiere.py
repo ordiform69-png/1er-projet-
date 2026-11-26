@@ -189,6 +189,11 @@ class Lumiere:
         if self.w.info is not None and self.visible():
             self._attente.start()
 
+    def scenes_pretes(self) -> None:
+        """L'analyse des scènes vient de finir : l'image montrée était la correction unique."""
+        self._cache = None
+        self.demander()
+
     def moment(self) -> float | None:
         w, info = self.w, self.w.info
         if info is None or getattr(w, "is_photo", False):
@@ -217,8 +222,12 @@ class Lumiere:
         info, est_photo = w.info, bool(getattr(w, "is_photo", False))
         s = w.settings(with_advice=True)
         moment = self.moment()
+        scenes_vues = tuple(
+            (round(sc.debut, 2), round(sc.fin, 2), round(sc.noir, 3), round(sc.blanc, 3),
+             tuple(round(g, 3) for g in sc.gains))
+            for sc in (info.scenes or ())) if getattr(info, "scenes_vues", False) else None
         cle = (str(info.path), None if moment is None else round(moment, 2),
-               repr(dataclasses.astuple(sans_reglages(s))))
+               repr(dataclasses.astuple(sans_reglages(s))), scenes_vues)
         cache = self._cache if self._cache is not None and self._cache[0] == cle else None
         valeurs, ffmpeg = self.reglages(), w.tools.ffmpeg.path
         self._numero += 1
