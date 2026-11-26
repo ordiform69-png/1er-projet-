@@ -904,7 +904,7 @@ class Assistant(QWidget):
         """Boutons utiles au fils, trop denses pour le parcours guidé."""
         w = self.w
         extras = list(getattr(w, "coupes_rapides", ()))
-        for nom in ("bornes_coupe", "trim_tout"):     # début / fin et « Ici » : écran complet seulement
+        for nom in ("bornes_coupe", "trim_tout", "chercher_neige_libre"):     # début / fin et « Ici » : écran complet seulement
             wd = getattr(w, nom, None)
             if wd is not None:
                 extras.append(wd)
@@ -996,34 +996,15 @@ class Assistant(QWidget):
                   self._vides_trouves)
 
     def _vides_trouves(self, res) -> None:
-        passages, duree = res
-        w = self.w
-        w.status.setText("Recherche terminée.")
-        if not passages:
-            self.note_coupe.setText("Aucune neige ni écran vide trouvé : le film est gardé en entier.")
-            return
-        dits, milieu = [], []
-        for p in passages:
-            if p.debut <= 1.0:
-                w.trim_start.setValue(p.fin)
-                dits.append(f"au début ({hms(p.debut)} à {hms(p.fin)})")
-            elif p.fin >= duree - 1.0:
-                w.trim_end.setValue(p.debut)
-                dits.append(f"à la fin ({hms(p.debut)} à {hms(p.fin)})")
-            else:
-                milieu.append((p.debut, p.fin))
-        refus = ""
-        if milieu:
-            if w.tape_check.isChecked() or w.chroma_check.isChecked():
-                refus = (f" {len(milieu)} passage(s) au milieu ne sont pas enlevés : « Bruit de bande » et "
-                         "« Couleur des décrochages » ne le permettent pas.")
-            else:
-                from .gui import _MAX_COUPES
-                w._coupes = w._coupes_normalisees(w._coupes + milieu)[:_MAX_COUPES]
-                w._rafraichir_passages()
-                dits.append(f"{len(milieu)} passage(s) entre deux scènes")
-        self.note_coupe.setText("Trouvé : " + ", ".join(dits) + ". En doré sur la barre : ce ne sera pas "
-                                "restauré. Les carrés blancs se tirent pour ajuster." + refus)
+        passages, _duree = res
+        self.w._proposer_passages_vides(passages)
+        if passages:
+            phrase = ("Les passages vides sont en bleu sur la barre. "
+                      "Choisissez un passage, puis cliquez sur « Enlever ».")
+        else:
+            phrase = "Aucune neige ni écran vide trouvé."
+        self.w.status.setText(phrase)
+        self.note_coupe.setText(phrase)
 
     # ------------------------------------------------------------ 3. son
     def _montrer_reglage_son(self) -> None:

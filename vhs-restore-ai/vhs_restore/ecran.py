@@ -368,6 +368,23 @@ def installer(w):
     w.barre.zoomer()
     zoom = ligne(QLabel("Zoom"), eloigner, rapprocher, tout_le_film)
     zoom.addStretch(1)
+    w.chercher_neige_libre = QPushButton("Chercher la neige…")
+    w.chercher_neige_libre.clicked.connect(lambda: w.assistant._chercher_vides())
+    zoom.addWidget(w.chercher_neige_libre)
+    enlever = QPushButton("Enlever")
+    enlever.clicked.connect(w._enlever_passage_vide)
+
+    def afficher_passage_vide():
+        passage = w.barre.passage_vide
+        enlever.setVisible(passage is not None)
+        if passage is not None:
+            from .vides import decrire
+            enlever.setToolTip(decrire(passage))
+            enlever.setAccessibleName("Enlever le passage vide " + decrire(passage))
+
+    w.barre.passage_choisi.connect(afficher_passage_vide)
+    zoom.addWidget(enlever)
+    enlever.hide()
     c.addLayout(zoom)
     liste = QGridLayout()                        # passages enlevés, « Remettre » : sous la barre,
     liste.setHorizontalSpacing(12)               # deux par ligne (8 au plus)

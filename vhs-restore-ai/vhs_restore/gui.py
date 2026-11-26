@@ -812,6 +812,7 @@ class _Ruban(QWidget):
     valider = Signal()
     largeur_changee = Signal(int)
     zoom_change = Signal(bool, bool)
+    passage_choisi = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -819,6 +820,9 @@ class _Ruban(QWidget):
         self.fps = 0.0
         self._amplitude = 0.0
         self._origine = 0.0
+        self.reperes: tuple[float, ...] = ()
+        self.passages_vides: tuple[vides.Passage, ...] = ()
+        self.passage_vide: vides.Passage | None = None
         self.position = 0.0
         self.debut = 0.0
         self.fin = 0.0
@@ -934,6 +938,29 @@ class _Ruban(QWidget):
                     ecart = d
         return choisi
 
+    def passage_a(self, temps: float) -> vides.Passage | None:
+        fin = self.fin or self.duree
+        for passage in self.passages_vides:
+            a, b = passage.debut, passage.fin
+            if not a <= temps <= b or b <= self.debut or a >= fin:
+                continue
+            if not any(debut <= a and b <= fin for debut, fin in self.coupes):
+                return passage
+        return None
+
+    def choisir_passage(self, passage: vides.Passage | None) -> None:
+        self.passage_vide = passage
+        self.passage_choisi.emit()
+        self.update()
+
+    def aimanter(self, temps: float) -> float:
+        if not self.reperes or QApplication.keyboardModifiers() & Qt.AltModifier:
+            return temps
+        a, b = self._fenetre()
+        tolerance = min(1.0, 8 * (b - a) / max(1, self._zone().width()))
+        repere = min(self.reperes, key=lambda t: abs(t - temps))
+        return repere if abs(repere - temps) <= tolerance else temps
+
     def _curseur_pour(self, x: float) -> None:
         self.setCursor(Qt.SizeHorCursor if self._bord_sous(x) is not None else Qt.PointingHandCursor)
 
@@ -942,6 +969,9 @@ class _Ruban(QWidget):
             x = float(event.position().x())
             self._curseur_pour(x)
             bord = self._bord_sous(x)
+            passage = self.passage_a(self._temps(x))
+            if passage is not None:
+                self.choisir_passage(passage)
             if bord is not None:
                 # le bord ne bouge qu'une fois vraiment tiré : un clic près d'une coupe la
                 # rallongeait sans prévenir (des minutes sur une longue cassette)
@@ -963,7 +993,7 @@ class _Ruban(QWidget):
                 self._glisse_bord, self._bord_saisi = self._bord_saisi, None
             if self._glisse_bord is not None:
                 indice, est_fin = self._glisse_bord
-                self.borde.emit(indice, est_fin, self._temps(x))
+                self.borde.emit(indice, est_fin, self.aimanter(self._temps(x)))
             elif self._glisse_piste:
                 self.clique.emit(self._temps(x))
         super().mouseMoveEvent(event)
@@ -1050,6 +1080,20 @@ class _Ruban(QWidget):
         p.setBrush(bleu)
         x0, x1 = self._x_de(self.debut), self._x_de(fin)
         p.drawRect(int(x0), r.top() + 4, max(2, int(x1 - x0)), r.height() - 8)
+        origine, limite = self._fenetre()
+        for passage in self.passages_vides:
+            a, b = passage.debut, passage.fin
+            if b <= origine or a >= limite or self.passage_a((a + b) / 2) is None:
+                continue
+            xa, xb = int(self._x_de(max(a, origine))), int(self._x_de(min(b, limite)))
+            p.fillRect(xa, r.top() + 4, max(3, xb - xa), 9,
+                       QColor("#7ee7f7" if passage == self.passage_vide else "#58a6c2"))
+        p.setPen(QPen(QColor(theme.ACCENT), 2))
+        for repere in self.reperes:
+            if origine <= repere <= limite:
+                x = int(self._x_de(repere))
+                p.drawLine(x, r.bottom() - 8, x, r.bottom())
+        p.setPen(Qt.NoPen)
         p.setBrush(dore)
         for a, b in self.coupes:
             xa, xb = self._x_de(a), self._x_de(b)
@@ -2888,6 +2932,8 @@ class MainWindow(QMainWindow):
         self.s_colorize.setChecked(False)
         self.s_colorize.setVisible(False)
         self.info = info
+        self.barre.passages_vides = ()
+        self.barre.choisir_passage(None)
         self.preview = None
         self.compare.clear()
         self.still_combo.clear()
@@ -3083,6 +3129,8 @@ class MainWindow(QMainWindow):
             return
         for barre in barres:
             barre.fps = float(self.info.fps or 0)
+            barre.reperes = tuple(scene.debut for scene in (getattr(self.info, "scenes", None) or ())
+                                   if 0 < scene.debut < self.info.duration)
             barre.definir(self.info.duration, self.start_spin.value(),
                           self.trim_start.value(), self.trim_end.value(), self._coupes)
         if hasattr(self, "_attente_moment"):
@@ -3243,6 +3291,37 @@ class MainWindow(QMainWindow):
         lay.addWidget(ok)
         dlg.exec()
 
+    def _proposer_passages_vides(self, passages: list[vides.Passage]) -> None:
+        self.barre.passages_vides = tuple(passages)
+        self._choisir_prochain_passage_vide()
+
+    def _choisir_prochain_passage_vide(self) -> None:
+        barre = self.barre
+        barre.choisir_passage(next((p for p in barre.passages_vides
+                                    if barre.passage_a((p.debut + p.fin) / 2) is p), None))
+
+    def _enlever_passage_vide(self) -> None:
+        passage = self.barre.passage_vide
+        if self._busy() or not self._film_pour_coupe() or passage is None:
+            return
+        duree = float(self.info.duration or 0)
+        a, b = max(0.0, passage.debut), min(duree, passage.fin)
+        if b - a < _MIN_COUPE or (a <= 0 and b >= duree):
+            self.status.setText("Choisissez un passage qui laisse une partie du film.")
+            return
+        if (a > 0 and b < duree) and (self.tape_check.isChecked() or self.chroma_check.isChecked()):
+            self.status.setText("Pour enlever ce passage, décochez « Bruit de bande » et "
+                                "« Couleur des décrochages » dans « Régler l’image ».")
+            return
+        coupes = self._avec_nouvelle_coupe(a, b)
+        if coupes is None:
+            self.status.setText("Vous pouvez enlever jusqu’à huit passages.")
+            return
+        self._coupes = coupes
+        self._rafraichir_passages()
+        self._choisir_prochain_passage_vide()
+        self.status.setText(f"Le passage de {_duree(a)} à {_duree(b)} ne sera pas restauré.")
+
     def _texte_couper(self, texte: str) -> None:
         for nom in ("s_couper",):
             bouton = getattr(self, nom, None)
@@ -3289,7 +3368,7 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
-        ici = float(self.start_spin.value())
+        ici = self.barre.aimanter(float(self.start_spin.value()))
         self._coupe_ouverte = ici
         self._rafraichir_guide_coupes()
         self.status.setText(
@@ -3304,7 +3383,7 @@ class MainWindow(QMainWindow):
             self.status.setText("Indiquez d'abord où le passage inutile commence.")
             return
         debut = float(self._coupe_ouverte)
-        fin = float(self.start_spin.value())
+        fin = self.barre.aimanter(float(self.start_spin.value()))
         if fin < debut + _MIN_COUPE:
             self.status.setText("Avancez un peu : un passage doit durer au moins une demi-seconde.")
             return
@@ -3359,6 +3438,7 @@ class MainWindow(QMainWindow):
             return
         self._coupes.pop()
         self._rafraichir_passages()
+        self._choisir_prochain_passage_vide()
         self.status.setText("Le dernier passage est remis dans la copie.")
 
     def _remettre_depuis_bouton(self) -> None:
@@ -3375,6 +3455,7 @@ class MainWindow(QMainWindow):
             return
         del self._coupes[index]
         self._rafraichir_passages()
+        self._choisir_prochain_passage_vide()
         self.status.setText("Ce passage est remis dans la copie.")
 
     def _coupes_normalisees(self, coupes: list[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -3478,6 +3559,7 @@ class MainWindow(QMainWindow):
         for sp in (self.trim_start, self.trim_end):
             sp.setValue(0)
         self._rafraichir_passages()
+        self._choisir_prochain_passage_vide()
         self.status.setText("Tout le film sera gardé. L'original n'est pas modifié.")
 
     def _coupe_depuis_extrait(self, fin: bool) -> None:
