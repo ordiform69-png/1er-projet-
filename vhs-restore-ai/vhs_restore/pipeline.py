@@ -21,13 +21,16 @@ Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   4. suppression des parasites ponctuels (removegrain)
   5. réduction du bruit spatio-temporelle : hqdn3d, ou en haute qualité
      fftdnoiz (FFT 3D) + renfort chroma
-  6. correction modérée contraste / saturation (eq)
+  6. contraste, saturation et gamma (lutyuv en 10 bits : eq ne dépasse pas 8 bits)
   7. [IA facultative : Real-ESRGAN x4 sur images PNG]
   8. mise à l'échelle lanczos vers la taille cible, matrice couleur BT.709 en HD
   9. netteté adaptative (cas), sauf si l'IA est utilisée
- 10. rapport de pixel (setsar) pour un affichage 4:3 sans étirement, yuv420p
-Une seule compression finale (H.264) : pas de conversions successives destructives
+ 10. rapport de pixel (setsar), puis UNE descente en yuv420p 8 bits, tramée
+Une seule compression finale (H.264 8 bits) : pas de conversions successives destructives
 (l'intermédiaire du mode IA est sans perte : FFV1 + FLAC, images PNG).
+Le calcul reste en 10 bits dès que les filtres le permettent. removegrain, fieldmatch
+et vid.stab n'existent qu'en 8 bits (FFmpeg 6.1 et 9.1) : on ne monte en précision
+qu'après eux, pour ne pas redescendre au milieu de la chaîne.
 """
 from __future__ import annotations
 
@@ -447,6 +450,107 @@ def reglages_image(s: Settings) -> tuple[float, float, float]:
             1 + PAS_LUMIERE * cran(s.lumiere))
 
 
+# eq (contraste, saturation, gamma) ne connaît que le 8 bits. On le remplace par lutyuv,
+# qui accepte le 10 bits, avec les mêmes formules (partie entière du filtre eq pour le
+# contraste et la saturation ; table gamma × 256 pour la lumière). Le pic est 1023,
+# pas maxval : en gamme TV, maxval vaut 940 et décalerait les moyennes.
+_PEAK10 = 1023
+# Ces filtres refusent tout format au-dessus de 8 bits, y compris dans FFmpeg 9.1.
+_FILTRES_8BITS = frozenset({"fieldmatch", "removegrain", "vidstabdetect", "vidstabtransform"})
+
+
+def _format_10(info: MediaInfo) -> str:
+    """10 bits, en gardant le sous-échantillonnage de la source (4:2:0 par défaut)."""
+    fmt = (info.pix_fmt or "").lower()
+    if "444" in fmt or "gbr" in fmt or fmt.startswith(("rgb", "bgr")):
+        return "yuv444p10le"
+    if "422" in fmt:
+        return "yuv422p10le"
+    return "yuv420p10le"
+
+
+def _coeffs_eq(contrast: float) -> tuple[int, int]:
+    """Mêmes entiers que le chemin rapide d'eq (gamma = 1) : contraste × 4096, décalage."""
+    ci = int(contrast * 4096)
+    bi = (int(100.0) * 511) // 200 - 128 - ci // 32
+    return ci, bi
+
+
+def _expr_lineaire(contrast: float) -> str:
+    """Droite continue calée sur la troncature d'eq (−0,5), en codes 10 bits pleins."""
+    ci, bi = _coeffs_eq(contrast)
+    return f"val*({ci}/4096)+({bi - 0.5})*({_PEAK10}/255)"
+
+
+def _expr_gamma(contrast: float, gamma: float) -> str:
+    """Courbe d'eq quand le gamma n'est pas 1 : puissance, puis × 256 tronqué.
+
+    (v + abs(v)) / 2 remplace un max(v, 0) : log() refuserait un argument négatif
+    et la chaîne ne doit pas contenir de virgule (les tests découpent dessus)."""
+    inv = 1.0 / gamma
+    v = f"({contrast:.8g}*(val/{_PEAK10}-0.5)+0.5)"
+    vpos = f"(({v}+abs({v}))/2+0.000000001)"
+    return f"(exp(log({vpos})*{inv:.8g})*256-0.5)/255*{_PEAK10}"
+
+
+def _filtres_eq(contraste: float, saturation: float, gamma: float) -> list[str]:
+    """Remplace eq=contrast:saturation[:gamma]. Liste vide si rien ne change."""
+    if abs(contraste - 1) <= 1e-6 and abs(saturation - 1) <= 1e-6 and abs(gamma - 1) <= 1e-6:
+        return []
+    opts: list[str] = []
+    if abs(gamma - 1) > 1e-6:
+        opts.append(f"y='{_expr_gamma(contraste, gamma)}'")
+    elif abs(contraste - 1) > 1e-6:
+        opts.append(f"y='{_expr_lineaire(contraste)}'")
+    if abs(saturation - 1) > 1e-6:
+        uv = _expr_lineaire(saturation)
+        opts.append(f"u='{uv}'")
+        opts.append(f"v='{uv}'")
+    return ["lutyuv=" + ":".join(opts)]
+
+
+# colorlevels, colorchannelmixer : calcul RVB. colorlevels en 10 bits est faux sur
+# FFmpeg 6.1 et 9.1 (le point noir est multiplié par 65535, pas par 1023) : l'image
+# devient noire. En 16 bits le calcul est juste. On groupe donc ces filtres en gbrp16le
+# une fois la chaîne en haute précision, puis on revient au YUV 10 bits.
+_FILTRES_RVB = ("colorchannelmixer", "colorlevels")
+
+
+def _monter_precision(filtres: list[str], info: MediaInfo) -> list[str]:
+    """10 bits après le dernier filtre bloqué en 8 bits, niveaux en 16 bits vrais."""
+    fmt = _format_10(info)
+    last = -1
+    for i, flt in enumerate(filtres):
+        if flt.split("=", 1)[0] in _FILTRES_8BITS:
+            last = i
+    staged: list[str] = []
+    for i, flt in enumerate(filtres):
+        if i == last + 1:
+            staged.append(f"format={fmt}")
+        staged.append(flt)
+    if last + 1 == len(filtres):
+        staged.append(f"format={fmt}")
+
+    out: list[str] = []
+    en_dix = False
+    i = 0
+    while i < len(staged):
+        flt = staged[i]
+        nom = flt.split("=", 1)[0]
+        if en_dix and nom in _FILTRES_RVB:
+            out.append("format=gbrp16le")
+            while i < len(staged) and staged[i].split("=", 1)[0] in _FILTRES_RVB:
+                out.append(staged[i])
+                i += 1
+            out.append(f"format={fmt}")
+            continue
+        if flt == f"format={fmt}":
+            en_dix = True
+        out.append(flt)
+        i += 1
+    return out
+
+
 def _cast_filter(s: Settings) -> str | None:
     """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux.
     La teinte de l'utilisateur (−3 froide … +3 chaude) s'y ajoute : 3 % de rouge / bleu par cran."""
@@ -484,21 +588,27 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     elif p.denoise:
         f.append("hqdn3d=" + ":".join(f"{v:g}" for v in p.denoise))
     contraste, saturation, gamma = reglages_image(s)
-    if abs(contraste - 1) > 1e-6 or abs(saturation - 1) > 1e-6 or abs(gamma - 1) > 1e-6:
-        eq = f"eq=contrast={contraste:.4g}:saturation={saturation:.4g}"
-        f.append(eq + (f":gamma={gamma:.4g}" if abs(gamma - 1) > 1e-6 else ""))
-    return f
+    f.extend(_filtres_eq(contraste, saturation, gamma))
+    return _monter_precision(f, info)
 
 
 def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[str]:
     w, h, sar = target_size(info, s)
     f: list[str] = []
+    # Images de l'IA : PNG 8 bits. On remonte en 10 bits avant l'agrandissement.
+    if from_rgb:
+        f.append("format=gbrp10le")
     if effective_resolution(s) != "source":
         src_m = "" if from_rgb else f":in_color_matrix={_in_matrix(info)}"
         plage = ""
         if info.color_range == "pc":
             plage = ("" if from_rgb else f":in_range={info.color_range}") + ":out_range=tv"
         f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709{plage}")
+        # Le scale ne doit pas négocier le 8 bits avec le format final : on fixe le 10 bits
+        # avant la netteté. Depuis le RVB, on garde le 4:4:4 jusqu'à la descente finale.
+        f.append("format=yuv444p10le" if from_rgb else f"format={_format_10(info)}")
+    elif from_rgb:
+        f.append("format=yuv444p10le")
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
     f += _bottom_mask(info, s)
@@ -506,6 +616,8 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
     if effective_resolution(s) == "source" and info.color_range == "pc":
         f.append(f"scale=iw:ih:out_color_matrix={_in_matrix(info)}:out_range=pc")
+    # Seule descente en 8 bits. swscale (dither automatique : Bayer en 4:2:0, 6.1 et 9.1)
+    # trame pendant cette conversion. Pas de second scale : il coûtait trop cher en Full HD.
     f.append("format=yuv420p")
     return f
 

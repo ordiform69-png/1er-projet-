@@ -31,14 +31,18 @@ def _vstream(path):
 def test_filter_order(pal):
     chain = pipeline.filter_chain(pal, S("maximum", resolution="1080"))
     names = [f.split("=")[0] for f in chain.split(",")]
-    assert names == ["bwdif", "removegrain", "hqdn3d", "eq", "scale", "cas", "setsar", "format"]
+    # eq (8 bits) est remplacé par lutyuv en yuv420p10le ; la netteté reste en 10 bits
+    # (second format) et la seule descente en 8 bits est le format=yuv420p final.
+    assert names == ["bwdif", "removegrain", "format", "hqdn3d", "lutyuv", "scale", "format",
+                     "cas", "setsar", "format"]
     assert "parity=tff" in chain and "send_field" in chain
 
 
 def test_fidele_is_light(pal):
     chain = pipeline.filter_chain(pal, S("fidele"))
     assert "eq=" not in chain and "cas" not in chain and "scale" not in chain
-    assert chain.startswith("bwdif")
+    # Fidèle n'a pas removegrain : le 10 bits commence avant le désentrelacement.
+    assert chain.startswith("format=yuv420p10le,bwdif")
 
 
 def test_no_deinterlace_unless_known(pal):
