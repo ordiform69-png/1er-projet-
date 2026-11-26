@@ -15,7 +15,10 @@ Dépôt : https://github.com/ordiform69-png/1er-projet-
 | Fusion B | `b824adad2886a60fee6a6116ada0475604d29ba9` | `merge --no-ff`, auto-fusion de `pipeline.py` relue |
 | C `grok/qualite-numerisation` | `a18c10647a38b3eea01f78be97b1515cc9972d44` | tête annoncée, confirmée |
 | Fusion C | `1d073eb77d7654643e1adb5403003101c2af36a3` | `merge --no-ff`, conflit `probe.py` résolu |
-| Correctif test scènes (intégration A+B) | `786e68cc58dd5104676742b90dfa6e713dbb4949` | voir Fait / Vérifié |
+| Correctif test scènes (intégration A+B) | `786e68cc58dd5104676742b90dfa6e713dbb4949` | conservé après les deux fusions de A |
+| Tête après corrections, 1er tour | `3aa2c3d1aa3fa7c337de0d2697166ec076350605` | rapport Corrections initial |
+| A `grok/qualite-scenes` 2e tour | `0df6d88570e2dd6d575a81d4c7190c24f8ea75a0` | tête annoncée (`0df6d88`), confirmée, posée sur `3968865` |
+| Fusion 2e tour | `de215bf5ae99283ef88eff9fc9876481724f02cb` | `merge --no-ff`, auto-fusion, poussée tout de suite |
 | **Tête de `grok/qualite` (ce rapport)** | voir le commit de ce fichier | |
 
 `grok/qualite-qtgmc` est à `0f37607cde9265dddbe0af0ca3230e0d7bbfcd6a` : **non fusionnée**.
@@ -212,3 +215,76 @@ Uniquement les fichiers demandés par les corrections, un par un, `timeout 900`,
 ### Bloqué (cette passe)
 
 Aucun. Le point ouvert « temps +437 % » du rapport initial est levé pour les films proches d’une vraie capture (4:2:2 / 4:2:0). Il reste spécifique au film d’essai 4:4:4 de la phase 1, qui n’est pas représentatif.
+
+### Deuxième tour — coupure jugée sur la netteté du changement de couleur
+
+Reprise le 26 nov. 2026 à partir de 19:07 Europe/Paris (UTC+1). Texte suivi : `DEMANDE-GROK-BUILD-17-CORRECTIONS.md` sur `ccr-5856e8d6-8xt8uh` @`c6015de` (section « Deuxième tour », ajoutée le 26 nov. 17:11 Europe/Paris). Pas de fichier CORRECTIONS n°17 séparé. Tête de départ : `grok/qualite` @`3aa2c3d`.
+
+#### Périmètre et fusion
+
+| Référence | SHA |
+|---|---|
+| Tête `grok/qualite` avant cette fusion | `3aa2c3d1aa3fa7c337de0d2697166ec076350605` |
+| A `grok/qualite-scenes` (annoncé `0df6d88`, confirmé) | `0df6d88570e2dd6d575a81d4c7190c24f8ea75a0` |
+| Fusion `--no-ff` (poussée tout de suite) | `de215bf5ae99283ef88eff9fc9876481724f02cb` |
+
+Le diff `3968865..0df6d88` touche **seulement** `scenes.py` et `tests/test_scenes.py`. **Ni `pipeline.py` ni `estimation.py`**. Après fusion, `git diff 3aa2c3d HEAD -- pipeline.py estimation.py` est vide.
+
+Aucun conflit : Git a auto-fusionné `test_scenes.py`. Le correctif d'intégration `786e68c` (`gamma=1.2` **ou** `lutyuv` 0,83333333) est conservé ; A n'a pas retouché ce test. Il reste nécessaire (B est toujours dans la branche).
+
+#### Règle (après `0df6d88`)
+
+À 5 images/s, pour chaque instant on compare la **couleur moyenne** de la seconde qui précède à celle de la seconde qui suit (`FENETRE_MOYENNE = 5`). On rapporte cet écart à la variation interne de chaque côté. Une coupure est retenue si ce rapport est un pic local (le plus fort de sa seconde) **et** ≥ 1,6× le plus fort rapport des alentours (`FACTEUR_RAPPORT = 1.6`, `RAYON_VOISIN = 12` images, soit environ 2 s de chaque côté, hors de l'épaule du pic).
+
+C'est le remplacement de l'ancienne règle (saut d'une image à l'autre comparé à un plancher 9,2 / facteur 1,45 / marge 3, sur une fenêtre de 6 images).
+
+#### Test paramétré : pas d'affaiblissement
+
+L'ancien `test_coupure_de_40s_sans_fausse_coupure` (film unique, bruit + entrelacement) est devenu `test_variantes_de_la_coupure_a_40s`, paramétré sur les 4 variantes de Claude. Contrôles et tolérances, comparés à l'ancien :
+
+| Contrôle | Ancien | Nouveau |
+|---|---|---|
+| Nombre de scènes | `== 3` | `== len(attendus)` (3, ou 5 pour « écrans ») |
+| Débuts | 20 et 40 s, **± 0,4 s** | tous les débuts attendus, **± 0,4 s** (y compris 0 s, plus strict) |
+| Gains scène normale | **± 0,02** de 1 | **± 0,02** de 1 (scène dont le début est 20 s, ou 23 s pour « écrans ») |
+| Plan unique, lumière douce | inchangé (`len == 1`) | inchangé |
+
+Aucune tolérance relâchée. La variante « origine » reprend le graphe exact de l'ancien test.
+
+#### Coupures relevées sur le HEAD intégré
+
+Mesurées le 26 nov. 2026, 19:07–19:09 Europe/Paris (UTC+1), SHA `de215bf`, FFmpeg **7.1.5-0+deb13u1**, via `scenes.attacher` (mêmes graphes que le test).
+
+| Variante | Attendu | Trouvé | Gains scène normale |
+|---|---|---|---|
+| Film du test (bruit, entrelacé) | 0, 20, 40 | **0,0 / 20,0 / 40,0** | 1,0000 / 1,0000 / 1,0000 |
+| Sans entrelacement | 0, 20, 40 | **0,0 / 20,0 / 40,0** | 1,0000 / 1,0000 / 1,0000 |
+| Sans bruit | 0, 20, 40 | **0,0 / 20,0 / 40,0** | 1,0000 / 1,0000 / 1,0000 |
+| Écrans noir 3 s + bleu 3 s | 0, 3, 23, 43, 63 | **0,0 / 3,0 / 23,0 / 43,0 / 63,0** | 1,0000 / 1,0000 / 1,0000 |
+
+Tous les débuts à **0,0 s** de l'attendu. Tous les gains de la scène normale à **1,0000**. Les quatre variantes, qui rataient la coupure à 40 s (ou 43 s) sur `3aa2c3d` sauf le film exact du test, sont maintenant correctes.
+
+Brut : `partage-grok/mesures-n17/resultats-corrections-tour2-variantes-claude.txt`.
+
+#### Tests (2e tour)
+
+Uniquement les fichiers demandés par les corrections, un par un, `timeout 900`, `QT_QPA_PLATFORM=offscreen`, 26 nov. 2026, 19:07–19:10 Europe/Paris (UTC+1), tête `de215bf`. Suite complète non lancée.
+
+| Fichier | Résultat | Code | Durée |
+|---|---|---|---|
+| `tests/test_scenes.py` | 16 passed | 0 | 129,4 s (pytest) |
+| `tests/test_assistant.py` | 9 passed | 0 | 60,9 s |
+| `tests/test_lumiere.py` | 10 passed | 0 | 13,9 s |
+
+35 tests passés, 0 échoué. `test_scenes.py` passe de 13 à 16 tests (le cas Claude est décliné en 4 variantes). Aucun test affaibli, aucun correctif d'intégration supplémentaire. FFmpeg **7.1.5-0+deb13u1**.
+
+#### Écarts (2e tour)
+
+- Périmètre annoncé = périmètre réel (`scenes.py`, `tests/test_scenes.py`).
+- Pas de fichier CORRECTIONS n°17 distinct : le 2e tour est une section ajoutée au même `DEMANDE-GROK-BUILD-17-CORRECTIONS.md` (`c6015de`).
+- Aucune assertion relâchée (voir le tableau des tolérances).
+- `pipeline.py` et `estimation.py` inchangés.
+
+#### Bloqué (2e tour)
+
+Aucun.
