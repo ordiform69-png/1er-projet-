@@ -1,0 +1,20 @@
+Mesure réelle du film de Claude (demande n°17, corrections)
+Date : 2026-11-26 05:20 Europe/Paris (UTC+1)
+SHA moteur : 84203b7e23196a9ac86d1f44ef5a02c87591cb6f (grok/qualite après fusion 3968865)
+Recette : exactement le graphe lavfi de DEMANDE-GROK-BUILD-17-CORRECTIONS.md
+(testsrc2 20 s sombre orangée / 20 s normale / 20 s claire bleutée, noise, interlace, yuv422p, FFV1).
+
+analyze() : durée 60,0 s, pix_fmt=yuv422p, scan=tff, scenes déjà attachées = 0, scenes_vues=False
+(conforme à l'ouverture qui n'attend plus l'analyse).
+
+scenes.attacher : 6,452 s, scenes_vues=True, 3 scènes
+intervalles : [0,00–20,00], [20,00–40,00], [40,00–60,00]
+coupure 1 : 20,0 s (écart à 20,0 s : 0,0 s)
+coupure 2 : 40,0 s (écart à 40,0 s : 0,0 s)
+
+Gains via scenes._valeurs(..., level_black=0,2, level_white=0,8), comme le test de A :
+  scène 1 (0–20, sombre orangée) : rr=0,9171  gg=0,9137  bb=1,1800
+  scène 2 (20–40, normale)       : rr=1,0000  gg=1,0000  bb=1,0000
+  scène 3 (40–60, claire bleutée): rr=1,1186  gg=0,9566  bb=0,9428
+
+Annonce de A confirmée : coupures à 20,0 et 40,0 s, gains 1,000 sur la scène normale.

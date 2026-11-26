@@ -1,0 +1,22 @@
+Temps de restauration — méthode Claude — phase avant
+Date : 2026-11-26 05:24:36 Europe/Paris (UTC+1)
+SHA : 4f090734fd9cfa670d2be04fc6b372327474b7eb
+Moteur : /workspace/ctrl-vhs/base-4f09073/vhs-restore-ai
+Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 9045.2 Mio), Linux 6.12.113+
+FFmpeg : ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+
+=== ffv1_422 (yuv422p, scan=tff, Y 68.0–121.0) ===
+  conseils=['levels'] niveaux_actifs=True n_scenes=None
+  analyze=5.004 s  attacher=None
+  run 1: 19.090 s → 19.09 s/min
+  run 2: 19.234 s → 19.23 s/min
+  run 3: 18.478 s → 18.48 s/min
+  médiane : 19.090 s (19.09 s de calcul par minute de film)
+
+=== mpeg2_420 (yuv420p, scan=tff, Y 68.0–121.0) ===
+  conseils=['levels'] niveaux_actifs=True n_scenes=None
+  analyze=2.378 s  attacher=None
+  run 1: 15.016 s → 15.02 s/min
+  run 2: 15.181 s → 15.18 s/min
+  run 3: 15.023 s → 15.02 s/min
+  médiane : 15.023 s (15.02 s de calcul par minute de film)

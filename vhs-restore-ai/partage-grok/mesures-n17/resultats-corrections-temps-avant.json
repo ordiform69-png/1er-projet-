@@ -1,0 +1,94 @@
+{
+  "phase": "avant",
+  "date": "2026-11-26 05:24:36 Europe/Paris (UTC+1)",
+  "sha": "4f090734fd9cfa670d2be04fc6b372327474b7eb",
+  "moteur": "/workspace/ctrl-vhs/base-4f09073/vhs-restore-ai",
+  "materiel": {
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "coeurs": 8,
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 9045.2,
+    "os": "Linux 6.12.113+",
+    "python": "3.13.5",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "methode": "720×576 entrelacé, son, 60 s, sombre peu contrasté, niveaux appliqués, profil Équilibré, preset medium, crf=18, 3 runs, médiane. Horloge autour de pipeline.export seulement (analyse et attacher à part).",
+  "films": {
+    "ffv1_422": {
+      "film": "/tmp/mesures-n17-corr/films/sombre-60s-ffv1-422.mkv",
+      "cle": "ffv1_422",
+      "duree_s": 60.0,
+      "pix_fmt": "yuv422p",
+      "scan": "tff",
+      "level_low": 68.0,
+      "level_high": 121.0,
+      "conseils": [
+        "levels"
+      ],
+      "level_black": 0.26666666666666666,
+      "level_white": 0.4745098039215686,
+      "niveaux_actifs": true,
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,colorlevels=rimin=0.0290:gimin=0.0290:bimin=0.0290:rimax=0.8415:gimax=0.8415:bimax=0.8415,removegrain=m0=1:m1=1:m2=1,hqdn3d=3:5:4.5:7,eq=contrast=1.04:saturation=1.08,cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 5.004216448000079,
+      "attacher_s": null,
+      "n_scenes": null,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 19.09020459400017,
+          "s_par_minute": 19.09020459400017
+        },
+        {
+          "run": 2,
+          "wall_s": 19.23352580200026,
+          "s_par_minute": 19.23352580200026
+        },
+        {
+          "run": 3,
+          "wall_s": 18.47849998899983,
+          "s_par_minute": 18.47849998899983
+        }
+      ],
+      "mediane_wall_s": 19.09020459400017,
+      "mediane_s_par_minute": 19.09020459400017
+    },
+    "mpeg2_420": {
+      "film": "/tmp/mesures-n17-corr/films/sombre-60s-mpeg2-420.mkv",
+      "cle": "mpeg2_420",
+      "duree_s": 60.0,
+      "pix_fmt": "yuv420p",
+      "scan": "tff",
+      "level_low": 68.0,
+      "level_high": 121.0,
+      "conseils": [
+        "levels"
+      ],
+      "level_black": 0.26666666666666666,
+      "level_white": 0.4745098039215686,
+      "niveaux_actifs": true,
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,colorlevels=rimin=0.0290:gimin=0.0290:bimin=0.0290:rimax=0.8415:gimax=0.8415:bimax=0.8415,removegrain=m0=1:m1=1:m2=1,hqdn3d=3:5:4.5:7,eq=contrast=1.04:saturation=1.08,cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 2.3781593789999533,
+      "attacher_s": null,
+      "n_scenes": null,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 15.01563287199997,
+          "s_par_minute": 15.015632871999967
+        },
+        {
+          "run": 2,
+          "wall_s": 15.181211769999663,
+          "s_par_minute": 15.181211769999663
+        },
+        {
+          "run": 3,
+          "wall_s": 15.022755938000046,
+          "s_par_minute": 15.022755938000044
+        }
+      ],
+      "mediane_wall_s": 15.022755938000046,
+      "mediane_s_par_minute": 15.022755938000044
+    }
+  }
+}

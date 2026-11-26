@@ -131,3 +131,84 @@ Aucun blocage de fusion ni de mesure. Points ouverts :
 - Les recettes des agents n’étaient pas dans le dépôt en phase 1 ; A a confirmé un film d’essai identique, B a publié `recette-agent-B.md`. Les deux ont été mesurées.
 
 Résultats bruts : `vhs-restore-ai/partage-grok/mesures-n17/` (`resultats-avant*`, `resultats-apres*`, `rampe-ligne-*`, `mesurer.py`, `METHODE.md`, `recette-agent-B.md`).
+
+---
+
+## Corrections
+
+Vérification et refusion de `grok/qualite-scenes` @`3968865` (26 nov. 2026, à partir de 05:12 Europe/Paris, UTC+1). Le texte suivi est `DEMANDE-GROK-BUILD-17-CORRECTIONS.md` sur `ccr-5856e8d6-8xt8uh` @`fed2275`. Écarts avec le résumé d’instruction : le document précise davantage les films de temps (720 × 576 entrelacé, son, 60 s, FFV1 4:2:2 et MPEG-2 4:2:0, sombres et peu contrastés, niveaux actifs) ; c’est cette méthode qui a été appliquée. Les seuls tests cités par les corrections sont `tests/test_scenes.py`, plus `test_assistant.py` et `test_lumiere.py`.
+
+### Fusion
+
+| Référence | SHA |
+|---|---|
+| Tête `grok/qualite` avant cette fusion | `6fa61dbc30534323d46a57cebb45b2c4583808ff` |
+| A `grok/qualite-scenes` (annoncé, confirmé sur origin) | `3968865ec4b16749e384f1015b3979d02e8fa8e2` |
+| Fusion `--no-ff` (poussée tout de suite) | `84203b7e23196a9ac86d1f44ef5a02c87591cb6f` |
+| **Tête après ce rapport** | le commit qui ajoute cette partie |
+
+Le commit `3968865` (par rapport à `fe9fc2c`) touche bien `scenes.py`, `gui.py`, `assistant.py`, `lumiere.py`, `probe.py`, `tests/test_scenes.py`, et ajoute `DEMANDE-GROK-BUILD-17-CORRECTIONS.md`. **Ni `pipeline.py` ni `estimation.py`** dans ce commit. Après fusion, `git diff 6fa61db HEAD -- pipeline.py estimation.py` est vide.
+
+Conflit uniquement dans `probe.py` :
+
+- Champs : `scenes_secondes` (libellé de A) et `scenes_vues` de A, **et** les champs de numérisation de C, conservés.
+- Fin de `analyze()` : `measure_capture` de C est conservé ; l’appel bloquant `scenes.attacher` (introduit à la première fusion de A) est **retiré**, remplacé par le commentaire de A (« les scènes se lisent ensuite, en arrière-plan »). C’est le cœur de la correction n°1.
+
+`assistant.py` et `test_scenes.py` ont été auto-fusionnés.
+
+### Correctif `786e68c` (test_scenes.py)
+
+A n’a **pas** modifié `test_reglages_utilisateur_par_dessus` (seulement d’autres tests, et l’ajout du film de Claude). La fusion a donc conservé le correctif d’intégration A+B : l’assertion accepte `gamma=1.2` (eq) **ou** `lutyuv` avec l’exposant `0,83333333`. Ce correctif **reste nécessaire** (B est toujours dans `grok/qualite`). Il n’affaiblit pas le test (le contrôle « teinte plus chaude » est intact). Les 13 tests de `test_scenes.py` passent avec ce texte.
+
+### Film de Claude — mesure réelle
+
+Recette identique au graphe des corrections (FFV1, `yuv422p`, 60 s). Mesuré le 26 nov. 2026 vers 05:20 Europe/Paris, SHA `84203b7`, après `analyze()` puis `scenes.attacher` (l’ouverture seule ne remplit plus les scènes : 0 scène, `scenes_vues=False`).
+
+- 3 scènes : [0,00–20,00], [20,00–40,00], [40,00–60,00]
+- Coupures : **20,0 s** et **40,0 s** (écart 0,0 s, dans ± 0,4 s)
+- Gains `scenes._valeurs` (même porte que le test de A, `level_black=0,2`, `level_white=0,8`) sur la scène normale (20–40 s) : **rr=1,0000  gg=1,0000  bb=1,0000**
+- Annonce de A confirmée.
+- Durée de `attacher` sur ce film : 6,45 s.
+
+Brut : `partage-grok/mesures-n17/resultats-corrections-film-claude.txt`.
+
+Lecture des scènes, chiffres de A (commit `3968865`, film de Claude 60 s FFV1 4:2:2) : 8,79 s à 5 i/s et 8,72 s à 2 i/s (le décodage ne saute pas d’images : 5 i/s conservé) ; ouverture seule sans les scènes : 11,5 s. Sur cette box, `attacher` a pris 6,45 s (même film) ; l’ouverture (`analyze`) d’un FFV1 4:2:2 de 60 s sombre a pris 4,8 s.
+
+### Temps de restauration (méthode de Claude)
+
+Films figés, 720 × 576, entrelacé TFF, son, 60 s, sombres et peu contrastés (Y 68–121, conseil `levels`, `colorlevels` présent dans la chaîne). Profil Équilibré, `preset=medium`, crf=18, désentrelacement bwdif. 3 passages, médiane. Horloge autour de `pipeline.export` seulement (`analyze` et `attacher` notés à part). Même machine, FFmpeg 7.1.5.
+
+Avant : base `4f09073` (copie isolée). Après : `84203b7`.
+
+| Film | Avant (médiane) | Après (médiane) | Écart |
+|---|---|---|---|
+| FFV1 4:2:2 | 19,090 s (runs 19,090 / 19,234 / 18,478) | 18,486 s (18,382 / 18,515 / 18,486) | **−3 %** |
+| MPEG-2 4:2:0 | 15,023 s (15,016 / 15,181 / 15,023) | 17,268 s (17,771 / 16,329 / 17,268) | **+15 %** |
+
+Niveaux actifs dans les quatre chaînes. Après fusion, un seul plan détecté (lumière uniforme), donc pas de `sendcmd` ici — c’est bien le coût 10 bits + niveaux sur une capture 4:2:2 / 4:2:0, pas le film d’essai 4:4:4.
+
+Les +437 % du rapport initial ne se reproduisent pas, comme l’avait mesuré Claude (chez lui : 32,7 → 37,0 s soit +13 % en FFV1 4:2:2 ; 27,7 → 29,3 s soit +6 % en MPEG-2 4:2:0). Les durées absolues diffèrent (autre machine), l’ordre de grandeur de l’écart est le même. Rien à corriger de ce côté.
+
+Bruts : `resultats-corrections-temps-avant.*`, `resultats-corrections-temps-apres.*`, script `mesurer_temps_claude.py`.
+
+### Tests
+
+Uniquement les fichiers demandés par les corrections, un par un, `timeout 900`, `QT_QPA_PLATFORM=offscreen`, 26 nov. 2026 vers 05:20–05:23 Europe/Paris (UTC+1), tête `84203b7`. Suite complète non lancée.
+
+| Fichier | Résultat | Code | Durée |
+|---|---|---|---|
+| `tests/test_scenes.py` | 13 passed | 0 | 60,4 s (59,77 s pytest) |
+| `tests/test_assistant.py` | 9 passed | 0 | 63,3 s (62,91 s) |
+| `tests/test_lumiere.py` | 10 passed | 0 | 14,1 s (13,76 s) |
+
+32 tests passés, 0 échoué, 0 ignoré. Aucun test affaibli, aucun correctif supplémentaire.
+
+### Non testé (cette passe)
+
+- Suite complète.
+- Les autres fichiers de la n°17 (déjà lancés avant ces corrections, non redemandés).
+- FFmpeg 6.1 et 9.1 (box en 7.1.5). Aucun échec lié à la version.
+
+### Bloqué (cette passe)
+
+Aucun. Le point ouvert « temps +437 % » du rapport initial est levé pour les films proches d’une vraie capture (4:2:2 / 4:2:0). Il reste spécifique au film d’essai 4:4:4 de la phase 1, qui n’est pas représentatif.
