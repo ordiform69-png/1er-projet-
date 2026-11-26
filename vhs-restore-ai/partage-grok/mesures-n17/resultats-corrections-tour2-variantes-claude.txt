@@ -1,0 +1,15 @@
+Coupures des quatre variantes de Claude — 2e tour n°17
+Date : 2026-11-26 19:07–19:09 Europe/Paris (UTC+1)
+SHA : de215bf5ae99283ef88eff9fc9876481724f02cb (grok/qualite, après fusion 0df6d88)
+FFmpeg : 7.1.5-0+deb13u1
+Méthode : scenes.attacher via tests/test_scenes.py::test_variantes_de_la_coupure_a_40s
+(analyze puis attacher, mêmes graphes lavfi que le test / la demande).
+
+Variante              Attendu              Trouvé               Gains scène normale
+origine               0, 20, 40            0.0, 20.0, 40.0      rr=1.0000 gg=1.0000 bb=1.0000  (analyse 6,23 s)
+sans_entrelacement    0, 20, 40            0.0, 20.0, 40.0      rr=1.0000 gg=1.0000 bb=1.0000  (analyse 11,62 s)
+sans_bruit            0, 20, 40            0.0, 20.0, 40.0      rr=1.0000 gg=1.0000 bb=1.0000  (analyse 1,27 s)
+ecrans                0, 3, 23, 43, 63     0.0, 3.0, 23.0, 43.0, 63.0  rr=1.0000 gg=1.0000 bb=1.0000  (analyse 7,10 s)
+
+Tous les débuts à 0,0 s de l'attendu (tolérance du test : ±0,4 s).
+Gains de la scène normale à 0,0000 de 1 (tolérance : ±0,02).
