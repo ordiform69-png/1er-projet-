@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, Q
                                QVBoxLayout, QWidget)
 
 from . import estimation, lumiere, photo, pipeline, theme, vides
+from .advice import ligne_assistant
 from .profiles import PROFILES, profile_for
 from .tools import AAC, ToolError, ff_input, run, run_capture
 
@@ -594,15 +595,74 @@ class Assistant(QWidget):
     def serrer(self, serre: bool) -> None:
         """Écran bas (moins de 600 px utiles : 1366 × 768 à 125 %, 1920 × 1080 à 175 %) : boutons et
         petites images un peu plus bas, pour que chaque étape tienne sans défiler."""
+        self._serre = serre
         self.retour.setMinimumHeight(44 if serre else 52)
         self.suivant.setMinimumHeight(46 if serre else 60)
-        for t in getattr(self, "tuiles", {}).values():
-            taille = TAILLE_ORIGINAL if t.objectName() == "tuileOriginal" else TAILLE_RENDU
+        self._poser_tuiles()
+
+    def montrer_numerisation(self, texte: str) -> None:
+        """Une ligne à l'étape 1, seulement si la numérisation a déjà perdu des détails."""
+        ligne = getattr(self, "_ligne_num", None)
+        if ligne is None:
+            return
+        ligne.setText(texte)
+        ligne.setVisible(bool(texte))
+        self._poser_tuiles()
+
+    def _poser_tuiles(self) -> None:
+        """La ligne de numérisation prend sa place sur le rembourrage des tuiles, pas en plus.
+        La fenêtre 1280 × 641 ne grandit pas, et l'étape 1 ne défile pas."""
+        tuiles = list(getattr(self, "tuiles", {}).values())
+        if not tuiles:
+            return
+        serre = getattr(self, "_serre", False)
+        ligne = getattr(self, "_ligne_num", None)
+        visible = ligne is not None and ligne.isVisible() and bool(ligne.text())
+        if visible:
+            # Une seule ligne, même si la phrase est un peu longue : la hauteur reste celle d'une ligne.
+            ligne.setWordWrap(True)
+            echelle = float(getattr(self.w, "_echelle", 1.0) or 1.0)
+            haut_ligne = max(ligne.fontMetrics().height() + 4, int(20 * echelle) + 4)
+            ligne.setFixedHeight(haut_ligne)
+        else:
+            haut_ligne = 0
+        ecarts = max(0, len(tuiles) - 1)
+        espacement = 1 if visible else 4
+        liste = getattr(self, "_liste_rendu", None)
+        economie = (4 - espacement) * ecarts if liste is not None else 0
+        if liste is not None:
+            liste.setSpacing(espacement)
+        cout = 0
+        if visible:
+            page = getattr(self, "_rendu_lay", None)
+            cout = haut_ligne + (page.spacing() if page is not None else 4) + 2 - economie
+            cout = max(0, cout)
+        pads = []
+        tailles = []
+        for tuile in tuiles:
+            originale = tuile.objectName() == "tuileOriginal"
+            taille = TAILLE_ORIGINAL if originale else TAILLE_RENDU
             if serre:
                 taille = QSize(taille.width() * 2 // 3, taille.height() * 2 // 3)
-            t.setIconSize(taille)
-            t.setMinimumHeight(taille.height() + (8 if t.objectName() == "tuileOriginal" else 6))
-            t.updateGeometry()
+            tailles.append(taille)
+            pads.append(8 if originale else 6)
+        baisse = [0] * len(tuiles)
+        reste = cout
+        while reste > 0 and any(baisse[i] < pads[i] for i in range(len(tuiles))):
+            for i in range(len(tuiles)):
+                if reste <= 0:
+                    break
+                if baisse[i] < pads[i]:
+                    baisse[i] += 1
+                    reste -= 1
+        for tuile, taille, pad, moins in zip(tuiles, tailles, pads, baisse):
+            tuile.setIconSize(taille)
+            haut = taille.height() + pad - moins
+            # Lever le plafond avant le plancher : sinon la tuile ne peut pas reprendre sa hauteur.
+            tuile.setMaximumHeight(16777215)
+            tuile.setMinimumHeight(haut)
+            tuile.setMaximumHeight(haut)
+            tuile.updateGeometry()
 
     def _construire_rendu(self) -> QWidget:
         page = QWidget()
@@ -612,6 +672,14 @@ class Assistant(QWidget):
         intro = _texte("Cliquez sur la ligne qui vous plaît.")
         intro.setObjectName("introRendu")
         v.addWidget(intro)
+        self._rendu_lay = v
+        self._ligne_num = _texte()
+        self._ligne_num.setObjectName("numerisation")
+        self._ligne_num.setWordWrap(True)
+        self._ligne_num.setMinimumWidth(0)
+        self._ligne_num.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self._ligne_num.setVisible(False)
+        v.addWidget(self._ligne_num)
         liste = QVBoxLayout()
         liste.setSpacing(4)
         self.tuiles: dict[str, QToolButton] = {}
@@ -627,6 +695,7 @@ class Assistant(QWidget):
             liste.addWidget(t)
             self.tuiles[cle] = t
         v.addLayout(liste)
+        self._liste_rendu = liste
         self.note_rendu = _texte()
         v.addWidget(self.note_rendu)
         self.grand = QPushButton("Voir ces images en grand")
@@ -747,7 +816,8 @@ class Assistant(QWidget):
                 f"QPushButton#action:disabled {{background:{theme.VERT_ETEINT}; color:{theme.VERT_ETEINT_TEXTE};}}"
                 f"QToolButton#tuileRendu, QToolButton#tuileOriginal {{border:2px solid {theme.BORD}; border-radius:8px;"
                 f"background:{theme.CARTE}; font-size:{12 * e:.0f}pt; padding:4px;}}"
-                f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}")
+                f"QToolButton#tuileRendu:checked {{border:4px solid {theme.ACCENT}; font-weight:bold;}}"
+                f"QLabel#numerisation {{color:{theme.AVERT};}}")
         for b in self._boutons_reperes:
             b.update()
 
@@ -863,6 +933,7 @@ class Assistant(QWidget):
         self.note_son.setText("")
         self.regler_son.setChecked(False)
         self._montrer_reglage_son()
+        self.montrer_numerisation(ligne_assistant(info) if info is not None else "")
         self.aller(0)
 
     def _etape(self) -> int:

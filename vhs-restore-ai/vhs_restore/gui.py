@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
 from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
-from .advice import advise
+from .advice import advise, conseils_numerisation
 from .eta import Eta
 from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
@@ -1390,7 +1390,7 @@ class MainWindow(QMainWindow):
         self.info_labels: dict[str, QLabel] = {}
         for key in ("Fichier", "Durée", "Conteneur / codec", "Résolution", "Images par seconde",
                     "Format d'affichage", "Balayage", "Norme probable", "Audio", "Couleur",
-                    "Origine suggérée"):
+                    "Origine suggérée", "Numérisation"):
             lab = QLabel("—")
             lab.setWordWrap(True)
             lab.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -1723,6 +1723,25 @@ class MainWindow(QMainWindow):
             liste.currentIndexChanged.connect(lambda _i: self._rafraichir_passages())
         self._out_manual = False        # dossier de sortie choisi exprès par l'utilisateur ?
         ecran.installer(self)
+        # Conseils de numérisation, dans « Qualité » (réglages libres). Cachés s'il n'y a rien.
+        self.note_numerisation = QLabel()
+        self.note_numerisation.setObjectName("noteNumerisation")
+        self.note_numerisation.setWordWrap(True)
+        self.note_numerisation.setTextFormat(Qt.PlainText)
+        self.note_numerisation.setMinimumWidth(0)
+        self.note_numerisation.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.note_numerisation.setStyleSheet(f"color:{theme.AVERT};")
+        self.note_numerisation.setVisible(False)
+        qualite = self.sections["Qualité"][1].widget().layout()
+        place = qualite.count()
+        for i in range(qualite.count()):
+            sous = qualite.itemAt(i).layout()
+            if sous is None:
+                continue
+            if any(sous.itemAt(j).widget() is self.s_advice for j in range(sous.count())):
+                place = i
+                break
+        qualite.insertWidget(place, self.note_numerisation)
         self.s_choose, self.s_preview, self.s_run = self.choisir, self.preview_btn, self.run_btn
         for b in (self.s_choose, self.s_preview, self.s_run):
             b.suggested = False
@@ -2513,7 +2532,22 @@ class MainWindow(QMainWindow):
                                        .get(ch.fix["audio_channel_fix"], "Automatique") if ch
                                        else "Canaux du son inchangés")
 
+    def _montrer_numerisation(self) -> None:
+        """Phrases de numérisation : « Détails du fichier » et les conseils des réglages libres.
+        Rien n'est bloqué, et une photo n'est pas une cassette."""
+        info = self.info
+        photo = bool(getattr(self, "is_photo", False)) or (info is not None and info.container == "image")
+        phrases = [] if info is None or photo else conseils_numerisation(info)
+        if "Numérisation" in self.info_labels:
+            self.info_labels["Numérisation"].setText(
+                "—" if info is None or photo else ("\n".join(phrases) if phrases else "Rien à signaler."))
+        note = getattr(self, "note_numerisation", None)
+        if note is not None:
+            note.setText("\n".join(phrases))
+            note.setVisible(bool(phrases))
+
     def _refresh_hints(self) -> None:
+        self._montrer_numerisation()
         self._marquer_auto()
         # bords abîmés repérés : la case « Masquer les bords » dit ce qui sera fait (pas « 0 px »)
         bords = next((a.fix["mask_sides"] for a in self.advice if a.key == "edges"), 0) if self.info else 0

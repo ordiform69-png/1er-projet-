@@ -76,6 +76,16 @@ class MediaInfo:
     parts: tuple[Path, ...] = ()          # DVD : morceaux VOB d'un même titre, dans l'ordre
     output_stem: str = ""                 # nom du film restauré si différent du fichier (VTS_01)
     concat_list: Path | None = None       # liste concat FFmpeg, dossier temporaire
+    # Numérisation : ce qui est déjà perdu ne se corrige pas. Mesures seulement.
+    video_bitrate: int = 0                 # débit vidéo (bit/s), 0 si inconnu
+    bits_per_pixel: float | None = None    # bits par pixel et par image
+    low_bitrate: bool = False              # copie avec perte, débit trop bas
+    already_deinterlaced: bool = False     # progressive alors qu'une cassette est entrelacée
+    already_scaled: bool = False           # hauteur autre que 576 / 480 (486 admis)
+    doubled_lines: bool = False            # chaque ligne recopiée sur la suivante
+    crushed_blacks: bool = False           # beaucoup de pixels collés au noir
+    crushed_whites: bool = False           # beaucoup de pixels collés au blanc
+    line_jitter: bool = False              # lignes qui tremblent (pas de correcteur de base de temps)
 
     @property
     def interlaced(self) -> bool:
@@ -491,4 +501,278 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
             info.wind = chk.wind
     info.standard, info.standard_reason = guess_standard(info.height, info.fps)
     info.suggested_source, info.source_reason = suggest_source(info)
+    # Débit : le flux vidéo s'il est écrit, sinon le fichier moins le son PCM.
+    audio_codec = str((a or {}).get("codec_name") or "")
+    info.video_bitrate = video_bitrate_bps(
+        int(_num(v.get("bit_rate"))), int(_num(fmt.get("bit_rate"))),
+        info.size_bytes, info.duration, audio_codec,
+        int(_num((a or {}).get("sample_rate"))), int(_num((a or {}).get("channels"))))
+    info.bits_per_pixel = bits_per_pixel(info.video_bitrate, info.width, info.height, info.fps)
+    measure_capture(info, tools.ffmpeg.path, start)
     return info
+
+
+# --- Numérisation (mesures). Les phrases affichées sont dans advice.py.
+# Codecs sans perte : jamais « déjà compressée », même si le débit calculé est bas.
+LOSSLESS_CODECS = frozenset({
+    "ffv1", "huffyuv", "ffvhuff", "rawvideo", "utvideo", "magicyuv", "png", "qtrle",
+    "zlib", "sheervideo", "rle", "v210", "v410", "r210", "ayuv", "yuv4", "bitpacked",
+    "012v", "lcl", "mscc", "cscd",
+})
+# Codecs avec perte que l'on sait juger. Un codec inconnu n'est pas signalé.
+LOSSY_CODECS = frozenset({
+    "mpeg2video", "mpeg1video", "mpeg4", "msmpeg4v1", "msmpeg4v2", "msmpeg4v3",
+    "wmv1", "wmv2", "wmv3", "vc1", "h264", "hevc", "h263", "h263p", "mjpeg", "mjpegb",
+    "dvvideo", "dv", "vp8", "vp9", "av1", "theora", "cinepak", "flv1", "svq1", "svq3",
+    "rv10", "rv20", "rv30", "rv40", "amv", "h261", "msvideo1", "indeo3", "indeo4", "indeo5",
+})
+# 0,25 bit par pixel et par image. En 720×576 à 25 i/s : environ 2,6 Mbit/s.
+# Une capture MPEG-2 à 8 Mbit/s (environ 0,77) reste au-dessus. Le DV (environ 2,4) aussi.
+LOW_BITRATE_BPP = 0.25
+# Hauteurs d'une cassette gardée entière. 486 : NTSC avec les lignes du haut.
+FULL_SD_HEIGHTS = frozenset({480, 486, 576})
+_CAPTURE_WIDTH = 160
+_DOUBLED_SHARE = 0.92          # part de paires de lignes identiques
+_JITTER_STD = 1.2              # écart des décalages de ligne (pixels de l'échantillon)
+_JITTER_MAD = 1.0              # saut d'une ligne à la suivante
+_CRUSH_SPIKE = 0.08            # part de pixels collés à l'extrême
+_CRUSH_MID = 0.20              # en dessous, l'image est noire ou blanche : pas un écrasement
+
+
+def _pcm_bits(codec: str) -> int:
+    name = codec.lower()
+    if "24" in name:
+        return 24
+    if "64" in name:
+        return 64
+    if "32" in name:
+        return 32
+    if name.endswith("8") or "s8" in name or "u8" in name:
+        return 8
+    return 16
+
+
+def video_bitrate_bps(stream_rate: int, format_rate: int, size: int, duration: float,
+                      audio_codec: str = "", audio_rate: int = 0, audio_channels: int = 0) -> int:
+    """Débit vidéo. Le débit du flux prime. Sinon le fichier, moins le son PCM."""
+    if stream_rate > 0:
+        return stream_rate
+    total = format_rate if format_rate > 0 else (int(size * 8 / duration) if duration > 0 and size > 0 else 0)
+    if total <= 0:
+        return 0
+    if audio_codec.lower().startswith("pcm") and audio_rate > 0 and audio_channels > 0:
+        total -= audio_rate * audio_channels * _pcm_bits(audio_codec)
+    return max(0, total)
+
+
+def bits_per_pixel(bitrate: int, width: int, height: int, fps: Fraction | float) -> float | None:
+    """Bits par pixel et par image. None si une grandeur manque."""
+    rate = float(fps)
+    if bitrate <= 0 or width <= 0 or height <= 0 or rate <= 0:
+        return None
+    return bitrate / (width * height * rate)
+
+
+def is_low_bitrate_copy(codec: str, bpp: float | None) -> bool:
+    """Copie avec perte sous le seuil. FFV1, HuffYUV, PCM et le reste sans perte : non."""
+    name = (codec or "").lower()
+    if name in LOSSLESS_CODECS or name.startswith("pcm"):
+        return False
+    if name not in LOSSY_CODECS or bpp is None:
+        return False
+    return bpp < LOW_BITRATE_BPP
+
+
+def is_progressive_film(info: MediaInfo) -> bool:
+    """Pellicule numérisée image par image : progressive et à une cadence de cinéma.
+    Sa taille n'est pas celle d'une cassette, et ce n'est pas un défaut."""
+    if info.scan in ("tff", "bff"):
+        return False
+    return any(abs(float(info.fps - rate)) < 0.02 for rate in FILM_RATES)
+
+
+def judge_capture(info: MediaInfo, *, doubled: bool = False, jitter: bool = False,
+                  crushed_blacks: bool = False, crushed_whites: bool = False) -> None:
+    """Pose les drapeaux à partir du codec, de la taille et des mesures d'image.
+    Une photo ou une pellicule progressive n'est pas une cassette mal numérisée."""
+    if info.container == "image":
+        info.low_bitrate = info.already_deinterlaced = info.already_scaled = False
+        info.doubled_lines = info.line_jitter = False
+        info.crushed_blacks = info.crushed_whites = False
+        return
+    film = is_progressive_film(info)
+    info.low_bitrate = is_low_bitrate_copy(info.codec, info.bits_per_pixel)
+    info.crushed_blacks = bool(crushed_blacks)
+    info.crushed_whites = bool(crushed_whites)
+    info.doubled_lines = bool(doubled) and not film
+    info.line_jitter = bool(jitter) and not film
+    info.already_deinterlaced = info.scan == "progressive" and not film
+    info.already_scaled = bool(info.height) and info.height not in FULL_SD_HEIGHTS and not film
+
+
+def _levels_of(frame: bytes, width: int, height: int) -> tuple[float, float, float, float, float] | None:
+    """Sur le centre de l'image : pic de noir, voisinage du noir, milieu, pic de blanc, voisinage du blanc."""
+    if width < 8 or height < 8 or len(frame) < width * height:
+        return None
+    x0, x1 = int(width * 0.15), int(width * 0.85)
+    y0, y1 = int(height * 0.12), int(height * 0.88)
+    if x1 <= x0 or y1 <= y0:
+        return None
+    black = near = mid = white = near_white = total = 0
+    mv = memoryview(frame)
+    for y in range(y0, y1):
+        row = mv[y * width + x0:y * width + x1]
+        total += len(row)
+        for pix in row:
+            if pix <= 1:
+                black += 1
+            elif pix < 16:
+                near += 1
+            if 40 <= pix < 210:
+                mid += 1
+            if pix >= 254:
+                white += 1
+            elif pix >= 236:
+                near_white += 1
+    if total <= 0:
+        return None
+    return black / total, near / total, mid / total, white / total, near_white / total
+
+
+def _is_crushed(spike: float, near: float, mid: float) -> bool:
+    """Pic collé à l'extrême, avec encore une image au milieu. Un fondu au noir n'a pas de milieu.
+    Une scène sombre a un voisinage, pas une falaise."""
+    if mid < _CRUSH_MID or spike < _CRUSH_SPIKE:
+        return False
+    return spike > 4.0 * near + 0.02
+
+
+def doubled_line_share(frame: bytes, width: int, height: int) -> float | None:
+    """Part des paires de lignes détaillées qui sont des copies. None s'il n'y a pas assez de détail."""
+    if width < 8 or height < 8 or len(frame) < width * height:
+        return None
+    pairs = copies = 0
+    mv = memoryview(frame)
+    for y in range(0, height - 1, 2):
+        a = mv[y * width:(y + 1) * width]
+        b = mv[(y + 1) * width:(y + 2) * width]
+        mean = sum(a) / width
+        var = sum((pix - mean) ** 2 for pix in a) / width
+        if var < 64:
+            continue
+        pairs += 1
+        if sum(abs(p - q) for p, q in zip(a, b)) / width < 1.0:
+            copies += 1
+    if pairs < 12:
+        return None
+    return copies / pairs
+
+
+def line_shift_stats(frame: bytes, width: int, height: int) -> tuple[float, float, float] | None:
+    """Décalages horizontaux d'une ligne de trame à la suivante : écart-type, saut moyen, part forte.
+    None s'il n'y a pas assez de lignes détaillées."""
+    if width < 40 or height < 16 or len(frame) < width * height:
+        return None
+    x0, x1 = width // 5, 4 * width // 5
+    if x1 - x0 < 16:
+        return None
+    shifts: list[int] = []
+    prev: bytes | None = None
+    mv = memoryview(frame)
+    for y in range(0, height - 2, 2):
+        row = bytes(mv[y * width + x0:y * width + x1])
+        if prev is None:
+            prev = row
+            continue
+        mean = sum(row) / len(row)
+        var = sum((pix - mean) ** 2 for pix in row) / len(row)
+        if var < 80:
+            prev = row
+            continue
+        best, best_sad = 0, 1e18
+        for shift in range(-8, 9):
+            if shift < 0:
+                aa, bb = prev[-shift:], row[:len(row) + shift]
+            elif shift > 0:
+                aa, bb = prev[:len(prev) - shift], row[shift:]
+            else:
+                aa, bb = prev, row
+            if not aa:
+                continue
+            sad = sum(abs(p - q) for p, q in zip(aa, bb)) / len(aa)
+            if sad < best_sad:
+                best, best_sad = shift, sad
+        shifts.append(best)
+        prev = row
+    if len(shifts) < 8:
+        return None
+    mean = sum(shifts) / len(shifts)
+    std = (sum((s - mean) ** 2 for s in shifts) / len(shifts)) ** 0.5
+    mad = sum(abs(a - b) for a, b in zip(shifts, shifts[1:])) / (len(shifts) - 1)
+    big = sum(abs(s) >= 2 for s in shifts) / len(shifts)
+    return std, mad, big
+
+
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+
+
+def _read_gray(ffmpeg: str, path: Path, width: int, height: int, start: float,
+               frames: int = 4) -> tuple[int, int, list[bytes]]:
+    """Quelques images en gris, largeur limitée, hauteur entière (les lignes doublées restent)."""
+    sample_w = min(_CAPTURE_WIDTH, width)
+    if sample_w < 8 or height < 8:
+        return 0, 0, []
+    vf = f"scale={sample_w}:{height}:flags=neighbor,format=gray"
+    try:
+        result = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+                          "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
+                          "-map", "0:v:0", "-vf", vf, "-frames:v", str(frames),
+                          "-an", "-f", "rawvideo", "-"],
+                         capture_output=True, timeout=60, stdin=subprocess.DEVNULL,
+                         creationflags=_NO_WINDOW)
+    except (OSError, subprocess.TimeoutExpired):
+        return sample_w, height, []
+    if result.returncode:
+        return sample_w, height, []
+    size = sample_w * height
+    data = result.stdout
+    return sample_w, height, [data[i:i + size] for i in range(0, len(data) - size + 1, size)]
+
+
+def measure_capture(info: MediaInfo, ffmpeg: str, start: float = 0.0) -> None:
+    """Mesure la numérisation et pose les drapeaux. N'échoue pas si la lecture est impossible."""
+    if info.container == "image":
+        judge_capture(info)
+        return
+    doubled = jitter = False
+    crushed_blacks = crushed_whites = False
+    width, height, frames = _read_gray(ffmpeg, info.path, info.width, info.height, start)
+    if frames:
+        shares = [s for frame in frames if (s := doubled_line_share(frame, width, height)) is not None]
+        if shares and _median(shares) >= _DOUBLED_SHARE:
+            doubled = True
+        stats = [s for frame in frames if (s := line_shift_stats(frame, width, height)) is not None]
+        if stats:
+            std = _median([s[0] for s in stats])
+            mad = _median([s[1] for s in stats])
+            big = _median([s[2] for s in stats])
+            if std >= _JITTER_STD and mad >= _JITTER_MAD and big >= 0.25:
+                jitter = True
+        black_votes: list[bool] = []
+        white_votes: list[bool] = []
+        for frame in frames:
+            levels = _levels_of(frame, width, height)
+            if levels is None:
+                continue
+            black, near, mid, white, near_white = levels
+            if mid < _CRUSH_MID:
+                continue
+            black_votes.append(_is_crushed(black, near, mid))
+            white_votes.append(_is_crushed(white, near_white, mid))
+        if black_votes:
+            crushed_blacks = sum(black_votes) * 2 >= len(black_votes)
+            crushed_whites = sum(white_votes) * 2 >= len(white_votes)
+    judge_capture(info, doubled=doubled, jitter=jitter,
+                  crushed_blacks=crushed_blacks, crushed_whites=crushed_whites)

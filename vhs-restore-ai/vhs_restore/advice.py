@@ -1,6 +1,10 @@
 """Conseils de l'analyse : une phrase simple par défaut détecté, et la correction
 correspondante. Rien n'est appliqué tant que l'utilisateur ne l'a pas demandé
-(case « Appliquer les conseils » du mode simple, ou réglage dans les options avancées)."""
+(case « Appliquer les conseils » du mode simple, ou réglage dans les options avancées).
+
+La numérisation (copie trop compressée, déjà désentrelacée, noirs écrasés…)
+s'affiche seulement : aucune correction, le moteur de restauration ne change pas.
+"""
 from __future__ import annotations
 
 import dataclasses
@@ -58,6 +62,66 @@ def advise(info: MediaInfo) -> list[Advice]:
                                   "(sans raviver une image pâle).",
                           {"gain_r": gr, "gain_g": gg, "gain_b": gb}))
     return out
+
+
+# Phrase imposée pour une copie déjà compressée à faible débit.
+PHRASE_COMPRESSEE = (
+    "Cette copie est déjà compressée : les détails perdus ne reviendront pas. "
+    "Si vous avez encore la cassette, une nouvelle numérisation sans compression "
+    "donnera un meilleur résultat."
+)
+PHRASE_TRAITEE = (
+    "Cette copie est déjà désentrelacée ou réduite : les lignes perdues ne reviendront pas. "
+    "Si vous avez encore la cassette, refaites la numérisation sans désentrelacer "
+    "et sans réduire l'image."
+)
+PHRASE_NOIRS = (
+    "Les noirs sont écrasés dès la numérisation : le sombre est collé au noir, "
+    "et ces détails sont perdus. Si vous avez encore la cassette, "
+    "refaites la numérisation sans forcer les noirs."
+)
+PHRASE_BLANCS = (
+    "Les blancs sont écrasés dès la numérisation : le clair est collé au blanc, "
+    "et ces détails sont perdus. Si vous avez encore la cassette, "
+    "refaites la numérisation sans forcer les blancs."
+)
+PHRASE_NOIRS_BLANCS = (
+    "Les noirs et les blancs sont écrasés dès la numérisation : le sombre et le clair "
+    "sont collés aux extrêmes. Si vous avez encore la cassette, "
+    "refaites la numérisation en gardant tous les gris."
+)
+PHRASE_LIGNES = (
+    "Les lignes de l'image tremblent. Si vous pouvez, refaites la numérisation "
+    "avec un magnétoscope équipé d'un correcteur de base de temps."
+)
+# Une seule ligne dans l'assistant, à l'étape 1. Le détail est dans « Détails du fichier ».
+LIGNE_ASSISTANT = "Des détails sont déjà perdus. Ouvrez « Détails du fichier »."
+
+
+def conseils_numerisation(info: MediaInfo) -> list[str]:
+    """Phrases à montrer, dans l'ordre. Liste vide si rien n'est à signaler.
+    Aucune de ces phrases n'est une correction : apply() ne les reçoit pas."""
+    if info.container == "image":
+        return []
+    out: list[str] = []
+    if info.low_bitrate:
+        out.append(PHRASE_COMPRESSEE)
+    if info.already_deinterlaced or info.already_scaled or info.doubled_lines:
+        out.append(PHRASE_TRAITEE)
+    if info.crushed_blacks and info.crushed_whites:
+        out.append(PHRASE_NOIRS_BLANCS)
+    elif info.crushed_blacks:
+        out.append(PHRASE_NOIRS)
+    elif info.crushed_whites:
+        out.append(PHRASE_BLANCS)
+    if info.line_jitter:
+        out.append(PHRASE_LIGNES)
+    return out
+
+
+def ligne_assistant(info: MediaInfo) -> str:
+    """Une seule ligne pour l'étape 1, ou rien si la numérisation ne pose pas de problème."""
+    return LIGNE_ASSISTANT if conseils_numerisation(info) else ""
 
 
 def apply(settings, advice: list[Advice]):
