@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox, QToolTip,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline, raccord, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise
@@ -3150,6 +3150,31 @@ class MainWindow(QMainWindow):
             debut, duree = self.preview.start, self.preview.duration
             self.lecteur.ouvrir(self.preview.compare, "comparaison", plages=((debut, debut + duree),))
 
+    def _a_une_coupe(self) -> bool:
+        return bool(self._coupes or self.trim_start.value() or self.trim_end.value())
+
+    def _verifier_coupe(self) -> None:
+        if self._busy() or not self._film_pour_coupe() or not self._a_une_coupe():
+            return
+        info = self.info
+        try:
+            plages = raccord.extrait(info.duration, self.trim_start.value(), self.trim_end.value(),
+                                      self._coupes, self.start_spin.value())
+        except ToolError as exc:
+            self.status.setText(str(exc))
+            return
+        if not plages:
+            self.status.setText("Placez d’abord une coupe sur la barre.")
+            return
+        self.status.setText("Préparation de la coupe à vérifier…")
+        self._launch(lambda annuler, _progres: raccord.fabriquer(
+            info, self.tools, self.preview_dir / "raccords", plages, cancel=annuler),
+            lambda chemin: self._lire_raccord(chemin, plages), job="raccord")
+
+    def _lire_raccord(self, chemin: Path, plages: raccord.Plages) -> None:
+        self.status.setText("Vérification de la coupe. Écoutez le raccord, puis ajustez la coupe si besoin.")
+        self.lecteur.ouvrir(chemin, "raccord", plages=plages)
+
     def _etat_lecteur(self) -> None:
         actif = self.lecteur.actif and self.lecteur.video is not None
         self.moniteur.setCurrentWidget(self.lecteur.video if actif else self.s_compare)
@@ -3251,6 +3276,8 @@ class MainWindow(QMainWindow):
         self._actualiser_reperes()
         if hasattr(self, "lecteur"):
             self._heure_lecteur()
+        if hasattr(self, "verifier_coupe"):
+            self.verifier_coupe.setEnabled(not self._busy() and self._a_une_coupe())
         if hasattr(self, "_attente_moment") and not (hasattr(self, "lecteur") and self.lecteur.actif):
             self._attente_moment.start()
 
