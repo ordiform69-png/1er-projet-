@@ -28,10 +28,10 @@ from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, 
                                QScrollArea, QSizePolicy, QSpinBox,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, theme, vides, vignettes
+from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, scenes, theme, vides, vignettes
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
-from .advice import advise
+from .advice import advise, conseils_numerisation
 from .eta import Eta
 from .advice import apply as apply_advice
 from .profiles import PROFILES, RESOLUTIONS, profile_for
@@ -56,10 +56,13 @@ def _eteindre_a_la_sortie() -> None:
             fab = getattr(win, "_fab", None)
             if fab is not None:
                 fab.stop()
-            for nom in ("_pompe", "_replan_images", "_attente_moment"):
+            for nom in ("_pompe", "_replan_images", "_attente_moment", "_timer_scenes"):
                 timer = getattr(win, nom, None)
                 if timer is not None:
                     timer.stop()
+            suivi = getattr(win, "_suivi_scenes", None)
+            if suivi is not None:
+                suivi.arreter()
             for fil in list(getattr(win, "_fils", []) or []):
                 try:
                     if fil.isRunning():
@@ -1376,6 +1379,10 @@ class MainWindow(QMainWindow):
         self._attente_moment.setSingleShot(True)
         self._attente_moment.setInterval(120)
         self._attente_moment.timeout.connect(self._demander_moment)
+        self._suivi_scenes: scenes.Suivi | None = None
+        self._timer_scenes = QTimer(self)
+        self._timer_scenes.setInterval(200)
+        self._timer_scenes.timeout.connect(self._pomper_scenes)
 
         # Import
         self.drop = DropZone()
@@ -1390,7 +1397,7 @@ class MainWindow(QMainWindow):
         self.info_labels: dict[str, QLabel] = {}
         for key in ("Fichier", "Durée", "Conteneur / codec", "Résolution", "Images par seconde",
                     "Format d'affichage", "Balayage", "Norme probable", "Audio", "Couleur",
-                    "Origine suggérée"):
+                    "Origine suggérée", "Numérisation"):
             lab = QLabel("—")
             lab.setWordWrap(True)
             lab.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -1723,6 +1730,25 @@ class MainWindow(QMainWindow):
             liste.currentIndexChanged.connect(lambda _i: self._rafraichir_passages())
         self._out_manual = False        # dossier de sortie choisi exprès par l'utilisateur ?
         ecran.installer(self)
+        # Conseils de numérisation, dans « Qualité » (réglages libres). Cachés s'il n'y a rien.
+        self.note_numerisation = QLabel()
+        self.note_numerisation.setObjectName("noteNumerisation")
+        self.note_numerisation.setWordWrap(True)
+        self.note_numerisation.setTextFormat(Qt.PlainText)
+        self.note_numerisation.setMinimumWidth(0)
+        self.note_numerisation.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.note_numerisation.setStyleSheet(f"color:{theme.AVERT};")
+        self.note_numerisation.setVisible(False)
+        qualite = self.sections["Qualité"][1].widget().layout()
+        place = qualite.count()
+        for i in range(qualite.count()):
+            sous = qualite.itemAt(i).layout()
+            if sous is None:
+                continue
+            if any(sous.itemAt(j).widget() is self.s_advice for j in range(sous.count())):
+                place = i
+                break
+        qualite.insertWidget(place, self.note_numerisation)
         self.s_choose, self.s_preview, self.s_run = self.choisir, self.preview_btn, self.run_btn
         for b in (self.s_choose, self.s_preview, self.s_run):
             b.suggested = False
@@ -2513,7 +2539,22 @@ class MainWindow(QMainWindow):
                                        .get(ch.fix["audio_channel_fix"], "Automatique") if ch
                                        else "Canaux du son inchangés")
 
+    def _montrer_numerisation(self) -> None:
+        """Phrases de numérisation : « Détails du fichier » et les conseils des réglages libres.
+        Rien n'est bloqué, et une photo n'est pas une cassette."""
+        info = self.info
+        photo = bool(getattr(self, "is_photo", False)) or (info is not None and info.container == "image")
+        phrases = [] if info is None or photo else conseils_numerisation(info)
+        if "Numérisation" in self.info_labels:
+            self.info_labels["Numérisation"].setText(
+                "—" if info is None or photo else ("\n".join(phrases) if phrases else "Rien à signaler."))
+        note = getattr(self, "note_numerisation", None)
+        if note is not None:
+            note.setText("\n".join(phrases))
+            note.setVisible(bool(phrases))
+
     def _refresh_hints(self) -> None:
+        self._montrer_numerisation()
         self._marquer_auto()
         # bords abîmés repérés : la case « Masquer les bords » dit ce qui sera fait (pas « 0 px »)
         bords = next((a.fix["mask_sides"] for a in self.advice if a.key == "edges"), 0) if self.info else 0
@@ -2778,6 +2819,7 @@ class MainWindow(QMainWindow):
         self.s_fini.setVisible(False)
         self._fini_fichier = None              # montage / passages vides : sur ce nouveau film
         self._montage_en_attente = None
+        self._arreter_scenes()
         self.progress.setRange(0, 0)  # animation indéterminée
         if photo.is_photo(path):
             self.status.setText("Analyse de la photo…")
@@ -2888,6 +2930,7 @@ class MainWindow(QMainWindow):
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
+        self._lancer_scenes()
         self._lancer_images()
 
     def _question_vitesse(self, demande):
@@ -3081,6 +3124,42 @@ class MainWindow(QMainWindow):
         vue = getattr(self, "compare", None)
         if vue is not None and hasattr(vue, "oublier_moment"):
             vue.oublier_moment()
+
+    def _arreter_scenes(self) -> None:
+        timer = getattr(self, "_timer_scenes", None)
+        if timer is not None:
+            timer.stop()
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is not None:
+            suivi.arreter()
+
+    def _lancer_scenes(self) -> None:
+        """Lecture des scènes après l'ouverture, sans bloquer l'écran."""
+        self._arreter_scenes()
+        info = self.info
+        if info is None or getattr(self, "is_photo", False):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg:
+            info.scenes_vues = True
+            return
+        self._suivi_scenes = scenes.Suivi()
+        self._suivi_scenes.lancer(info, ffmpeg)
+        self._timer_scenes.start()
+
+    def _pomper_scenes(self) -> None:
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is None or not suivi.terminee():
+            return
+        self._timer_scenes.stop()
+        info = self.info
+        if info is None or suivi.info is not info or not getattr(info, "scenes_vues", False):
+            return
+        if getattr(self, "lumiere", None) is not None:
+            self.lumiere.scenes_pretes()
+        if getattr(self, "assistant", None) is not None:
+            self.assistant.actualiser()
+        self._update_state()
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
@@ -3496,6 +3575,9 @@ class MainWindow(QMainWindow):
             return
         self.status.setText(f"Restauration vers {out.name}…")
         def restaurer(c, p):
+            suivi = getattr(self, "_suivi_scenes", None)
+            if suivi is not None and suivi.info is info and not getattr(info, "scenes_vues", False):
+                suivi.attendre(p, c)
             duree = sum(b - a for a, b in gardes) if gardes else info.duration
             choix = self._choix_ia(info, s, duree, c, p)
             cible = pipeline.unique_output_path(info, choix, out_dir)

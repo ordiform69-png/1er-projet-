@@ -1,0 +1,5 @@
+phase,mesure,n_pixels,niveaux_distincts,saut_max,saut_moyen,saut_moyen_non_nul,n_sauts_non_nuls,ymin,ymax,unite
+apres,source_16bits,720,720,46,45.752434,45.752434,719,12336,45232,0-65535
+apres,source_divisee_8bits,720,129,1,0.178025,1,128,48,176,0-255
+apres,apres_filtres_avant_x264,720,125,1,0.32267,1,232,67,191,0-255
+apres,fichier_livre_mp4,720,125,1,0.272601,1,196,67,191,0-255

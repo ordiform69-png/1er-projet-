@@ -27,15 +27,19 @@ def info_video():
 
 def test_sans_reglage_la_chaine_ne_change_pas():
     f = pipeline.pre_filters(info_video(), reglages())
-    eq = [x for x in f if x.startswith("eq=")]
-    assert eq == ["eq=contrast=1.04:saturation=1.08"]              # le profil, comme avant
+    # Même contraste 1,04 et saturation 1,08 que l'ancien eq, en 10 bits (entiers d'eq).
+    lut = [x for x in f if x.startswith("lutyuv=")]
+    assert lut == ["lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)'"
+                   ":u='val*(4423/4096)+(-11.5)*(1023/255)'"
+                   ":v='val*(4423/4096)+(-11.5)*(1023/255)'"]
     assert not any("colorchannelmixer" in x for x in f)
 
 
 def test_chaque_cran_va_dans_la_chaine():
     f = pipeline.pre_filters(info_video(), reglages(lumiere=2, contraste=-1, couleurs=3, teinte=2))
-    eq = next(x for x in f if x.startswith("eq="))
-    assert "gamma=1.2" in eq and "contrast=0.9776" in eq and "saturation=1.469" in eq, eq
+    lut = next(x for x in f if x.startswith("lutyuv="))
+    # gamma 1,2 → exposant 1/1,2 ; contraste 0,9776 dans la courbe ; saturation 1,4688 → 6016/4096.
+    assert "0.9776" in lut and "0.83333333" in lut and "6016/4096" in lut, lut
     mix = next(x for x in f if x.startswith("colorchannelmixer"))
     assert "rr=1.0600" in mix and "bb=0.9400" in mix, mix
     # bornes : jamais plus de trois crans, quoi qu'on demande

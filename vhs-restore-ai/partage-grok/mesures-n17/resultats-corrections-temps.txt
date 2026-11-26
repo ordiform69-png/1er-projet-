@@ -1,0 +1,14 @@
+Temps de restauration — méthode Claude (corrections n°17)
+Films : 720×576 entrelacé TFF, son, 60 s, sombre peu contrasté (Y 68–121), niveaux actifs.
+Profil Équilibré, preset medium, crf=18, 3 runs, médiane. Horloge = pipeline.export.
+Matériel : Intel Xeon, 8 cœurs, FFmpeg 7.1.5, 26 nov. 2026, Europe/Paris (UTC+1).
+
+FFV1 4:2:2
+  avant 4f09073 : 19,090 / 19,234 / 18,478 s → médiane 19,090 s
+  après 84203b7 : 18,382 / 18,515 / 18,486 s → médiane 18,486 s  (−3 %)
+
+MPEG-2 4:2:0
+  avant 4f09073 : 15,016 / 15,181 / 15,023 s → médiane 15,023 s
+  après 84203b7 : 17,771 / 16,329 / 17,268 s → médiane 17,268 s  (+15 %)
+
+Détail : resultats-corrections-temps-avant.txt / resultats-corrections-temps-apres.txt

@@ -21,16 +21,20 @@ Ordre des traitements (du plus « physique » au plus « cosmétique ») :
   4. suppression des parasites ponctuels (removegrain)
   5. réduction du bruit spatio-temporelle : hqdn3d, ou en haute qualité
      fftdnoiz (FFT 3D) + renfort chroma
-  6. correction modérée contraste / saturation (eq)
+  6. contraste, saturation et gamma (lutyuv en 10 bits : eq ne dépasse pas 8 bits)
   7. [IA facultative : Real-ESRGAN x4 sur images PNG]
   8. mise à l'échelle lanczos vers la taille cible, matrice couleur BT.709 en HD
   9. netteté adaptative (cas), sauf si l'IA est utilisée
- 10. rapport de pixel (setsar) pour un affichage 4:3 sans étirement, yuv420p
-Une seule compression finale (H.264) : pas de conversions successives destructives
+ 10. rapport de pixel (setsar), puis UNE descente en yuv420p 8 bits, tramée
+Une seule compression finale (H.264 8 bits) : pas de conversions successives destructives
 (l'intermédiaire du mode IA est sans perte : FFV1 + FLAC, images PNG).
+Le calcul reste en 10 bits dès que les filtres le permettent. removegrain, fieldmatch
+et vid.stab n'existent qu'en 8 bits (FFmpeg 6.1 et 9.1) : on ne monte en précision
+qu'après eux, pour ne pas redescendre au milieu de la chaîne.
 """
 from __future__ import annotations
 
+import contextvars
 import dataclasses
 import json
 import hashlib
@@ -55,9 +59,17 @@ from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
-from .dvd import input_args as dvd_input
+from .dvd import input_args as _entree_dvd
 from .dvd import lecture_dvd, is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
+
+# Dernier `-ss` placé AVANT l'entrée. Le filtre voit alors le temps repartir de zéro :
+# la correction de scène doit quand même suivre le temps de la source.
+_origine_gen: contextvars.ContextVar[int] = contextvars.ContextVar("vhs_origine_gen", default=0)
+_origine_en_attente: contextvars.ContextVar[tuple[int, float] | None] = contextvars.ContextVar(
+    "vhs_origine_attente", default=None)
+_origine_liee: contextvars.ContextVar[tuple[int, int, float] | None] = contextvars.ContextVar(
+    "vhs_origine_liee", default=None)
 
 log = logging.getLogger("vhs_restore")
 Progress = Callable[[float, str], None]
@@ -447,6 +459,107 @@ def reglages_image(s: Settings) -> tuple[float, float, float]:
             1 + PAS_LUMIERE * cran(s.lumiere))
 
 
+# eq (contraste, saturation, gamma) ne connaît que le 8 bits. On le remplace par lutyuv,
+# qui accepte le 10 bits, avec les mêmes formules (partie entière du filtre eq pour le
+# contraste et la saturation ; table gamma × 256 pour la lumière). Le pic est 1023,
+# pas maxval : en gamme TV, maxval vaut 940 et décalerait les moyennes.
+_PEAK10 = 1023
+# Ces filtres refusent tout format au-dessus de 8 bits, y compris dans FFmpeg 9.1.
+_FILTRES_8BITS = frozenset({"fieldmatch", "removegrain", "vidstabdetect", "vidstabtransform"})
+
+
+def _format_10(info: MediaInfo) -> str:
+    """10 bits, en gardant le sous-échantillonnage de la source (4:2:0 par défaut)."""
+    fmt = (info.pix_fmt or "").lower()
+    if "444" in fmt or "gbr" in fmt or fmt.startswith(("rgb", "bgr")):
+        return "yuv444p10le"
+    if "422" in fmt:
+        return "yuv422p10le"
+    return "yuv420p10le"
+
+
+def _coeffs_eq(contrast: float) -> tuple[int, int]:
+    """Mêmes entiers que le chemin rapide d'eq (gamma = 1) : contraste × 4096, décalage."""
+    ci = int(contrast * 4096)
+    bi = (int(100.0) * 511) // 200 - 128 - ci // 32
+    return ci, bi
+
+
+def _expr_lineaire(contrast: float) -> str:
+    """Droite continue calée sur la troncature d'eq (−0,5), en codes 10 bits pleins."""
+    ci, bi = _coeffs_eq(contrast)
+    return f"val*({ci}/4096)+({bi - 0.5})*({_PEAK10}/255)"
+
+
+def _expr_gamma(contrast: float, gamma: float) -> str:
+    """Courbe d'eq quand le gamma n'est pas 1 : puissance, puis × 256 tronqué.
+
+    (v + abs(v)) / 2 remplace un max(v, 0) : log() refuserait un argument négatif
+    et la chaîne ne doit pas contenir de virgule (les tests découpent dessus)."""
+    inv = 1.0 / gamma
+    v = f"({contrast:.8g}*(val/{_PEAK10}-0.5)+0.5)"
+    vpos = f"(({v}+abs({v}))/2+0.000000001)"
+    return f"(exp(log({vpos})*{inv:.8g})*256-0.5)/255*{_PEAK10}"
+
+
+def _filtres_eq(contraste: float, saturation: float, gamma: float) -> list[str]:
+    """Remplace eq=contrast:saturation[:gamma]. Liste vide si rien ne change."""
+    if abs(contraste - 1) <= 1e-6 and abs(saturation - 1) <= 1e-6 and abs(gamma - 1) <= 1e-6:
+        return []
+    opts: list[str] = []
+    if abs(gamma - 1) > 1e-6:
+        opts.append(f"y='{_expr_gamma(contraste, gamma)}'")
+    elif abs(contraste - 1) > 1e-6:
+        opts.append(f"y='{_expr_lineaire(contraste)}'")
+    if abs(saturation - 1) > 1e-6:
+        uv = _expr_lineaire(saturation)
+        opts.append(f"u='{uv}'")
+        opts.append(f"v='{uv}'")
+    return ["lutyuv=" + ":".join(opts)]
+
+
+# colorlevels, colorchannelmixer : calcul RVB. colorlevels en 10 bits est faux sur
+# FFmpeg 6.1 et 9.1 (le point noir est multiplié par 65535, pas par 1023) : l'image
+# devient noire. En 16 bits le calcul est juste. On groupe donc ces filtres en gbrp16le
+# une fois la chaîne en haute précision, puis on revient au YUV 10 bits.
+_FILTRES_RVB = ("colorchannelmixer", "colorlevels")
+
+
+def _monter_precision(filtres: list[str], info: MediaInfo) -> list[str]:
+    """10 bits après le dernier filtre bloqué en 8 bits, niveaux en 16 bits vrais."""
+    fmt = _format_10(info)
+    last = -1
+    for i, flt in enumerate(filtres):
+        if flt.split("=", 1)[0] in _FILTRES_8BITS:
+            last = i
+    staged: list[str] = []
+    for i, flt in enumerate(filtres):
+        if i == last + 1:
+            staged.append(f"format={fmt}")
+        staged.append(flt)
+    if last + 1 == len(filtres):
+        staged.append(f"format={fmt}")
+
+    out: list[str] = []
+    en_dix = False
+    i = 0
+    while i < len(staged):
+        flt = staged[i]
+        nom = flt.split("=", 1)[0]
+        if en_dix and nom in _FILTRES_RVB:
+            out.append("format=gbrp16le")
+            while i < len(staged) and staged[i].split("=", 1)[0] in _FILTRES_RVB:
+                out.append(staged[i])
+                i += 1
+            out.append(f"format={fmt}")
+            continue
+        if flt == f"format={fmt}":
+            en_dix = True
+        out.append(flt)
+        i += 1
+    return out
+
+
 def _cast_filter(s: Settings) -> str | None:
     """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux.
     La teinte de l'utilisateur (−3 froide … +3 chaude) s'y ajoute : 3 % de rouge / bleu par cran."""
@@ -458,19 +571,25 @@ def _cast_filter(s: Settings) -> str | None:
     return f"colorchannelmixer=rr={rr:.4f}:gg={gg:.4f}:bb={bb:.4f}"
 
 
-def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
+def pre_filters(info: MediaInfo, s: Settings, origine: float | None = None) -> list[str]:
     p = s.profile
     f = _base_filters(info, s)
     if s.stabilize:
         f.append(stab_transform_filter(info, s))
     if s.deflicker:
         f.append("deflicker=size=5:mode=pm")   # lisse la luminosité moyenne sur 5 images
-    cast = _cast_filter(s)
-    if cast:
-        f.append(cast)                         # avant les niveaux : le même étirement garde l'équilibre
-    lvl = _levels_filter(s)
-    if lvl:
-        f.append(lvl)                          # une correction pour tout le film, pas image par image
+    # Plusieurs scènes : une correction par scène (temps de la source). Sinon, la correction unique.
+    from . import scenes
+    bloc = scenes.filtres(info, s, _origine_effective(info, origine))
+    if bloc is None:
+        cast = _cast_filter(s)
+        if cast:
+            f.append(cast)                     # avant les niveaux : le même étirement garde l'équilibre
+        lvl = _levels_filter(s)
+        if lvl:
+            f.append(lvl)                      # une correction pour tout le film, pas image par image
+    else:
+        f.extend(bloc)
     shift = max(-8, min(8, int(s.chroma_shift or 0)))
     if shift:
         # VHS : la couleur glisse souvent horizontalement. 0 = filtre absent.
@@ -484,21 +603,27 @@ def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
     elif p.denoise:
         f.append("hqdn3d=" + ":".join(f"{v:g}" for v in p.denoise))
     contraste, saturation, gamma = reglages_image(s)
-    if abs(contraste - 1) > 1e-6 or abs(saturation - 1) > 1e-6 or abs(gamma - 1) > 1e-6:
-        eq = f"eq=contrast={contraste:.4g}:saturation={saturation:.4g}"
-        f.append(eq + (f":gamma={gamma:.4g}" if abs(gamma - 1) > 1e-6 else ""))
-    return f
+    f.extend(_filtres_eq(contraste, saturation, gamma))
+    return _monter_precision(f, info)
 
 
 def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[str]:
     w, h, sar = target_size(info, s)
     f: list[str] = []
+    # Images de l'IA : PNG 8 bits. On remonte en 10 bits avant l'agrandissement.
+    if from_rgb:
+        f.append("format=gbrp10le")
     if effective_resolution(s) != "source":
         src_m = "" if from_rgb else f":in_color_matrix={_in_matrix(info)}"
         plage = ""
         if info.color_range == "pc":
             plage = ("" if from_rgb else f":in_range={info.color_range}") + ":out_range=tv"
         f.append(f"scale={w}:{h}:flags=lanczos{src_m}:out_color_matrix=bt709{plage}")
+        # Le scale ne doit pas négocier le 8 bits avec le format final : on fixe le 10 bits
+        # avant la netteté. Depuis le RVB, on garde le 4:4:4 jusqu'à la descente finale.
+        f.append("format=yuv444p10le" if from_rgb else f"format={_format_10(info)}")
+    elif from_rgb:
+        f.append("format=yuv444p10le")
     if s.profile.sharpen and not s.use_ai:
         f.append(f"cas=strength={s.profile.sharpen:g}")
     f += _bottom_mask(info, s)
@@ -506,6 +631,8 @@ def post_filters(info: MediaInfo, s: Settings, from_rgb: bool = False) -> list[s
     f.append(f"setsar={sar.numerator}/{sar.denominator}")
     if effective_resolution(s) == "source" and info.color_range == "pc":
         f.append(f"scale=iw:ih:out_color_matrix={_in_matrix(info)}:out_range=pc")
+    # Seule descente en 8 bits. swscale (dither automatique : Bayer en 4:2:0, 6.1 et 9.1)
+    # trame pendant cette conversion. Pas de second scale : il coûtait trop cher en Full HD.
     f.append("format=yuv420p")
     return f
 
@@ -545,8 +672,9 @@ def _edge_mask(info: MediaInfo, s: Settings) -> list[str]:
     return [f"crop={cw}:{h}:{n}:0", f"pad={w}:{h}:{n}:0:black"]
 
 
-def filter_chain(info: MediaInfo, s: Settings) -> str:
-    return ",".join(pre_filters(info, s) + post_filters(info, s))
+def filter_chain(info: MediaInfo, s: Settings, origine: float | None = None) -> str:
+    """`origine` : temps source de la première image (après un `-ss` avant l'entrée)."""
+    return ",".join(pre_filters(info, s, origine) + post_filters(info, s))
 
 
 def encode_args(info: MediaInfo, s: Settings) -> list[str]:
@@ -573,13 +701,46 @@ def _ff_base(tools: Toolset) -> list[str]:
             "-progress", "pipe:1", "-nostats"]
 
 
-def _seek(start: float | None, duration: float | None) -> list[str]:
+def _seek(start: float | None, duration: float | None, *, video: bool = True) -> list[str]:
+    """`-ss` / `-t` avant une entrée. `video=False` : un second saut (la piste son) ne décale pas l'image."""
+    if video:
+        gen = _origine_gen.get() + 1
+        _origine_gen.set(gen)
+        _origine_en_attente.set((gen, float(start or 0.0)))
     a: list[str] = []
     if start:
         a += ["-ss", f"{start:.3f}"]
     if duration:
         a += ["-t", f"{duration:.3f}"]
     return a
+
+
+def _retenir_origine(info: MediaInfo) -> None:
+    """Associe le dernier `-ss` vidéo à CE film. Un autre film ne le récupère pas."""
+    attente = _origine_en_attente.get()
+    if attente is None:
+        return
+    gen, valeur = attente
+    liee = _origine_liee.get()
+    if liee and liee[1] == gen and liee[0] != id(info):
+        return
+    _origine_liee.set((id(info), gen, valeur))
+
+
+def dvd_input(info: MediaInfo) -> list[str]:
+    """`-i` du film. Retient le `-ss` vidéo qui précède, pour la correction par scène."""
+    _retenir_origine(info)
+    return _entree_dvd(info)
+
+
+def _origine_effective(info: MediaInfo, imposee: float | None) -> float:
+    """Temps source de la première image que le filtre va voir. 0 si le film part du début."""
+    if imposee is not None:
+        return max(0.0, float(imposee))
+    liee = _origine_liee.get()
+    if liee and liee[0] == id(info):
+        return max(0.0, float(liee[2]))
+    return 0.0
 
 
 class _FFProgress:
@@ -619,8 +780,10 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
     vs = [tools.vspipe.path, "-c", "y4m", "-a", f"src={info.path}",
           "-a", f"tff={1 if effective_scan(info, s) == 'tff' else 0}",
           "-a", f"first={first}", "-a", f"count={count}", str(QTGMC_SCRIPT), "-"]
+    saut = _seek(start, duration)
+    _retenir_origine(info)
     args = (["-itsoffset", f"{offset:.6f}", "-f", "yuv4mpegpipe", "-i", "-"]
-            + _seek(start, duration) + ["-i", str(info.path)])
+            + saut + ["-i", str(info.path)])
     return args, vs, "0:v:0", "1:a:0?"
 
 
@@ -994,11 +1157,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 args = args + ["-i", str(df_wav)]
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
             elif morceau and info.has_audio:
-                args += _seek(son_debut, son_duree) + dvd_input(info)
+                args += _seek(son_debut, son_duree, video=False) + dvd_input(info)
                 amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
-            vf = filter_chain(info, s)
+            vf = filter_chain(info, s, origine=start or 0)
             chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
                                        apply_offset=not morceau, rnnoise=tools.rnnoise_model)
             if morceau and info.has_audio:
@@ -1309,7 +1472,7 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             lo = 0.04
             _stab_detect(info, s, tools, tmp, start, duration, total, cancel, progress, 0, lo)
         inter = tmp / "inter.mkv"
-        pre = ",".join(pre_filters(info, s)) or "null"
+        pre = ",".join(pre_filters(info, s, origine=start or 0)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
         if df_wav is not None:
             args = args + ["-i", str(df_wav)]
