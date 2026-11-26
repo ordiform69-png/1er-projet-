@@ -1,21 +1,21 @@
 Temps de restauration n°19 — mode parties
-Date : 2026-11-26 16:41:51 Europe/Paris (UTC+1)
-SHA : a8a3dd6ceb2e4d59bb7646c6a2df1c63d3047e5c
+Date : 2026-11-26 17:26:33 Europe/Paris (UTC+1)
+SHA : c9a670f234d4d4a722daa6f19f00bdc4a6dfc129
 Branche : grok/reprise
-Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 12937.2 Mio), Linux 6.12.113+
+Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 13400.8 Mio), Linux 6.12.113+
 FFmpeg : ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
 Méthode : voir METHODE.md
 
 === ffv1_422 (yuv422p, scan=tff, 180.0 s) ===
-  analyze=8.880 s
-  run 1: 70.826 s → 23.61 s/min
-  run 2: 69.148 s → 23.05 s/min
-  run 3: 69.668 s → 23.22 s/min
-  médiane : 69.668 s (23.22 s de calcul par minute de film)
+  analyze=7.825 s
+  run 1: 58.831 s → 19.61 s/min
+  run 2: 54.925 s → 18.31 s/min
+  run 3: 59.954 s → 19.98 s/min
+  médiane : 58.831 s (19.61 s de calcul par minute de film)
 
 === mpeg2_420 (yuv420p, scan=tff, 180.0 s) ===
-  analyze=3.277 s
-  run 1: 54.566 s → 18.19 s/min
-  run 2: 60.256 s → 20.09 s/min
-  run 3: 58.057 s → 19.35 s/min
-  médiane : 58.057 s (19.35 s de calcul par minute de film)
+  analyze=2.985 s
+  run 1: 51.297 s → 17.10 s/min
+  run 2: 51.719 s → 17.24 s/min
+  run 3: 50.445 s → 16.81 s/min
+  médiane : 51.297 s (17.10 s de calcul par minute de film)

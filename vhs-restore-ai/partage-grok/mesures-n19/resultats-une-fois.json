@@ -1,13 +1,13 @@
 {
   "mode": "une-fois",
-  "date": "2026-11-26 16:36:27 Europe/Paris (UTC+1)",
-  "sha": "a8a3dd6ceb2e4d59bb7646c6a2df1c63d3047e5c",
+  "date": "2026-11-26 17:32:37 Europe/Paris (UTC+1)",
+  "sha": "c9a670f234d4d4a722daa6f19f00bdc4a6dfc129",
   "branche": "grok/reprise",
   "materiel": {
     "cpu": "Intel(R) Xeon(R) Processor",
     "coeurs": 8,
     "ram_totale_mio": 16002.4,
-    "ram_dispo_mio": 12838.8,
+    "ram_dispo_mio": 13378.1,
     "os": "Linux 6.12.113+",
     "python": "3.13.5",
     "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
@@ -22,26 +22,26 @@
       "pix_fmt": "yuv422p",
       "scan": "tff",
       "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv422p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
-      "analyze_s": 7.732320279001215,
+      "analyze_s": 7.591169051998804,
       "runs": [
         {
           "run": 1,
-          "wall_s": 52.55536986900006,
-          "s_par_minute": 17.51845662300002
+          "wall_s": 52.766759866999564,
+          "s_par_minute": 17.58891995566652
         },
         {
           "run": 2,
-          "wall_s": 49.98386998500064,
-          "s_par_minute": 16.661289995000214
+          "wall_s": 51.30141240600096,
+          "s_par_minute": 17.10047080200032
         },
         {
           "run": 3,
-          "wall_s": 55.47425966499941,
-          "s_par_minute": 18.491419888333134
+          "wall_s": 51.01719563699953,
+          "s_par_minute": 17.005731878999843
         }
       ],
-      "mediane_wall_s": 52.55536986900006,
-      "mediane_s_par_minute": 17.51845662300002
+      "mediane_wall_s": 51.30141240600096,
+      "mediane_s_par_minute": 17.10047080200032
     },
     "mpeg2_420": {
       "film": "/tmp/mesures-n19/films/film-180s-mpeg2-420.mkv",
@@ -51,26 +51,26 @@
       "pix_fmt": "yuv420p",
       "scan": "tff",
       "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv420p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
-      "analyze_s": 3.363478589000806,
+      "analyze_s": 2.9299857349997183,
       "runs": [
         {
           "run": 1,
-          "wall_s": 49.76594954399843,
-          "s_par_minute": 16.588649847999477
+          "wall_s": 46.11597935899954,
+          "s_par_minute": 15.371993119666513
         },
         {
           "run": 2,
-          "wall_s": 51.26877474899993,
-          "s_par_minute": 17.089591582999976
+          "wall_s": 45.655292135999844,
+          "s_par_minute": 15.218430711999948
         },
         {
           "run": 3,
-          "wall_s": 53.30531986599999,
-          "s_par_minute": 17.768439955333328
+          "wall_s": 47.16501819399855,
+          "s_par_minute": 15.72167273133285
         }
       ],
-      "mediane_wall_s": 51.26877474899993,
-      "mediane_s_par_minute": 17.089591582999976
+      "mediane_wall_s": 46.11597935899954,
+      "mediane_s_par_minute": 15.371993119666513
     }
   }
 }

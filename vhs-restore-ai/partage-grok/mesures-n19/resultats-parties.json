@@ -1,13 +1,13 @@
 {
   "mode": "parties",
-  "date": "2026-11-26 16:41:51 Europe/Paris (UTC+1)",
-  "sha": "a8a3dd6ceb2e4d59bb7646c6a2df1c63d3047e5c",
+  "date": "2026-11-26 17:26:33 Europe/Paris (UTC+1)",
+  "sha": "c9a670f234d4d4a722daa6f19f00bdc4a6dfc129",
   "branche": "grok/reprise",
   "materiel": {
     "cpu": "Intel(R) Xeon(R) Processor",
     "coeurs": 8,
     "ram_totale_mio": 16002.4,
-    "ram_dispo_mio": 12937.2,
+    "ram_dispo_mio": 13400.8,
     "os": "Linux 6.12.113+",
     "python": "3.13.5",
     "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
@@ -23,26 +23,26 @@
       "scan": "tff",
       "duree_partie_s": 60.0,
       "chauffe_s": 8.0,
-      "analyze_s": 8.879872900999544,
+      "analyze_s": 7.825114618999578,
       "runs": [
         {
           "run": 1,
-          "wall_s": 70.82575713500046,
-          "s_par_minute": 23.60858571166682
+          "wall_s": 58.83125247800126,
+          "s_par_minute": 19.610417492667086
         },
         {
           "run": 2,
-          "wall_s": 69.1484002369998,
-          "s_par_minute": 23.049466745666603
+          "wall_s": 54.92500315500001,
+          "s_par_minute": 18.308334385000006
         },
         {
           "run": 3,
-          "wall_s": 69.66760301800059,
-          "s_par_minute": 23.22253433933353
+          "wall_s": 59.95383668699833,
+          "s_par_minute": 19.984612228999445
         }
       ],
-      "mediane_wall_s": 69.66760301800059,
-      "mediane_s_par_minute": 23.22253433933353
+      "mediane_wall_s": 58.83125247800126,
+      "mediane_s_par_minute": 19.610417492667086
     },
     "mpeg2_420": {
       "film": "/tmp/mesures-n19/films/film-180s-mpeg2-420.mkv",
@@ -53,26 +53,26 @@
       "scan": "tff",
       "duree_partie_s": 60.0,
       "chauffe_s": 8.0,
-      "analyze_s": 3.2770463619999646,
+      "analyze_s": 2.9845714370003407,
       "runs": [
         {
           "run": 1,
-          "wall_s": 54.56557521000104,
-          "s_par_minute": 18.18852507000035
+          "wall_s": 51.29669838200061,
+          "s_par_minute": 17.09889946066687
         },
         {
           "run": 2,
-          "wall_s": 60.25642423000136,
-          "s_par_minute": 20.085474743333783
+          "wall_s": 51.71945499299909,
+          "s_par_minute": 17.239818330999697
         },
         {
           "run": 3,
-          "wall_s": 58.05729614199845,
-          "s_par_minute": 19.35243204733282
+          "wall_s": 50.44464286999937,
+          "s_par_minute": 16.814880956666457
         }
       ],
-      "mediane_wall_s": 58.05729614199845,
-      "mediane_s_par_minute": 19.35243204733282
+      "mediane_wall_s": 51.29669838200061,
+      "mediane_s_par_minute": 17.09889946066687
     }
   }
 }
