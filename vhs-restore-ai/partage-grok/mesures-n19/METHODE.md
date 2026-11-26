@@ -81,9 +81,19 @@ python3 vhs-restore-ai/partage-grok/mesures-n19/mesurer.py \
   --films-dir /tmp/mesures-n19/films-1500s --workdir /tmp/mesures-n19/work-1500s
 ```
 
-`--production` ne force pas `DUREE_PARTIE` / `SEUIL` / `CHAUFFE` : on
-prend les constantes du moteur (600 / 1200 / 8). Le film de 1500 s est
-au-dessus du seuil, donc `pipeline.export` découpe tout seul. Après un
+`--production` ne force pas `DUREE_PARTIE` / `SEUIL` / `CHAUFFE` pour le
+mode **par parties** : on prend les constantes du moteur (600 / 1200 / 8).
+Le film de 1500 s est au-dessus du seuil, donc `pipeline.export` découpe
+tout seul.
+
+Point important : sur un film ≥ 20 min, `pipeline.export` emprunte
+automatiquement le chemin par parties. Une mesure « en une fois » qui
+appellerait `export` tel quel mesurerait en réalité les parties, et la
+comparaison n'aurait aucun sens. Le script relève donc temporairement
+`reprise.SEUIL` au-dessus de la durée du film pendant le mode une-fois
+(sans modifier le moteur committé), puis le rétablit. Les deux modes
+isolent aussi `LOCALAPPDATA` sous le dossier de travail, pour ne pas
+écrire dans `~/.local/share/VHSRestoreAI/reprise`. Après un
 export réussi, le dossier de parties est effacé (`reprise.supprimer`) :
 chaque passage repart de zéro.
 

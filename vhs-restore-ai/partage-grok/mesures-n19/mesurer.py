@@ -219,19 +219,32 @@ def _mediane(murs: list[float]) -> float:
 def mesurer_une_fois(cle: str, src: Path, work: Path, n_runs: int, duree: float,
                      chemins_surv: list[Path]) -> dict:
     detect_tools, analyze, profile_for, pipeline = _prep()
+    from vhs_restore import reprise
     tools = detect_tools()
     t_an0 = time.perf_counter()
     info = analyze(src, tools)
     t_analyze = time.perf_counter() - t_an0
     s = reglages(pipeline, profile_for)
     chaine = pipeline.filter_chain(info, s)
+    # Sur un film >= SEUIL (20 min), pipeline.export emprunte tout seul le
+    # chemin par parties. Pour mesurer vraiment « en une fois », on relève
+    # le seuil le temps de l'export, sans toucher au moteur committé.
+    seuil_prod = float(reprise.SEUIL)
+    local = work / "localapp"
+    local.mkdir(parents=True, exist_ok=True)
+    os.environ["LOCALAPPDATA"] = str(local)
     runs = []
     for i in range(n_runs):
         dest = work / f"une-fois-{cle}-{i + 1}.mp4"
-        with Surveillance(chemins_surv) as surv:
-            t0 = time.perf_counter()
-            pipeline.export(info, s, dest, tools)
-            wall = time.perf_counter() - t0
+        ancien = reprise.SEUIL
+        reprise.SEUIL = float(info.duration) + 1.0
+        try:
+            with Surveillance(chemins_surv) as surv:
+                t0 = time.perf_counter()
+                pipeline.export(info, s, dest, tools)
+                wall = time.perf_counter() - t0
+        finally:
+            reprise.SEUIL = ancien
         taille = dest.stat().st_size if dest.is_file() else 0
         dest.unlink(missing_ok=True)
         runs.append({
@@ -248,6 +261,8 @@ def mesurer_une_fois(cle: str, src: Path, work: Path, n_runs: int, duree: float,
         "duree_s": info.duration, "pix_fmt": info.pix_fmt, "scan": info.scan,
         "chaine": chaine, "analyze_s": t_analyze, "runs": runs,
         "mediane_wall_s": mid, "mediane_s_par_minute": mid / duree * 60.0,
+        "seuil_production_s": seuil_prod,
+        "seuil_force_une_fois_s": float(info.duration) + 1.0,
     }
 
 
