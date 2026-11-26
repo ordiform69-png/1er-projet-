@@ -45,7 +45,8 @@ def jitter(path) -> float:
 def test_filters_and_order(shaky, tools):
     chain = pipeline.filter_chain(shaky, S("equilibre", stabilize=True))
     names = [f.split("=")[0] for f in chain.split(",")]
-    assert names[:3] == ["vidstabtransform", "removegrain", "hqdn3d"]
+    # removegrain ne dépasse pas 8 bits : le format 10 bits est juste après lui.
+    assert names[:4] == ["vidstabtransform", "removegrain", "format", "hqdn3d"]
     assert "input=transforms.trf" in chain and "crop=black" in chain and "maxshift=29" in chain
     assert "smoothing=8" in chain                                     # 25p : ±0,3 s
     det = pipeline.stab_detect_filters(shaky, S(stabilize=True))

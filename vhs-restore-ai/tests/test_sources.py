@@ -70,13 +70,14 @@ def test_silent_track_and_pale_colors(samples, tools, tmp_path):
     assert streams(out)[2]                                # piste conservée, pas supprimée
 
 
-# ---- 1. la vidéo analogique garde exactement le pipeline existant
+# ---- 1. la vidéo analogique : désentrelacement, 10 bits, contraste lutyuv, Full HD
 def test_video_pipeline_unchanged(A):
     pal = A("pal_tff")
     assert pipeline.filter_chain(pal, pipeline.Settings(PROFILES["maximum"], resolution="1080")) == (
-        "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,hqdn3d=4:7:6:10,"
-        "eq=contrast=1.06:saturation=1.12,scale=1440:1080:flags=lanczos:in_color_matrix=bt601:"
-        "out_color_matrix=bt709,cas=strength=0.45,setsar=1/1,format=yuv420p")
+        "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv420p10le,"
+        "hqdn3d=4:7:6:10,lutyuv=y='val*(4341/4096)+(-8.5)*(1023/255)':u='val*(4587/4096)+(-16.5)*(1023/255)':"
+        "v='val*(4587/4096)+(-16.5)*(1023/255)',scale=1440:1080:flags=lanczos:in_color_matrix=bt601:"
+        "out_color_matrix=bt709,format=yuv420p10le,cas=strength=0.45,setsar=1/1,format=yuv420p")
     assert profile_for("equilibre", "video") == PROFILES["equilibre"]
 
 
