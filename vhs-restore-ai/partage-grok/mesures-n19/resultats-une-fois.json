@@ -1,0 +1,76 @@
+{
+  "mode": "une-fois",
+  "date": "2026-11-26 15:56:05 Europe/Paris (UTC+1)",
+  "sha": "84041e3d4191078a66ca5814f2ec63e34a9b91cb",
+  "branche": "grok/reprise",
+  "materiel": {
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "coeurs": 8,
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 2745.4,
+    "os": "Linux 6.12.113+",
+    "python": "3.13.5",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "methode": "voir METHODE.md",
+  "films": {
+    "ffv1_422": {
+      "film": "/tmp/mesures-n19/films/film-180s-ffv1-422.mkv",
+      "cle": "ffv1_422",
+      "mode": "une-fois",
+      "duree_s": 180.0,
+      "pix_fmt": "yuv422p",
+      "scan": "tff",
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv422p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 8.189633586000127,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 57.02807231500083,
+          "s_par_minute": 19.00935743833361
+        },
+        {
+          "run": 2,
+          "wall_s": 63.83648299200104,
+          "s_par_minute": 21.278827664000346
+        },
+        {
+          "run": 3,
+          "wall_s": 62.3804968229997,
+          "s_par_minute": 20.7934989409999
+        }
+      ],
+      "mediane_wall_s": 62.3804968229997,
+      "mediane_s_par_minute": 20.7934989409999
+    },
+    "mpeg2_420": {
+      "film": "/tmp/mesures-n19/films/film-180s-mpeg2-420.mkv",
+      "cle": "mpeg2_420",
+      "mode": "une-fois",
+      "duree_s": 180.0,
+      "pix_fmt": "yuv420p",
+      "scan": "tff",
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv420p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 2.872245358999862,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 46.81169449599838,
+          "s_par_minute": 15.603898165332794
+        },
+        {
+          "run": 2,
+          "wall_s": 59.27995924099923,
+          "s_par_minute": 19.75998641366641
+        },
+        {
+          "run": 3,
+          "wall_s": 61.232863023999016,
+          "s_par_minute": 20.410954341333007
+        }
+      ],
+      "mediane_wall_s": 59.27995924099923,
+      "mediane_s_par_minute": 19.75998641366641
+    }
+  }
+}

@@ -1,0 +1,21 @@
+Temps de restauration n°19 — mode une-fois
+Date : 2026-11-26 15:56:05 Europe/Paris (UTC+1)
+SHA : 84041e3d4191078a66ca5814f2ec63e34a9b91cb
+Branche : grok/reprise
+Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 2745.4 Mio), Linux 6.12.113+
+FFmpeg : ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+Méthode : voir METHODE.md
+
+=== ffv1_422 (yuv422p, scan=tff, 180.0 s) ===
+  analyze=8.190 s
+  run 1: 57.028 s → 19.01 s/min
+  run 2: 63.836 s → 21.28 s/min
+  run 3: 62.380 s → 20.79 s/min
+  médiane : 62.380 s (20.79 s de calcul par minute de film)
+
+=== mpeg2_420 (yuv420p, scan=tff, 180.0 s) ===
+  analyze=2.872 s
+  run 1: 46.812 s → 15.60 s/min
+  run 2: 59.280 s → 19.76 s/min
+  run 3: 61.233 s → 20.41 s/min
+  médiane : 59.280 s (19.76 s de calcul par minute de film)
