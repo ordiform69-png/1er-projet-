@@ -38,14 +38,14 @@ PAS = 1.0 / CADENCE
 DUREE_MIN = 2.0                  # une scène plus courte rejoint la voisine
 FONDU = 0.5                      # passage progressif, sauf coupure franche
 PAS_FONDU = 0.05                 # un cran du fondu (pas une commande par image du film)
-# Le saut est comparé à la variation des images voisines, pas à un seuil fixe.
-# Film de Claude (160×90, 5 i/s) : 11,9 à la coupure de 40 s, 6,8 au plus ailleurs.
-# Un seuil fixe de 18 rate cette coupure ; un plan dont la lumière monte doucement
-# a le même petit saut d'une image à l'autre, donc pas de coupure.
-FACTEUR_SAUT = 1.45
-MARGE_SAUT = 3.0
-PLANCHER_SAUT = 9.2               # sous le saut de 11,9, au-dessus du 6,8 et du mouvement de testsrc2
-FENETRE_SAUT = 6                    # images voisines prises en compte, de chaque côté
+# Coupure = la couleur MOYENNE change, et ce changement est bien plus net que
+# le va-et-vient à l'intérieur de chaque côté. Un mouvement d'image (testsrc2)
+# fait parfois un saut d'une image à l'autre presque aussi grand qu'une lampe,
+# mais les deux côtés restent mélangés : le rapport reste petit. Une lumière
+# qui monte régulièrement a le même rapport partout : ce n'est pas un pic.
+FENETRE_MOYENNE = 5               # 1 s à 5 i/s
+RAYON_VOISIN = 12                 # 2 s autour, hors de l'épaule du pic
+FACTEUR_RAPPORT = 1.6             # le rapport au pic, contre le plus fort des alentours
 BUDGET_MAX = 900.0               # plafond seulement si on le demande ; la restauration n'en a pas
 
 
@@ -146,20 +146,39 @@ def _scene_de(images: list[Image], debut: float, fin: float, franche: bool) -> S
                  (r, g, b))
 
 
-def _est_coupure(i: int, images: list[Image], sauts: list[float]) -> bool:
-    """Vrai si l'image i ouvre un nouveau plan : le saut dépasse nettement la variation
-    voisine, et l'image d'après reste du nouveau côté (pas un parasite d'une image)."""
-    if i < 1 or i + 2 >= len(images):
-        return False
-    saut = sauts[i]
-    voisins = [sauts[j] for j in range(max(1, i - FENETRE_SAUT), min(len(images), i + 1 + FENETRE_SAUT))
-               if j != i]
-    if len(voisins) < 3:
-        return False
-    ref = max(voisins)
-    if saut < max(PLANCHER_SAUT, ref * FACTEUR_SAUT, ref + MARGE_SAUT):
-        return False
-    return _ecart(images[i + 2], images[i - 1]) >= max(MARGE_SAUT, saut * 0.6)
+def _moyenne_images(images: list[Image]) -> tuple[float, float, float]:
+    n = len(images)
+    return (sum(im.r for im in images) / n, sum(im.g for im in images) / n,
+            sum(im.b for im in images) / n)
+
+
+def _rapport(images: list[Image], i: int, w: int) -> tuple[float, float]:
+    """(écart des deux moyennes, écart / dispersion interne)."""
+    avant, apres = images[i - w:i], images[i:i + w]
+    moy_a, moy_b = _moyenne_images(avant), _moyenne_images(apres)
+    ecart = _ecart(moy_a, moy_b)
+    disp = (sum(_ecart(im, moy_a) for im in avant) + sum(_ecart(im, moy_b) for im in apres)) / (2 * w)
+    return ecart, ecart / max(disp, 1e-3)
+
+
+def _pics_de_couleur(images: list[Image]) -> list[int]:
+    """Indices où la couleur moyenne change, bien plus nettement que autour."""
+    w = FENETRE_MOYENNE
+    if len(images) < 2 * w + 1:
+        return []
+    mesures = {i: _rapport(images, i, w) for i in range(w, len(images) - w)}
+    pics: list[int] = []
+    for i, (ecart, rapport) in mesures.items():
+        if any(mesures[j][0] > ecart + 1e-6 for j in range(i - w, i + w + 1) if j in mesures):
+            continue
+        if any(j < i and j in mesures and abs(mesures[j][0] - ecart) <= 1e-6 for j in range(i - w, i)):
+            continue
+        dehors = [mesures[j][1] for j in mesures if w < abs(j - i) <= RAYON_VOISIN]
+        if len(dehors) < 3:
+            continue
+        if rapport >= max(dehors) * FACTEUR_RAPPORT:
+            pics.append(i)
+    return pics
 
 
 def segmenter(images: list[Image], *, pas: float = PAS, duree_min: float = DUREE_MIN,
@@ -167,13 +186,8 @@ def segmenter(images: list[Image], *, pas: float = PAS, duree_min: float = DUREE
     """Découpe, puis rattache toute scène plus courte que 2 s à la voisine la plus proche."""
     if not images:
         return ()
-    sauts = [0.0] + [_ecart(images[i], images[i - 1]) for i in range(1, len(images))]
-    bornes = [0]
-    franches = [False]
-    for i in range(1, len(images)):
-        if _est_coupure(i, images, sauts):
-            bornes.append(i)
-            franches.append(True)
+    bornes = [0, *_pics_de_couleur(images)]
+    franches = [False] + [True] * (len(bornes) - 1)
     morceaux = [(bornes[k], bornes[k + 1] if k + 1 < len(bornes) else len(images), franches[k])
                 for k in range(len(bornes))]
 
