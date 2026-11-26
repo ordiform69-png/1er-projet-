@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from conftest import ff
-from vhs_restore import assistant
+from vhs_restore import assistant, pipeline
 
 pytestmark = pytest.mark.assistant          # l'assistant est allumé, comme dans le logiciel
 
@@ -132,7 +132,23 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a.suivant.click()                                                      # rien à changer : la suite
     a.chercher.click()
     attendre(win)
-    assert abs(win.trim_start.value() - 3) <= 0.6 and abs(win.trim_end.value() - 63) <= 0.6, a.note_coupe.text()
+    assert win.trim_start.value() == win.trim_end.value() == 0 and not win._coupes
+    assert len(win.barre.passages_vides) == 2, a.note_coupe.text()
+    enlever = win.enlever_passage
+    assert enlever.isVisible()
+    assert enlever.text() == "Enlever 0:00 – 0:03"
+    assert win.enlever_tous_passages.isVisible()
+    enlever.click()  # neige au début
+    assert enlever.isVisible()
+    assert enlever.text() == "Enlever 1:03 – 1:06"
+    assert not win.enlever_tous_passages.isVisible()
+    enlever.click()  # écran bleu à la fin
+    assert not enlever.isVisible()
+    gardes = pipeline.passages_gardes(
+        win.info.duration, win.trim_start.value(), win.trim_end.value(), win._coupes)
+    assert len(gardes) == 1
+    debut, fin = gardes[0]
+    assert abs(debut - 3) <= 0.6 and abs(fin - 63) <= 0.6, a.note_coupe.text()
     a.suivant.click()
     attendre(win)
     assert a.titre.text() == "Le son"
@@ -202,6 +218,23 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
             attendre(win)
             a = win.assistant
             for i in range(etapes):
+                if chemin == cassette and i == 2:
+                    from PySide6.QtWidgets import QPushButton
+                    from vhs_restore.vides import Passage
+                    a._vides_trouves(([Passage(0, 3, "neige"), Passage(63, 66, "écran bleu")], 66))
+                    attendre(win)
+                    boutons = {b.text(): b for b in a._page_coupe.findChildren(QPushButton)}
+                    for texte in ("Zoom −", "Zoom +", "Tout le film", "Enlever 0:00 – 0:03", "Tout enlever"):
+                        assert 36 <= boutons[texte].height() <= 44
+                        assert _dans_fenetre(win, boutons[texte]), (pct, texte)
+                    guide = win.s_guide_coupes
+                    assert guide.wordWrap() and guide.y() > win.s_couper.geometry().bottom()
+                    assert guide.height() >= guide.heightForWidth(guide.width()), (pct, guide.text())
+                    _pas_de_defilement_horizontal(win)
+                    if pct <= 125:
+                        zone = win.sections["Couper le film"][1]
+                        assert zone.verticalScrollBar().maximum() == a.pages_zone.verticalScrollBar().maximum() == 0
+                    a._vides_trouves(([], 66))
                 if i == etapes - 1:                    # la vraie fin : après l'avant / après
                     a.voir.click()
                     attendre(win)

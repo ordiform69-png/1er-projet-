@@ -16,19 +16,20 @@ import atexit
 import weakref
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
-from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QStandardPaths, Qt, QThread,
+from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QSignalBlocker, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox,
+                               QScrollArea, QSizePolicy, QSpinBox, QToolTip,
                                QVBoxLayout, QWidget, QPlainTextEdit)
 
-from . import ecran, ergonomie, icons, installer, lumiere, partage, photo, pipeline, scenes, theme, vides, vignettes
+from . import (copie_lecture, ecran, ergonomie, icons, installer, lecteur, lumiere, partage, photo, pipeline,
+               raccord, scenes, theme, vides, vignettes)
 from .dvd import open_media
 from .probe import MediaInfo, cast_gains
 from .advice import advise, conseils_numerisation
@@ -56,7 +57,11 @@ def _eteindre_a_la_sortie() -> None:
             fab = getattr(win, "_fab", None)
             if fab is not None:
                 fab.stop()
-            for nom in ("_pompe", "_replan_images", "_attente_moment", "_timer_scenes"):
+            copie = getattr(win, "_copie", None)
+            if copie is not None:
+                copie.stop()
+            for nom in ("_pompe", "_replan_images", "_attente_moment", "_timer_scenes", "_attente_copie",
+                        "_pompe_copie"):
                 timer = getattr(win, nom, None)
                 if timer is not None:
                     timer.stop()
@@ -73,8 +78,17 @@ def _eteindre_a_la_sortie() -> None:
             pass
     try:
         vignettes.tuer_extractions()
+        copie_lecture.tuer()
     except Exception:
         pass
+    for win in list(_FENETRES):
+        copie = getattr(win, "_copie", None)
+        if copie is not None:
+            copie.fil.join(2)
+            try:
+                win._copie = None
+            except RuntimeError:
+                pass
     for win in list(_FENETRES):
         fab = getattr(win, "_fab", None)
         if fab is None:
@@ -245,7 +259,8 @@ class CompareView(QWidget):
                 f = p.font()
                 f.setPointSizeF(max(f.pointSizeF(), 13))
                 p.setFont(f)
-                p.drawText(inner.adjusted(8, 8, -8, -8), Qt.AlignBottom | Qt.AlignHCenter, self._moment_texte)
+                p.drawText(inner.adjusted(8, 8, -8, -8),
+                           Qt.AlignBottom | Qt.AlignHCenter | Qt.TextWordWrap, self._moment_texte)
                 return
             p.setPen(QColor(theme.MONITEUR_TEXTE))
             f = p.font()
@@ -321,8 +336,10 @@ class DropZone(QLabel):
             self.dropped.emit(urls[0].toLocalFile())
 
 
-def _insecables(texte: str) -> str:
+def _insecables(texte: str, *, citations_entieres: bool = False) -> str:
     """Espaces insécables dans « … » : le guillemet ne se retrouve jamais seul en bout de ligne."""
+    if citations_entieres:
+        return re.sub(r"«[^»\n]*»", lambda citation: citation[0].replace(" ", "\u00a0"), texte)
     return texte.replace("« ", "«\u00a0").replace(" »", "\u00a0»")
 
 
@@ -572,6 +589,10 @@ class TempsSpin(QDoubleSpinBox):
         super().wheelEvent(event)
 
     def textFromValue(self, value: float) -> str:  # noqa: N802
+        if self.decimals() and value % 1:
+            h, reste = divmod(value, 3600)
+            minutes, secondes = divmod(reste, 60)
+            return f"{int(h):02d}:{int(minutes):02d}:{secondes:06.3f}".replace(".", ",")
         return _duree(value)
 
     def valueFromText(self, text: str) -> float:  # noqa: N802
@@ -735,8 +756,9 @@ class _Fab:
     """Un lot de petites images, et une image du moment à la fois. Fils démons :
     ils ne sont pas des QThread, donc la fermeture de Python ne plante pas."""
 
-    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path, moments: list[float],
-                 lw: int, lh: int, mw: int, mh: int, generation: int, boite: _Boite) -> None:
+    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path, moments: tuple[float, ...],
+                 lw: int, lh: int, mw: int, mh: int, generation: int, boite: _Boite,
+                 indices_en_cache: frozenset[int] = frozenset()) -> None:
         self.ffmpeg, self.info = ffmpeg, info
         self.dossier = Path(dossier)
         self.lw, self.lh, self.mw, self.mh = lw, lh, mw, mh
@@ -748,12 +770,14 @@ class _Fab:
         self._procs_lot: list = []
         self._procs_moment: list = []
         self.fils: list[threading.Thread] = []
-        fil = threading.Thread(target=self._lot, args=(list(moments),), name="vhs-vignettes", daemon=True)
-        fil.start()
-        self.fils.append(fil)
+        demandes = [(i, t) for i, t in enumerate(moments) if i not in indices_en_cache]
+        if demandes:
+            fil = threading.Thread(target=self._lot, args=(demandes,), name="vhs-vignettes", daemon=True)
+            fil.start()
+            self.fils.append(fil)
 
-    def _lot(self, moments: list[float]) -> None:
-        for i, instant in enumerate(moments):
+    def _lot(self, demandes: list[tuple[int, float]]) -> None:
+        for i, instant in demandes:
             if self.annuler.is_set():
                 return
             dest = self.dossier / f"v{i:03d}.png"
@@ -798,6 +822,72 @@ class _Fab:
                 pass
 
 
+class _Copie:
+    """Copie de lecture, dans un fil à part, après l'analyse des scènes.
+
+    Le fil est un démon : la fermeture de Python ne plante pas. FFmpeg est tué
+    à l'annulation. `scenes` dit si l'analyse des scènes occupe encore ce film.
+    """
+
+    _GRACE = 0.4
+
+    def __init__(self, ffmpeg: str, info: MediaInfo, dest: Path,
+                 scenes: Callable[[], bool]) -> None:
+        self.ffmpeg, self.info, self.dest = ffmpeg, info, dest
+        self.scenes = scenes
+        self.annuler = threading.Event()
+        self.fini = threading.Event()
+        self.chemin: Path | None = None
+        self.procs: list = []
+        self.fil = threading.Thread(target=self._corps, name="vhs-lecture", daemon=True)
+
+    def start(self) -> None:
+        self.fil.start()
+
+    def _attendre_scenes(self) -> bool:
+        """Vrai quand l'analyse des scènes ne tourne plus. Faux si on a annulé.
+
+        Un court délai laisse l'analyse démarrer si elle est lancée dans le même
+        tour d'ouverture, juste après la planification.
+        """
+        grace = time.monotonic() + self._GRACE
+        while True:
+            if self.annuler.is_set():
+                return False
+            try:
+                occupe = bool(self.scenes())
+            except Exception:
+                occupe = False
+            if occupe:
+                grace = None
+            elif grace is None or time.monotonic() >= grace:
+                return True
+            if self.annuler.wait(0.05):
+                return False
+
+    def _corps(self) -> None:
+        copie_lecture.priorite_basse()
+        try:
+            if not self._attendre_scenes() or self.annuler.is_set():
+                return
+            if copie_lecture.preparer(self.ffmpeg, self.info, self.dest, self.annuler, self.procs):
+                if not self.annuler.is_set():
+                    self.chemin = self.dest
+        except Exception:
+            log.exception("copie de lecture")
+        finally:
+            self.fini.set()
+
+    def stop(self) -> None:
+        self.annuler.set()
+        for proc in list(self.procs):
+            try:
+                if proc.poll() is None:
+                    proc.kill()
+            except OSError:
+                pass
+
+
 class _Ruban(QWidget):
     """Barre du film, dessinée pour cet écran. Un clic ou un glisser place l'extrait.
 
@@ -809,11 +899,21 @@ class _Ruban(QWidget):
     borde = Signal(int, bool, float)
     borde_fini = Signal()
     valider = Signal()
+    lire = Signal()
     largeur_changee = Signal(int)
+    zoom_change = Signal(bool, bool)
+    passage_choisi = Signal()
+    fenetre_changee = Signal()
 
     def __init__(self) -> None:
         super().__init__()
         self.duree = 0.0
+        self.fps = 0.0
+        self._amplitude = 0.0
+        self._origine = 0.0
+        self.reperes: tuple[float, ...] = ()
+        self.passages_vides: tuple[vides.Passage, ...] = ()
+        self.passage_vide: vides.Passage | None = None
         self.position = 0.0
         self.debut = 0.0
         self.fin = 0.0
@@ -833,14 +933,16 @@ class _Ruban(QWidget):
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName("Barre du film")
         self.setAccessibleDescription(
-            "Faites glisser pour vous placer. Tirez les bords dorés pour ajuster un passage enlevé.")
+            "Flèches : une seconde. Maj et flèches : dix secondes. "
+            "Ctrl et flèches : une image. Tirez les bords dorés pour ajuster un passage enlevé.")
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(400, 64 if self._compacte else 88)
 
-    def vider_images(self, nombre: int) -> None:
-        """Places grises en attendant les petites images. `nombre` 0 : barre comme avant."""
-        self._vignettes = [QPixmap() for _ in range(max(0, int(nombre)))]
+    def vider_images(self, nombre: int, cache: dict[int, QPixmap] | None = None) -> None:
+        """Places grises en attendant les petites images qui manquent."""
+        cache = cache or {}
+        self._vignettes = [cache[i] if i in cache else QPixmap() for i in range(nombre)]
         self.update()
 
     def poser_image(self, index: int, chemin: str) -> None:
@@ -858,29 +960,66 @@ class _Ruban(QWidget):
     def definir(self, duree: float, position: float, debut: float, fin: float,
                 coupes: list[tuple[float, float]]) -> None:
         # Ne pas interrompre un glisser : cette méthode est rappelée pendant qu'on tire un bord.
+        ancienne_duree = self.duree
+        coupes_changees = (duree, debut, fin, coupes) != (self.duree, self.debut, self.fin, self.coupes)
         self.duree = max(0.0, float(duree or 0))
         self.position = float(position or 0)
         self.debut = float(debut or 0)
         self.fin = float(fin or 0)
         self.coupes = list(coupes)
+        if self.duree != ancienne_duree:
+            self.zoomer()
+        if self._amplitude:
+            a, b = self._fenetre()
+            if not a <= self.position <= b:
+                self._centrer()
+                self.fenetre_changee.emit()
+        if self.passages_vides:
+            self.actualiser_passages(forcer=coupes_changees)
         self.update()
 
+    def _fenetre(self) -> tuple[float, float]:
+        if not self._amplitude:
+            return 0.0, self.duree
+        return self._origine, self._origine + self._amplitude
+
+    def _centrer(self) -> None:
+        self._origine = max(0.0, min(self.duree - self._amplitude, self.position - self._amplitude / 2))
+
+    def _minimum_zoom(self) -> float:
+        return min(self.duree, max(2.0, 12 / self.fps if self.fps > 0 else 2.0))
+
+    def zoomer(self, sens: int = 0) -> None:
+        """Change la plage visible autour de la tête de lecture."""
+        avant = self._fenetre()
+        amplitude = self._amplitude or self.duree
+        cible = max(self._minimum_zoom(), min(self.duree, amplitude / 2**sens)) if sens else self.duree
+        self._amplitude = cible if cible < self.duree else 0.0
+        self._centrer()
+        self.zoom_change.emit(cible > self._minimum_zoom(), bool(self._amplitude))
+        if self._fenetre() != avant:
+            self.fenetre_changee.emit()
+        self.update()
+
+
     def _zone(self):
-        bas = 22 if self.height() >= 80 else 10
+        bas = 22 if self.height() >= 64 else 10
         return self.rect().adjusted(1, 16, -1, -bas)
 
     def _x_de(self, t: float) -> float:
         r = self._zone()
         if self.duree <= 0 or r.width() <= 0:
             return float(r.left())
-        borne = max(0.0, min(self.duree, float(t)))
-        return float(r.left()) + (borne / self.duree) * float(r.width())
+        debut, fin = self._fenetre()
+        return r.left() + (float(t) - debut) / (fin - debut) * r.width()
 
     def _temps(self, x: float) -> float:
         r = self._zone()
         if self.duree <= 0 or r.width() <= 0:
             return 0.0
-        return max(0.0, min(self.duree, (float(x) - float(r.left())) / float(r.width()) * self.duree))
+        debut, fin = self._fenetre()
+        fraction = max(0.0, min(1.0, (x - r.left()) / r.width()))
+        return debut + fraction * (fin - debut)
 
     PRISE_BORD = 22.0      # px de chaque côté du bord : une prise de 44 px en tout
     SEUIL_GLISSER = 4.0    # px : en dessous, c'est un clic (le curseur se place), pas un glisser
@@ -891,22 +1030,90 @@ class _Ruban(QWidget):
             return None
         choisi: tuple[int, bool] | None = None
         ecart = self.PRISE_BORD + 1.0
+        origine, limite = self._fenetre()
         for i, (a, b) in enumerate(self.coupes):
             for est_fin, moment in ((False, a), (True, b)):
+                if not origine <= moment <= limite:
+                    continue
                 d = abs(float(x) - self._x_de(moment))
                 if d <= self.PRISE_BORD and d < ecart:
                     choisi = (i, est_fin)
                     ecart = d
         return choisi
 
+    def passage_a(self, temps: float) -> vides.Passage | None:
+        for passage in self.passages_vides:
+            if any(a <= temps < b for a, b in self._plages_proposees(passage)):
+                return passage
+        return None
+
+    def _plages_proposees(self, passage: vides.Passage) -> Iterator[tuple[float, float]]:
+        """Parties encore gardées d’une zone bleue, d’après les coupes et les bornes."""
+        debut, fin = self.bornes_passage(passage)
+        if fin - debut < _MIN_COUPE:
+            return
+        for a, b in sorted(self.coupes):
+            if a >= fin:
+                break
+            if debut < a:
+                yield debut, a
+            debut = max(debut, b)
+        if debut < fin:
+            yield debut, fin
+
+    def bornes_passage(self, passage: vides.Passage) -> tuple[float, float]:
+        return max(self.debut, passage.debut), min(self.fin or self.duree, passage.fin)
+
+    def passages_proposes(self) -> Iterator[vides.Passage]:
+        return (passage for passage in self.passages_vides if next(self._plages_proposees(passage), None))
+
+    def actualiser_passages(self, *, forcer: bool = False) -> None:
+        """Présélectionne le passage bleu le plus proche du curseur."""
+        def distance(passage: vides.Passage) -> tuple[float, float]:
+            return min((max(a - self.position, 0, self.position - b), a)
+                       for a, b in self._plages_proposees(passage))
+
+        choisi = min(self.passages_proposes(), key=distance, default=None)
+        if forcer or choisi is not self.passage_vide:
+            self.choisir_passage(choisi)
+
+    def choisir_passage(self, passage: vides.Passage | None) -> None:
+        self.passage_vide = passage
+        self.passage_choisi.emit()
+        self.update()
+
+    def aimanter(self, temps: float) -> float:
+        if not self.reperes or QApplication.keyboardModifiers() & Qt.AltModifier:
+            return temps
+        a, b = self._fenetre()
+        tolerance = min(1.0, 8 * (b - a) / max(1, self._zone().width()))
+        repere = min(self.reperes, key=lambda t: abs(t - temps))
+        return repere if abs(repere - temps) <= tolerance else temps
+
     def _curseur_pour(self, x: float) -> None:
         self.setCursor(Qt.SizeHorCursor if self._bord_sous(x) is not None else Qt.PointingHandCursor)
+
+    def _temps_clic(self, position) -> float:
+        temps = self._temps(position.x())
+        point = position.toPoint()
+        if self.passages_vides and self._zone().contains(point):
+            plage = next(((a, b) for _, a, b, rect in reversed(list(self._propositions_visibles()))
+                          if rect.contains(point)), None)
+            if plage is not None:
+                a, b = plage
+                # Sur un film long, le trait fait au moins trois pixels. Toute la zone bleue répond.
+                return temps if a <= temps < b else (a + b) / 2
+        return temps
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         if event.button() == Qt.LeftButton and self.duree > 0:
             x = float(event.position().x())
             self._curseur_pour(x)
             bord = self._bord_sous(x)
+            temps = self._temps_clic(event.position())
+            passage = self.passage_a(temps)
+            if passage is not None:
+                self.choisir_passage(passage)
             if bord is not None:
                 # le bord ne bouge qu'une fois vraiment tiré : un clic près d'une coupe la
                 # rallongeait sans prévenir (des minutes sur une longue cassette)
@@ -917,7 +1124,7 @@ class _Ruban(QWidget):
             else:
                 self._glisse_bord = None
                 self._glisse_piste = True
-                self.clique.emit(self._temps(x))
+                self.clique.emit(temps)
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:  # noqa: N802
@@ -928,7 +1135,7 @@ class _Ruban(QWidget):
                 self._glisse_bord, self._bord_saisi = self._bord_saisi, None
             if self._glisse_bord is not None:
                 indice, est_fin = self._glisse_bord
-                self.borde.emit(indice, est_fin, self._temps(x))
+                self.borde.emit(indice, est_fin, self.aimanter(self._temps(x)))
             elif self._glisse_piste:
                 self.clique.emit(self._temps(x))
         super().mouseMoveEvent(event)
@@ -943,7 +1150,7 @@ class _Ruban(QWidget):
             if bord is not None:
                 self.borde_fini.emit()
             elif saisi is not None and self.duree > 0:      # simple clic près d'un bord : se placer
-                self.clique.emit(self._temps(float(event.position().x())))
+                self.clique.emit(self._temps_clic(event.position()))
             self._curseur_pour(float(event.position().x()))
         super().mouseReleaseEvent(event)
 
@@ -951,15 +1158,52 @@ class _Ruban(QWidget):
         if self.duree <= 0:
             super().keyPressEvent(event)
             return
-        if event.key() == Qt.Key_Left:
-            self.clique.emit(max(0.0, self.position - 1.0))
-        elif event.key() == Qt.Key_Right:
-            self.clique.emit(min(self.duree, self.position + 1.0))
+        if event.key() in (Qt.Key_Left, Qt.Key_Right):
+            sens = -1 if event.key() == Qt.Key_Left else 1
+            if event.modifiers() & Qt.ControlModifier and self.fps > 0:
+                cible = (round(self.position * self.fps) + sens) / self.fps
+            else:
+                pas = 10.0 if event.modifiers() & Qt.ShiftModifier else 1.0
+                cible = self.position + sens * pas
+            self.clique.emit(max(0.0, min(self.duree, cible)))
+            event.accept()
+        elif event.key() == Qt.Key_Space:
+            event.accept()
+            self.lire.emit()
         elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
             event.accept()
             self.valider.emit()
         else:
             super().keyPressEvent(event)
+
+    @staticmethod
+    def _heure(temps: float, millisecondes: bool = True) -> str:
+        secondes, fraction = divmod(round(max(0.0, temps) * 1000), 1000)
+        heures, reste = divmod(secondes, 3600)
+        minutes, secondes = divmod(reste, 60)
+        base = f"{heures:d}:{minutes:02d}:{secondes:02d}"
+        return f"{base},{fraction:03d}" if millisecondes else base
+
+    def event(self, event) -> bool:
+        if event.type() == QEvent.ToolTip and self.duree > 0:
+            temps = self._temps(event.pos().x())
+            contenu = self._heure(temps)
+            passage = self.passage_a(temps)
+            if passage is not None:
+                contenu += f" · {passage.genre.capitalize()} détecté"
+            elif any(a <= temps < b for a, b in self.coupes) or temps < self.debut or temps > (self.fin or self.duree):
+                contenu += " · Passage retiré"
+            QToolTip.showText(event.globalPos(), contenu, self)
+            return True
+        return super().event(event)
+
+    def _rectangle_temps(self, r: QRect, a: float, b: float) -> QRect:
+        origine, limite = self._fenetre()
+        a, b = max(a, origine), min(b, limite)
+        if b <= a:
+            return QRect()
+        x, fin = int(self._x_de(a)), int(self._x_de(b))
+        return QRect(x, r.top() + 4, max(2, fin - x), r.height() - 8)
 
     def _dessiner_images(self, p: QPainter, r: QRect) -> None:
         """Petites images du film, ou un gris tant qu'elles ne sont pas prêtes."""
@@ -969,9 +1213,10 @@ class _Ruban(QWidget):
         p.save()
         p.setClipRect(r.adjusted(2, 2, -2, -2))
         slot = r.width() / n
-        for i, pix in enumerate(self._vignettes):
+        for i in range(n):
             x = int(r.left() + i * slot)
             suivant = int(r.left() + (i + 1) * slot)
+            pix = self._vignettes[i]
             dest = QRect(x, r.top() + 3, max(1, suivant - x), max(1, r.height() - 6))
             if pix.isNull():
                 p.fillRect(dest, QColor("#5c6570"))
@@ -995,6 +1240,8 @@ class _Ruban(QWidget):
             return
 
         fin = self.fin if self.fin > 0 else self.duree
+        p.save()
+        p.setClipRect(self.rect().adjusted(0, 0, 0, -1))
         p.setPen(Qt.NoPen)
         a_images = any(not pix.isNull() for pix in self._vignettes)
         bleu = QColor(theme.ACCENT)
@@ -1002,34 +1249,87 @@ class _Ruban(QWidget):
         if a_images:
             bleu.setAlpha(55)
             dore.setAlpha(150)
-        p.setBrush(bleu)
-        x0, x1 = self._x_de(self.debut), self._x_de(fin)
-        p.drawRect(int(x0), r.top() + 4, max(2, int(x1 - x0)), r.height() - 8)
-        p.setBrush(dore)
-        for a, b in self.coupes:
-            xa, xb = self._x_de(a), self._x_de(b)
-            p.drawRect(int(xa), r.top() + 4, max(2, int(xb - xa)), r.height() - 8)
+        p.fillRect(self._rectangle_temps(r, self.debut, fin), bleu)
+        for a, b in ((0.0, self.debut), (fin, self.duree), *self.coupes):
+            rectangle = self._rectangle_temps(r, a, b)
+            p.fillRect(rectangle, dore)
+            p.fillRect(rectangle, QBrush(QColor(theme.AMBRE_TEXTE), Qt.BDiagPattern))
+        origine, limite = self._fenetre()
+        self._dessiner_passages_vides(p, r)
+        p.setPen(QPen(QColor(theme.ACCENT), 2))
+        for repere in self.reperes:
+            if origine <= repere <= limite:
+                x = int(self._x_de(repere))
+                p.drawLine(x, r.bottom() - 8, x, r.bottom())
         xp = int(self._x_de(self.position))
-        p.setPen(QPen(QColor(theme.TEXTE), 3))
+        p.setPen(QPen(QColor("#111820"), 5))
         p.drawLine(xp, r.top(), xp, r.bottom())
-        p.setPen(Qt.NoPen)
-        p.setBrush(QColor(theme.TEXTE))
-        p.drawPolygon([QPoint(xp, r.top() - 1), QPoint(xp - 7, r.top() - 12), QPoint(xp + 7, r.top() - 12)])
-        cote = 12
-        milieu = r.top() + 4 + (r.height() - 8) / 2.0
-        p.setPen(QPen(QColor("#1a1206"), 1))
+        p.setPen(QPen(QColor("#ffffff"), 2))
+        p.drawLine(xp, r.top(), xp, r.bottom())
+        p.setPen(QPen(QColor("#111820"), 1))
         p.setBrush(QColor("#ffffff"))
+        p.drawPolygon([QPoint(xp, r.top() - 1), QPoint(xp - 7, r.top() - 12), QPoint(xp + 7, r.top() - 12)])
+        milieu = r.center().y()
+        p.setPen(QPen(QColor(theme.AMBRE_TEXTE), 2))
         for a, b in self.coupes:
             for moment in (a, b):
-                cx = self._x_de(moment)
-                p.drawRoundedRect(int(round(cx - cote / 2)), int(round(milieu - cote / 2)), cote, cote, 2, 2)
-        if self.height() >= 80:
-            p.setPen(QColor(theme.TEXTE_DOUX))
-            bas = QRect(4, self.height() - 18, max(0, self.width() - 8), 16)
-            p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, _duree(0))
-            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree(self.duree / 2))
-            p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(self.duree))
+                if origine <= moment <= limite:
+                    cx = int(self._x_de(moment))
+                    p.drawRoundedRect(cx - 9, milieu - 13, 18, 26, 3, 3)
+                    p.drawLine(cx - 2, milieu - 6, cx - 2, milieu + 6)
+                    p.drawLine(cx + 2, milieu - 6, cx + 2, milieu + 6)
+        p.restore()
+        if self.height() >= 64:
+            bas = QRect(5, r.bottom() + 1, max(0, self.width() - 10), self.height() - r.bottom() - 1)
+            p.setPen(QColor(theme.TEXTE))
+            self._dessiner_heures(p, bas, origine, limite)
         p.end()
+
+    def _propositions_visibles(self) -> Iterator[tuple[vides.Passage, float, float, QRect]]:
+        r = self._zone()
+        origine, limite = self._fenetre()
+        for passage in self.passages_vides:
+            if passage.fin <= origine or passage.debut >= limite:
+                continue
+            for a, b in self._plages_proposees(passage):
+                a, b = max(a, origine), min(b, limite)
+                if b > a:
+                    x, fin = int(self._x_de(a)), int(self._x_de(b))
+                    yield passage, a, b, QRect(x, r.top(), max(3, fin - x), r.height())
+
+    def _dessiner_passages_vides(self, p: QPainter, r: QRect) -> None:
+        p.save()
+        p.setClipRect(r, Qt.IntersectClip)
+        p.setPen(QColor("#ffffff"))
+        mesures = p.fontMetrics()
+        for passage, _, _, rectangle in self._propositions_visibles():
+            choisi = passage is self.passage_vide
+            bleu = QColor("#104596" if choisi else "#2165c3")
+            bord = QColor("#dbeaff" if choisi else "#10284d")
+            nom = "Neige ?" if passage.genre.startswith("neige") else "Écran vide ?"
+            p.fillRect(rectangle, bleu)
+            if rectangle.width() >= 5:
+                epaisseur = 2 if choisi else 1
+                p.fillRect(rectangle.x(), rectangle.y(), epaisseur, rectangle.height(), bord)
+                p.fillRect(rectangle.right() - epaisseur + 1, rectangle.y(),
+                           epaisseur, rectangle.height(), bord)
+            if rectangle.width() >= mesures.horizontalAdvance(nom) + 12 and r.height() >= mesures.height():
+                p.drawText(rectangle, Qt.AlignCenter, nom)
+        p.restore()
+
+
+    def _dessiner_heures(self, p: QPainter, bas: QRect, debut: float, fin: float) -> None:
+        precis = fin - debut < 10
+        gauche, droite = self._heure(debut, precis), self._heure(fin, precis)
+        mesure = p.fontMetrics().horizontalAdvance
+        if mesure(gauche) + mesure(droite) + 10 > bas.width():
+            p.drawText(bas, Qt.AlignCenter, self._heure(self.position, precis))
+            return
+        p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, gauche)
+        p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, droite)
+        milieu = self._heure((debut + fin) / 2, precis)
+        if 2 * max(mesure(gauche), mesure(droite)) + mesure(milieu) + 20 < bas.width():
+            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, milieu)
 
 
 class BarreFilm(_Ruban):
@@ -1246,8 +1546,11 @@ class MainWindow(QMainWindow):
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
-        self.barre.largeur_changee.connect(self._sur_largeur_barre)
-        self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
+        self.barre.lire.connect(self._lire_film)
+        self.barre.largeur_changee.connect(self._replanifier_images)
+        self.barre.fenetre_changee.connect(self._vignettes_hors_plage)
+        self.s_guide_coupes = QLabel(self._texte_guide())
+        self.s_guide_coupes.setTextFormat(Qt.PlainText)
         self.s_guide_coupes.setWordWrap(True)
         self.s_guide_coupes.setMinimumWidth(0)
         self.s_guide_coupes.setObjectName("note")
@@ -1268,7 +1571,9 @@ class MainWindow(QMainWindow):
             "Annuler la dernière coupe", "Annuler la dernière coupe")
         self.s_passage_annuler.clicked.connect(self._passage_annuler)
         self.s_trim_start = TempsSpin()
+        self.s_trim_start.setDecimals(3)
         self.s_trim_end = TempsSpin()
+        self.s_trim_end.setDecimals(3)
         self.s_trim_start.setSpecialValueText("dès le début")
         self.s_trim_end.setSpecialValueText("à la fin")
         self.s_trim_start.setAccessibleName("Le film commence à")
@@ -1367,10 +1672,22 @@ class MainWindow(QMainWindow):
         self._gen_images = 0
         self._fab: _Fab | None = None
         self._dossier_images: Path | None = None
+        self._copie: _Copie | None = None
+        self._dossier_copie: Path | None = None
+        self._copie_prete: Path | None = None
+        self._attente_copie = QTimer(self)
+        self._attente_copie.setSingleShot(True)
+        self._attente_copie.timeout.connect(self._lancer_copie)
+        self._pompe_copie = QTimer(self)
+        self._pompe_copie.setInterval(100)
+        self._pompe_copie.timeout.connect(self._pomper_copie)
         self._boite = _Boite()
         self._pompe = QTimer(self)
         self._pompe.setInterval(40)
         self._pompe.timeout.connect(self._pomper_images)
+        self._cache_vignettes: dict[float, QPixmap] = {}
+        self._instants_vignettes: tuple[float, ...] = ()
+        self._scenes_affichees = None
         self._replan_images = QTimer(self)
         self._replan_images.setSingleShot(True)
         self._replan_images.setInterval(250)
@@ -1622,10 +1939,11 @@ class MainWindow(QMainWindow):
 
         # Aperçu
         self.start_spin = TempsSpin()
+        self.start_spin.setDecimals(3)
         self.start_spin.setRange(0, 0)
         self.start_spin.setAccessibleName("Début de l'extrait à regarder")
         self.start_spin.setToolTip("Moment du film montré dans l'aperçu de 10 secondes.")
-        self.start_spin.valueChanged.connect(lambda _v: self._rafraichir_barre())
+        self.start_spin.valueChanged.connect(self._moment_change)
         self.preview_btn = _with_icon(QPushButton("Voir l'avant / après"), "oeil")
         self.preview_btn.clicked.connect(self.start_preview)
         self.still_combo = QComboBox()
@@ -2635,6 +2953,7 @@ class MainWindow(QMainWindow):
                                            and self.tools.colorize_available))
 
     def _choisir_comparaison(self, mode: str) -> None:
+        self._arreter_lecture()
         self.s_compare.montrer_position = False
         self.s_compare.set_mode(mode)
         noms = {"before": "Avant", "split": "Les deux", "after": "Après"}   # à la souris
@@ -2872,10 +3191,13 @@ class MainWindow(QMainWindow):
                             "Étape suivante : « Voir l'avant / après ».")
 
     def _loaded(self, info: MediaInfo) -> None:
+        self._couper_images()
         self.is_photo = False
         self.s_colorize.setChecked(False)
         self.s_colorize.setVisible(False)
         self.info = info
+        self.barre.passages_vides = ()
+        self.barre.choisir_passage(None)
         self.preview = None
         self.compare.clear()
         self.still_combo.clear()
@@ -2930,8 +3252,13 @@ class MainWindow(QMainWindow):
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
+        self.barre.zoomer()
         self._lancer_scenes()
         self._lancer_images()
+        # Après l'analyse des scènes : le fil attend qu'elle ait fini avant FFmpeg.
+        # Un appel à `_lancer_scenes` dans cette méthode, avant ou après cette ligne,
+        # reste vu : le minuteur ne part qu'une fois `_loaded` rendu à l'écran.
+        self._planifier_copie()
 
     def _question_vitesse(self, demande):
         from .eta import describe
@@ -3012,9 +3339,227 @@ class MainWindow(QMainWindow):
         if self.preview and 0 <= idx < len(self.preview.stills):
             self.compare.set_still(self.preview.stills[idx])
 
+    def _scenes_occupent(self, info: MediaInfo) -> bool:
+        """Vrai tant que l'analyse des scènes de ce film n'a pas fini."""
+        suivi = getattr(self, "_suivi_scenes", None)
+        if suivi is None or getattr(suivi, "info", None) is not info:
+            return False
+        terminee = getattr(suivi, "terminee", None)
+        try:
+            if callable(terminee):
+                return not bool(terminee())
+        except Exception:
+            return False
+        return not bool(getattr(info, "scenes_vues", True))
+
+    def _chemin_lecture(self) -> Path | None:
+        """La copie si elle est prête, sinon l'original. None pour un DVD encore en plusieurs morceaux."""
+        pret = getattr(self, "_copie_prete", None)
+        if pret is not None and pret.is_file():
+            return pret
+        if len(self.info.parts) > 1:
+            return None
+        return self.info.path
+
+    def _planifier_copie(self) -> None:
+        """Lance la copie au prochain tour d'écran, seulement pour un film entrelacé."""
+        self._arreter_copie()
+        info = self.info
+        if info is None or getattr(self, "is_photo", False) or not copie_lecture.voulu(info):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg or not info.duration or info.duration <= 0:
+            return
+        if not copie_lecture.assez_de_place(info, Path(tempfile.gettempdir())):
+            return
+        self._copie_info = info
+        self._attente_copie.setInterval(0)
+        self._attente_copie.start()
+
+    def _lancer_copie(self) -> None:
+        info = getattr(self, "_copie_info", None)
+        if info is None or info is not self.info or not copie_lecture.voulu(info):
+            return
+        ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
+        if not ffmpeg:
+            return
+        dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_lecture_"))
+        copie_lecture.retenir(dossier)
+        self._dossier_copie = dossier
+        self._copie_prete = None
+        dest = dossier / "lecture.mp4"
+        self._copie = _Copie(ffmpeg, info, dest, lambda: self._scenes_occupent(info))
+        self._copie.start()
+        self._pompe_copie.start()
+
+    def _pomper_copie(self) -> None:
+        job = getattr(self, "_copie", None)
+        if job is None or not job.fini.is_set():
+            return
+        self._pompe_copie.stop()
+        chemin = job.chemin
+        if chemin is not None and chemin.is_file() and not job.annuler.is_set() and job.info is self.info:
+            self._copie_prete = chemin
+            self._basculer_vers_copie(chemin)
+            return
+        self._effacer_dossier_copie()
+
+    def _basculer_vers_copie(self, chemin: Path) -> None:
+        """Le film en cours passe sur la copie, à la même position, sans message."""
+        lecteur = getattr(self, "lecteur", None)
+        if lecteur is None or not lecteur.actif or lecteur.mode != "original" or lecteur.media is None:
+            return
+        actuel = lecteur.media.source().toLocalFile()
+        try:
+            if actuel and Path(actuel).resolve() == chemin.resolve():
+                return
+        except OSError:
+            return
+        lecteur.remplacer(chemin)
+
+    def _lecteur_sur_copie(self, dossier: Path) -> bool:
+        lecteur = getattr(self, "lecteur", None)
+        if lecteur is None or not lecteur.actif or lecteur.media is None:
+            return False
+        actuel = lecteur.media.source().toLocalFile()
+        if not actuel:
+            return False
+        try:
+            Path(actuel).resolve().relative_to(dossier.resolve())
+        except (OSError, ValueError):
+            return False
+        return True
+
+    def _effacer_dossier_copie(self) -> None:
+        dossier = getattr(self, "_dossier_copie", None)
+        self._dossier_copie = None
+        self._copie_prete = None
+        if dossier is None:
+            return
+        copie_lecture.oublier(dossier)
+        shutil.rmtree(dossier, ignore_errors=True)
+
+    def _arreter_copie(self) -> None:
+        """Annule la copie en cours et efface son dossier. N'attend pas à l'écran."""
+        attente = getattr(self, "_attente_copie", None)
+        if attente is not None:
+            attente.stop()
+        pompe = getattr(self, "_pompe_copie", None)
+        if pompe is not None:
+            pompe.stop()
+        self._copie_info = None
+        job = getattr(self, "_copie", None)
+        dossier = getattr(self, "_dossier_copie", None)
+        self._copie = None
+        self._dossier_copie = None
+        self._copie_prete = None
+        if job is not None:
+            job.stop()
+        if dossier is not None and self._lecteur_sur_copie(dossier):
+            self.lecteur.fermer()
+
+        def _nettoyer() -> None:
+            if job is not None:
+                job.fil.join(8)
+            if dossier is not None:
+                copie_lecture.oublier(dossier)
+                shutil.rmtree(dossier, ignore_errors=True)
+
+        if job is not None or dossier is not None:
+            fil = threading.Thread(target=_nettoyer, name="vhs-lecture-fin", daemon=True)
+            _NETTOYEURS.append(fil)
+            fil.start()
+
+    def _lire_film(self) -> None:
+        if self._busy() or not self._film_pour_coupe():
+            return
+        if self.lecteur.actif:
+            self.lecteur.basculer()
+            return
+        chemin = self._chemin_lecture()
+        if chemin is None:
+            self.status.setText("Ce DVD a plusieurs morceaux. Déplacez-vous avec les petites images.")
+            return
+        debut = self.start_spin.value()
+        if debut >= self.info.duration:
+            debut = 0.0
+        self.lecteur.ouvrir(chemin, "original", debut=debut)
+
     def _play_compare(self) -> None:
-        if self.preview:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.preview.compare)))
+        if self.preview and not self._busy():
+            debut, duree = self.preview.start, self.preview.duration
+            self.status.setText("Comparaison en lecture. Original à gauche, résultat à droite.")
+            self.lecteur.ouvrir(self.preview.compare, "comparaison", plages=((debut, debut + duree),))
+
+    def _a_une_coupe(self) -> bool:
+        return bool(self._coupes or self.trim_start.value() or self.trim_end.value())
+
+    def _verifier_coupe(self) -> None:
+        if self._busy() or not self._film_pour_coupe() or not self._a_une_coupe():
+            return
+        info = self.info
+        try:
+            plages = raccord.extrait(info.duration, self.trim_start.value(), self.trim_end.value(),
+                                      self._coupes, self.start_spin.value())
+        except ToolError as exc:
+            self.status.setText(str(exc))
+            return
+        if not plages:
+            self.status.setText("Placez d’abord une coupe sur la barre.")
+            return
+        self.status.setText("Préparation de la coupe à vérifier…")
+        self._launch(lambda annuler, _progres: raccord.fabriquer(
+            info, self.tools, self.preview_dir / "raccords", plages, cancel=annuler),
+            lambda chemin: self._lire_raccord(chemin, plages), job="raccord")
+
+    def _lire_raccord(self, chemin: Path, plages: raccord.Plages) -> None:
+        self.status.setText("Vérification de la coupe. Écoutez le raccord, puis ajustez la coupe si besoin.")
+        self.lecteur.ouvrir(chemin, "raccord", plages=plages)
+
+    def _etat_lecteur(self) -> None:
+        actif = self.lecteur.actif and self.lecteur.video is not None
+        retour = not actif and self.moniteur.currentWidget() is not self.s_compare
+        self.moniteur.setCurrentWidget(self.lecteur.video if actif else self.s_compare)
+        self.revenir_image.setVisible(actif)
+        self.lire_film.setText("Pause" if self.lecteur.joue else ("Reprendre" if actif else "Lire le film"))
+        if retour:
+            self._rafraichir_barre()
+        else:
+            self._heure_lecteur()
+
+    def _heure_lecteur(self) -> None:
+        if self.lecteur.actif and self.lecteur.mode != "original":
+            media = self.lecteur.media
+            ici, duree = media.position() / 1000, media.duration() / 1000
+        else:
+            ici = self.start_spin.value()
+            duree = self.info.duration if self._film_pour_coupe() else 0
+        self.heure_lecture.setText(f"{lecteur.horloge(ici)} / {lecteur.horloge(duree)}")
+
+    def _position_lecteur(self, temps: float) -> None:
+        if not self._film_pour_coupe():
+            return
+        if self.lecteur.mode == "original":
+            with QSignalBlocker(self.start_spin):
+                self.start_spin.setValue(temps)
+        self.barre.definir(self.info.duration, temps, self.trim_start.value(),
+                          self.trim_end.value(), self._coupes)
+        self._heure_lecteur()
+
+    def _arreter_lecture(self) -> None:
+        if self.lecteur.actif:
+            original = self.lecteur.mode == "original"
+            self.lecteur.fermer()
+            self.s_compare.montrer_position = original
+            self.s_compare.update()
+            self._rafraichir_barre()
+
+    def _echec_lecteur(self, raison: str) -> None:
+        log.info("Lecture intégrée : %s", raison)
+        self.s_compare.montrer_position = True
+        self.s_compare.update()
+        self._rafraichir_barre()
+        self.status.setText("Ce fichier ne peut pas être lu ici. Utilisez les petites images pour vous déplacer.")
 
     def _play_original(self) -> None:
         if self.preview and self.preview.original:
@@ -3070,19 +3615,32 @@ class MainWindow(QMainWindow):
                 barre.definir(0, 0, 0, 0, [])
             return
         for barre in barres:
+            barre.fps = float(self.info.fps or 0)
             barre.definir(self.info.duration, self.start_spin.value(),
                           self.trim_start.value(), self.trim_end.value(), self._coupes)
-        if hasattr(self, "_attente_moment"):
+        self._actualiser_reperes()
+        if hasattr(self, "lecteur"):
+            self._heure_lecteur()
+        if hasattr(self, "verifier_coupe"):
+            self.verifier_coupe.setEnabled(not self._busy() and self._a_une_coupe())
+        if hasattr(self, "_attente_moment") and not (hasattr(self, "lecteur") and self.lecteur.actif):
             self._attente_moment.start()
 
-    def _sur_largeur_barre(self, px: int) -> None:
-        """Le nombre de petites images suit la largeur. On ne relance que si ce nombre change."""
-        if not self._film_pour_coupe() or not getattr(self.info, "duration", 0):
+    def _actualiser_reperes(self) -> None:
+        scenes = getattr(self.info, "scenes", None)
+        if scenes is self._scenes_affichees:
             return
-        if not hasattr(self, "_replan_images"):
-            return
-        n = len(vignettes.instants(self.info.duration, max(int(px), 1)))
-        if n and n != len(self.barre._vignettes):
+        self._scenes_affichees = scenes
+        self.barre.reperes = tuple(scene.debut for scene in (scenes or ())
+                                    if 0 < scene.debut < self.barre.duree)
+        self.barre.update()
+
+    def _vignettes_hors_plage(self) -> None:
+        self.barre.vider_images(0)
+        self._replanifier_images()
+
+    def _replanifier_images(self, _largeur: int = 0) -> None:
+        if hasattr(self, "_replan_images") and self._film_pour_coupe():
             self._replan_images.start()
 
     def _arreter_images(self) -> None:
@@ -3112,8 +3670,14 @@ class MainWindow(QMainWindow):
 
     def _couper_images(self) -> None:
         """Arrête la fabrication et remet l'écran. Le dossier part une fois les fils arrêtés."""
+        self._arreter_copie()
         self._arreter_images()
+        self._replan_images.stop()
+        self._cache_vignettes.clear()
+        self._instants_vignettes = ()
+        self._scenes_affichees = None
         for barre in self._barres():
+            barre.reperes = ()
             barre.vider_images(0)
         image = getattr(self, "s_moment", None)
         if image is not None:
@@ -3163,24 +3727,31 @@ class MainWindow(QMainWindow):
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
-        self._couper_images()
         if not self._film_pour_coupe() or not self.info.duration or self.info.duration <= 0:
             return
         ffmpeg = self.tools.ffmpeg.path if self.tools.ffmpeg else None
         if not ffmpeg:
             return
-        largeur = max(self.barre.width(), self.barre.sizeHint().width(), 400)
-        moments = vignettes.instants(self.info.duration, largeur)
-        if not moments:
+        largeur = self.barre._zone().width() if self.barre.isVisible() else self.barre.sizeHint().width()
+        debut, fin = self.barre._fenetre()
+        moments = tuple(vignettes.instants(fin - debut, largeur, debut=debut))
+        cache = {i: self._cache_vignettes[t] for i, t in enumerate(moments)
+                 if t in self._cache_vignettes}
+        if self._fab is not None and moments == self._instants_vignettes:
+            if len(self.barre._vignettes) != len(moments):
+                self.barre.vider_images(len(moments), cache)
             return
+        self._arreter_images()
+        self._instants_vignettes = moments
         dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
         self._dossier_images = dossier
         generation = self._gen_images
         lw, lh = vignettes.taille(self.info, vignettes.HAUTEUR_VIGNETTE)
         mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
         for barre in self._barres():
-            barre.vider_images(len(moments))
-        self._fab = _Fab(ffmpeg, self.info, dossier, moments, lw, lh, mw, mh, generation, self._boite)
+            barre.vider_images(len(moments), cache)
+        self._fab = _Fab(ffmpeg, self.info, dossier, moments, lw, lh, mw, mh, generation, self._boite,
+                         frozenset(cache))
         self._pompe.start()
         self._demander_moment()
 
@@ -3188,6 +3759,7 @@ class MainWindow(QMainWindow):
         boite = getattr(self, "_boite", None)
         if boite is None:
             return
+        self._actualiser_reperes()
         vignettes_pretes, moments = boite.prendre()
         for index, chemin, generation in vignettes_pretes:
             self._vignette_prete(index, chemin, generation)
@@ -3195,10 +3767,16 @@ class MainWindow(QMainWindow):
             self._moment_pret(instant, chemin, generation)
 
     def _vignette_prete(self, index: int, chemin: str, generation: int) -> None:
-        if generation != self._gen_images:
+        if generation != self._gen_images or not 0 <= index < len(self._instants_vignettes):
             return
-        for barre in self._barres():
-            barre.poser_image(index, chemin)
+        pix = QPixmap(chemin)
+        if not pix.isNull():
+            if index < len(self.barre._vignettes):
+                self.barre._vignettes[index] = pix
+                self.barre.update()
+            self._cache_vignettes[self._instants_vignettes[index]] = pix
+            if len(self._cache_vignettes) > vignettes.MAX_CACHE:
+                del self._cache_vignettes[next(iter(self._cache_vignettes))]
 
     def _moment_pret(self, instant: float, chemin: str, generation: int) -> None:
         if generation != self._gen_images:
@@ -3208,7 +3786,15 @@ class MainWindow(QMainWindow):
             heure.setText(_duree(instant))
         self.s_compare.poser_moment(chemin, instant)
 
+    def _moment_change(self, secondes: float) -> None:
+        if hasattr(self, "lecteur") and self.lecteur.actif:
+            if not self.lecteur.aller(secondes):
+                self._arreter_lecture()
+        self._rafraichir_barre()
+
     def _demander_moment(self) -> None:
+        if hasattr(self, "lecteur") and self.lecteur.actif:
+            return
         fab = getattr(self, "_fab", None)
         if fab is None or not self._film_pour_coupe():
             return
@@ -3218,16 +3804,24 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
+        if self.lecteur.actif and self.lecteur.mode != "original":
+            self._arreter_lecture()
         self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
-        self.status.setText(
-            f"Vous êtes à {_duree(secondes)}. Cliquez sur « Couper ici », "
-            "puis une seconde fois là où le film reprend.")
+        temps = self.start_spin.value()
+        heure = self.barre._heure(temps) if temps % 1 else _duree(temps)
+        passage = self.barre.passage_a(temps)
+        if passage is not None:
+            self.barre.choisir_passage(passage)
+            self.status.setText(f"Vous êtes à {heure}. « {self.enlever_passage.text()} » retire ce passage.")
+        else:
+            self.status.setText(f"Vous êtes à {heure}. Cliquez sur « {self.s_couper.text()} ».")
         self._rafraichir_barre()
 
     def _texte_guide(self) -> str:
         """Texte du guide selon l'état actuel des coupes."""
-        return _texte_guide_coupes(self._coupe_ouverte is not None, len(self._coupes))
+        texte = _texte_guide_coupes(self._coupe_ouverte is not None, len(self._coupes))
+        return _insecables(texte, citations_entieres=True)
 
     def _rafraichir_guide_coupes(self) -> None:
         guide = getattr(self, "s_guide_coupes", None)
@@ -3245,11 +3839,13 @@ class MainWindow(QMainWindow):
         etapes = QLabel(_insecables(
             GUIDE_COUPES_AUCUNE + "\n\n"
             "Après le premier clic : " + GUIDE_COUPES_OUVERTE + "\n\n"
-            "Après une coupe : " + GUIDE_COUPES_FAITE))
+            "Après une coupe : " + GUIDE_COUPES_FAITE, citations_entieres=True))
+        etapes.setTextFormat(Qt.PlainText)
         etapes.setWordWrap(True)
         etapes.setMinimumWidth(0)
         lay.addWidget(etapes)
-        carres = QLabel(_insecables(GUIDE_COUPES_CARRES))
+        carres = QLabel(_insecables(GUIDE_COUPES_CARRES, citations_entieres=True))
+        carres.setTextFormat(Qt.PlainText)
         carres.setWordWrap(True)
         carres.setObjectName("note")
         lay.addWidget(carres)
@@ -3265,6 +3861,49 @@ class MainWindow(QMainWindow):
         ok.clicked.connect(dlg.accept)
         lay.addWidget(ok)
         dlg.exec()
+
+    def _proposer_passages_vides(self, passages: list[vides.Passage]) -> None:
+        self.barre.passages_vides = tuple(passages)
+        self.barre.actualiser_passages(forcer=True)
+
+    def _enlever_passage_vide(self) -> None:
+        passage = self.barre.passage_vide
+        if passage is not None:
+            self._enlever_passages_vides([passage])
+
+    def _tout_enlever_vides(self) -> None:
+        self._enlever_passages_vides(list(self.barre.passages_proposes()))
+
+    def _enlever_passages_vides(self, passages: list[vides.Passage]) -> None:
+        if self._busy() or not self._film_pour_coupe() or not passages:
+            return
+        duree = float(self.info.duration or 0)
+        bornes = [self.barre.bornes_passage(passage) for passage in passages]
+        normalisees = self._coupes_normalisees([*self._coupes, *bornes])
+        try:
+            gardes = pipeline.passages_gardes(
+                duree, self.trim_start.value(), self.trim_end.value(), normalisees)
+        except ToolError:
+            self.status.setText("Gardez au moins une partie du film.")
+            return
+        if len(gardes) > 1 and (self.tape_check.isChecked() or self.chroma_check.isChecked()):
+            self.status.setText("Pour enlever ces passages, décochez « Bruit de bande » et "
+                                "« Couleur des décrochages » dans « Régler l’image ».")
+            return
+        if len(normalisees) > _MAX_COUPES:
+            self.status.setText("Vous pouvez enlever jusqu’à huit passages.")
+            return
+        # Les coupes déjà présentes gardent leur ordre pour « Annuler la dernière coupe ».
+        self._coupes = [iv for iv in self._coupes if iv in normalisees] + [
+            iv for iv in normalisees if iv not in self._coupes]
+        self._coupe_ouverte = None
+        self._texte_couper("Couper ici")
+        self._rafraichir_passages()
+        if len(bornes) == 1:
+            a, b = bornes[0]
+            self.status.setText(f"Le passage de {_duree(a)} à {_duree(b)} ne sera pas restauré.")
+        else:
+            self.status.setText(f"Les {len(bornes)} passages bleus ne seront pas restaurés.")
 
     def _texte_couper(self, texte: str) -> None:
         for nom in ("s_couper",):
@@ -3312,7 +3951,7 @@ class MainWindow(QMainWindow):
         if not self._film_pour_coupe():
             self.status.setText("Choisissez d'abord un film.")
             return
-        ici = float(self.start_spin.value())
+        ici = self.barre.aimanter(float(self.start_spin.value()))
         self._coupe_ouverte = ici
         self._rafraichir_guide_coupes()
         self.status.setText(
@@ -3327,7 +3966,7 @@ class MainWindow(QMainWindow):
             self.status.setText("Indiquez d'abord où le passage inutile commence.")
             return
         debut = float(self._coupe_ouverte)
-        fin = float(self.start_spin.value())
+        fin = self.barre.aimanter(float(self.start_spin.value()))
         if fin < debut + _MIN_COUPE:
             self.status.setText("Avancez un peu : un passage doit durer au moins une demi-seconde.")
             return
@@ -3842,6 +4481,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ worker
     def _launch(self, fn: Callable, on_success: Callable[[Any], None], job: str = "") -> None:
+        self._arreter_lecture()
         self._job = job
         self._debut_travail = time.monotonic()
         self._fini_a_rendre = job in ("vides", "vides_copie", "separation", "installation", "nommer",
@@ -3948,6 +4588,7 @@ class MainWindow(QMainWindow):
             ecran.adapter(self)          # écran bas : boutons et petites images resserrés
 
     def closeEvent(self, e) -> None:  # noqa: N802
+        self.lecteur.fermer()
         assistant = getattr(self, "assistant", None)
         if assistant is not None:                   # images du rendu en préparation : FFmpeg arrêté
             assistant.arreter()

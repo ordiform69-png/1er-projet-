@@ -236,6 +236,38 @@ def test_apercu_avance_recoit_limage_du_moment(tools, samples, tmp_path):
         win.close()
 
 
+def test_legende_de_l_image_du_film_tient_sur_deux_lignes(tmp_path):
+    from PySide6.QtGui import QFont
+    from vhs_restore.gui import CompareView
+
+    app = QApplication.instance() or QApplication([])
+    vue = CompareView()
+    try:
+        vue.setMinimumSize(0, 0)
+        vue.resize(200, 140)
+        vue.setFont(QFont("Sans Serif", 15))
+        image = QImage(160, 120, QImage.Format_RGB32)
+        image.fill(Qt.black)
+        chemin = str(tmp_path / "image.png")
+        assert image.save(chemin)
+        vue.poser_moment(chemin, 7)
+        assert vue.accessibleDescription() == "Image du film à 7 secondes"
+
+        # Le cadre est sombre : les pixels clairs révèlent les lignes effectivement dessinées.
+        rendu = vue.grab().toImage()
+        marges = vue.rect().adjusted(19, 19, -20, -20)
+        assert vue.fontMetrics().horizontalAdvance(vue._moment_texte) > marges.width()
+        pixels = [(x, y) for y in range(12, rendu.height() - 12)
+                  for x in range(12, rendu.width() - 12)
+                  if rendu.pixelColor(x, y).lightness() > 200]
+        assert pixels and all(marges.contains(QPoint(x, y)) for x, y in pixels)
+        lignes = [y for _, y in pixels]
+        assert max(lignes) - min(lignes) > vue.fontMetrics().height()
+    finally:
+        vue.close()
+        app.processEvents()
+
+
 def test_cinq_films_effacent_les_dossiers(tools, samples, monkeypatch):
     def lent(*args, **kwargs):
         annuler = args[6] if len(args) > 6 else kwargs.get("annuler")
@@ -301,3 +333,221 @@ for _ in range(500):
     assert r.returncode == 0, r.stderr[-1500:]
     assert "QThread" not in r.stderr
     assert "QThread" not in r.stdout
+
+
+def test_zoom_et_clavier_sur_trois_heures():
+    app = QApplication.instance() or QApplication([])
+    barre = BarreFilm()
+    barre.resize(540, 64)
+    barre.fps = 25
+    barre.definir(10_800, 5_400, 0, 0, [(5_399, 5_401), (6_500, 6_502)])
+    curseur = barre.position
+    for _ in range(16):
+        barre.zoomer(1)
+    a, b = barre._fenetre()
+    assert (a, b) == pytest.approx((5_399, 5_401))
+    assert barre._temps(barre._x_de(curseur)) == pytest.approx(curseur)
+    assert barre.coupes == [(5_399, 5_401), (6_500, 6_502)]
+    assert barre._bord_sous(barre._x_de(6_500)) is None
+
+    positions = []
+    barre.clique.connect(positions.append)
+    QTest.keyClick(barre, Qt.Key_Left)
+    QTest.keyClick(barre, Qt.Key_Right, Qt.ShiftModifier)
+    QTest.keyClick(barre, Qt.Key_Right, Qt.ControlModifier)
+    assert positions == pytest.approx([5_399, 5_410, 5_400.040])
+    barre.zoomer()
+    assert barre._fenetre() == (0, 10_800)
+    app.processEvents()
+
+
+@pytest.mark.parametrize("mode", ["clair", "sombre"])
+def test_passages_bleus_opaques_sur_les_vignettes(mode):
+    from PySide6.QtGui import QColor, QPixmap
+    from vhs_restore import theme, vides
+
+    app = QApplication.instance() or QApplication([])
+    ancien = theme.MODE
+    theme.set_mode(mode)
+    barre = BarreFilm()
+    try:
+        barre.resize(400, 64)
+        barre.definir(100, 5, 0, 0, [(55, 65)])
+        barre.passages_vides = (vides.Passage(20, 50, "neige ou écran gris"),
+                                vides.Passage(50, 85, "écran noir"))
+        barre.choisir_passage(barre.passages_vides[0])
+        vignette = QPixmap(160, 120)
+        vignette.fill(QColor("red"))
+        barre.vider_images(4, dict.fromkeys(range(4), vignette))
+        image = barre.grab().toImage()
+        r = barre._zone()
+        for temps, bleu in ((24, "#104596"), (75, "#2165c3")):
+            x = round(barre._x_de(temps))
+            assert image.pixelColor(x, r.top()) == QColor(bleu)
+            assert image.pixelColor(x, r.bottom()) == QColor(bleu)
+        assert image.pixelColor(int(barre._x_de(20)), r.center().y()) == QColor("#dbeaff")
+        assert image.pixelColor(round(barre._x_de(60)), r.top() + 9) != QColor("#2165c3")
+        assert any(image.pixelColor(x, y) == QColor("white")
+                   for x in range(round(barre._x_de(26)), round(barre._x_de(44)))
+                   for y in range(r.top() + 3, r.bottom() - 2))
+    finally:
+        barre.close()
+        theme.set_mode(ancien)
+        app.processEvents()
+
+
+def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
+    from types import SimpleNamespace
+
+    from vhs_restore import vides
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=300, fps=Fraction(25))
+        win.info.scenes = [SimpleNamespace(debut=0), SimpleNamespace(debut=63.0)]
+        win._update_state()
+        win._rafraichir_barre()
+        win.barre.resize(500, 64)
+        assert win.barre.aimanter(63.2) == 63.0
+        assert win.barre.aimanter(65.0) == 65.0
+
+        neige = vides.Passage(60, 63, "neige ou écran gris")
+        win.assistant._vides_trouves(([neige], 300))
+        assert win.barre.passage_vide is neige
+        assert win._coupes == []
+        assert win.trim_start.value() == win.trim_end.value() == 0
+        enlever = win.enlever_passage
+        assert enlever.text() == "Enlever 1:00 – 1:03"
+        enlever.click()
+        assert win._coupes == [(60, 63)]
+        assert win.barre.passage_vide is None
+        win.s_passage_annuler.click()
+        assert win._coupes == []
+        assert win.barre.passage_vide is neige
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_choisir_un_passage_bleu_ou_tous(tools, tmp_path):
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=90)
+        win._update_state()
+        win.start_spin.setRange(0, 90)
+        win.start_spin.setValue(72)
+        win.barre.resize(450, 64)
+        passages = [Passage(0, 3, "neige ou écran gris"), Passage(20, 24, "écran noir"),
+                    Passage(70, 74, "écran bleu ou coloré")]
+        win._proposer_passages_vides(passages)
+        assert not win._coupes
+        assert win.enlever_passage.text() == "Enlever 1:10 – 1:14"
+        assert not win.enlever_tous_passages.isHidden()
+
+        zone = win.barre._zone()
+        QTest.mouseClick(win.barre, Qt.LeftButton, Qt.NoModifier,
+                         QPoint(round(win.barre._x_de(22)), zone.center().y()))
+        assert win.enlever_passage.text() == "Enlever 0:20 – 0:24"
+        assert "Enlever 0:20 – 0:24" in win.status.text()
+        assert not win._coupes
+
+        win.enlever_tous_passages.click()
+        assert win._coupes == [(0, 3), (20, 24), (70, 74)]
+        assert win.enlever_passage.isHidden() and win.enlever_tous_passages.isHidden()
+        win.s_passage_annuler.click()
+        assert win._coupes == [(0, 3), (20, 24)]
+        assert win.enlever_passage.text() == "Enlever 1:10 – 1:14"
+        assert win.enlever_tous_passages.isHidden()
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_clic_sur_une_zone_bleue_de_trois_pixels():
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    barre = BarreFilm()
+    try:
+        barre.resize(400, 64)
+        barre.definir(10_800, 0, 0, 0, [])
+        neige = Passage(600, 603, "neige")
+        barre.passages_vides = (neige,)
+        temps = []
+        barre.clique.connect(temps.append)
+        x = int(barre._x_de(neige.debut)) + 2
+        assert barre._temps(x) > neige.fin
+        QTest.mouseClick(barre, Qt.LeftButton, Qt.NoModifier, QPoint(x, barre._zone().center().y()))
+        assert barre.passage_vide is neige and 600 <= temps[0] < 603
+    finally:
+        barre.close()
+        app.processEvents()
+
+
+@pytest.mark.parametrize("raison", ["film entier", "plus de huit"])
+def test_tout_enlever_refuse_sans_appliquer_de_coupe(tools, tmp_path, raison):
+    from vhs_restore.vides import Passage
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=90)
+        win._update_state()
+        win._rafraichir_barre()
+        bornes = [(0, 40), (40, 90)] if raison == "film entier" else [(t, t + 2) for t in range(5, 90, 10)]
+        win._proposer_passages_vides([Passage(a, b, "écran noir") for a, b in bornes])
+        win.enlever_tous_passages.click()
+        assert not win._coupes
+        assert ("Gardez au moins" if raison == "film entier" else "huit passages") in win.status.text()
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_vignettes_memorisees_au_retour_au_film_entier(tools, monkeypatch, tmp_path):
+    from PySide6.QtGui import QPixmap
+
+    from vhs_restore import gui
+
+    class FabFactice:
+        fils = ()
+
+        def __init__(self, *args):
+            lots.append((args[3], args[-1]))
+
+        def stop(self):
+            pass
+
+        def demander(self, *args):
+            pass
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    lots = []
+    monkeypatch.setattr(gui, "_Fab", FabFactice)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=120)
+        win._rafraichir_barre()
+        win._lancer_images()
+        initial, remis = lots[-1]
+        assert initial and not remis
+        pixmap = QPixmap(8, 8)
+        pixmap.fill(Qt.red)
+        win._cache_vignettes.update(dict.fromkeys(initial, pixmap))
+        win._lancer_images()
+        assert len(lots) == 1
+
+        win.barre.zoomer(1)
+        win._lancer_images()
+        assert lots[-1][0] != initial
+        win.barre.zoomer()
+        win._lancer_images()
+        assert lots[-1] == (initial, frozenset(range(len(initial))))
+        assert all(not p.isNull() for p in win.barre._vignettes)
+    finally:
+        win.close()
+        app.processEvents()

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from . import icons, lumiere, theme
+from . import icons, lecteur, lumiere, theme
 from .assistant import Assistant, phrase_son
 
 
@@ -257,7 +257,35 @@ def installer(w):
     w.bandeau_original.setWordWrap(True)
     w.bandeau_original.setAlignment(Qt.AlignCenter)
     iv.addWidget(w.bandeau_original)
-    iv.addWidget(CadreImage(w.s_compare), 1)
+    w.moniteur = QStackedWidget()
+    w.s_compare.setMinimumSize(0, 0)
+    w.moniteur.addWidget(w.s_compare)
+    w.lecteur = lecteur.Lecteur(w)
+    if w.lecteur.video is not None:
+        w.moniteur.addWidget(w.lecteur.video)
+    w.lecteur.position.connect(w._position_lecteur)
+    w.lecteur.etat.connect(w._etat_lecteur)
+    w.lecteur.echec.connect(w._echec_lecteur)
+    w.cadre_moniteur = CadreImage(w.moniteur)
+    iv.addWidget(w.cadre_moniteur, 1)
+    w.barre._compacte = True
+    iv.addWidget(w.barre)
+    w.lire_film = QPushButton("Lire le film")
+    w.lire_film.setObjectName("secondaire")
+    w.lire_film.setMinimumHeight(64)
+    w.lire_film.clicked.connect(w._lire_film)
+    w.heure_lecture = QLabel("00:00 / 00:00")
+    w.heure_lecture.setAccessibleName("Temps écoulé et durée")
+    w.revenir_image = QPushButton("Image fixe")
+    w.revenir_image.setToolTip("Arrêter la lecture et revoir l’image fixe.")
+    w.revenir_image.clicked.connect(w._arreter_lecture)
+    w.revenir_image.hide()
+    w.commandes_lecture = QWidget()
+    commandes = ligne(w.lire_film, w.heure_lecture, w.revenir_image)
+    commandes.setContentsMargins(0, 0, 0, 0)
+    commandes.setStretch(0, 1)
+    w.commandes_lecture.setLayout(commandes)
+    iv.addWidget(w.commandes_lecture)
     iv.addWidget(w.s_segments)
     # écran de 1024 px : le champ peut se réduire (sa largeur conseillée vient du plus long
     # moment possible), et la liste des images aussi
@@ -353,16 +381,59 @@ def installer(w):
     w.bornes_coupe.setLayout(bornes)
     bornes.setContentsMargins(0, 0, 0, 0)
     c.addWidget(w.bornes_coupe)
-    w.barre._compacte = True
-    c.addWidget(w.barre)
+    eloigner, rapprocher, tout_le_film = (
+        QPushButton(texte) for texte in ("Zoom −", "Zoom +", "Tout le film")
+    )
+    for bouton, sens, nom in ((eloigner, -1, "Voir une plus grande partie du film"),
+                               (rapprocher, 1, "Zoomer autour du moment choisi"),
+                               (tout_le_film, 0, "Voir tout le film")):
+        bouton.setMinimumHeight(38)
+        bouton.setToolTip(nom)
+        bouton.clicked.connect(lambda _coche=False, sens=sens: w.barre.zoomer(sens))
+    w.barre.zoom_change.connect(lambda possible, _agrandie: rapprocher.setEnabled(possible))
+    w.barre.zoom_change.connect(lambda _zoom, agrandie: eloigner.setEnabled(agrandie))
+    w.barre.zoom_change.connect(lambda _zoom, agrandie: tout_le_film.setEnabled(agrandie))
+    w.barre.zoomer()
+    zoom = ligne(eloigner, rapprocher, tout_le_film)
+    zoom.addStretch(1)
+    w.chercher_neige_libre = QPushButton("Chercher la neige…")
+    w.chercher_neige_libre.setMinimumHeight(38)
+    w.chercher_neige_libre.clicked.connect(lambda: w.assistant._chercher_vides())
+    zoom.addWidget(w.chercher_neige_libre)
+    c.addLayout(zoom)
+    w.enlever_passage = QPushButton()
+    w.enlever_passage.setMinimumHeight(38)
+    w.enlever_passage.clicked.connect(w._enlever_passage_vide)
+    w.enlever_tous_passages = QPushButton("Tout enlever")
+    w.enlever_tous_passages.setMinimumHeight(38)
+    w.enlever_tous_passages.setToolTip("Enlever tous les passages bleus de la copie.")
+    w.enlever_tous_passages.clicked.connect(w._tout_enlever_vides)
+
+    def afficher_passage_vide():
+        passage = w.barre.passage_vide
+        w.enlever_passage.setVisible(passage is not None)
+        w.enlever_tous_passages.setVisible(sum(1 for _ in w.barre.passages_proposes()) > 1)
+        if passage is not None:
+            debut, fin = (lecteur.horloge(round(t)).removeprefix("0") for t in w.barre.bornes_passage(passage))
+            w.enlever_passage.setText(f"Enlever {debut} – {fin}")
+            w.enlever_passage.setToolTip(passage.genre.capitalize())
+
+    w.barre.passage_choisi.connect(afficher_passage_vide)
+    c.addLayout(ligne(w.enlever_passage, w.enlever_tous_passages))
+    afficher_passage_vide()
     liste = QGridLayout()                        # passages enlevés, « Remettre » : sous la barre,
     liste.setHorizontalSpacing(12)               # deux par ligne (8 au plus)
     liste.setVerticalSpacing(2)
     for i, (_, _, row) in enumerate(w._passage_lignes):
         liste.addWidget(row, i // 2, i % 2)
     c.addLayout(liste)
-    c.addLayout(ligne(w.s_guide_coupes, w.s_comment_faire))
+    w.verifier_coupe = QPushButton("Vérifier la coupe")
+    w.verifier_coupe.setToolTip("Lire quelques secondes autour de la coupe la plus proche du curseur.")
+    w.verifier_coupe.clicked.connect(w._verifier_coupe)
+    w.verifier_coupe.setEnabled(False)
     c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
+    c.addWidget(w.s_guide_coupes)
+    c.addLayout(ligne(w.verifier_coupe, w.s_comment_faire))
     durees = w.coupes_rapides
     c.addLayout(ligne(*durees))
     c.addWidget(w.s_passages_note)
@@ -563,6 +634,7 @@ def adapter(w) -> None:
     if getattr(w, "_serre", None) == serre:
         return
     w._serre = serre
+    w.cadre_moniteur.setMinimumHeight(112 if serre else 180)
     h = 48 if serre else 64
     w.run_btn.setMinimumHeight(h)
     w.run_btn.setMaximumHeight(h)
@@ -609,6 +681,14 @@ def actualiser(w, charge, photo, occupe, termine):
     w.titre_fichier.setText(w.info.path.name if charge else "VHS Restore AI")
     w.titre_fichier.setToolTip(w.titre_fichier.text())
     w.gauche.setCurrentIndex(int(charge))
+    film = charge and not photo
+    w.barre.setVisible(film)
+    w.barre.setEnabled(film and not occupe)
+    w.commandes_lecture.setVisible(film)
+    w.lire_film.setEnabled(film and not occupe)
+    w.verifier_coupe.setEnabled(film and not occupe and w._a_une_coupe())
+    w.enlever_passage.setEnabled(film and not occupe)
+    w.enlever_tous_passages.setEnabled(film and not occupe)
     w.choisir.setEnabled(not occupe)
     w.details.setVisible(charge)
     w.etapes.setVisible(not charge and not termine)

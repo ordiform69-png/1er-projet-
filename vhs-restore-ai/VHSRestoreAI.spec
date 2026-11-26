@@ -21,7 +21,7 @@ a = Analysis(
     hiddenimports=_dust_mods,
     # modules Qt inutiles : paquet plus léger
     excludes=["PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.Qt3DCore",
-              "PySide6.QtQuick", "PySide6.QtQml", "PySide6.QtPdf", "PySide6.QtMultimedia",
+              "PySide6.QtQuick", "PySide6.QtQml", "PySide6.QtPdf",
               "tkinter", "pytest"],
 )
 pyz = PYZ(a.pure)
