@@ -1,0 +1,46 @@
+{
+  "description": "IAT (Illumination Adaptive Transformer, BMVC 2022) : sources officielles des auteurs, figées au commit c764722. Aucun poids ni fichier ONNX dans le dépôt : téléchargement et vérification SHA-256 par les scripts. Licences vérifiées à la source par l'agent F1 le 26/11/2026, voir NOTE-F1-IA-LUMIERE.md.",
+  "depot": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer",
+  "commit": "c76472265247f47cea57649af28b15018bb64cb1",
+  "licence_code_et_poids": "Apache-2.0 (fichier LICENSE du dépôt, « Copyright 2022 The University of Tokyo » ; les poids sont publiés dans le même dépôt)",
+  "sources_code": {
+    "model/IAT_main.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/IAT_main.py", "sha256": "633b84d70542d1a789292804470ec9d3822908a2a8ef76e81bb4dad54ca078d4"},
+    "model/global_net.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/global_net.py", "sha256": "7dab3d12e90c6a43eb511f624d26be18842573efcf033142ea9125d11ce7cbba"},
+    "model/blocks.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/blocks.py", "sha256": "ecd6e1718b7a5fee0e2d1389a9dbf0825d1a999e784e46a334a6dc3d39adb0f3"}
+  },
+  "poids": {
+    "lol_v1": {
+      "retenu": true,
+      "fichier": "best_Epoch_lol_v1.pth",
+      "url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/best_Epoch_lol_v1.pth",
+      "sha256": "6fb32236152283d3f3633ea1b79601c7e819efbf9d87d6b4767e1db0f1f3435b",
+      "type_global": "lol",
+      "donnees": "LOL (LOw-Light), Wei et al., BMVC 2018 : 485 paires photographiées par les auteurs (Université de Pékin)",
+      "licence_donnees": "Non précisée à la source (https://daooshee.github.io/BMVC2018website/ : aucune licence ni restriction écrite). Pas de mention « recherche seulement » : retenu SOUS RÉSERVE, à signaler."
+    },
+    "lol_v2": {
+      "retenu": true,
+      "fichier": "best_Epoch_lol.pth",
+      "url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/best_Epoch_lol.pth",
+      "sha256": "9564b7e10882e688ac817ae6fd164544d05b9f74232de56c33ed7f9dabf7bdc4",
+      "type_global": "lol",
+      "donnees": "LOL-v2-real, Yang et al., TIP 2021 : 689 paires photographiées (Université de Pékin) ; utilisé par evaluation_lol_v2.py du dépôt IAT",
+      "licence_donnees": "Non précisée à la source (https://github.com/flyywh/SGM-Low-Light et https://github.com/flyywh/TIP-2021-Deep-Recursive-Band-Network : ni fichier LICENSE ni mention). Pas de mention « recherche seulement » : retenu SOUS RÉSERVE, à signaler."
+    },
+    "exposure": {
+      "retenu": false,
+      "fichier": "best_Epoch_exposure.pth",
+      "sha256": "15a9494582f028bef996d4af7145860eaa5d67799d2b0625ed93ff8c546ea3ee",
+      "donnees": "Exposure (Afifi et al., CVPR 2021), rendu à partir des images brutes de MIT-Adobe FiveK",
+      "licence_donnees": "EXCLU. https://github.com/mahmoudnafifi/Exposure_Correction : « As the dataset was originally rendered using raw images taken from the MIT-Adobe FiveK dataset, our dataset follows the original license of the MIT-Adobe FiveK dataset. » et « This software is provided for research purposes only and CANNOT be used for commercial purposes. » FiveK = recherche seulement."
+    },
+    "mit5k": {
+      "retenu": false,
+      "donnees": "MIT-Adobe FiveK",
+      "licence_donnees": "EXCLU d'office (recherche seulement, exemple cité par la demande n°18). Aucun poids MIT-5K n'est d'ailleurs publié dans le dépôt IAT (seulement data_loaders/mit5k.py)."
+    }
+  },
+  "onnx_export_f1": {
+    "remarque": "Empreintes des fichiers ONNX obtenus par l'agent F1 avec iat_export_onnx.py (voir NOTE-F1). Un autre export (autre version de torch) peut donner d'autres octets : le script d'essai l'accepte s'il est accompagné du manifeste d'export (export_iat.json) dont les empreintes concordent avec les fichiers."
+  }
+}
