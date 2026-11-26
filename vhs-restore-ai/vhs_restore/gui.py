@@ -736,8 +736,9 @@ class _Fab:
     """Un lot de petites images, et une image du moment à la fois. Fils démons :
     ils ne sont pas des QThread, donc la fermeture de Python ne plante pas."""
 
-    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path, moments: list[float],
-                 lw: int, lh: int, mw: int, mh: int, generation: int, boite: _Boite) -> None:
+    def __init__(self, ffmpeg: str, info: MediaInfo, dossier: Path, moments: tuple[float, ...],
+                 lw: int, lh: int, mw: int, mh: int, generation: int, boite: _Boite,
+                 indices_en_cache: frozenset[int] = frozenset()) -> None:
         self.ffmpeg, self.info = ffmpeg, info
         self.dossier = Path(dossier)
         self.lw, self.lh, self.mw, self.mh = lw, lh, mw, mh
@@ -749,12 +750,14 @@ class _Fab:
         self._procs_lot: list = []
         self._procs_moment: list = []
         self.fils: list[threading.Thread] = []
-        fil = threading.Thread(target=self._lot, args=(list(moments),), name="vhs-vignettes", daemon=True)
-        fil.start()
-        self.fils.append(fil)
+        demandes = [(i, t) for i, t in enumerate(moments) if i not in indices_en_cache]
+        if demandes:
+            fil = threading.Thread(target=self._lot, args=(demandes,), name="vhs-vignettes", daemon=True)
+            fil.start()
+            self.fils.append(fil)
 
-    def _lot(self, moments: list[float]) -> None:
-        for i, instant in enumerate(moments):
+    def _lot(self, demandes: list[tuple[int, float]]) -> None:
+        for i, instant in demandes:
             if self.annuler.is_set():
                 return
             dest = self.dossier / f"v{i:03d}.png"
@@ -813,6 +816,7 @@ class _Ruban(QWidget):
     largeur_changee = Signal(int)
     zoom_change = Signal(bool, bool)
     passage_choisi = Signal()
+    fenetre_changee = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -848,9 +852,10 @@ class _Ruban(QWidget):
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(400, 64 if self._compacte else 88)
 
-    def vider_images(self, nombre: int) -> None:
-        """Places grises en attendant les petites images. `nombre` 0 : barre comme avant."""
-        self._vignettes = [QPixmap() for _ in range(max(0, int(nombre)))]
+    def vider_images(self, nombre: int, cache: dict[int, QPixmap] | None = None) -> None:
+        """Places grises en attendant les petites images qui manquent."""
+        cache = cache or {}
+        self._vignettes = [cache[i] if i in cache else QPixmap() for i in range(nombre)]
         self.update()
 
     def poser_image(self, index: int, chemin: str) -> None:
@@ -880,6 +885,7 @@ class _Ruban(QWidget):
             a, b = self._fenetre()
             if not a <= self.position <= b:
                 self._centrer()
+                self.fenetre_changee.emit()
         self.update()
 
     def _fenetre(self) -> tuple[float, float]:
@@ -895,11 +901,14 @@ class _Ruban(QWidget):
 
     def zoomer(self, sens: int = 0) -> None:
         """Change la plage visible autour de la tête de lecture."""
+        avant = self._fenetre()
         amplitude = self._amplitude or self.duree
         cible = max(self._minimum_zoom(), min(self.duree, amplitude / 2**sens)) if sens else self.duree
         self._amplitude = cible if cible < self.duree else 0.0
         self._centrer()
         self.zoom_change.emit(cible > self._minimum_zoom(), bool(self._amplitude))
+        if self._fenetre() != avant:
+            self.fenetre_changee.emit()
         self.update()
 
 
@@ -1075,9 +1084,7 @@ class _Ruban(QWidget):
         for i in range(n):
             x = int(r.left() + i * slot)
             suivant = int(r.left() + (i + 1) * slot)
-            instant = self._temps((x + suivant) / 2)
-            index = min(n - 1, int(instant / self.duree * n)) if self.duree else i
-            pix = self._vignettes[index]
+            pix = self._vignettes[i]
             dest = QRect(x, r.top() + 3, max(1, suivant - x), max(1, r.height() - 6))
             if pix.isNull():
                 p.fillRect(dest, QColor("#5c6570"))
@@ -1381,7 +1388,8 @@ class MainWindow(QMainWindow):
         self.barre.borde.connect(self._bord_bouge)
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
-        self.barre.largeur_changee.connect(self._sur_largeur_barre)
+        self.barre.largeur_changee.connect(self._replanifier_images)
+        self.barre.fenetre_changee.connect(self._replanifier_images)
         self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
         self.s_guide_coupes.setWordWrap(True)
         self.s_guide_coupes.setMinimumWidth(0)
@@ -1508,6 +1516,8 @@ class MainWindow(QMainWindow):
         self._pompe = QTimer(self)
         self._pompe.setInterval(40)
         self._pompe.timeout.connect(self._pomper_images)
+        self._cache_vignettes: dict[float, QPixmap] = {}
+        self._instants_vignettes: tuple[float, ...] = ()
         self._replan_images = QTimer(self)
         self._replan_images.setSingleShot(True)
         self._replan_images.setInterval(250)
@@ -3179,14 +3189,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_attente_moment"):
             self._attente_moment.start()
 
-    def _sur_largeur_barre(self, px: int) -> None:
-        """Le nombre de petites images suit la largeur. On ne relance que si ce nombre change."""
-        if not self._film_pour_coupe() or not getattr(self.info, "duration", 0):
-            return
-        if not hasattr(self, "_replan_images"):
-            return
-        n = len(vignettes.instants(self.info.duration, max(int(px), 1)))
-        if n and n != len(self.barre._vignettes):
+    def _replanifier_images(self, _largeur: int = 0) -> None:
+        if hasattr(self, "_replan_images") and self._film_pour_coupe():
             self._replan_images.start()
 
     def _arreter_images(self) -> None:
@@ -3217,6 +3221,9 @@ class MainWindow(QMainWindow):
     def _couper_images(self) -> None:
         """Arrête la fabrication et remet l'écran. Le dossier part une fois les fils arrêtés."""
         self._arreter_images()
+        self._replan_images.stop()
+        self._cache_vignettes.clear()
+        self._instants_vignettes = ()
         for barre in self._barres():
             barre.vider_images(0)
         image = getattr(self, "s_moment", None)
@@ -3231,24 +3238,29 @@ class MainWindow(QMainWindow):
 
     def _lancer_images(self) -> None:
         """Petites images et image du moment, dans un fil à part (pas self.worker)."""
-        self._couper_images()
         if not self._film_pour_coupe() or not self.info.duration or self.info.duration <= 0:
             return
         ffmpeg = self.tools.ffmpeg.path if self.tools.ffmpeg else None
         if not ffmpeg:
             return
-        largeur = max(self.barre.width(), self.barre.sizeHint().width(), 400)
-        moments = vignettes.instants(self.info.duration, largeur)
-        if not moments:
+        largeur = self.barre._zone().width() if self.barre.isVisible() else self.barre.sizeHint().width()
+        debut, fin = self.barre._fenetre()
+        moments = tuple(vignettes.instants(fin - debut, largeur, debut=debut))
+        if self._fab is not None and moments == self._instants_vignettes:
             return
+        self._arreter_images()
+        self._instants_vignettes = moments
+        cache = {i: self._cache_vignettes[t] for i, t in enumerate(moments)
+                 if t in self._cache_vignettes}
         dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
         self._dossier_images = dossier
         generation = self._gen_images
         lw, lh = vignettes.taille(self.info, vignettes.HAUTEUR_VIGNETTE)
         mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
         for barre in self._barres():
-            barre.vider_images(len(moments))
-        self._fab = _Fab(ffmpeg, self.info, dossier, moments, lw, lh, mw, mh, generation, self._boite)
+            barre.vider_images(len(moments), cache)
+        self._fab = _Fab(ffmpeg, self.info, dossier, moments, lw, lh, mw, mh, generation, self._boite,
+                         frozenset(cache))
         self._pompe.start()
         self._demander_moment()
 
@@ -3263,10 +3275,14 @@ class MainWindow(QMainWindow):
             self._moment_pret(instant, chemin, generation)
 
     def _vignette_prete(self, index: int, chemin: str, generation: int) -> None:
-        if generation != self._gen_images:
+        if generation != self._gen_images or not 0 <= index < len(self._instants_vignettes):
             return
-        for barre in self._barres():
-            barre.poser_image(index, chemin)
+        self.barre.poser_image(index, chemin)
+        pix = self.barre._vignettes[index]
+        if not pix.isNull():
+            self._cache_vignettes[self._instants_vignettes[index]] = pix
+            if len(self._cache_vignettes) > vignettes.MAX_CACHE:
+                del self._cache_vignettes[next(iter(self._cache_vignettes))]
 
     def _moment_pret(self, instant: float, chemin: str, generation: int) -> None:
         if generation != self._gen_images:

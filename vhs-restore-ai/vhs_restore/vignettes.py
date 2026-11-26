@@ -16,6 +16,7 @@ from .probe import MediaInfo
 from .tools import _NO_WINDOW, ff_input
 
 PAS_PX = 90
+MAX_CACHE = 128
 HAUTEUR_VIGNETTE = 72
 HAUTEUR_MOMENT = 180
 
@@ -38,7 +39,7 @@ def tuer_extractions() -> None:
 atexit.register(tuer_extractions)
 
 
-def instants(duree: float, largeur: int, pas: int = PAS_PX) -> list[float]:
+def instants(duree: float, largeur: int, pas: int = PAS_PX, *, debut: float = 0.0) -> list[float]:
     """Une image tous les `pas` pixels, au milieu de chaque tranche.
 
     Un film sans durée, ou une barre trop étroite, ne donne aucune image
@@ -51,7 +52,7 @@ def instants(duree: float, largeur: int, pas: int = PAS_PX) -> list[float]:
     n = max(1, int(largeur // pas))
     if duree < 20:
         n = min(n, max(1, int(duree)))
-    return [duree * (i + 0.5) / n for i in range(n)]
+    return [round(debut + duree * (i + 0.5) / n, 3) for i in range(n)]
 
 
 def _pair(n: int) -> int:
