@@ -162,6 +162,9 @@ def run() -> int:
     logging.getLogger("vhs_restore").info("Démarrage, journal : %s", p)
     if len(sys.argv) >= 3 and sys.argv[1] == "--autotest":
         return autotest(sys.argv[2])
+    if len(sys.argv) >= 3 and sys.argv[1] == "--autotest-lecteur":
+        from .essai_lecteur import autotest_lecteur
+        return autotest_lecteur(Path(sys.argv[2]))
     if len(sys.argv) >= 3 and sys.argv[1] == "--poussieres":   # sous-processus Analog Repair
         # Aucune exception ne doit remonter : dans l'exe Windows sans console, elle ouvrirait
         # une boîte d'erreur qui bloquerait le traitement en attendant un clic.

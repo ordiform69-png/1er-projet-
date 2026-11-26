@@ -67,6 +67,9 @@ jobs:
           $p = Start-Process -FilePath dist/VHSRestoreAI/VHSRestoreAI.exe -ArgumentList "--autotest", "`"$dir`"" -Wait -PassThru
           Get-Content (Join-Path $dir "autotest.txt") -Encoding utf8
           if ($p.ExitCode -ne 0) { throw "Autotest en échec (code $($p.ExitCode))" }
+          $p = Start-Process -FilePath dist/VHSRestoreAI/VHSRestoreAI.exe -ArgumentList "--autotest-lecteur", "`"$dir`"" -Wait -PassThru
+          Get-Content (Join-Path $dir "autotest-lecteur.txt") -Encoding utf8
+          if ($p.ExitCode -ne 0) { throw "Autotest du lecteur en échec (code $($p.ExitCode))" }
 
       - name: Préparer le paquet vérifié
         if: success() && steps.tests.outcome == 'success'

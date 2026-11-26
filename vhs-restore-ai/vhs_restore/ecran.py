@@ -266,7 +266,8 @@ def installer(w):
     w.lecteur.position.connect(w._position_lecteur)
     w.lecteur.etat.connect(w._etat_lecteur)
     w.lecteur.echec.connect(w._echec_lecteur)
-    iv.addWidget(CadreImage(w.moniteur), 1)
+    w.cadre_moniteur = CadreImage(w.moniteur)
+    iv.addWidget(w.cadre_moniteur, 1)
     w.barre._compacte = True
     iv.addWidget(w.barre)
     w.lire_film = QPushButton("Lire le film")
@@ -422,7 +423,8 @@ def installer(w):
     w.verifier_coupe.setToolTip("Lire quelques secondes autour de la coupe la plus proche du curseur.")
     w.verifier_coupe.clicked.connect(w._verifier_coupe)
     w.verifier_coupe.setEnabled(False)
-    c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout, w.verifier_coupe))
+    c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
+    c.addWidget(w.verifier_coupe)
     durees = w.coupes_rapides
     c.addLayout(ligne(*durees))
     c.addWidget(w.s_passages_note)
@@ -623,6 +625,7 @@ def adapter(w) -> None:
     if getattr(w, "_serre", None) == serre:
         return
     w._serre = serre
+    w.cadre_moniteur.setMinimumHeight(112 if serre else 180)
     h = 48 if serre else 64
     w.run_btn.setMinimumHeight(h)
     w.run_btn.setMaximumHeight(h)

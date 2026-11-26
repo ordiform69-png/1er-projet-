@@ -1775,7 +1775,7 @@ class MainWindow(QMainWindow):
         self.start_spin.setRange(0, 0)
         self.start_spin.setAccessibleName("Début de l'extrait à regarder")
         self.start_spin.setToolTip("Moment du film montré dans l'aperçu de 10 secondes.")
-        self.start_spin.valueChanged.connect(lambda _v: self._rafraichir_barre())
+        self.start_spin.valueChanged.connect(self._moment_change)
         self.preview_btn = _with_icon(QPushButton("Voir l'avant / après"), "oeil")
         self.preview_btn.clicked.connect(self.start_preview)
         self.still_combo = QComboBox()
@@ -3148,6 +3148,7 @@ class MainWindow(QMainWindow):
     def _play_compare(self) -> None:
         if self.preview and not self._busy():
             debut, duree = self.preview.start, self.preview.duration
+            self.status.setText("Comparaison en lecture. Original à gauche, résultat à droite.")
             self.lecteur.ouvrir(self.preview.compare, "comparaison", plages=((debut, debut + duree),))
 
     def _a_une_coupe(self) -> bool:
@@ -3177,10 +3178,14 @@ class MainWindow(QMainWindow):
 
     def _etat_lecteur(self) -> None:
         actif = self.lecteur.actif and self.lecteur.video is not None
+        retour = not actif and self.moniteur.currentWidget() is not self.s_compare
         self.moniteur.setCurrentWidget(self.lecteur.video if actif else self.s_compare)
         self.revenir_image.setVisible(actif)
         self.lire_film.setText("Pause" if self.lecteur.joue else ("Reprendre" if actif else "Lire le film"))
-        self._heure_lecteur()
+        if retour:
+            self._rafraichir_barre()
+        else:
+            self._heure_lecteur()
 
     def _heure_lecteur(self) -> None:
         if self.lecteur.actif and self.lecteur.mode != "original":
@@ -3404,6 +3409,12 @@ class MainWindow(QMainWindow):
             heure.setText(_duree(instant))
         self.s_compare.poser_moment(chemin, instant)
 
+    def _moment_change(self, secondes: float) -> None:
+        if hasattr(self, "lecteur") and self.lecteur.actif:
+            if not self.lecteur.aller(secondes):
+                self._arreter_lecture()
+        self._rafraichir_barre()
+
     def _demander_moment(self) -> None:
         if hasattr(self, "lecteur") and self.lecteur.actif:
             return
@@ -3418,7 +3429,6 @@ class MainWindow(QMainWindow):
             return
         if self.lecteur.actif and self.lecteur.mode != "original":
             self._arreter_lecture()
-        self.lecteur.aller(secondes)
         self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
         temps = self.start_spin.value()
