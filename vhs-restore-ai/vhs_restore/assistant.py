@@ -158,7 +158,7 @@ def faire_ecoute(info, tools, dossier: Path, moment: float, decalage_ms: float,
     debut_son = max(0.0, moment - decalage_ms / 1000.0)
     run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
          *pipeline._seek(moment, ECOUTE), *pipeline.dvd_input(info),
-         *pipeline._seek(debut_son, ECOUTE), *pipeline.dvd_input(info),
+         *pipeline._seek(debut_son, ECOUTE, video=False), *pipeline.dvd_input(info),
          "-map", "0:v:0", "-map", "1:a:0", "-vf", "scale='trunc(iw*sar/2)*2':ih,setsar=1,format=yuv420p",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", *AAC, "-b:a", "128k",
          "-movflags", "+faststart", str(out)], cancel=cancel, what="FFmpeg (écouter)")

@@ -31,6 +31,7 @@ Une seule compression finale (H.264) : pas de conversions successives destructiv
 """
 from __future__ import annotations
 
+import contextvars
 import dataclasses
 import json
 import hashlib
@@ -55,9 +56,17 @@ from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
-from .dvd import input_args as dvd_input
+from .dvd import input_args as _entree_dvd
 from .dvd import lecture_dvd, is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
+
+# Dernier `-ss` placé AVANT l'entrée. Le filtre voit alors le temps repartir de zéro :
+# la correction de scène doit quand même suivre le temps de la source.
+_origine_gen: contextvars.ContextVar[int] = contextvars.ContextVar("vhs_origine_gen", default=0)
+_origine_en_attente: contextvars.ContextVar[tuple[int, float] | None] = contextvars.ContextVar(
+    "vhs_origine_attente", default=None)
+_origine_liee: contextvars.ContextVar[tuple[int, int, float] | None] = contextvars.ContextVar(
+    "vhs_origine_liee", default=None)
 
 log = logging.getLogger("vhs_restore")
 Progress = Callable[[float, str], None]
@@ -458,19 +467,25 @@ def _cast_filter(s: Settings) -> str | None:
     return f"colorchannelmixer=rr={rr:.4f}:gg={gg:.4f}:bb={bb:.4f}"
 
 
-def pre_filters(info: MediaInfo, s: Settings) -> list[str]:
+def pre_filters(info: MediaInfo, s: Settings, origine: float | None = None) -> list[str]:
     p = s.profile
     f = _base_filters(info, s)
     if s.stabilize:
         f.append(stab_transform_filter(info, s))
     if s.deflicker:
         f.append("deflicker=size=5:mode=pm")   # lisse la luminosité moyenne sur 5 images
-    cast = _cast_filter(s)
-    if cast:
-        f.append(cast)                         # avant les niveaux : le même étirement garde l'équilibre
-    lvl = _levels_filter(s)
-    if lvl:
-        f.append(lvl)                          # une correction pour tout le film, pas image par image
+    # Plusieurs scènes : une correction par scène (temps de la source). Sinon, la correction unique.
+    from . import scenes
+    bloc = scenes.filtres(info, s, _origine_effective(info, origine))
+    if bloc is None:
+        cast = _cast_filter(s)
+        if cast:
+            f.append(cast)                     # avant les niveaux : le même étirement garde l'équilibre
+        lvl = _levels_filter(s)
+        if lvl:
+            f.append(lvl)                      # une correction pour tout le film, pas image par image
+    else:
+        f.extend(bloc)
     shift = max(-8, min(8, int(s.chroma_shift or 0)))
     if shift:
         # VHS : la couleur glisse souvent horizontalement. 0 = filtre absent.
@@ -545,8 +560,9 @@ def _edge_mask(info: MediaInfo, s: Settings) -> list[str]:
     return [f"crop={cw}:{h}:{n}:0", f"pad={w}:{h}:{n}:0:black"]
 
 
-def filter_chain(info: MediaInfo, s: Settings) -> str:
-    return ",".join(pre_filters(info, s) + post_filters(info, s))
+def filter_chain(info: MediaInfo, s: Settings, origine: float | None = None) -> str:
+    """`origine` : temps source de la première image (après un `-ss` avant l'entrée)."""
+    return ",".join(pre_filters(info, s, origine) + post_filters(info, s))
 
 
 def encode_args(info: MediaInfo, s: Settings) -> list[str]:
@@ -573,13 +589,46 @@ def _ff_base(tools: Toolset) -> list[str]:
             "-progress", "pipe:1", "-nostats"]
 
 
-def _seek(start: float | None, duration: float | None) -> list[str]:
+def _seek(start: float | None, duration: float | None, *, video: bool = True) -> list[str]:
+    """`-ss` / `-t` avant une entrée. `video=False` : un second saut (la piste son) ne décale pas l'image."""
+    if video:
+        gen = _origine_gen.get() + 1
+        _origine_gen.set(gen)
+        _origine_en_attente.set((gen, float(start or 0.0)))
     a: list[str] = []
     if start:
         a += ["-ss", f"{start:.3f}"]
     if duration:
         a += ["-t", f"{duration:.3f}"]
     return a
+
+
+def _retenir_origine(info: MediaInfo) -> None:
+    """Associe le dernier `-ss` vidéo à CE film. Un autre film ne le récupère pas."""
+    attente = _origine_en_attente.get()
+    if attente is None:
+        return
+    gen, valeur = attente
+    liee = _origine_liee.get()
+    if liee and liee[1] == gen and liee[0] != id(info):
+        return
+    _origine_liee.set((id(info), gen, valeur))
+
+
+def dvd_input(info: MediaInfo) -> list[str]:
+    """`-i` du film. Retient le `-ss` vidéo qui précède, pour la correction par scène."""
+    _retenir_origine(info)
+    return _entree_dvd(info)
+
+
+def _origine_effective(info: MediaInfo, imposee: float | None) -> float:
+    """Temps source de la première image que le filtre va voir. 0 si le film part du début."""
+    if imposee is not None:
+        return max(0.0, float(imposee))
+    liee = _origine_liee.get()
+    if liee and liee[0] == id(info):
+        return max(0.0, float(liee[2]))
+    return 0.0
 
 
 class _FFProgress:
@@ -619,8 +668,10 @@ def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | N
     vs = [tools.vspipe.path, "-c", "y4m", "-a", f"src={info.path}",
           "-a", f"tff={1 if effective_scan(info, s) == 'tff' else 0}",
           "-a", f"first={first}", "-a", f"count={count}", str(QTGMC_SCRIPT), "-"]
+    saut = _seek(start, duration)
+    _retenir_origine(info)
     args = (["-itsoffset", f"{offset:.6f}", "-f", "yuv4mpegpipe", "-i", "-"]
-            + _seek(start, duration) + ["-i", str(info.path)])
+            + saut + ["-i", str(info.path)])
     return args, vs, "0:v:0", "1:a:0?"
 
 
@@ -994,11 +1045,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 args = args + ["-i", str(df_wav)]
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
             elif morceau and info.has_audio:
-                args += _seek(son_debut, son_duree) + dvd_input(info)
+                args += _seek(son_debut, son_duree, video=False) + dvd_input(info)
                 amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
-            vf = filter_chain(info, s)
+            vf = filter_chain(info, s, origine=start or 0)
             chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
                                        apply_offset=not morceau, rnnoise=tools.rnnoise_model)
             if morceau and info.has_audio:
@@ -1309,7 +1360,7 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
             lo = 0.04
             _stab_detect(info, s, tools, tmp, start, duration, total, cancel, progress, 0, lo)
         inter = tmp / "inter.mkv"
-        pre = ",".join(pre_filters(info, s)) or "null"
+        pre = ",".join(pre_filters(info, s, origine=start or 0)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
         if df_wav is not None:
             args = args + ["-i", str(df_wav)]
