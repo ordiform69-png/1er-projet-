@@ -4,9 +4,18 @@
   "commit": "c76472265247f47cea57649af28b15018bb64cb1",
   "licence_code_et_poids": "Apache-2.0 (fichier LICENSE du dépôt, « Copyright 2022 The University of Tokyo » ; les poids sont publiés dans le même dépôt)",
   "sources_code": {
-    "model/IAT_main.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/IAT_main.py", "sha256": "633b84d70542d1a789292804470ec9d3822908a2a8ef76e81bb4dad54ca078d4"},
-    "model/global_net.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/global_net.py", "sha256": "7dab3d12e90c6a43eb511f624d26be18842573efcf033142ea9125d11ce7cbba"},
-    "model/blocks.py": {"url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/blocks.py", "sha256": "ecd6e1718b7a5fee0e2d1389a9dbf0825d1a999e784e46a334a6dc3d39adb0f3"}
+    "model/IAT_main.py": {
+      "url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/IAT_main.py",
+      "sha256": "633b84d70542d1a789292804470ec9d3822908a2a8ef76e81bb4dad54ca078d4"
+    },
+    "model/global_net.py": {
+      "url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/global_net.py",
+      "sha256": "7dab3d12e90c6a43eb511f624d26be18842573efcf033142ea9125d11ce7cbba"
+    },
+    "model/blocks.py": {
+      "url": "https://github.com/cuiziteng/Illumination-Adaptive-Transformer/raw/c76472265247f47cea57649af28b15018bb64cb1/IAT_enhance/model/blocks.py",
+      "sha256": "ecd6e1718b7a5fee0e2d1389a9dbf0825d1a999e784e46a334a6dc3d39adb0f3"
+    }
   },
   "poids": {
     "lol_v1": {
@@ -41,6 +50,16 @@
     }
   },
   "onnx_export_f1": {
-    "remarque": "Empreintes des fichiers ONNX obtenus par l'agent F1 avec iat_export_onnx.py (voir NOTE-F1). Un autre export (autre version de torch) peut donner d'autres octets : le script d'essai l'accepte s'il est accompagné du manifeste d'export (export_iat.json) dont les empreintes concordent avec les fichiers."
+    "remarque": "Empreintes des fichiers ONNX obtenus par l'agent F1 avec iat_export_onnx.py (voir NOTE-F1). Un autre export (autre version de torch) peut donner d'autres octets : le script d'essai l'accepte s'il est accompagné du manifeste d'export (export_iat.json) dont les empreintes concordent avec les fichiers.",
+    "torch": "2.15.0+cpu",
+    "onnxruntime_verification": "1.32.0",
+    "opset": 17,
+    "sha256": {
+      "iat_lol_v1_global.onnx": "a161618afa4964a2e31c8875551c7a6bac0110c4e0e7a96ab853d6441b17e328",
+      "iat_lol_v1_complet.onnx": "43f1d97a9469b226a6d950787010fa8db6f337e7b6d3a9f004a061fcfb67c390",
+      "iat_lol_v2_global.onnx": "f24b9aa0e2a82923d87af8c95efebb4650a3ebd7ff3d65d17c9a7dc0cdb9eb1f",
+      "iat_lol_v2_complet.onnx": "134fc6a51832a23dc3c48264d762384e1a65f49a99ddf1655bd33f30ffba207b"
+    },
+    "reproductible": "deux exports successifs (torch 2.15.0+cpu) donnent les mêmes octets"
   }
 }

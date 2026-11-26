@@ -83,8 +83,12 @@ def mesure_actuelle(images: np.ndarray) -> tuple[dict, float]:
                        input=np.ascontiguousarray(images).tobytes(), capture_output=True)
     sig = probe.parse_signals(r.stderr.decode(errors="replace"))
     idx = np.linspace(0, n - 1, min(8, n)).round().astype(int)
-    petites = fb.banc.appliquer_filtre(images[idx], "scale=32:32:flags=bicubic").images
-    rgb = tuple(float(petites[..., c].mean()) for c in range(3))
+    r2 = subprocess.run([fb.banc.ffmpeg(), "-hide_banner", "-nostdin", "-loglevel", "error", "-f", "rawvideo",
+                         "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", "25", "-i", "-", "-vf",
+                         "scale=32:32,format=rgb24", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                        input=np.ascontiguousarray(images[idx]).tobytes(), capture_output=True, check=True)
+    petites = np.frombuffer(r2.stdout, np.uint8).reshape(-1, 3)
+    rgb = tuple(float(petites[:, c].mean()) for c in range(3))
     dt = time.perf_counter() - t0
     lo, hi = sig.get("level_low"), sig.get("level_high")
     m = {"level_low": lo, "level_high": hi, "cast_rgb": tuple(round(x, 2) for x in rgb),
