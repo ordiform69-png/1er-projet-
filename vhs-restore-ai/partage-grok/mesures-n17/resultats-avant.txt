@@ -1,0 +1,75 @@
+Mesures « avant » — demande n°17
+Date : 2026-11-26 03:53:52 Europe/Paris (UTC+1)
+Dépôt SHA : 4f090734fd9cfa670d2be04fc6b372327474b7eb
+Branche : grok/qualite
+Matériel : Intel(R) Xeon(R) Processor, 8 cœurs, RAM 16002.4 Mio (dispo 2769.7 Mio), Linux 6.12.113+
+FFmpeg : ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+Python : 3.13.5
+
+=== Écart à la cible par scène ===
+Film : 3 scènes PAL 720×576 25 im/s, durée 8+16+8 = 32 s (FFV1).
+Correction unique = analyse du film entier + conseils (niveaux à moitié, safe_levels, safe_gains).
+Cible / oracle = la même correction, mesurée et appliquée à la scène seule.
+Cible idéale (repère) : YLOW=16, YHIGH=235 (plage TV ouverte), span RVB = 0, écart chroma = 0.
+
+Scène 1 — sombre et orangée (t=0.0–8.0 s)
+  source: YLOW=56 YHIGH=109 ouverture=53 YAVG=82.714 R,G,B=(80.587, 78.948, 62.653) span_rvb=17.934 écart_chroma=9.572
+  après correction unique (tout le film): YLOW=45 YHIGH=102 ouverture=57 YAVG=73.761 R,G,B=(73.89, 74.417, 73.368) span_rvb=1.049 écart_chroma=0.417
+  cible : correction de la scène seule: YLOW=45 YHIGH=102 ouverture=57 YAVG=73.761 R,G,B=(73.89, 74.417, 73.368) span_rvb=1.049 écart_chroma=0.417
+  écart unique vs oracle : ΔYLOW=0 ΔYHIGH=0 Δouverture=0 Δspan_rvb=0 Δchroma=0
+  écart unique vs idéal (16/235, span 0) : ΔYLOW=29 ΔYHIGH=-133 span_rvb=1.049 chroma=0.417
+
+Scène 2 — normale (t=8.0–24.0 s)
+  source: YLOW=41 YHIGH=209 ouverture=168 YAVG=125.732 R,G,B=(123.369, 130.497, 125.132) span_rvb=7.128 écart_chroma=3.963
+  après correction unique (tout le film): YLOW=29 YHIGH=209 ouverture=180 YAVG=120.103 R,G,B=(115.331, 124.038, 127.257) span_rvb=11.927 écart_chroma=8.947
+  cible : correction de la scène seule: YLOW=41 YHIGH=210 ouverture=169 YAVG=126.087 R,G,B=(123.24, 129.771, 125.291) span_rvb=6.531 écart_chroma=4.025
+  écart unique vs oracle : ΔYLOW=-12 ΔYHIGH=-1 Δouverture=11 Δspan_rvb=5.395 Δchroma=4.922
+  écart unique vs idéal (16/235, span 0) : ΔYLOW=13 ΔYHIGH=-26 span_rvb=11.927 chroma=8.947
+
+Scène 3 — claire et bleutée (t=24.0–32.0 s)
+  source: YLOW=140 YHIGH=189 ouverture=49 YAVG=164.68 R,G,B=(158.742, 178.626, 181.215) span_rvb=22.473 écart_chroma=13.223
+  après correction unique (tout le film): YLOW=139 YHIGH=191 ouverture=52 YAVG=165.407 R,G,B=(145.594, 168.18, 205.397) span_rvb=59.803 écart_chroma=36.959
+  cible : correction de la scène seule: YLOW=125 YHIGH=195 ouverture=70 YAVG=160.414 R,G,B=(160.471, 161.205, 159.765) span_rvb=1.44 écart_chroma=0.634
+  écart unique vs oracle : ΔYLOW=14 ΔYHIGH=-4 Δouverture=-18 Δspan_rvb=58.363 Δchroma=36.325
+  écart unique vs idéal (16/235, span 0) : ΔYLOW=123 ΔYHIGH=-44 span_rvb=59.803 chroma=36.959
+
+Analyse du film entier (moteur actuel, une mesure pour tout le film) :
+  YLOW=41.0 YHIGH=209.0 cast_rgb=[80.559326171875, 79.004150390625, 62.685546875]
+  conseils=[{'key': 'cast', 'fix': {'gain_r': 0.9196080867712617, 'gain_g': 0.937710328460048, 'gain_b': 1.1818195980682349}}]
+  (durée 32.0 s < 60 s : l'échantillon commence à t=0, IDET_FRAMES=600 images ≈ 24 s, soit scènes 1 et 2 pour les niveaux — médiane ; 8 images au début pour la dominante).
+
+=== Marches dans les dégradés ===
+Rampe de gris 16 bits, 720 colonnes, Y source dans [48, 176]/255, 4 s, plus gamma cran 2 (eq, 8 bits) et niveaux conseillés.
+  source_16bits: niveaux distincts=720/720, saut max=46, saut moyen (non nul)=45.752, Y 12336–45232
+  source_divisee_8bits: niveaux distincts=129/720, saut max=1, saut moyen (non nul)=1, Y 48–176
+  apres_filtres_avant_x264: niveaux distincts=123/720, saut max=2, saut moyen (non nul)=1.015, Y 63–187
+  fichier_livre_mp4: niveaux distincts=124/720, saut max=2, saut moyen (non nul)=1.008, Y 63–187
+
+=== Temps de restauration par minute de film ===
+Extrait : film 3 scènes, 32.0 s, 720×576, 25 im/s, FFV1 → H.264.
+Réglages : profil equilibre, scan=progressive, preset=medium, crf=18, résolution=source, débruitage du profil, pas d'IA ni de stabilisation, pas de son.
+Conseils du film appliqués : [{'key': 'cast', 'fix': {'gain_r': 0.9196080867712617, 'gain_g': 0.937710328460048, 'gain_b': 1.1818195980682349}}]
+Chaîne : colorchannelmixer=rr=0.9196:gg=0.9377:bb=1.1800,removegrain=m0=1:m1=1:m2=1,hqdn3d=3:5:4.5:7,eq=contrast=1.04:saturation=1.08,cas=strength=0.3,setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p
+  run 1: 5.508 s d'horloge → 10.33 s de calcul par minute de film (0.17× le temps réel)
+  run 2: 5.322 s d'horloge → 9.98 s de calcul par minute de film (0.17× le temps réel)
+  run 3: 5.125 s d'horloge → 9.61 s de calcul par minute de film (0.16× le temps réel)
+  médiane : 9.98 s de calcul par minute de film (médiane des durées d'horloge 5.322 s pour 32.0 s d'extrait).
+
+Notes d'interprétation (moteur actuel, inchangé) :
+- Scène 1 isolée : l'analyse conseille bien levels+cast, mais _levels_filter
+  n'émet pas colorlevels. safe_levels élargit la plage 0,220–0,427 autour du
+  milieu jusqu'à lo ≈ 0,011, sous le seuil 0,02 du filtre. La chaîne oracle
+  de la scène 1 est donc identique à la correction unique du film (cast seul,
+  mêmes gains, mesurés sur le début). Les Y 56–109 → 45–102 viennent de la
+  conversion de plage (scale … out_range=pc) et du mélangeur, pas d'un
+  étirement des niveaux.
+- Scène 2 isolée : aucun conseil (plage déjà ouverte, pas de dominante).
+  La correction unique (cast de la scène 1) dégrade un peu les couleurs
+  (span RVB 7,1 → 11,9, chroma 4,0 → 8,9).
+- Scène 3 isolée : levels+cast (gains inverses, vers le neutre, et niveaux
+  à moitié). La correction unique n'ouvre pas les niveaux (la médiane du
+  film 41–209 est déjà « ouverte ») et applique le contre-orange de la
+  scène 1, ce qui renforce le bleu : span RVB 22,5 → 59,8, chroma 13,2 → 37,0.
+- Dégradés : la rampe 16 bits a 720 niveaux distincts ; après la chaîne
+  8 bits (niveaux + eq gamma 1,2) il en reste 123 avant x264, 124 dans le
+  MP4 livré, avec un saut max de 2 (au lieu de 1 pour une rampe 8 bits naïve).
