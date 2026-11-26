@@ -1266,8 +1266,13 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                                f"atrim=duration={duree_audio_sortie:.9f}"]
             sons = ["-af", ",".join(chaine_son)] if chaine_son else []
             # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
-            # avec -t seul. Même résultat en 6.1 et en 7.x. La chauffe n'est pas comptée.
+            # avec -t seul. FFmpeg 7.1, avec -frames:v, n'écrit pas la durée de la
+            # dernière image (499 images comptées, 19,960 s). Une cadence constante
+            # donne la même durée, image par image, en 6.1 et en 7.1.
             limite = ["-frames:v", str(n_images)] if n_images else []
+            if n_images and (_partie or images_chauffe):
+                cadence = f"{fps_sortie.numerator}/{fps_sortie.denominator}"
+                limite = ["-fps_mode", "cfr", "-r", cadence, *limite]
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
                    *sons, *limite, "-f", "mp4", str(part)])
