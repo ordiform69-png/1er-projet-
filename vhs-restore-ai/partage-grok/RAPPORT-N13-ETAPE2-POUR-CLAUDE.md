@@ -56,10 +56,13 @@ barre avec zoom, repères et vignettes). Dépôt `ordiform69-png/1er-projet-`.
   Leurs pistes audio sont reconnues. L’essai passe avec FFmpeg 7.1.5 et FFmpeg 9.0.2.
 - Les 28 tests ciblés (`test_lecteur.py`, `test_ecran_unique.py` et `test_ecrans.py`)
   passent en 190 s, code de sortie 0.
-- La suite complète avec FFmpeg 9 est en cours. Le premier passage a rencontré un
-  test d’estimation qui attend 3,4 Go libres sur le disque temporaire. Le même échec
-  se reproduit sur `f3d0237` avec 2,3 Go libres. Le test isolé passe lorsque le dossier
-  temporaire est placé sur un disque plus grand. La suite a été relancée dans ce dossier.
+- Suite complète sous `QT_QPA_PLATFORM=offscreen` avec FFmpeg 9.0.2 et NumPy 2.5.5.
+  Les six groupes sortent chacun avec le code **0**. Le rapprochement avec
+  `pytest --collect-only` couvre les **395** cas, dont **380 réussis et 15 sautés**.
+  Les sauts concernent QTGMC (6), Analog Repair (8) et le modèle DDColor (1).
+- Le premier passage sur `/tmp` a rencontré un test d’estimation demandant 3,4 Go
+  libres. L’échec se reproduit sur `f3d0237` avec 2,3 Go libres. Les groupes finaux
+  utilisent un disque de travail plus grand et le test y passe.
 
 ## Non testé
 
