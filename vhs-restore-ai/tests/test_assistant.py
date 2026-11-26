@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from conftest import ff
-from vhs_restore import assistant
+from vhs_restore import assistant, pipeline
 
 pytestmark = pytest.mark.assistant          # l'assistant est allumé, comme dans le logiciel
 
@@ -132,7 +132,20 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a.suivant.click()                                                      # rien à changer : la suite
     a.chercher.click()
     attendre(win)
-    assert abs(win.trim_start.value() - 3) <= 0.6 and abs(win.trim_end.value() - 63) <= 0.6, a.note_coupe.text()
+    assert win.trim_start.value() == win.trim_end.value() == 0 and not win._coupes
+    assert len(win.barre.passages_vides) == 2, a.note_coupe.text()
+    from PySide6.QtWidgets import QPushButton
+    enlever = next(b for b in a._page_coupe.findChildren(QPushButton) if b.text() == "Enlever")
+    assert enlever.isVisible()
+    enlever.click()  # neige au début
+    assert enlever.isVisible()
+    enlever.click()  # écran bleu à la fin
+    assert not enlever.isVisible()
+    gardes = pipeline.passages_gardes(
+        win.info.duration, win.trim_start.value(), win.trim_end.value(), win._coupes)
+    assert len(gardes) == 1
+    debut, fin = gardes[0]
+    assert abs(debut - 3) <= 0.6 and abs(fin - 63) <= 0.6, a.note_coupe.text()
     a.suivant.click()
     attendre(win)
     assert a.titre.text() == "Le son"
