@@ -1178,10 +1178,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             images_chauffe = 0
     seek_start = origine_entree if chauffe_reelle else start
     seek_duree = duration
-    if duration is not None and (_partie or chauffe_reelle):
-        # Deux images après la partie : les filtres qui regardent la suivante
-        # (débruitage) sont déjà lancés au raccord. -frames:v ne les garde pas.
-        seek_duree = float(duration) + chauffe_reelle + 2.0 / float(fps_sortie)
+    # Marge après la partie : les filtres qui regardent la suivante sont lancés,
+    # et -t s'arrête parfois une image trop tôt. -frames:v ne garde pas ce surplus.
+    marge_images = 8.0 / float(fps_sortie) if duration and (_partie or chauffe_reelle) else 0.0
+    if duration is not None and marge_images:
+        seek_duree = float(duration) + chauffe_reelle + marge_images
     n_images = 0
     if duration:
         if _partie or chauffe_reelle:
@@ -1205,7 +1206,8 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             vitesse = _tempo_factor(info, s, drift=True)
             # La chauffe se compte en temps source, puis la vitesse de dérive.
             depart_son = origine_entree if chauffe_reelle else float(start or 0)
-            longueur_son = float(duration) + chauffe_reelle
+            # Même marge que l'image : le son de la chauffe ne doit pas être amputé.
+            longueur_son = float(duration) + chauffe_reelle + (marge_images if chauffe_reelle else 0.0)
             premier = (depart_son - s.audio_offset_ms / 1000) * vitesse
             dernier = premier + longueur_son * vitesse
             son_debut = max(0.0, premier)
@@ -1240,7 +1242,10 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
             origine_filtre = origine_entree if chauffe_reelle else (start or 0)
             vf = filter_chain(info, s, origine=origine_filtre)
             if images_chauffe:
-                vf += f",trim=start_frame={images_chauffe},setpts=PTS-STARTPTS"
+                # PTS-STARTPTS d'abord : sinon un temps légèrement négatif (arrondi de
+                # setpts) fait jeter une image de plus par trim, et la partie sort à N-1.
+                vf += (f",setpts=PTS-STARTPTS,trim=start_frame={images_chauffe}"
+                       f",setpts=PTS-STARTPTS")
             chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
                                        apply_offset=not morceau, rnnoise=tools.rnnoise_model)
             if morceau and info.has_audio:
@@ -1249,9 +1254,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 if manque and not vide:
                     chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
                 if images_chauffe and not vide:
-                    # Après les filtres à mémoire (et le décalage), on retire la chauffe.
+                    # Le filtre sonore peut commencer un peu avant zéro. On recale,
+                    # puis on retire exactement les mêmes secondes que les images.
                     secondes = images_chauffe / float(fps_sortie)
-                    chaine_son += [f"atrim=start={secondes:.9f}", "asetpts=PTS-STARTPTS"]
+                    chaine_son += ["asetpts=PTS-STARTPTS", f"atrim=start={secondes:.9f}",
+                                   "asetpts=PTS-STARTPTS"]
                 # apad seul ajoute du silence sans fin et -frames:v ne coupe que l'image :
                 # avec FFmpeg 9.1 (Windows) la commande ne se terminait jamais. whole_dur borne
                 # le silence, atrim garde la durée exacte du morceau (sans la chauffe).
@@ -1283,8 +1290,9 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
 
 
 def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
-                               cancel: threading.Event | None) -> None:
-    """Assemble des films déjà restaurés. -c copy : pas de seconde compression."""
+                               cancel: threading.Event | None, *,
+                               sans_audio: bool = False) -> None:
+    """Assemble des films déjà restaurés. -c copy : pas de seconde compression de l'image."""
     liste = dest.with_suffix(".liste.txt")
     lignes = []
     for morceau in morceaux:
@@ -1297,12 +1305,62 @@ def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
                          "-show_entries", "stream=duration", "-of", "csv=p=0", str(morceau)])
         lignes.append(f"duration {float(r.stdout.strip()):.9f}")
     liste.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+    cmd = [tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+           "-f", "concat", "-safe", "0", "-i", str(liste), "-c", "copy"]
+    if sans_audio:
+        cmd.append("-an")
+    cmd.append(str(dest))
     try:
-        run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
-             "-f", "concat", "-safe", "0", "-i", str(liste), "-c", "copy", str(dest)],
-            cancel=cancel, what="FFmpeg (assemblage)")
+        run(cmd, cancel=cancel, what="FFmpeg (assemblage)")
     finally:
         effacer(liste)
+
+
+def _assembler_parties(tools: Toolset, morceaux: list[Path], dest: Path,
+                       cancel: threading.Event | None) -> None:
+    """Image copiée, son réencodé une seule fois.
+
+    Chaque partie AAC décode 512 échantillons de plus que sa durée (une demi-trame
+    que le conteneur ne saute pas au collage). Ces échantillons s'ajoutent à chaque
+    raccord et le son prend du retard. On ne garde que la durée de l'image, puis
+    un seul AAC (tools.AAC) pour tout le film.
+    """
+    sonde = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "a:0",
+                         "-show_entries", "stream=sample_rate,channels", "-of", "csv=p=0",
+                         str(morceaux[0])])
+    if sonde.returncode != 0 or not (sonde.stdout or "").strip():
+        _concat_sans_recompression(tools, morceaux, dest, cancel)
+        return
+    cadence, canaux = (int(x) for x in sonde.stdout.strip().split(",")[:2])
+    travail = Path(tempfile.mkdtemp(prefix="vhsrestore_assemblage_", dir=_work_root()))
+    try:
+        video = travail / "image.mp4"
+        _concat_sans_recompression(tools, morceaux, video, cancel, sans_audio=True)
+        pcm = travail / "son.s16le"
+        with pcm.open("wb") as flux:
+            for morceau in morceaux:
+                if cancel is not None and cancel.is_set():
+                    raise Cancelled("Annulé.")
+                duree = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
+                                     "-show_entries", "stream=duration", "-of", "csv=p=0", str(morceau)])
+                octets = int(round(float(duree.stdout.strip()) * cadence)) * canaux * 2
+                brut = travail / "bout.s16le"
+                run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+                     "-i", str(morceau), "-vn", "-ac", str(canaux), "-ar", str(cadence),
+                     "-f", "s16le", str(brut)],
+                    cancel=cancel, what="FFmpeg (son des parties)")
+                donnees = brut.read_bytes()
+                if len(donnees) < octets:
+                    donnees += bytes(octets - len(donnees))
+                flux.write(donnees[:octets])
+                effacer(brut)
+        run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+             "-i", str(video), "-f", "s16le", "-ar", str(cadence), "-ac", str(canaux),
+             "-i", str(pcm), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+             *AAC, "-b:a", "192k", "-movflags", "+faststart", str(dest)],
+            cancel=cancel, what="FFmpeg (assemblage)")
+    finally:
+        shutil.rmtree(travail, ignore_errors=True)
 
 
 def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
@@ -1426,7 +1484,7 @@ def _export_parties(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset
             faits += duree
         if progress:
             progress(0.98, "Assemblage des parties…")
-        _concat_sans_recompression(tools, fichiers, part, cancel)
+        _assembler_parties(tools, fichiers, part, cancel)
         finaliser(part, out_path)
         reprise.supprimer(dossier)
         with copie_annexe(out_path, "La copie du son"):
