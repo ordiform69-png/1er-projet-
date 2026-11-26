@@ -1,0 +1,78 @@
+{
+  "mode": "parties",
+  "date": "2026-11-26 16:41:51 Europe/Paris (UTC+1)",
+  "sha": "a8a3dd6ceb2e4d59bb7646c6a2df1c63d3047e5c",
+  "branche": "grok/reprise",
+  "materiel": {
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "coeurs": 8,
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 12937.2,
+    "os": "Linux 6.12.113+",
+    "python": "3.13.5",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "methode": "voir METHODE.md",
+  "films": {
+    "ffv1_422": {
+      "film": "/tmp/mesures-n19/films/film-180s-ffv1-422.mkv",
+      "cle": "ffv1_422",
+      "mode": "parties",
+      "duree_s": 180.0,
+      "pix_fmt": "yuv422p",
+      "scan": "tff",
+      "duree_partie_s": 60.0,
+      "chauffe_s": 8.0,
+      "analyze_s": 8.879872900999544,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 70.82575713500046,
+          "s_par_minute": 23.60858571166682
+        },
+        {
+          "run": 2,
+          "wall_s": 69.1484002369998,
+          "s_par_minute": 23.049466745666603
+        },
+        {
+          "run": 3,
+          "wall_s": 69.66760301800059,
+          "s_par_minute": 23.22253433933353
+        }
+      ],
+      "mediane_wall_s": 69.66760301800059,
+      "mediane_s_par_minute": 23.22253433933353
+    },
+    "mpeg2_420": {
+      "film": "/tmp/mesures-n19/films/film-180s-mpeg2-420.mkv",
+      "cle": "mpeg2_420",
+      "mode": "parties",
+      "duree_s": 180.0,
+      "pix_fmt": "yuv420p",
+      "scan": "tff",
+      "duree_partie_s": 60.0,
+      "chauffe_s": 8.0,
+      "analyze_s": 3.2770463619999646,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 54.56557521000104,
+          "s_par_minute": 18.18852507000035
+        },
+        {
+          "run": 2,
+          "wall_s": 60.25642423000136,
+          "s_par_minute": 20.085474743333783
+        },
+        {
+          "run": 3,
+          "wall_s": 58.05729614199845,
+          "s_par_minute": 19.35243204733282
+        }
+      ],
+      "mediane_wall_s": 58.05729614199845,
+      "mediane_s_par_minute": 19.35243204733282
+    }
+  }
+}
