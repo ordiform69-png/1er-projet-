@@ -427,13 +427,13 @@ def installer(w):
     for i, (_, _, row) in enumerate(w._passage_lignes):
         liste.addWidget(row, i // 2, i % 2)
     c.addLayout(liste)
-    c.addLayout(ligne(w.s_guide_coupes, w.s_comment_faire))
     w.verifier_coupe = QPushButton("Vérifier la coupe")
     w.verifier_coupe.setToolTip("Lire quelques secondes autour de la coupe la plus proche du curseur.")
     w.verifier_coupe.clicked.connect(w._verifier_coupe)
     w.verifier_coupe.setEnabled(False)
     c.addLayout(ligne(w.s_couper, w.s_passage_annuler, w.trim_tout))
-    c.addWidget(w.verifier_coupe)
+    c.addWidget(w.s_guide_coupes)
+    c.addLayout(ligne(w.verifier_coupe, w.s_comment_faire))
     durees = w.coupes_rapides
     c.addLayout(ligne(*durees))
     c.addWidget(w.s_passages_note)

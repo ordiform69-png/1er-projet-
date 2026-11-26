@@ -227,6 +227,9 @@ def test_chaque_etape_tient_a_1280_641(fenetre, cassette, tmp_path):
                     for texte in ("Zoom −", "Zoom +", "Tout le film", "Enlever 0:00 – 0:03", "Tout enlever"):
                         assert 36 <= boutons[texte].height() <= 44
                         assert _dans_fenetre(win, boutons[texte]), (pct, texte)
+                    guide = win.s_guide_coupes
+                    assert guide.wordWrap() and guide.y() > win.s_couper.geometry().bottom()
+                    assert guide.height() >= guide.heightForWidth(guide.width()), (pct, guide.text())
                     _pas_de_defilement_horizontal(win)
                     if pct <= 125:
                         zone = win.sections["Couper le film"][1]

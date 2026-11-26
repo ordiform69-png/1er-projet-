@@ -23,15 +23,15 @@ def test_guide_coupes_trois_textes(tools, samples):
     win.load_file(str(samples["long"]))
     _attendre(app, win)
 
-    assert win.s_guide_coupes.text() == GUIDE_COUPES_AUCUNE
-    assert "Couper ici" in win.s_guide_coupes.text()
-    assert "Le film reprend ici" in win.s_guide_coupes.text()
+    assert win.s_guide_coupes.text().replace("\xa0", " ") == GUIDE_COUPES_AUCUNE
+    assert "«\u00a0Couper\u00a0ici\u00a0»" in win.s_guide_coupes.text()
+    assert "«\u00a0Le\u00a0film\u00a0reprend\u00a0ici\u00a0»" in win.s_guide_coupes.text()
 
     win.start_spin.setValue(10)
     win.s_couper.click()
     assert win._coupe_ouverte is not None
-    assert win.s_guide_coupes.text() == GUIDE_COUPES_OUVERTE
-    assert "Le film reprend ici" in win.s_guide_coupes.text()
+    assert win.s_guide_coupes.text().replace("\xa0", " ") == GUIDE_COUPES_OUVERTE
+    assert "«\u00a0Le\u00a0film\u00a0reprend\u00a0ici\u00a0»" in win.s_guide_coupes.text()
 
     win.start_spin.setValue(25)
     win.s_couper.click()

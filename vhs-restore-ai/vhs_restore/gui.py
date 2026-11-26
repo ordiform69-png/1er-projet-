@@ -1465,7 +1465,8 @@ class MainWindow(QMainWindow):
         self.barre.lire.connect(self._lire_film)
         self.barre.largeur_changee.connect(self._replanifier_images)
         self.barre.fenetre_changee.connect(self._vignettes_hors_plage)
-        self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
+        self.s_guide_coupes = QLabel(self._texte_guide())
+        self.s_guide_coupes.setTextFormat(Qt.PlainText)
         self.s_guide_coupes.setWordWrap(True)
         self.s_guide_coupes.setMinimumWidth(0)
         self.s_guide_coupes.setObjectName("note")
@@ -3513,7 +3514,8 @@ class MainWindow(QMainWindow):
 
     def _texte_guide(self) -> str:
         """Texte du guide selon l'état actuel des coupes."""
-        return _texte_guide_coupes(self._coupe_ouverte is not None, len(self._coupes))
+        texte = _texte_guide_coupes(self._coupe_ouverte is not None, len(self._coupes))
+        return _insecables(texte, citations_entieres=True)
 
     def _rafraichir_guide_coupes(self) -> None:
         guide = getattr(self, "s_guide_coupes", None)
