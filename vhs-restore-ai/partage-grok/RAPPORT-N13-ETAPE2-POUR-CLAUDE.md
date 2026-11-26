@@ -151,3 +151,27 @@ Les tests ajoutés couvrent la mire (écart proche de 0 sur la copie, élevé su
 - Pas de cassette réelle pour la vitesse : le chiffre est celui du film synthétique décrit plus haut.
 - L'analyse des scènes n'est pas dans `c753474`. Le fil sait l'attendre si `_suivi_scenes` est là. Sur cette branche, il n'y en a pas : la copie part après l'ouverture du film.
 - La position rendue par Qt au moment de la bascule a été vérifiée à moins d'une seconde près, lecture toujours en cours. L'identité des images, elle, est celle du fichier (écart de pixel 0,01).
+
+## Corrections
+
+Demandées avant la fusion (n°19, section 2). Le code est le commit `783b128`, sur `grok/lecteur-copie`. L'enchaînement après l'analyse des scènes n'est pas touché : il sera fait à l'assemblage.
+
+**CRF.** La copie de lecture passe de `-crf 18` à `-crf 27`. Le preset reste `veryfast`. Le filtre `bwdif=mode=send_frame`, la taille d'affichage et le son AAC ne changent pas.
+
+**Place réservée.** `besoin_octets` ne part plus de 25 Mbit/s. La formule est `int(durée × 4 000 000 / 8 × 2) + 1 048 576` octets : 4 Mbit/s de marge au-dessus du débit mesuré ci-dessous, fois deux pour la réécriture `faststart`, plus 1 Mio. Pour une heure, cela fait **3 601 048 576 octets** (3 434,23 Mo, 3,35 Go ; 1 Mo = 1 048 576 octets).
+
+**Taille d'une heure, mesurée.** **[mesuré]**
+
+Méthode. Mire synthétique 720×576, entrelacée TFF, pixels 16/15 : `testsrc2` à 50 trames/s, tissée par `tinterlace=interleave_top`, champ haut d'abord, bruit léger `noise=alls=12:allf=t`, son sinusoïdal, MPEG-2 8 Mbit/s dans un AVI. L'extrait demandé dure 30 s. L'encodage est celui de la copie (`copie_lecture.preparer`) : `bwdif=mode=send_frame`, 720×540, H.264 `veryfast` CRF 27, AAC, `faststart`. Aucune vidéo n'est entrée dans le dépôt.
+
+| | |
+|---|---|
+| Durée du fichier obtenu | 30,040 s |
+| Taille de l'extrait | 4 874 114 octets |
+| Débit du fichier | 1,298 Mbit/s (vidéo 1,212 Mbit/s, AAC 79 kbit/s) |
+| Taille pour une heure | 4 874 114 / 30,040 × 3 600 = **584 114 860 octets**, soit **557,06 Mo** (0,544 Go) |
+| Machine | Linux 6.12.113+, x86_64, Intel Xeon, 4 cœurs, 16 387 328 kio de mémoire, FFmpeg 6.1.1-3ubuntu5, Python 3.12.3 |
+
+L'extrapolation multiplie la taille mesurée par 3 600 / 30,040. Ce n'est pas une cassette : une image plus bruitée pèse davantage, d'où la réserve à 4 Mbit/s plutôt qu'au débit mesuré.
+
+**Tests.** `QT_QPA_PLATFORM=offscreen`, fichier `tests/test_copie_lecture.py`, 23,86 s. **10 réussis, 0 échoué.** Les seuils déjà présents (stries, écart d'image, durée) n'ont pas été relâchés. Sur la même mire qu'avant, D1 reste 17,00 sur l'original et 0,00 sur la copie ; l'écart moyen des pixels aux trois instants est 0,02, 0,02 et 0,04. **[mesuré]**
