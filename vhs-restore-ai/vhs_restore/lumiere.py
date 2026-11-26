@@ -314,16 +314,17 @@ class Jauge(QWidget):
     """
 
     LARGEUR = 140
+    LARGEUR_SERREE = 112        # réglages libres : la section tient sur un écran de 1024 px (Windows)
     HAUTEUR = 32
 
-    def __init__(self, nom: str, choisir) -> None:
+    def __init__(self, nom: str, choisir, largeur: int | None = None) -> None:
         super().__init__()
         self._nom = nom
         self._choisir = choisir
         self._valeur = 0
         self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedSize(self.LARGEUR, self.HAUTEUR)
+        self.setFixedSize(largeur or self.LARGEUR, self.HAUTEUR)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setAccessibleDescription("Sept crans. Le milieu est neutre. "
                                       "Flèche gauche ou droite : un cran.")
@@ -430,11 +431,12 @@ class Panneau(QWidget):
             titre = QLabel(nom)
             titre.setObjectName("nomReglage")
             bm, bp = QPushButton(moins), QPushButton(plus)
-            jauge = Jauge(nom, lambda n, k=cle: self._poser(k, n))
+            jauge = Jauge(nom, lambda n, k=cle: self._poser(k, n),
+                          None if guide else Jauge.LARGEUR_SERREE)
             valeur = QLabel(texte_cran(0))
             valeur.setObjectName("valeurReglage")
             valeur.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-            valeur.setMinimumWidth(78)
+            valeur.setMinimumWidth(78 if guide else 60)
             for b, pas, texte in ((bm, -1, moins), (bp, 1, plus)):
                 b.setAccessibleName(f"{nom} : {texte.lower()}")
                 b.setCursor(Qt.PointingHandCursor)
