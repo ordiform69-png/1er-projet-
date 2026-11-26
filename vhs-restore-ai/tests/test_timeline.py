@@ -301,3 +301,108 @@ for _ in range(500):
     assert r.returncode == 0, r.stderr[-1500:]
     assert "QThread" not in r.stderr
     assert "QThread" not in r.stdout
+
+
+def test_zoom_et_clavier_sur_trois_heures():
+    app = QApplication.instance() or QApplication([])
+    barre = BarreFilm()
+    barre.resize(540, 64)
+    barre.fps = 25
+    barre.definir(10_800, 5_400, 0, 0, [(5_399, 5_401), (6_500, 6_502)])
+    curseur = barre.position
+    for _ in range(16):
+        barre.zoomer(1)
+    a, b = barre._fenetre()
+    assert (a, b) == pytest.approx((5_399, 5_401))
+    assert barre._temps(barre._x_de(curseur)) == pytest.approx(curseur)
+    assert barre.coupes == [(5_399, 5_401), (6_500, 6_502)]
+    assert barre._bord_sous(barre._x_de(6_500)) is None
+
+    positions = []
+    barre.clique.connect(positions.append)
+    QTest.keyClick(barre, Qt.Key_Left)
+    QTest.keyClick(barre, Qt.Key_Right, Qt.ShiftModifier)
+    QTest.keyClick(barre, Qt.Key_Right, Qt.ControlModifier)
+    assert positions == pytest.approx([5_399, 5_410, 5_400.040])
+    barre.zoomer()
+    assert barre._fenetre() == (0, 10_800)
+    app.processEvents()
+
+
+def test_passage_vide_propose_puis_enleve_et_annule(tools, tmp_path):
+    from types import SimpleNamespace
+
+    from PySide6.QtWidgets import QPushButton
+
+    from vhs_restore import vides
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=300, fps=Fraction(25))
+        win.info.scenes = [SimpleNamespace(debut=0), SimpleNamespace(debut=63.0)]
+        win._rafraichir_barre()
+        win.barre.resize(500, 64)
+        assert win.barre.aimanter(63.2) == 63.0
+        assert win.barre.aimanter(65.0) == 65.0
+
+        neige = vides.Passage(60, 63, "neige ou écran gris")
+        win.assistant._vides_trouves(([neige], 300))
+        assert win.barre.passage_vide is neige
+        assert win._coupes == []
+        assert win.trim_start.value() == win.trim_end.value() == 0
+        enlever = next(b for b in win.findChildren(QPushButton) if b.text() == "Enlever")
+        enlever.click()
+        assert win._coupes == [(60, 63)]
+        assert win.barre.passage_vide is None
+        win.s_passage_annuler.click()
+        assert win._coupes == []
+        assert win.barre.passage_vide is neige
+    finally:
+        win.close()
+        app.processEvents()
+
+
+def test_vignettes_memorisees_au_retour_au_film_entier(tools, monkeypatch, tmp_path):
+    from PySide6.QtGui import QPixmap
+
+    from vhs_restore import gui
+
+    class FabFactice:
+        fils = ()
+
+        def __init__(self, *args):
+            lots.append((args[3], args[-1]))
+
+        def stop(self):
+            pass
+
+        def demander(self, *args):
+            pass
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    lots = []
+    monkeypatch.setattr(gui, "_Fab", FabFactice)
+    try:
+        win.info = _info(tmp_path / "Film.mpg", duration=120)
+        win._rafraichir_barre()
+        win._lancer_images()
+        initial, remis = lots[-1]
+        assert initial and not remis
+        pixmap = QPixmap(8, 8)
+        pixmap.fill(Qt.red)
+        win._cache_vignettes.update(dict.fromkeys(initial, pixmap))
+        win._lancer_images()
+        assert len(lots) == 1
+
+        win.barre.zoomer(1)
+        win._lancer_images()
+        assert lots[-1][0] != initial
+        win.barre.zoomer()
+        win._lancer_images()
+        assert lots[-1] == (initial, frozenset(range(len(initial))))
+        assert all(not p.isNull() for p in win.barre._vignettes)
+    finally:
+        win.close()
+        app.processEvents()

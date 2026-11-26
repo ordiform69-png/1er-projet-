@@ -1389,7 +1389,7 @@ class MainWindow(QMainWindow):
         self.barre.borde_fini.connect(self._bord_fini)
         self.barre.valider.connect(self._couper_ici)
         self.barre.largeur_changee.connect(self._replanifier_images)
-        self.barre.fenetre_changee.connect(self._replanifier_images)
+        self.barre.fenetre_changee.connect(self._vignettes_hors_plage)
         self.s_guide_coupes = QLabel(_texte_guide_coupes(False, 0))
         self.s_guide_coupes.setWordWrap(True)
         self.s_guide_coupes.setMinimumWidth(0)
@@ -1518,6 +1518,7 @@ class MainWindow(QMainWindow):
         self._pompe.timeout.connect(self._pomper_images)
         self._cache_vignettes: dict[float, QPixmap] = {}
         self._instants_vignettes: tuple[float, ...] = ()
+        self._scenes_affichees = None
         self._replan_images = QTimer(self)
         self._replan_images.setSingleShot(True)
         self._replan_images.setInterval(250)
@@ -2981,6 +2982,7 @@ class MainWindow(QMainWindow):
                             "Étape suivante : « Voir l'avant / après ».")
 
     def _loaded(self, info: MediaInfo) -> None:
+        self._couper_images()
         self.is_photo = False
         self.s_colorize.setChecked(False)
         self.s_colorize.setVisible(False)
@@ -3182,12 +3184,24 @@ class MainWindow(QMainWindow):
             return
         for barre in barres:
             barre.fps = float(self.info.fps or 0)
-            barre.reperes = tuple(scene.debut for scene in (getattr(self.info, "scenes", None) or ())
-                                   if 0 < scene.debut < self.info.duration)
             barre.definir(self.info.duration, self.start_spin.value(),
                           self.trim_start.value(), self.trim_end.value(), self._coupes)
+        self._actualiser_reperes()
         if hasattr(self, "_attente_moment"):
             self._attente_moment.start()
+
+    def _actualiser_reperes(self) -> None:
+        scenes = getattr(self.info, "scenes", None)
+        if scenes is self._scenes_affichees:
+            return
+        self._scenes_affichees = scenes
+        self.barre.reperes = tuple(scene.debut for scene in (scenes or ())
+                                    if 0 < scene.debut < self.barre.duree)
+        self.barre.update()
+
+    def _vignettes_hors_plage(self) -> None:
+        self.barre.vider_images(0)
+        self._replanifier_images()
 
     def _replanifier_images(self, _largeur: int = 0) -> None:
         if hasattr(self, "_replan_images") and self._film_pour_coupe():
@@ -3224,7 +3238,9 @@ class MainWindow(QMainWindow):
         self._replan_images.stop()
         self._cache_vignettes.clear()
         self._instants_vignettes = ()
+        self._scenes_affichees = None
         for barre in self._barres():
+            barre.reperes = ()
             barre.vider_images(0)
         image = getattr(self, "s_moment", None)
         if image is not None:
@@ -3246,12 +3262,14 @@ class MainWindow(QMainWindow):
         largeur = self.barre._zone().width() if self.barre.isVisible() else self.barre.sizeHint().width()
         debut, fin = self.barre._fenetre()
         moments = tuple(vignettes.instants(fin - debut, largeur, debut=debut))
+        cache = {i: self._cache_vignettes[t] for i, t in enumerate(moments)
+                 if t in self._cache_vignettes}
         if self._fab is not None and moments == self._instants_vignettes:
+            if len(self.barre._vignettes) != len(moments):
+                self.barre.vider_images(len(moments), cache)
             return
         self._arreter_images()
         self._instants_vignettes = moments
-        cache = {i: self._cache_vignettes[t] for i, t in enumerate(moments)
-                 if t in self._cache_vignettes}
         dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
         self._dossier_images = dossier
         generation = self._gen_images
@@ -3268,6 +3286,7 @@ class MainWindow(QMainWindow):
         boite = getattr(self, "_boite", None)
         if boite is None:
             return
+        self._actualiser_reperes()
         vignettes_pretes, moments = boite.prendre()
         for index, chemin, generation in vignettes_pretes:
             self._vignette_prete(index, chemin, generation)
@@ -3277,9 +3296,11 @@ class MainWindow(QMainWindow):
     def _vignette_prete(self, index: int, chemin: str, generation: int) -> None:
         if generation != self._gen_images or not 0 <= index < len(self._instants_vignettes):
             return
-        self.barre.poser_image(index, chemin)
-        pix = self.barre._vignettes[index]
+        pix = QPixmap(chemin)
         if not pix.isNull():
+            if index < len(self.barre._vignettes):
+                self.barre._vignettes[index] = pix
+                self.barre.update()
             self._cache_vignettes[self._instants_vignettes[index]] = pix
             if len(self._cache_vignettes) > vignettes.MAX_CACHE:
                 del self._cache_vignettes[next(iter(self._cache_vignettes))]
@@ -3304,9 +3325,14 @@ class MainWindow(QMainWindow):
             return
         self.s_compare.montrer_position = True
         self.start_spin.setValue(float(secondes))
-        self.status.setText(
-            f"Vous êtes à {_duree(secondes)}. Cliquez sur « Couper ici », "
-            "puis une seconde fois là où le film reprend.")
+        temps = self.start_spin.value()
+        heure = self.barre._heure(temps) if temps % 1 else _duree(temps)
+        passage = self.barre.passage_a(temps)
+        if passage is not None:
+            self.barre.choisir_passage(passage)
+            self.status.setText(f"Vous êtes à {heure}. Cliquez sur « Enlever » pour retirer ce passage vide.")
+        else:
+            self.status.setText(f"Vous êtes à {heure}. Cliquez sur « {self.s_couper.text()} ».")
         self._rafraichir_barre()
 
     def _texte_guide(self) -> str:
