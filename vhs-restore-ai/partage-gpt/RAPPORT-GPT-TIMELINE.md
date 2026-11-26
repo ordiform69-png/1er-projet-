@@ -76,3 +76,63 @@ d’origine (±0,6 s). Le test de précision vérifie aussi les pas de 1 s, de 1
   l’aimantation ont été testés en fournissant les repères au même format.
 - Pas de navigation garantie à l’image décodée exacte pour les fichiers à cadence variable.
 - Suite complète du projet, conformément au périmètre demandé.
+
+## Retouches après intégration du lecteur
+
+### Où
+
+Branche `gpt/timeline-retouches`, créée sur `grok/lecteur` au commit `be6fe19`.
+
+| Commit publié | Retouche |
+|---|---|
+| `61a547e` | Boutons agrandis et zoom nommé |
+| `4a4098c` | Zones bleues opaques sur toute la piste |
+| `fe02f83` | Bornes du passage choisi et retrait groupé |
+| `9ca1f9a` | Libellés entre guillemets sur une ligne dans « Comment faire ? » |
+
+### Fait
+
+- « Zoom − », « Zoom + », « Tout le film » et les commandes de retrait mesurent
+  38 points logiques de haut.
+- Le bleu opaque couvre la hauteur de la piste. La bordure indique le passage choisi.
+  « Neige ? » ou « Écran vide ? » apparaît quand le passage est assez large. Une zone
+  de trois pixels reste cliquable sur une longue cassette.
+- « Enlever 0:00 – 0:03 » indique directement la plage choisie. Le passage bleu le
+  plus proche du curseur est proposé. Cliquez sur une autre zone bleue pour la choisir.
+  « Tout enlever » apparaît dès qu’au moins deux passages sont proposés. La commande
+  refuse la demande si elle laisserait moins d’un passage gardé ou plus de huit coupes.
+  « Annuler la dernière coupe » remet le dernier passage retiré.
+- Dans « Comment faire ? », les noms des commandes restent entiers avec leurs guillemets.
+  Le moteur de restauration et le lecteur conservent leur code. Aucune dépendance
+  ajoutée au projet, aucune fusion et aucune pull request.
+
+### Vérifié
+
+Linux, Python 3.12.14, PySide6 6.12.0 et FFmpeg 7.1.5, avec
+`QT_QPA_PLATFORM=offscreen`.
+
+| Groupe | Fichiers | Réussis | Code |
+|---|---|---:|---:|
+| 1 | `test_timeline.py`, `test_barre_montage.py`, `test_coupe_un_clic.py`, `test_passages_gui.py` | 28 | 0 |
+| 2 | `test_guide_coupes.py`, `test_vides_montage.py`, `test_lecteur.py` | 13 | 0 |
+| 3 | `test_ecran_unique.py`, `test_ecrans.py`, `test_assistant.py` | 32 | 0 |
+
+**73 tests réussis, aucun échec ni saut.**
+
+Les mesures sur un film simulé de 3 h, avec une coupe et deux propositions, couvrent
+20 configurations. À 1280 × 641, les deux thèmes et les tailles de texte 100, 125 et
+150 % gardent les commandes de retrait, la barre et le bouton de restauration dans la
+fenêtre. L’assistant tient sans défilement vertical à 100 et 125 % avec ces propositions.
+À 1024 × 689 et 1093 × 535, le contrôle après adaptation confirme les dimensions
+de la fenêtre et l’absence de défilement horizontal. Sur le plus petit écran, le premier
+redimensionnement depuis une fenêtre haute peut s’arrêter à 560 points avant une seconde
+demande de taille. Le même comportement est présent à `be6fe19`.
+
+Le guide sous la barre peut rogner une ligne à 150 % dans une configuration dense.
+La comparaison avec `be6fe19` montre le même rognage. « Comment faire ? » ouvre la
+version complète.
+
+### Non testé
+
+- Windows et lecture d’une cassette réelle sur l’écran de l’utilisateur.
+- Suite complète, réservée à la vérification avant fusion.
