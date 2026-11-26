@@ -569,6 +569,10 @@ class TempsSpin(QDoubleSpinBox):
         super().wheelEvent(event)
 
     def textFromValue(self, value: float) -> str:  # noqa: N802
+        if self.decimals() and value % 1:
+            h, reste = divmod(value, 3600)
+            minutes, secondes = divmod(reste, 60)
+            return f"{int(h):02d}:{int(minutes):02d}:{secondes:06.3f}".replace(".", ",")
         return _duree(value)
 
     def valueFromText(self, text: str) -> float:  # noqa: N802
@@ -807,10 +811,14 @@ class _Ruban(QWidget):
     borde_fini = Signal()
     valider = Signal()
     largeur_changee = Signal(int)
+    zoom_change = Signal(bool, bool)
 
     def __init__(self) -> None:
         super().__init__()
         self.duree = 0.0
+        self.fps = 0.0
+        self._amplitude = 0.0
+        self._origine = 0.0
         self.position = 0.0
         self.debut = 0.0
         self.fin = 0.0
@@ -830,7 +838,8 @@ class _Ruban(QWidget):
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName("Barre du film")
         self.setAccessibleDescription(
-            "Faites glisser pour vous placer. Tirez les bords dorés pour ajuster un passage enlevé.")
+            "Flèches : une seconde. Maj et flèches : dix secondes. "
+            "Ctrl et flèches : une image. Tirez les bords dorés pour ajuster un passage enlevé.")
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(400, 64 if self._compacte else 88)
@@ -860,7 +869,32 @@ class _Ruban(QWidget):
         self.debut = float(debut or 0)
         self.fin = float(fin or 0)
         self.coupes = list(coupes)
+        if self._amplitude:
+            a, b = self._fenetre()
+            if not a <= self.position <= b:
+                self._centrer()
         self.update()
+
+    def _fenetre(self) -> tuple[float, float]:
+        if not self._amplitude:
+            return 0.0, self.duree
+        return self._origine, self._origine + self._amplitude
+
+    def _centrer(self) -> None:
+        self._origine = max(0.0, min(self.duree - self._amplitude, self.position - self._amplitude / 2))
+
+    def _minimum_zoom(self) -> float:
+        return min(self.duree, max(2.0, 12 / self.fps if self.fps > 0 else 2.0))
+
+    def zoomer(self, sens: int = 0) -> None:
+        """Change la plage visible autour de la tête de lecture."""
+        amplitude = self._amplitude or self.duree
+        cible = max(self._minimum_zoom(), min(self.duree, amplitude / 2**sens)) if sens else self.duree
+        self._amplitude = cible if cible < self.duree else 0.0
+        self._centrer()
+        self.zoom_change.emit(cible > self._minimum_zoom(), bool(self._amplitude))
+        self.update()
+
 
     def _zone(self):
         bas = 22 if self.height() >= 80 else 10
@@ -870,14 +904,16 @@ class _Ruban(QWidget):
         r = self._zone()
         if self.duree <= 0 or r.width() <= 0:
             return float(r.left())
-        borne = max(0.0, min(self.duree, float(t)))
-        return float(r.left()) + (borne / self.duree) * float(r.width())
+        debut, fin = self._fenetre()
+        return r.left() + (float(t) - debut) / (fin - debut) * r.width()
 
     def _temps(self, x: float) -> float:
         r = self._zone()
         if self.duree <= 0 or r.width() <= 0:
             return 0.0
-        return max(0.0, min(self.duree, (float(x) - float(r.left())) / float(r.width()) * self.duree))
+        debut, fin = self._fenetre()
+        fraction = max(0.0, min(1.0, (x - r.left()) / r.width()))
+        return debut + fraction * (fin - debut)
 
     PRISE_BORD = 22.0      # px de chaque côté du bord : une prise de 44 px en tout
     SEUIL_GLISSER = 4.0    # px : en dessous, c'est un clic (le curseur se place), pas un glisser
@@ -890,6 +926,8 @@ class _Ruban(QWidget):
         ecart = self.PRISE_BORD + 1.0
         for i, (a, b) in enumerate(self.coupes):
             for est_fin, moment in ((False, a), (True, b)):
+                if not self._fenetre()[0] <= moment <= self._fenetre()[1]:
+                    continue
                 d = abs(float(x) - self._x_de(moment))
                 if d <= self.PRISE_BORD and d < ecart:
                     choisi = (i, est_fin)
@@ -948,10 +986,15 @@ class _Ruban(QWidget):
         if self.duree <= 0:
             super().keyPressEvent(event)
             return
-        if event.key() == Qt.Key_Left:
-            self.clique.emit(max(0.0, self.position - 1.0))
-        elif event.key() == Qt.Key_Right:
-            self.clique.emit(min(self.duree, self.position + 1.0))
+        if event.key() in (Qt.Key_Left, Qt.Key_Right):
+            sens = -1 if event.key() == Qt.Key_Left else 1
+            if event.modifiers() & Qt.ControlModifier and self.fps > 0:
+                cible = (round(self.position * self.fps) + sens) / self.fps
+            else:
+                pas = 10.0 if event.modifiers() & Qt.ShiftModifier else 1.0
+                cible = self.position + sens * pas
+            self.clique.emit(max(0.0, min(self.duree, cible)))
+            event.accept()
         elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
             event.accept()
             self.valider.emit()
@@ -966,9 +1009,12 @@ class _Ruban(QWidget):
         p.save()
         p.setClipRect(r.adjusted(2, 2, -2, -2))
         slot = r.width() / n
-        for i, pix in enumerate(self._vignettes):
+        for i in range(n):
             x = int(r.left() + i * slot)
             suivant = int(r.left() + (i + 1) * slot)
+            instant = self._temps((x + suivant) / 2)
+            index = min(n - 1, int(instant / self.duree * n)) if self.duree else i
+            pix = self._vignettes[index]
             dest = QRect(x, r.top() + 3, max(1, suivant - x), max(1, r.height() - 6))
             if pix.isNull():
                 p.fillRect(dest, QColor("#5c6570"))
@@ -992,6 +1038,8 @@ class _Ruban(QWidget):
             return
 
         fin = self.fin if self.fin > 0 else self.duree
+        p.save()
+        p.setClipRect(self.rect().adjusted(0, 0, 0, -1))
         p.setPen(Qt.NoPen)
         a_images = any(not pix.isNull() for pix in self._vignettes)
         bleu = QColor(theme.ACCENT)
@@ -1020,12 +1068,15 @@ class _Ruban(QWidget):
             for moment in (a, b):
                 cx = self._x_de(moment)
                 p.drawRoundedRect(int(round(cx - cote / 2)), int(round(milieu - cote / 2)), cote, cote, 2, 2)
-        if self.height() >= 80:
+        p.restore()
+        if self.height() >= 80 or self._amplitude:
+            debut, fin_visible = self._fenetre()
+            haut = self.height() - (18 if self.height() >= 80 else 10)
+            bas = QRect(4, haut, max(0, self.width() - 8), self.height() - haut)
             p.setPen(QColor(theme.TEXTE_DOUX))
-            bas = QRect(4, self.height() - 18, max(0, self.width() - 8), 16)
-            p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, _duree(0))
-            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree(self.duree / 2))
-            p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(self.duree))
+            p.drawText(bas, Qt.AlignLeft | Qt.AlignVCenter, _duree(debut))
+            p.drawText(bas, Qt.AlignHCenter | Qt.AlignVCenter, _duree((debut + fin_visible) / 2))
+            p.drawText(bas, Qt.AlignRight | Qt.AlignVCenter, _duree(fin_visible))
         p.end()
 
 
@@ -1265,7 +1316,9 @@ class MainWindow(QMainWindow):
             "Annuler la dernière coupe", "Annuler la dernière coupe")
         self.s_passage_annuler.clicked.connect(self._passage_annuler)
         self.s_trim_start = TempsSpin()
+        self.s_trim_start.setDecimals(3)
         self.s_trim_end = TempsSpin()
+        self.s_trim_end.setDecimals(3)
         self.s_trim_start.setSpecialValueText("dès le début")
         self.s_trim_end.setSpecialValueText("à la fin")
         self.s_trim_start.setAccessibleName("Le film commence à")
@@ -1615,6 +1668,7 @@ class MainWindow(QMainWindow):
 
         # Aperçu
         self.start_spin = TempsSpin()
+        self.start_spin.setDecimals(3)
         self.start_spin.setRange(0, 0)
         self.start_spin.setAccessibleName("Début de l'extrait à regarder")
         self.start_spin.setToolTip("Moment du film montré dans l'aperçu de 10 secondes.")
@@ -2888,6 +2942,7 @@ class MainWindow(QMainWindow):
         self._refresh_hints()
         self.status.setText(f"Vidéo analysée : {info.path.name}. "
                             "Étape suivante : « Voir l'avant / après ».")
+        self.barre.zoomer()
         self._lancer_images()
 
     def _question_vitesse(self, demande):
@@ -3027,6 +3082,7 @@ class MainWindow(QMainWindow):
                 barre.definir(0, 0, 0, 0, [])
             return
         for barre in barres:
+            barre.fps = float(self.info.fps or 0)
             barre.definir(self.info.duration, self.start_spin.value(),
                           self.trim_start.value(), self.trim_end.value(), self._coupes)
         if hasattr(self, "_attente_moment"):

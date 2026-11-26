@@ -355,6 +355,20 @@ def installer(w):
     c.addWidget(w.bornes_coupe)
     w.barre._compacte = True
     c.addWidget(w.barre)
+    eloigner, rapprocher, tout_le_film = (QPushButton(texte) for texte in ("−", "+", "Tout le film"))
+    for bouton, sens, nom in ((eloigner, -1, "Voir une plus grande partie du film"),
+                               (rapprocher, 1, "Zoomer autour du moment choisi"),
+                               (tout_le_film, 0, "Voir tout le film")):
+        bouton.setAccessibleName(nom)
+        bouton.setToolTip(nom)
+        bouton.clicked.connect(lambda _coche=False, sens=sens: w.barre.zoomer(sens))
+    w.barre.zoom_change.connect(lambda possible, _agrandie: rapprocher.setEnabled(possible))
+    w.barre.zoom_change.connect(lambda _zoom, agrandie: eloigner.setEnabled(agrandie))
+    w.barre.zoom_change.connect(lambda _zoom, agrandie: tout_le_film.setEnabled(agrandie))
+    w.barre.zoomer()
+    zoom = ligne(QLabel("Zoom"), eloigner, rapprocher, tout_le_film)
+    zoom.addStretch(1)
+    c.addLayout(zoom)
     liste = QGridLayout()                        # passages enlevés, « Remettre » : sous la barre,
     liste.setHorizontalSpacing(12)               # deux par ligne (8 au plus)
     liste.setVerticalSpacing(2)
