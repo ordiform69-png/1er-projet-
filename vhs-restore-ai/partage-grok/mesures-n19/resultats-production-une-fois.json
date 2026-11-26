@@ -1,0 +1,245 @@
+{
+  "mode": "une-fois",
+  "etiquette": "production",
+  "production": true,
+  "duree_demandee_s": 1500.0,
+  "date": "2026-11-26 20:18:42 Europe/Paris (UTC+1)",
+  "sha": "213ace1f6c40677ec55f928b13d796f3d1f0f4c7",
+  "branche": "grok/reprise",
+  "materiel": {
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "coeurs": 8,
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 12968.7,
+    "os": "Linux 6.12.113+",
+    "python": "3.13.5",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ressources": {
+      "quand": "2026-11-26 20:18:43 Europe/Paris (UTC+1)",
+      "ram_totale_mio": 16002.4,
+      "ram_dispo_mio": 12961.0,
+      "ram_libre_mio": 7580.4,
+      "swap_totale_mio": 0.0,
+      "swap_libre_mio": 0.0,
+      "disques": [
+        {
+          "chemin": "/",
+          "total_gio": 127.45,
+          "utilise_gio": 10.91,
+          "libre_gio": 116.53
+        },
+        {
+          "chemin": "/tmp",
+          "total_gio": 127.45,
+          "utilise_gio": 10.91,
+          "libre_gio": 116.53
+        },
+        {
+          "chemin": "/workspace",
+          "total_gio": 124.93,
+          "utilise_gio": 33.35,
+          "libre_gio": 85.17
+        }
+      ]
+    }
+  },
+  "methode": "voir METHODE.md — constantes de production, film 25 min",
+  "ressources_debut": {
+    "quand": "2026-11-26 20:18:43 Europe/Paris (UTC+1)",
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 12961.0,
+    "ram_libre_mio": 7580.4,
+    "swap_totale_mio": 0.0,
+    "swap_libre_mio": 0.0,
+    "disques": [
+      {
+        "chemin": "/",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/tmp",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/workspace",
+        "total_gio": 124.93,
+        "utilise_gio": 33.35,
+        "libre_gio": 85.17
+      },
+      {
+        "chemin": "/tmp/mesures-n19/films-1500s",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/tmp/mesures-n19/work-1500s/une-fois",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      }
+    ]
+  },
+  "films": {
+    "ffv1_422": {
+      "film": "/tmp/mesures-n19/films-1500s/film-1500s-ffv1-422.mkv",
+      "cle": "ffv1_422",
+      "mode": "une-fois",
+      "duree_s": 1500.0,
+      "pix_fmt": "yuv422p",
+      "scan": "tff",
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv422p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 7.084314604002429,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 427.42637370399825,
+          "s_par_minute": 17.09705494815993,
+          "sortie_octets": 754911183,
+          "ressources": {
+            "nb_echantillons": 86,
+            "ram_dispo_min_mio": 12501.0,
+            "ram_dispo_debut_mio": 12949.7,
+            "ram_dispo_fin_mio": 12543.1,
+            "disque_libre_min_gio": {
+              "/": 115.83,
+              "/tmp": 115.83,
+              "/workspace": 85.17,
+              "/tmp/mesures-n19/films-1500s": 115.83,
+              "/tmp/mesures-n19/work-1500s/une-fois": 115.83
+            },
+            "debut": "2026-11-26 20:18:50 Europe/Paris (UTC+1)",
+            "fin": "2026-11-26 20:25:55 Europe/Paris (UTC+1)"
+          }
+        },
+        {
+          "run": 2,
+          "wall_s": 435.3852565699999,
+          "s_par_minute": 17.415410262799995,
+          "sortie_octets": 754911183,
+          "ressources": {
+            "nb_echantillons": 88,
+            "ram_dispo_min_mio": 12330.5,
+            "ram_dispo_debut_mio": 12731.1,
+            "ram_dispo_fin_mio": 12895.3,
+            "disque_libre_min_gio": {
+              "/": 115.82,
+              "/tmp": 115.82,
+              "/workspace": 85.17,
+              "/tmp/mesures-n19/films-1500s": 115.82,
+              "/tmp/mesures-n19/work-1500s/une-fois": 115.82
+            },
+            "debut": "2026-11-26 20:25:57 Europe/Paris (UTC+1)",
+            "fin": "2026-11-26 20:33:12 Europe/Paris (UTC+1)"
+          }
+        }
+      ],
+      "mediane_wall_s": 431.4058151369991,
+      "mediane_s_par_minute": 17.256232605479962,
+      "seuil_production_s": 1200.0,
+      "seuil_force_une_fois_s": 1501.0
+    },
+    "mpeg2_420": {
+      "film": "/tmp/mesures-n19/films-1500s/film-1500s-mpeg2-420.mkv",
+      "cle": "mpeg2_420",
+      "mode": "une-fois",
+      "duree_s": 1500.0,
+      "pix_fmt": "yuv420p",
+      "scan": "tff",
+      "chaine": "bwdif=mode=send_field:parity=tff:deint=all,removegrain=m0=1:m1=1:m2=1,format=yuv420p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,format=yuv420p",
+      "analyze_s": 3.0238726130010036,
+      "runs": [
+        {
+          "run": 1,
+          "wall_s": 375.73971571499715,
+          "s_par_minute": 15.029588628599885,
+          "sortie_octets": 714083910,
+          "ressources": {
+            "nb_echantillons": 76,
+            "ram_dispo_min_mio": 12749.4,
+            "ram_dispo_debut_mio": 12940.8,
+            "ram_dispo_fin_mio": 12959.3,
+            "disque_libre_min_gio": {
+              "/": 115.86,
+              "/tmp": 115.86,
+              "/workspace": 85.17,
+              "/tmp/mesures-n19/films-1500s": 115.86,
+              "/tmp/mesures-n19/work-1500s/une-fois": 115.86
+            },
+            "debut": "2026-11-26 20:33:16 Europe/Paris (UTC+1)",
+            "fin": "2026-11-26 20:39:31 Europe/Paris (UTC+1)"
+          }
+        },
+        {
+          "run": 2,
+          "wall_s": 373.21397123800125,
+          "s_par_minute": 14.92855884952005,
+          "sortie_octets": 714083910,
+          "ressources": {
+            "nb_echantillons": 75,
+            "ram_dispo_min_mio": 12795.9,
+            "ram_dispo_debut_mio": 13140.9,
+            "ram_dispo_fin_mio": 12982.8,
+            "disque_libre_min_gio": {
+              "/": 115.87,
+              "/tmp": 115.87,
+              "/workspace": 85.17,
+              "/tmp/mesures-n19/films-1500s": 115.87,
+              "/tmp/mesures-n19/work-1500s/une-fois": 115.87
+            },
+            "debut": "2026-11-26 20:39:32 Europe/Paris (UTC+1)",
+            "fin": "2026-11-26 20:45:42 Europe/Paris (UTC+1)"
+          }
+        }
+      ],
+      "mediane_wall_s": 374.4768434764992,
+      "mediane_s_par_minute": 14.979073739059968,
+      "seuil_production_s": 1200.0,
+      "seuil_force_une_fois_s": 1501.0
+    }
+  },
+  "ressources_fin": {
+    "quand": "2026-11-26 20:45:45 Europe/Paris (UTC+1)",
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 13160.7,
+    "ram_libre_mio": 7214.3,
+    "swap_totale_mio": 0.0,
+    "swap_libre_mio": 0.0,
+    "disques": [
+      {
+        "chemin": "/",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/tmp",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/workspace",
+        "total_gio": 124.93,
+        "utilise_gio": 33.35,
+        "libre_gio": 85.17
+      },
+      {
+        "chemin": "/tmp/mesures-n19/films-1500s",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      },
+      {
+        "chemin": "/tmp/mesures-n19/work-1500s/une-fois",
+        "total_gio": 127.45,
+        "utilise_gio": 10.91,
+        "libre_gio": 116.53
+      }
+    ]
+  }
+}
