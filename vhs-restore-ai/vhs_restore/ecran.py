@@ -381,23 +381,27 @@ def installer(w):
     w.bornes_coupe.setLayout(bornes)
     bornes.setContentsMargins(0, 0, 0, 0)
     c.addWidget(w.bornes_coupe)
-    eloigner, rapprocher, tout_le_film = (QPushButton(texte) for texte in ("−", "+", "Tout le film"))
+    eloigner, rapprocher, tout_le_film = (
+        QPushButton(texte) for texte in ("Zoom −", "Zoom +", "Tout le film")
+    )
     for bouton, sens, nom in ((eloigner, -1, "Voir une plus grande partie du film"),
                                (rapprocher, 1, "Zoomer autour du moment choisi"),
                                (tout_le_film, 0, "Voir tout le film")):
-        bouton.setAccessibleName(nom)
+        bouton.setMinimumHeight(38)
         bouton.setToolTip(nom)
         bouton.clicked.connect(lambda _coche=False, sens=sens: w.barre.zoomer(sens))
     w.barre.zoom_change.connect(lambda possible, _agrandie: rapprocher.setEnabled(possible))
     w.barre.zoom_change.connect(lambda _zoom, agrandie: eloigner.setEnabled(agrandie))
     w.barre.zoom_change.connect(lambda _zoom, agrandie: tout_le_film.setEnabled(agrandie))
     w.barre.zoomer()
-    zoom = ligne(QLabel("Zoom"), eloigner, rapprocher, tout_le_film)
+    zoom = ligne(eloigner, rapprocher, tout_le_film)
     zoom.addStretch(1)
     w.chercher_neige_libre = QPushButton("Chercher la neige…")
+    w.chercher_neige_libre.setMinimumHeight(38)
     w.chercher_neige_libre.clicked.connect(lambda: w.assistant._chercher_vides())
     zoom.addWidget(w.chercher_neige_libre)
     enlever = QPushButton("Enlever")
+    enlever.setMinimumHeight(38)
     enlever.clicked.connect(w._enlever_passage_vide)
 
     def afficher_passage_vide():
