@@ -271,8 +271,8 @@ def installer(w):
     w.barre._compacte = True
     iv.addWidget(w.barre)
     w.lire_film = QPushButton("Lire le film")
-    w.lire_film.setObjectName("action")
-    w.lire_film.setMinimumHeight(40)
+    w.lire_film.setObjectName("secondaire")
+    w.lire_film.setMinimumHeight(64)
     w.lire_film.clicked.connect(w._lire_film)
     w.heure_lecture = QLabel("00:00 / 00:00")
     w.heure_lecture.setAccessibleName("Temps écoulé et durée")

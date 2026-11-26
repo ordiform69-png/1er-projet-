@@ -91,6 +91,7 @@ def test_film_et_comparaison_sur_la_meme_barre(tools, cassette):
         attendre(app, lambda: w.info is not None and not w._busy())
         assert w.findChildren(BarreFilm) == [w.barre]
         assert w.barre.isVisible() and w.barre.y() > w.moniteur.mapToParent(QPoint()).y()
+        assert w.lire_film.objectName() == "secondaire"
         w.start_spin.setValue(1)
         w.lire_film.click()
         attendre(app, lambda: w.lecteur.actif and w.barre.position > 1.2)
@@ -102,6 +103,7 @@ def test_film_et_comparaison_sur_la_meme_barre(tools, cassette):
             w.set_taille_texte(pct, annoncer=False)
             app.processEvents()
             assert w.size().toTuple() == (1280, 641)
+            assert w.lire_film.height() == 64
             for widget in (w.lecteur.video, w.barre, w.lire_film, w.heure_lecture, w.run_btn):
                 assert widget.isVisibleTo(w)
                 assert w.rect().contains(QRect(widget.mapTo(w, QPoint()), widget.size()))
