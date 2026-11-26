@@ -55,3 +55,47 @@ secondes de calcul par minute de film.
 |---|---|
 | `resultats-une-fois.json` / `.txt` / `.csv` | Mesure en une fois, les deux formats |
 | `resultats-parties.json` / `.txt` / `.csv` | Mesure par parties (après R1) |
+| `resultats-production-une-fois.json` / `.txt` / `.csv` | 25 min, constantes de production, une fois |
+| `resultats-production-parties.json` / `.txt` / `.csv` | 25 min, constantes de production, par parties |
+
+## Mesure de production (25 min, parties de 10 min)
+
+Demandée avant fusion (agent R3, relance a/b/c). Un film de 3 min est sous
+le seuil de production (20 min) et ne peut pas mesurer le surcoût réel des
+raccords de 10 minutes. On fabrique donc un film de **25 minutes**
+(1500 s) : 10 + 10 + 5 min. Justification : 21 min donnerait un reste
+d'1 min (toujours > chauffe de 8 s, donc une 3ᵉ partie à part), trop
+court pour représenter un reliquat typique ; 25 min laisse un reliquat
+de 5 min, au-dessus du seuil (20 min), sans rallonger démesurément
+l'horloge. Hors dépôt, mêmes recettes lavfi, 720×576 TFF, son PCM,
+FFV1 4:2:2 et MPEG-2 4:2:0.
+
+```bash
+python3 vhs-restore-ai/partage-grok/mesures-n19/mesurer.py \
+  --fabriquer --duree 1500 --films-dir /tmp/mesures-n19/films-1500s
+python3 vhs-restore-ai/partage-grok/mesures-n19/mesurer.py \
+  --mode une-fois --duree 1500 --production --etiquette production --runs 2 \
+  --films-dir /tmp/mesures-n19/films-1500s --workdir /tmp/mesures-n19/work-1500s
+python3 vhs-restore-ai/partage-grok/mesures-n19/mesurer.py \
+  --mode parties --duree 1500 --production --etiquette production --runs 2 \
+  --films-dir /tmp/mesures-n19/films-1500s --workdir /tmp/mesures-n19/work-1500s
+```
+
+`--production` ne force pas `DUREE_PARTIE` / `SEUIL` / `CHAUFFE` : on
+prend les constantes du moteur (600 / 1200 / 8). Le film de 1500 s est
+au-dessus du seuil, donc `pipeline.export` découpe tout seul. Après un
+export réussi, le dossier de parties est effacé (`reprise.supprimer`) :
+chaque passage repart de zéro.
+
+Nombre de passages : idéalement 2 ou 3. Un seul passage par mode est
+admis si 3 dépasse le raisonnable (un export de 25 min dure plusieurs
+minutes) ; le rapport le dit alors. Médiane : `statistics.median`
+(moyenne des deux valeurs centrales s'il y a un nombre pair de passages).
+
+Surveillance : un fil échantillonne toutes les 5 s `MemAvailable` et
+l'espace libre de `/`, `/tmp`, `/workspace` et des dossiers de travail.
+Les minima sont écrits dans le JSON/TXT.
+
+Les anciens fichiers `resultats-une-fois.*` et `resultats-parties.*`
+(film de 3 min, parties forcées à 60 s) restent la série officielle
+courte ; ils ne sont pas écrasés.
