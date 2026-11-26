@@ -1,0 +1,11 @@
+juge,mode,fils,ms_mediane,ms_min,ms_max,repetitions,taille_mo,processeur,coeurs,onnxruntime,numpy,systeme,charge_moyenne
+clipiqa+,tuiles,defaut(8),313.1,243.8,580.3,10,153.2,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+clipiqa+,redim,defaut(8),246.9,225.8,292.1,10,153.2,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+musiq,tuiles,defaut(8),396.8,366.2,596.3,10,109.7,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+musiq,redim,defaut(8),196.0,152.7,213.7,10,109.7,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+liqe,natif,defaut(8),767.1,608.6,894.8,10,353.9,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+clipiqa+,tuiles,1,583.1,379.7,735.7,10,153.2,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+clipiqa+,redim,1,214.4,176.0,319.5,10,153.2,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+musiq,tuiles,1,199.2,184.0,400.9,10,109.7,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+musiq,redim,1,137.5,115.9,191.3,10,109.7,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0
+liqe,natif,1,875.1,753.0,1084.8,10,353.9,Intel(R) Xeon(R) Processor,8,1.32.0,2.5.5,Linux-6.12.113+-x86_64-with-glibc2.41,11.1 14.9 13.0

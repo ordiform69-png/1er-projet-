@@ -137,7 +137,7 @@ def resumer(detail, temps):
     for d in detail:
         groupes.setdefault((d["identifiant"], d["niveau"]), []).append(d)
     lignes = []
-    candidats = [(k, None) for k in CLES] + [(None, f) for f in ("equilibre+n030", "fidele+n0", "maximum+n045")]
+    candidats = [(k, None) for k in CLES] + [(None, f"{d}+{n}") for d in DEBRUITAGE for n in NETTETE]
     for k, fixe in candidats:
         st = {}
         add = lambda n, v: st.setdefault(n, []).append(v)  # noqa: E731
@@ -164,11 +164,17 @@ def resumer(detail, temps):
             add("bon_de", c == int(np.argmin(de))); add("bon_consensus", c == cons)
             add("top3_consensus", c in set(np.argsort(rang, kind="stable")[:3].tolist()))
             add("perte_psnr", ps.max() - ps[c]); add("perte_ssim", ss.max() - ss[c]); add("perte_de", de[c] - de.min())
+            if k:
+                add("meilleur_consensus=" + gr[cons]["reglage"], True)
+                add("choix=" + gr[c]["reglage"], True)
         juge = k.split("/")[0] if k else ""
         ligne = {"juge": k or f"temoin_fixe:{fixe}", "n_cas": len(groupes)}
-        for n, v in st.items():
+        for n, v in sorted(st.items(), key=lambda kv: "=" in kv[0]):
+            if "=" in n:   # nombre de cas (sur n_cas) où ce réglage est le meilleur / le choix du juge
+                ligne[n] = len(v)
+                continue
             ligne[n] = round(100 * float(np.mean(v)), 1) if isinstance(v[0], (bool, np.bool_)) else round(float(np.nanmean(v)), 4)
-        if k:
+        if k and temps:
             ligne["ms_par_image_mediane"] = round(1000 * statistics.median(temps[k]), 1)
             ligne["taille_mo"] = round(J.taille_juge(None, juge) / 1e6, 1)
             ligne["coeurs"] = banc.coeurs()
@@ -212,9 +218,27 @@ def main(argv=None):
     ap.add_argument("--extraits", type=Path, help="vrais extraits (vidéos ou images) sans origine connue")
     ap.add_argument("--seulement-extraits", action="store_true")
     ap.add_argument("--rapide", action="store_true")
+    ap.add_argument("--resumer-seulement", action="store_true",
+                    help="refaire resultats-juge-resume.csv depuis resultats-juge-detail.csv (sans les temps)")
     ap.add_argument("--fils", type=int, default=None, help="fils onnxruntime (défaut : tous les cœurs)")
     ap.add_argument("--sortie", type=Path, default=ICI, help="dossier des CSV")
     a = ap.parse_args(argv)
+    if a.resumer_seulement:
+        detail = list(csv.DictReader(open(a.sortie / "resultats-juge-detail.csv", encoding="utf-8")))
+        for d in detail:
+            for c in ("psnr", "ssim", "delta_e", "nettete", *CLES):
+                d[c] = float(d[c])
+            d["grille"] = int(d["grille"])
+        ancien = {l["juge"]: l for l in csv.DictReader(open(a.sortie / "resultats-juge-resume.csv", encoding="utf-8"))}
+        resume = resumer(detail, None)
+        for l in resume:  # les temps mesurés lors du passage complet sont repris tels quels
+            for c in ("ms_par_image_mediane", "taille_mo", "coeurs"):
+                if l["juge"] in ancien and ancien[l["juge"]].get(c):
+                    l[c] = ancien[l["juge"]][c]
+        if "ffmpeg_reglage" in ancien:
+            resume.append({k: v for k, v in ancien["ffmpeg_reglage"].items() if v})
+        ecrire(a.sortie / "resultats-juge-resume.csv", resume)
+        return
     J.telecharger(a.poids)
     print(verifier_profils())
     base = banc.chaine_naturelle()

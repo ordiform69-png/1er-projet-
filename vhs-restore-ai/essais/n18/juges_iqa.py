@@ -7,7 +7,7 @@ Rien de ce fichier n'entre dans le logiciel ni dans le paquet.
 
 Utilisation :
     python essais/n18/juges_iqa.py --telecharger            # poids -> ~/vhs-n18-juge/poids (SHA-256 vérifié)
-    python essais/n18/juges_iqa.py --chrono [--fils 8]      # temps par image 720x576 -> CSV
+    python essais/n18/juges_iqa.py --chrono                 # temps par image 720x576 -> resultats-juge-chrono.csv
     python essais/n18/juges_iqa.py --noter image.png ...    # notes de chaque juge
 """
 from __future__ import annotations
@@ -202,7 +202,9 @@ def info_machine() -> dict:
     except OSError:
         pass
     return {"processeur": cpu, "coeurs": os.cpu_count(), "onnxruntime": ort.__version__,
-            "numpy": np.__version__, "systeme": platform.platform()}
+            "numpy": np.__version__, "systeme": platform.platform(),
+            # machine partagée : la charge au moment de la mesure est notée (1, 5, 15 min)
+            "charge_moyenne": " ".join(f"{x:.1f}" for x in os.getloadavg())}
 
 
 def chrono(poids: Path, sortie: Path, fils_liste=(None, 1), repetitions=10) -> list[dict]:
@@ -247,8 +249,9 @@ def main(argv=None):
     if a.telecharger or a.chrono or a.noter:
         telecharger(poids)
     if a.chrono:
-        chrono(poids, a.dossier / "resultats" / "juges_chrono.csv", repetitions=a.repetitions)
-        print("->", a.dossier / "resultats" / "juges_chrono.csv")
+        dest = Path(__file__).resolve().parent / "resultats-juge-chrono.csv"
+        chrono(poids, dest, repetitions=a.repetitions)
+        print("->", dest)
     if a.noter:
         juges = Juges(poids)
         for p in a.noter:
