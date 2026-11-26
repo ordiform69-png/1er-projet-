@@ -136,3 +136,52 @@ version complète.
 
 - Windows et lecture d’une cassette réelle sur l’écran de l’utilisateur.
 - Suite complète, réservée à la vérification avant fusion.
+
+## Deuxième tour des retouches
+
+### Où
+
+Les trois retouches de la demande `8a998a3` sont sur `gpt/timeline-retouches`,
+au-dessus de `4c48695`.
+
+| Commit publié | Retouche |
+|---|---|
+| `3c6c6ea` | Guide de coupe sous les boutons, à la hauteur de son texte |
+| `a4c998e` | « Lire le film » traité comme une commande secondaire |
+| `0a36890` | Retour à la ligne de la légende sur l’image |
+
+### Fait
+
+- Le guide occupe toute la largeur sous « Couper ici » et « Annuler la dernière coupe ».
+  Les noms des commandes restent entiers avec leurs guillemets. « Comment faire ? » est
+  sur la ligne de « Vérifier la coupe ».
+- « Lire le film », « Pause » et « Reprendre » ont le fond et la bordure des boutons
+  secondaires dans les deux thèmes. Le bouton garde sa hauteur de 64 points logiques.
+- « Image du film à 7 secondes » revient à la ligne si le cadre est étroit. Le lecteur
+  d’écran reçoit le libellé complet.
+- Aucune dépendance ajoutée, aucune fusion et aucune pull request.
+
+### Vérifié
+
+Sur Linux, Python 3.12.14, PySide6 6.12.0, FFmpeg 7.1.5, avec `QT_QPA_PLATFORM=offscreen`.
+
+Les mesures et captures locales à 1280 × 641 couvrent les thèmes clair et sombre à
+100, 125 et 150 %, avec deux zones bleues et jusqu’à huit coupes. La fenêtre garde
+ses dimensions et le texte occupe toute la hauteur mesurée. L’étape de l’assistant
+tient sans défilement à 100 et 125 % avec zéro ou une coupe. À huit coupes, le
+défilement se fait à l’intérieur du volet « Couper le film », comme sur `4c48695`.
+À 150 %, le guide sans coupe dispose de 75 points pour 75 points de texte. Avec une
+coupe, il dispose de 50 points pour 50 points de texte. Le contrôle de rendu en cadre
+étroit vérifie que la légende est dessinée sur deux lignes à l’intérieur du cadre.
+
+| Groupe | Fichiers | Réussis | Code |
+|---|---|---:|---:|
+| 1 | `test_timeline.py`, `test_barre_montage.py`, `test_coupe_un_clic.py`, `test_passages_gui.py` | 29 | 0 |
+| 2 | `test_guide_coupes.py`, `test_vides_montage.py`, `test_lecteur.py` | 13 | 0 |
+| 3 | `test_ecran_unique.py`, `test_ecrans.py`, `test_assistant.py` | 32 | 0 |
+
+**74 tests ciblés réussis, aucun échec ni saut.**
+
+### Non testé
+
+- Écran Windows réel et suite complète avant fusion.
