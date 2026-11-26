@@ -18,7 +18,11 @@ Dépôt : https://github.com/ordiform69-png/1er-projet-
 | Rapport initial n°19 | `93e06b9e3ca45c2d5b8c53cb26f47d582d265035` | bloqués : écart son/image 54 ms, sonder DVD |
 | Correctif R1 `grok/reprise-moteur` | `0bc34a769aaa02a972fbae4a813d298095af9678` | tête annoncée (`0bc34a7`), confirmée |
 | Fusion du correctif dans `grok/reprise` | `c9a670f234d4d4a722daa6f19f00bdc4a6dfc129` | `merge --no-ff`, aucun conflit |
-| Mesures après correctif | `7306116d11e8aeafd599fb2b055e4a51c729853a` | « une fois » et « par parties », même SHA moteur `c9a670f` |
+| Mesures après 1er correctif | `7306116d11e8aeafd599fb2b055e4a51c729853a` | « une fois » et « par parties », SHA moteur `c9a670f` |
+| Rapport après 1er correctif | `3c78101adb0dd532c74ddb59a2b2e325a2dcabe7` | bloqués encore présents (54→40 ms, sonder DVD) |
+| 2e correctif R1 `grok/reprise-moteur` | `3dc94d2a3401d7a0e31d717fd063b17af43fc8ae` | tête annoncée (`3dc94d2`), confirmée |
+| Fusion du 2e correctif | `6a4c60ba9d2bfca0940b09b207fdaaa18a3b36c8` | `merge --no-ff`, aucun conflit |
+| Mesures après 2e correctif | `e59bad7735ca147e25d7c8dbbea032bc1a19e7f5` | série stable, même SHA moteur `6a4c60b` |
 | **Tête de `grok/reprise` (ce rapport)** | voir le commit de ce fichier | |
 
 Rien n'a été fusionné dans `ccr-5856e8d6-8xt8uh`. Pas de PR, pas de force-push. `estimation.py` : diff vide contre `3aa2c3d` (calcul intact). Aucune nouvelle dépendance. Pas de vidéo, capture ni zip ajoutés au dépôt.
@@ -43,7 +47,9 @@ Copie de travail : `/workspace/ctrl-vhs/reprise`.
 
 6. **Mesures** sur la tête intégrée (`a8a3dd6`, même moteur que `92813ab`), mêmes films 3 min 720×576 TFF avec son, hors dépôt (`/tmp/mesures-n19/films`). « Une fois » refaite, puis « par parties » (constantes forcées : parties 60 s, seuil 1 s, chauffe 8 s, parce qu'un film de 3 min est sous le seuil de production de 20 min). 3 passages, médiane. Bruts dans `partage-grok/mesures-n19/`.
 
-7. **Correctif R1 (`0bc34a7`)**, annoncé comme ne touchant que `_export`, `_concat_sans_recompression` et `_export_parties` dans `pipeline.py`, `estimation.py` intact. Tête distante confirmée. Le diff `93c27a1..0bc34a7` ne touche que `pipeline.py` et laisse `estimation.py` intact. Écart de périmètre : ajout d'un helper **`_assembler_parties`** (image copiée, son réencodé une seule fois en AAC) que `_export_parties` appelle à la place de `_concat_sans_recompression` ; ce dernier gagne un paramètre `sans_audio`. Fusion `--no-ff` `c9a670f`, aucun conflit, poussée tout de suite. Tests cités relancés (aucun test relâché). Mesures « une fois » et « par parties » refaites sur le SHA du merge. Les 4 bloqués **ne sont pas levés** (voir ci-dessous).
+7. **Correctif R1 (`0bc34a7`)**, annoncé comme ne touchant que `_export`, `_concat_sans_recompression` et `_export_parties` dans `pipeline.py`, `estimation.py` intact. Tête distante confirmée. Le diff `93c27a1..0bc34a7` ne touche que `pipeline.py` et laisse `estimation.py` intact. Écart de périmètre : ajout d'un helper **`_assembler_parties`** (image copiée, son réencodé une seule fois en AAC) que `_export_parties` appelle à la place de `_concat_sans_recompression` ; ce dernier gagne un paramètre `sans_audio`. Fusion `--no-ff` `c9a670f`, aucun conflit, poussée tout de suite. Tests cités relancés (aucun test relâché). Mesures « une fois » et « par parties » refaites sur le SHA du merge. Les 4 bloqués **n'étaient pas levés** à ce stade.
+
+8. **2e correctif R1 (`3dc94d2`)**, sur `0bc34a7`. Cause annoncée : avec `-frames:v`, FFmpeg 7.1 n'écrit pas la durée de la dernière image d'une partie. Le correctif ajoute `-fps_mode cfr` et `-r` (cadence exacte) juste avant `-frames:v` lorsque `_partie` ou une chauffe est en jeu. Tête distante confirmée : `3dc94d2a3401d7a0e31d717fd063b17af43fc8ae`. Le diff `0bc34a7..3dc94d2` ne touche que `pipeline.py` (`_export`, +6/−1 ligne). `reprise.py` et `tests/test_reprise.py` sont **inchangés** (le périmètre annoncé était plus large) : aucune assertion n'a donc été relâchée. `estimation.py` intact. Fusion `--no-ff` `6a4c60b`, aucun conflit, poussée tout de suite. Tests cités relancés sur FFmpeg **7.1.5-0+deb13u1** : les 4 bloqués **sont levés**. Mesures refaites sur le SHA du merge (une première série trop dispersée a été écartée).
 
 ## Mesures
 
@@ -78,14 +84,41 @@ Comparaison au SHA `a8a3dd6` (avant correctif, même recettes) :
 
 Le surcoût FFV1 se rapproche du MPEG-2 et de l'ordre de grandeur de la chauffe (+8,9 % de source). Il reste au-dessus de « quelques pourcents ». L'écart exact entre sessions doit être lu avec prudence : le chemin « une fois » n'est pas censé changer avec ce correctif, et les durées absolues bougent un peu d'une session à l'autre.
 
+### Après 2e correctif R1 (`6a4c60b`, 26 nov. 2026)
+
+Même machine, **FFmpeg 7.1.5-0+deb13u1**, mêmes films. SHA `6a4c60ba9d2bfca0940b09b207fdaaa18a3b36c8`.
+
+Une première série à 17:57–18:03 Europe/Paris (UTC+1) a été **écartée** : machine encore chargée (~5,3 Gio RAM disponibles), « par parties » FFV1 71,515 / 63,140 / 60,536 s (tendance à la baisse), « une fois » plus lent et plus dispersé que d'habitude. La série retenue ci-dessous a été relancée à 18:09 (« une fois ») et 18:15 (« par parties »), ~7,5 Gio disponibles.
+
+| Film | Une fois (médiane, série stable) | Par parties (médiane) | Écart |
+|---|---|---|---|
+| FFV1 4:2:2 | 53,978 s (17,99 s/min) — 53,378 / 56,435 / 53,978 | 57,264 s (19,09 s/min) — 61,205 / 56,935 / 57,264 | **+3,286 s (+6,1 %)** |
+| MPEG-2 4:2:0 | 44,502 s (14,83 s/min) — 47,517 / 44,502 / 44,452 | 49,705 s (16,57 s/min) — 50,543 / 49,697 / 49,705 | **+5,203 s (+11,7 %)** |
+
+Surcoût des parties au fil des SHA (médianes des séries retenues) :
+
+| Film | Avant tout correctif (`a8a3dd6`) | Après 1er correctif (`c9a670f`) | Après 2e correctif (`6a4c60b`) |
+|---|---|---|---|
+| FFV1 4:2:2 | +32,6 % | +14,7 % | **+6,1 %** |
+| MPEG-2 4:2:0 | +13,2 % | +11,2 % | **+11,7 %** |
+
+Le surcoût FFV1 rejoint l'ordre de grandeur de la chauffe (+8,9 % de source), un peu en dessous. Le MPEG-2 reste autour de +12 %. Les deux sont encore un peu au-dessus — ou du même ordre — de « quelques pourcents », sans le décalage extrême du FFV1 avant correctif.
+
 ## Vérifié
 
-Fichiers cités, un à un, le 26 nov. 2026 de 16:29 à 16:34 Europe/Paris (UTC+1), SHA `a8a3dd6` (avant correctif), puis relance le 26 nov. de 17:14 à 17:19 Europe/Paris (UTC+1), SHA `c9a670f` (après correctif), FFmpeg 7.1.5. Même décompte à chaque fois :
+Fichiers cités, un à un, `timeout 900`, `QT_QPA_PLATFORM=offscreen`, **FFmpeg 7.1.5-0+deb13u1** (`ffmpeg -version`).
+
+- 26 nov. 2026, 16:29–16:34 Europe/Paris (UTC+1), SHA `a8a3dd6` (avant correctif) : 4 échecs dans `test_reprise.py`.
+- 17:14–17:19, SHA `c9a670f` (1er correctif) : mêmes 4 échecs.
+- 17:52–17:57, SHA `6a4c60b` (2e correctif) : **tous les fichiers cités passent**.
+
+Résultat après le 2e correctif :
+
 
 
 | Fichier | Résultat |
 |---|---|
-| `tests/test_reprise.py` | 12 passés, **4 échoués** (voir Bloqué) |
+| `tests/test_reprise.py` | **16 passés** (les 4 anciens échecs sont levés) |
 | `tests/test_pipeline.py` | 18 passés |
 | `tests/test_scenes.py` | 13 passés |
 | `tests/test_passages_gui.py` | 4 passés |
@@ -96,7 +129,7 @@ Fichiers cités, un à un, le 26 nov. 2026 de 16:29 à 16:34 Europe/Paris (UTC+1
 
 Dans `test_reprise.py`, les cas de la demande qui passent : découpage et chauffe, `possible` / `applicable`, film court / IA / stab / bande / cadence sans dossier, réglages changés (ancien dossier effacé), scènes identiques de part et d'autre du raccord à 20 s (écart d'image < 2/255 contre la restauration en une fois), messages d'ouverture / progression / arrêt (textes exacts, vouvoiement, mot « partie »). Les tests de commande FFmpeg, de ménage à 30 jours et de place disque passent aussi.
 
-Les trois tests d'export 80 s qui échouent (même résultat, partie abîmée, interruption) vont au bout de l'export : 2000 images, reprise des seules parties restantes, partie abîmée refaite, dossier ménagé. Ils butent ensuite sur l'assertion « durée du son = durée de l'image à 20 ms près ». Après le correctif, l'écart est passé de 54 ms à 40 ms, toujours au-dessus du seuil. Le test DVD échoue toujours. Aucun test n'a été relâché.
+Les trois tests d'export 80 s et le test DVD, qui échouaient encore après `0bc34a7`, **passent** après `3dc94d2`. Aucun test n'a été relâché (le 2e correctif n'a pas modifié `tests/test_reprise.py`). Les cas de la demande déjà verts le restent : découpage et chauffe, `possible` / `applicable`, film court / IA / stab / bande / cadence sans dossier, réglages changés, scènes de part et d'autre du raccord, messages d'écran, commande FFmpeg, ménage, place disque.
 
 ## Non testé
 
@@ -106,9 +139,12 @@ Les trois tests d'export 80 s qui échouent (même résultat, partie abîmée, i
 
 ## Bloqué
 
-Les quatre échecs **ne sont pas levés** après le correctif `0bc34a7`. Reproduits hors pytest sur le SHA `c9a670f`. Ce n'est pas un conflit d'intégration : les assertions sont celles de R1. Le moteur n'a pas été retouché par R3. Les tests n'ont pas été relâchés.
+**Aucun point bloqué restant** après le 2e correctif `3dc94d2` (SHA intégré `6a4c60b`), sur FFmpeg 7.1.5-0+deb13u1. Les quatre échecs de `test_reprise.py` passent. Rien n'a été relâché.
 
-### 1. Durée du son et de l'image à 20 ms près (3 tests) — partiellement amélioré, non levé
+Rappel de l'état *avant* ce 2e correctif (conservé pour l'historique) : les échecs n'étaient pas levés après `0bc34a7` / `c9a670f`. Ce n'était pas un conflit d'intégration. Le moteur n'avait pas été retouché par R3.
+
+
+### 1. Durée du son et de l'image à 20 ms près (3 tests) — levé par `3dc94d2`
 
 `test_meme_resultat_que_d_une_fois`, `test_reprise_partie_abimee_et_menage`, `test_interruption_puis_reprise`.
 
@@ -124,11 +160,11 @@ Diagnostic après correctif, même film de 80 s, 25 im/s (identique à avant pou
 - **partie 1** (pas de chauffe) : 20,000 s, 500 images, `sonder` vrai ;
 - **parties 2, 3 et 4** (chauffe de 3 s) : image **19,960 s / 499 images**, son 19,946 s. `sonder(..., duree=20, fps=25)` reste vrai (tolérance 41 ms, écart 40 ms).
 
-Le correctif (ordre `setpts` puis `trim`, marge de lecture élargie, `_assembler_parties` qui recoupe le son sur la durée de l'image) **n'a pas rétabli la 500ᵉ image** des parties avec chauffe, sur cette box FFmpeg 7.1.5. L'assemblage du son est un peu plus juste (54 → 40 ms) mais l'assertion à 20 ms échoue encore. À retravailler du côté R1.
+Le 1er correctif (ordre `setpts` puis `trim`, marge de lecture élargie, `_assembler_parties`) **n'avait pas rétabli** la durée de la dernière image des parties avec chauffe, sur cette box FFmpeg 7.1.5. L'assemblage du son était un peu plus juste (54 → 40 ms) mais l'assertion à 20 ms échouait encore. Le 2e correctif (`-fps_mode cfr -r` avant `-frames:v`) lève ce point : les 3 tests passent.
 
-### 2. DVD en plusieurs VOB (`test_dvd_en_plusieurs_morceaux`) — non levé
+### 2. DVD en plusieurs VOB (`test_dvd_en_plusieurs_morceaux`) — levé par `3dc94d2`
 
-Inchangé : `open_media` annonce **40,032 s**. La 2ᵉ partie est attendue à **20,032 s**. Après `_export`, ffprobe lit **19,960 s** (500 images). `sonder` refuse : |19,960 − 20,032| = 72 ms > 41 ms, d'où `ToolError: Une partie restaurée est incomplète. Relancez pour la refaire.`
+Avant `3dc94d2` : `open_media` annonçait **40,032 s**. La 2ᵉ partie était attendue à **20,032 s**. Après `_export`, ffprobe lisait **19,960 s** (durée de la dernière image manquante). `sonder` refusait : |19,960 − 20,032| = 72 ms > 41 ms, d'où `ToolError: Une partie restaurée est incomplète.` Ce test passe après l'ajout de `-fps_mode cfr` et `-r` avant `-frames:v`.
 
 ## Interprétations et ambiguïtés (déjà relevées, confirmées)
 
