@@ -1,0 +1,429 @@
+{
+  "phase": "apres",
+  "date": "2026-11-26 04:29:04 Europe/Paris (UTC+1)",
+  "sha": "1d073eb77d7654643e1adb5403003101c2af36a3",
+  "branche": "grok/qualite",
+  "demande": "n°17",
+  "materiel": {
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "coeurs": 8,
+    "ram_totale_mio": 16002.4,
+    "ram_dispo_mio": 8304.8,
+    "os": "Linux 6.12.113+",
+    "python": "3.13.5",
+    "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "hostname": "grok-bot-vm-440922229"
+  },
+  "methode": "voir METHODE.md à côté de ce fichier",
+  "analyse_film": {
+    "duree_s": 32.0,
+    "largeur": 720,
+    "hauteur": 576,
+    "level_low": 41.0,
+    "level_high": 209.0,
+    "cast_rgb": [
+      80.559326171875,
+      79.004150390625,
+      62.685546875
+    ],
+    "conseils": [
+      {
+        "key": "cast",
+        "fix": {
+          "gain_r": 0.9196080867712617,
+          "gain_g": 0.937710328460048,
+          "gain_b": 1.1818195980682349
+        }
+      }
+    ]
+  },
+  "chaine_unique_nu": "format=yuv444p10le,sendcmd=c='0.000 colorlevels rimin 0.0000, colorlevels gimin 0.0000, colorlevels bimin 0.0000, colorlevels rimax 1.0000, colorlevels gimax 1.0000, colorlevels bimax 1.0000, colorchannelmixer rr 0.9156, colorchannelmixer gg 0.9429, colorchannelmixer bb 1.1800;8.000 colorlevels rimin 0.0000, colorlevels gimin 0.0000, colorlevels bimin 0.0000, colorlevels rimax 1.0000, colorlevels gimax 1.0000, colorlevels bimax 1.0000, colorchannelmixer rr 1.0000, colorchannelmixer gg 1.0000, colorchannelmixer bb 1.0000;24.000 colorlevels rimin 0.1663, colorlevels gimin 0.1663, colorlevels bimin 0.1663, colorlevels rimax 0.9788, colorlevels gimax 0.9788, colorlevels bimax 0.9788, colorchannelmixer rr 1.0920, colorchannelmixer gg 0.9716, colorchannelmixer bb 0.9478;',format=gbrp16le,colorchannelmixer=rr=0.9156:gg=0.9429:bb=1.1800,colorlevels=rimin=0.0000:gimin=0.0000:bimin=0.0000:rimax=1.0000:gimax=1.0000:bimax=1.0000,format=yuv444p10le,setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p",
+  "scenes": [
+    {
+      "id": "1",
+      "nom": "sombre et orangée",
+      "debut": 0.0,
+      "duree": 8.0,
+      "milieu_s": 4.0,
+      "recette": "testsrc2=size=720x576:rate=25,setsar=16/15,colorchannelmixer=rr=1.20:gg=0.92:bb=0.55,colorlevels=romin=0.16:gomin=0.16:bomin=0.16:romax=0.48:gomax=0.48:bomax=0.48",
+      "analyse_isolee": {
+        "duree_s": 8.0,
+        "largeur": 720,
+        "hauteur": 576,
+        "level_low": 56.0,
+        "level_high": 109.0,
+        "cast_rgb": [
+          80.559326171875,
+          79.004150390625,
+          62.685546875
+        ],
+        "conseils": [
+          {
+            "key": "levels",
+            "fix": {
+              "level_black": 0.2196078431372549,
+              "level_white": 0.42745098039215684
+            }
+          },
+          {
+            "key": "cast",
+            "fix": {
+              "gain_r": 0.9196080867712617,
+              "gain_g": 0.937710328460048,
+              "gain_b": 1.1818195980682349
+            }
+          }
+        ]
+      },
+      "chaine_oracle": "format=yuv444p10le,format=gbrp16le,colorchannelmixer=rr=0.9196:gg=0.9377:bb=1.1800,format=yuv444p10le,setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p",
+      "source": {
+        "ylow": 56.0,
+        "yhigh": 109.0,
+        "yavg": 82.7138,
+        "uavg": 120.388,
+        "vavg": 129.96,
+        "satavg": 30.3406,
+        "r": 80.587158203125,
+        "g": 78.94775390625,
+        "b": 62.6534423828125,
+        "span_rgb": 17.9337158203125,
+        "ecart_chroma": 9.572000000000003,
+        "ouverture": 53.0,
+        "debut_mesure_s": 4.0
+      },
+      "oracle": {
+        "ylow": 45.0,
+        "yhigh": 102.0,
+        "yavg": 74.0028,
+        "uavg": 127.727,
+        "vavg": 128.053,
+        "satavg": 32.611,
+        "r": 74.0682373046875,
+        "g": 74.6290283203125,
+        "b": 73.7835693359375,
+        "span_rgb": 0.845458984375,
+        "ecart_chroma": 0.3259999999999934,
+        "ouverture": 57.0,
+        "debut_mesure_s": 4.0
+      },
+      "unique": {
+        "ylow": 45.0,
+        "yhigh": 102.0,
+        "yavg": 74.0742,
+        "uavg": 127.767,
+        "vavg": 127.524,
+        "satavg": 32.7042,
+        "r": 73.3978271484375,
+        "g": 75.0496826171875,
+        "b": 73.8656005859375,
+        "span_rgb": 1.65185546875,
+        "ecart_chroma": 0.7090000000000032,
+        "ouverture": 57.0,
+        "debut_mesure_s": 4.0
+      }
+    },
+    {
+      "id": "2",
+      "nom": "normale",
+      "debut": 8.0,
+      "duree": 16.0,
+      "milieu_s": 16.0,
+      "recette": "testsrc2=size=720x576:rate=25,setsar=16/15",
+      "analyse_isolee": {
+        "duree_s": 16.0,
+        "largeur": 720,
+        "hauteur": 576,
+        "level_low": 41.0,
+        "level_high": 210.0,
+        "cast_rgb": [
+          123.1531982421875,
+          129.7830810546875,
+          125.5970458984375
+        ],
+        "conseils": []
+      },
+      "chaine_oracle": "format=yuv420p10le,setsar=16/15,format=yuv420p",
+      "source": {
+        "ylow": 41.0,
+        "yhigh": 209.0,
+        "yavg": 125.732,
+        "uavg": 126.807,
+        "vavg": 125.23,
+        "satavg": 112.675,
+        "r": 123.368896484375,
+        "g": 130.49658203125,
+        "b": 125.1322021484375,
+        "span_rgb": 7.127685546875,
+        "ecart_chroma": 3.962999999999994,
+        "ouverture": 168.0,
+        "debut_mesure_s": 16.0
+      },
+      "oracle": {
+        "ylow": 41.0,
+        "yhigh": 210.0,
+        "yavg": 126.087,
+        "uavg": 126.783,
+        "vavg": 125.192,
+        "satavg": 113.205,
+        "r": 123.23974609375,
+        "g": 129.771240234375,
+        "b": 125.2911376953125,
+        "span_rgb": 6.531494140625,
+        "ecart_chroma": 4.025000000000006,
+        "ouverture": 169.0,
+        "debut_mesure_s": 8.0
+      },
+      "unique": {
+        "ylow": 29.0,
+        "yhigh": 224.0,
+        "yavg": 127.637,
+        "uavg": 126.643,
+        "vavg": 124.573,
+        "satavg": 127.983,
+        "r": 123.7021484375,
+        "g": 130.5084228515625,
+        "b": 125.9432373046875,
+        "span_rgb": 6.8062744140625,
+        "ecart_chroma": 4.784000000000006,
+        "ouverture": 195.0,
+        "debut_mesure_s": 16.0
+      }
+    },
+    {
+      "id": "3",
+      "nom": "claire et bleutée",
+      "debut": 24.0,
+      "duree": 8.0,
+      "milieu_s": 28.0,
+      "recette": "testsrc2=size=720x576:rate=25,setsar=16/15,colorchannelmixer=rr=0.55:gg=0.92:bb=1.20,colorlevels=romin=0.52:gomin=0.52:bomin=0.52:romax=0.90:gomax=0.90:bomax=0.90",
+      "analyse_isolee": {
+        "duree_s": 8.0,
+        "largeur": 720,
+        "hauteur": 576,
+        "level_low": 140.0,
+        "level_high": 189.0,
+        "cast_rgb": [
+          158.719970703125,
+          178.6943359375,
+          181.2750244140625
+        ],
+        "conseils": [
+          {
+            "key": "levels",
+            "fix": {
+              "level_black": 0.5490196078431373,
+              "level_white": 0.7411764705882353
+            }
+          },
+          {
+            "key": "cast",
+            "fix": {
+              "gain_r": 1.0893175125913233,
+              "gain_g": 0.9675541352657533,
+              "gain_b": 0.9537797291367145
+            }
+          }
+        ]
+      },
+      "chaine_oracle": "format=yuv444p10le,format=gbrp16le,colorchannelmixer=rr=1.0893:gg=0.9676:bb=0.9538,colorlevels=rimin=0.1663:gimin=0.1663:bimin=0.1663:rimax=0.9788:gimax=0.9788:bimax=0.9788,format=yuv444p10le,setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p",
+      "source": {
+        "ylow": 140.0,
+        "yhigh": 189.0,
+        "yavg": 164.68,
+        "uavg": 132.174,
+        "vavg": 118.951,
+        "satavg": 36.8822,
+        "r": 158.7418212890625,
+        "g": 178.62646484375,
+        "b": 181.21484375,
+        "span_rgb": 22.4730224609375,
+        "ecart_chroma": 13.223000000000013,
+        "ouverture": 49.0,
+        "debut_mesure_s": 28.0
+      },
+      "oracle": {
+        "ylow": 125.0,
+        "yhigh": 195.0,
+        "yavg": 160.43,
+        "uavg": 127.987,
+        "vavg": 127.811,
+        "satavg": 49.1512,
+        "r": 160.0438232421875,
+        "g": 161.2593994140625,
+        "b": 160.6903076171875,
+        "span_rgb": 1.215576171875,
+        "ecart_chroma": 0.20199999999999818,
+        "ouverture": 70.0,
+        "debut_mesure_s": 4.0
+      },
+      "unique": {
+        "ylow": 125.0,
+        "yhigh": 196.0,
+        "yavg": 160.71,
+        "uavg": 126.953,
+        "vavg": 127.928,
+        "satavg": 49.2959,
+        "r": 160.588623046875,
+        "g": 161.63916015625,
+        "b": 159.131103515625,
+        "span_rgb": 2.508056640625,
+        "ecart_chroma": 1.1189999999999998,
+        "ouverture": 71.0,
+        "debut_mesure_s": 28.0
+      }
+    }
+  ],
+  "degrades": {
+    "source_16bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 720,
+      "saut_max": 46,
+      "saut_moyen": 45.75243393602225,
+      "saut_moyen_non_nul": 45.75243393602225,
+      "n_sauts_non_nuls": 719,
+      "ymin": 12336,
+      "ymax": 45232,
+      "unite": "0-65535"
+    },
+    "source_divisee_8bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 129,
+      "saut_max": 1,
+      "saut_moyen": 0.1780250347705146,
+      "saut_moyen_non_nul": 1.0,
+      "n_sauts_non_nuls": 128,
+      "ymin": 48,
+      "ymax": 176,
+      "unite": "0-255"
+    },
+    "apres_filtres_avant_x264": {
+      "n_pixels": 720,
+      "niveaux_distincts": 125,
+      "saut_max": 1,
+      "saut_moyen": 0.3226703755215577,
+      "saut_moyen_non_nul": 1.0,
+      "n_sauts_non_nuls": 232,
+      "ymin": 67,
+      "ymax": 191,
+      "unite": "0-255",
+      "chaine": "format=yuv420p10le,lutyuv=y='(exp(log((((1*(val/1023-0.5)+0.5)+abs((1*(val/1023-0.5)+0.5)))/2+0.000000001))*0.83333333)*256-0.5)/255*1023',setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p"
+    },
+    "fichier_livre_mp4": {
+      "n_pixels": 720,
+      "niveaux_distincts": 125,
+      "saut_max": 1,
+      "saut_moyen": 0.2726008344923505,
+      "saut_moyen_non_nul": 1.0,
+      "n_sauts_non_nuls": 196,
+      "ymin": 67,
+      "ymax": 191,
+      "unite": "0-255",
+      "chaine": "format=yuv420p10le,lutyuv=y='(exp(log((((1*(val/1023-0.5)+0.5)+abs((1*(val/1023-0.5)+0.5)))/2+0.000000001))*0.83333333)*256-0.5)/255*1023',setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p"
+    },
+    "analyse_rampe": {
+      "duree_s": 4.0,
+      "largeur": 720,
+      "hauteur": 576,
+      "level_low": 17478.0,
+      "level_high": 40107.0,
+      "cast_rgb": [
+        112.40625,
+        112.40625,
+        112.40625
+      ],
+      "conseils": []
+    },
+    "lumiere_cran": 2,
+    "gamma": 1.2
+  },
+  "degrades_B": {
+    "recette": "agent-B",
+    "description": "yuv420p10le, 1 image 720×576, Y 180–700, U=V=512, niveaux forcés 0,2/0,75, lumière +2",
+    "reference_8bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 117,
+      "saut_max": 5,
+      "saut_moyen": 0.3518776077885953,
+      "saut_moyen_non_nul": 1.58125,
+      "n_sauts_non_nuls": 160,
+      "ymin": 28,
+      "ymax": 213,
+      "unite": "0-255",
+      "moyenne_ligne": 125.18194444444444,
+      "chaine": "format=yuv420p,colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,eq=contrast=1:saturation=1:gamma=1.2,format=yuv420p"
+    },
+    "chaine_moteur_sur_10bits": {
+      "n_pixels": 720,
+      "niveaux_distincts": 159,
+      "saut_max": 2,
+      "saut_moyen": 0.3588317107093185,
+      "saut_moyen_non_nul": 1.1517857142857142,
+      "n_sauts_non_nuls": 224,
+      "ymin": 30,
+      "ymax": 214,
+      "unite": "0-255",
+      "moyenne_ligne": 126.33888888888889,
+      "chaine": "format=yuv420p10le,format=gbrp16le,colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,format=yuv420p10le,lutyuv=y='(exp(log((((1*(val/1023-0.5)+0.5)+abs((1*(val/1023-0.5)+0.5)))/2+0.000000001))*0.83333333)*256-0.5)/255*1023',setsar=16/15,format=yuv420p"
+    },
+    "fichier_livre_mp4": {
+      "n_pixels": 720,
+      "niveaux_distincts": 156,
+      "saut_max": 3,
+      "saut_moyen": 0.2545201668984701,
+      "saut_moyen_non_nul": 1.1806451612903226,
+      "n_sauts_non_nuls": 155,
+      "ymin": 30,
+      "ymax": 213,
+      "unite": "0-255",
+      "moyenne_ligne": 126.37083333333334,
+      "chaine": "format=yuv420p10le,format=gbrp16le,colorlevels=rimin=0.0812:gimin=0.0812:bimin=0.0812:rimax=0.8938:gimax=0.8938:bimax=0.8938,format=yuv420p10le,lutyuv=y='(exp(log((((1*(val/1023-0.5)+0.5)+abs((1*(val/1023-0.5)+0.5)))/2+0.000000001))*0.83333333)*256-0.5)/255*1023',setsar=16/15,format=yuv420p"
+    },
+    "pix_fmt_source": "yuv420p10le",
+    "color_range": "tv",
+    "level_black": 0.2,
+    "level_white": 0.75,
+    "lumiere_cran": 2
+  },
+  "temps": {
+    "duree_extrait_s": 32.0,
+    "profil": "equilibre",
+    "scan": "progressive",
+    "preset": "medium",
+    "crf": 18,
+    "resolution": "source",
+    "conseils": [
+      {
+        "key": "cast",
+        "fix": {
+          "gain_r": 0.9196080867712617,
+          "gain_g": 0.937710328460048,
+          "gain_b": 1.1818195980682349
+        }
+      }
+    ],
+    "chaine": "sendcmd=c='0.000 colorlevels rimin 0.0000, colorlevels gimin 0.0000, colorlevels bimin 0.0000, colorlevels rimax 1.0000, colorlevels gimax 1.0000, colorlevels bimax 1.0000, colorchannelmixer rr 0.9156, colorchannelmixer gg 0.9429, colorchannelmixer bb 1.1800;8.000 colorlevels rimin 0.0000, colorlevels gimin 0.0000, colorlevels bimin 0.0000, colorlevels rimax 1.0000, colorlevels gimax 1.0000, colorlevels bimax 1.0000, colorchannelmixer rr 1.0000, colorchannelmixer gg 1.0000, colorchannelmixer bb 1.0000;24.000 colorlevels rimin 0.1663, colorlevels gimin 0.1663, colorlevels bimin 0.1663, colorlevels rimax 0.9788, colorlevels gimax 0.9788, colorlevels bimax 0.9788, colorchannelmixer rr 1.0920, colorchannelmixer gg 0.9716, colorchannelmixer bb 0.9478;',colorchannelmixer=rr=0.9156:gg=0.9429:bb=1.1800,colorlevels=rimin=0.0000:gimin=0.0000:bimin=0.0000:rimax=1.0000:gimax=1.0000:bimax=1.0000,removegrain=m0=1:m1=1:m2=1,format=yuv444p10le,hqdn3d=3:5:4.5:7,lutyuv=y='val*(4259/4096)+(-6.5)*(1023/255)':u='val*(4423/4096)+(-11.5)*(1023/255)':v='val*(4423/4096)+(-11.5)*(1023/255)',cas=strength=0.3,setsar=16/15,scale=iw:ih:out_color_matrix=bt601:out_range=pc,format=yuv420p",
+    "runs": [
+      {
+        "wall_s": 29.041601005999837,
+        "duree_extrait_s": 32.0,
+        "s_par_minute": 54.453001886249695,
+        "facteur": 0.9075500314374949
+      },
+      {
+        "wall_s": 28.60226943899761,
+        "duree_extrait_s": 32.0,
+        "s_par_minute": 53.62925519812052,
+        "facteur": 0.8938209199686753
+      },
+      {
+        "wall_s": 26.238938357000734,
+        "duree_extrait_s": 32.0,
+        "s_par_minute": 49.198009419376376,
+        "facteur": 0.8199668236562729
+      }
+    ],
+    "mediane_wall_s": 28.60226943899761,
+    "mediane_s_par_minute": 53.62925519812052
+  },
+  "export_unique_nu_s": 8.581553343999985
+}

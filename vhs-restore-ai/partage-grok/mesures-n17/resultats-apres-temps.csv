@@ -1,0 +1,5 @@
+phase,run,wall_s,duree_extrait_s,s_par_minute,facteur
+apres,1,29.041601,32,54.453002,0.90755
+apres,2,28.602269,32,53.629255,0.893821
+apres,3,26.238938,32,49.198009,0.819967
+apres,mediane,28.602269,32,53.629255,0.893821

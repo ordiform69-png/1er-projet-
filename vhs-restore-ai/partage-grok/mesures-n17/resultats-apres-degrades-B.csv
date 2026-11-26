@@ -1,0 +1,4 @@
+phase,recette,mesure,n_pixels,niveaux_distincts,saut_max,saut_moyen,saut_moyen_non_nul,n_sauts_non_nuls,ymin,ymax,unite,moyenne_ligne
+apres,agent-B,reference_8bits,720,117,5,0.351878,1.58125,160,28,213,0-255,125.181944
+apres,agent-B,chaine_moteur_sur_10bits,720,159,2,0.358832,1.151786,224,30,214,0-255,126.338889
+apres,agent-B,fichier_livre_mp4,720,156,3,0.25452,1.180645,155,30,213,0-255,126.370833
