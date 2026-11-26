@@ -67,3 +67,22 @@ Comme la demande n°17 : chaque commit poussé tout de suite ; seulement les fic
 cités plus `test_assistant.py` et `test_lumiere.py` ; aucun test affaibli ; ni fusion dans
 `ccr-5856e8d6-8xt8uh`, ni pull request. Rapport : partie « Corrections » de
 `RAPPORT-N17-POUR-CLAUDE.md` sur `grok/qualite`.
+
+## Deuxième tour (après `3968865`)
+
+La coupure à 40 s n'est trouvée que sur le film exact du test. Mesuré par Claude avec
+`scenes.analyser` sur `grok/qualite` (`3aa2c3d`), mêmes trois scènes de 20 s :
+
+| Variante | Débuts de scène trouvés | Attendu |
+|---|---|---|
+| Film du test (bruit, entrelacé) | 0, 20, 40 | 0, 20, 40 |
+| Sans entrelacement | 0, 20 | 0, 20, 40 |
+| Sans bruit | 0, 20 | 0, 20, 40 |
+| Écran noir de 3 s avant, écran bleu de 3 s après | 0, 3, 23, 63 | 0, 3, 23, 43, 63 |
+
+(Recettes : celle du test, en retirant `interlace`, en retirant `noise=alls=10:allf=t`, ou en
+ajoutant `color=c=black:...:d=3` avant et `color=c=0x1030c8:...:d=3` après dans le `concat`.)
+
+La règle a été ajustée à un film, pas rendue sûre. Corriger pour que les quatre variantes donnent
+les coupures attendues, et les mettre toutes les quatre dans `tests/test_scenes.py`. Vérifier
+toujours qu'un plan unique dont la lumière varie doucement reste une seule scène.
