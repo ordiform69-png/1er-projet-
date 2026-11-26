@@ -1,0 +1,36 @@
+# Étude n°17 (Agent D) : vitesse de QTGMC sur le Windows de fabrication.
+# Workflow séparé : il ne modifie pas vhs-restore-windows.yml, ne lance pas
+# PyInstaller et ne publie aucun paquet. Rien n'est livré au client.
+name: Étude QTGMC (n°17)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - grok/qualite-qtgmc
+    paths:
+      - ".github/workflows/vhs-restore-qtgmc-etude.yml"
+      - ".github/workflows/essai-qtgmc-n17.ps1"
+
+permissions:
+  contents: read
+
+jobs:
+  etude-qtgmc:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: FFmpeg 9.1 du logiciel (bwdif), sans toucher au paquet
+        working-directory: vhs-restore-ai
+        shell: pwsh
+        run: python -m vhs_restore.installer "$env:RUNNER_TEMP\vhs-tools" ffmpeg
+
+      - name: Essai QTGMC contre bwdif en 720×576
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./.github/workflows/essai-qtgmc-n17.ps1
