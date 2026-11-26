@@ -59,6 +59,7 @@ from .tools import partiel_unique, reserver_sorties
 from .tools import (_NO_WINDOW, QTGMC_SCRIPT, Cancelled, FichierOccupe, ToolError, Toolset, effacer,
                     finaliser, run, run_capture, verifier_chemin,
                     terminate)
+from . import reprise
 from .dvd import input_args as _entree_dvd
 from .dvd import lecture_dvd, is_menu, open_media, titles_in
 from .upscaler import RealEsrganUpscaler
@@ -1067,6 +1068,31 @@ def unique_output_path(info: MediaInfo, s: Settings, out_dir: Path) -> Path:
     return cand
 
 
+def _duree_gardee(info: MediaInfo, start: float | None, duration: float | None,
+                  passages: list[tuple[float, float]] | None) -> float:
+    if passages is not None and len(passages) >= 2:
+        return sum(max(0.0, float(b) - float(a)) for a, b in passages)
+    if duration is not None:
+        return max(0.0, float(duration))
+    if info.duration:
+        return max(0.0, float(info.duration) - float(start or 0.0))
+    return 0.0
+
+
+def _tenter_reprise(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
+                    cancel: threading.Event | None, progress: Progress | None,
+                    start: float | None, duration: float | None,
+                    passages: list[tuple[float, float]] | None) -> Path | None:
+    """Parties de 10 minutes, ou None pour le chemin d'aujourd'hui."""
+    duree = _duree_gardee(info, start, duration, passages)
+    if not reprise.possible(s, duree, cadence=retime(info, s) is not None, bande=_tape_job(s)):
+        return None
+    gardes = reprise.intervalles(info, start, duration, passages)
+    if len(reprise.decouper(gardes)) < 2:
+        return None
+    return _export_parties(info, s, out_path, tools, cancel, progress, gardes)
+
+
 @lecture_dvd
 def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
@@ -1085,13 +1111,18 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
            morceau: bool = False,
-           passages: list[tuple[float, float]] | None = None) -> Path:
+           passages: list[tuple[float, float]] | None = None,
+           chauffe: float = 0.0, _partie: bool = False) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
 
     passages : deux intervalles [début, fin] ou plus, en secondes absolues, à garder.
     Chaque morceau gardé est restauré seul (les trous ne sont pas traités), puis les
     morceaux sont assemblés sans recompression. Moins de deux intervalles (ou None) :
     ignoré, le début et la fin seuls restent comme avant.
+
+    chauffe : secondes de source lues avant `start`, traitées puis retirées
+    (image et son). Le temps des scènes reste celui de la source. `_partie` empêche
+    une partie déjà découpée de se redécouper.
     """
     tools.require_ffmpeg()
     verifier_chemin(Path(info.path), origine=True)
@@ -1103,8 +1134,20 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 "de tournage (re-cadencement de la pellicule), ou bien n'enlevez que le début et la fin.")
         # taille estimée de ce qui est gardé, pas du film entier
         check_fat32(info, s, Path(out_path).parent, None, sum(max(0.0, b - a) for a, b in passages))
+        if not _partie and not morceau:
+            repris = _tenter_reprise(info, s, out_path, tools, cancel=cancel, progress=progress,
+                                     start=start, duration=duration, passages=passages)
+            if repris is not None:
+                return repris
+            reprise.retirer_source(info)
         return _export_morceaux(info, s, out_path, tools, cancel, progress, passages)
     check_fat32(info, s, Path(out_path).parent, start, duration)
+    if not _partie and not morceau:
+        repris = _tenter_reprise(info, s, out_path, tools, cancel=cancel, progress=progress,
+                                 start=start, duration=duration, passages=passages)
+        if repris is not None:
+            return repris
+        reprise.retirer_source(info)
     check_disk_space(info, s, Path(out_path).parent, start, duration)
     if s.dust or _tape_job(s):
         return _export_with_dust(info, s, out_path, tools, cancel, progress, start, duration)
@@ -1119,6 +1162,35 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
     part = partiel_unique(out_path)
     verifier_chemin(part)
     total = (duration or info.duration) * time_ratio(info, s)   # en temps exporté
+    # Chauffe : on lit plus tôt dans la SOURCE (le temps des scènes suit ce point),
+    # les filtres voient ces images, puis on les retire. Le nombre d'images gardées
+    # est celui de la partie, pas celui de la chauffe.
+    debut = float(start or 0.0)
+    chauffe_reelle = min(float(chauffe or 0.0), debut) if duration and debut > 0 else 0.0
+    origine_entree = debut - chauffe_reelle
+    fps_sortie = output_fps(info, s)
+    images_chauffe = 0
+    if chauffe_reelle:
+        images_chauffe = int(round(debut * fps_sortie) - round(origine_entree * fps_sortie))
+        if images_chauffe < 1:
+            chauffe_reelle = 0.0
+            origine_entree = debut
+            images_chauffe = 0
+    seek_start = origine_entree if chauffe_reelle else start
+    seek_duree = duration
+    if duration is not None and (_partie or chauffe_reelle):
+        # Deux images après la partie : les filtres qui regardent la suivante
+        # (débruitage) sont déjà lancés au raccord. -frames:v ne les garde pas.
+        seek_duree = float(duration) + chauffe_reelle + 2.0 / float(fps_sortie)
+    n_images = 0
+    if duration:
+        if _partie or chauffe_reelle:
+            fin = debut + float(duration)
+            n_images = max(1, int(round(fin * fps_sortie) - round(debut * fps_sortie)))
+        else:
+            n_images = max(1, round(float(duration) * float(fps_sortie)))
+    duree_audio_sortie = (n_images / float(fps_sortie)) if n_images and (_partie or chauffe_reelle) else (
+        float(duration) if duration else 0.0)
     work: Path | None = None
     df_owned = False
     try:
@@ -1131,8 +1203,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         vide = False
         if morceau and info.has_audio:
             vitesse = _tempo_factor(info, s, drift=True)
-            premier = ((start or 0) - s.audio_offset_ms / 1000) * vitesse
-            dernier = premier + duration * vitesse
+            # La chauffe se compte en temps source, puis la vitesse de dérive.
+            depart_son = origine_entree if chauffe_reelle else float(start or 0)
+            longueur_son = float(duration) + chauffe_reelle
+            premier = (depart_son - s.audio_offset_ms / 1000) * vitesse
+            dernier = premier + longueur_son * vitesse
             son_debut = max(0.0, premier)
             son_fin = min(info.duration, dernier) if info.duration else dernier
             son_duree = son_fin - son_debut
@@ -1151,8 +1226,8 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 if work is None:
                     work = Path(tempfile.mkdtemp(prefix="vhsrestore_stab_", dir=_work_root()))
                 lo = 0.35
-                _stab_detect(info, s, tools, work, start, duration, total, cancel, progress, 0, lo)
-            args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
+                _stab_detect(info, s, tools, work, seek_start, seek_duree, total, cancel, progress, 0, lo)
+            args, vs, vmap, amap = source_inputs(info, s, tools, seek_start, seek_duree)
             if df_wav is not None:
                 args = args + ["-i", str(df_wav)]
                 amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
@@ -1161,7 +1236,11 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
-            vf = filter_chain(info, s, origine=start or 0)
+            # `origine` = temps source de la première image vue, chauffe comprise.
+            origine_filtre = origine_entree if chauffe_reelle else (start or 0)
+            vf = filter_chain(info, s, origine=origine_filtre)
+            if images_chauffe:
+                vf += f",trim=start_frame={images_chauffe},setpts=PTS-STARTPTS"
             chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
                                        apply_offset=not morceau, rnnoise=tools.rnnoise_model)
             if morceau and info.has_audio:
@@ -1169,17 +1248,19 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                     chaine_son.append("volume=0")
                 if manque and not vide:
                     chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
+                if images_chauffe and not vide:
+                    # Après les filtres à mémoire (et le décalage), on retire la chauffe.
+                    secondes = images_chauffe / float(fps_sortie)
+                    chaine_son += [f"atrim=start={secondes:.9f}", "asetpts=PTS-STARTPTS"]
                 # apad seul ajoute du silence sans fin et -frames:v ne coupe que l'image :
                 # avec FFmpeg 9.1 (Windows) la commande ne se terminait jamais. whole_dur borne
-                # le silence, atrim garde la durée exacte du morceau.
-                chaine_son += [f"apad=whole_dur={duration:.9f}", f"atrim=duration={duration:.9f}"]
+                # le silence, atrim garde la durée exacte du morceau (sans la chauffe).
+                chaine_son += [f"apad=whole_dur={duree_audio_sortie:.9f}",
+                               f"atrim=duration={duree_audio_sortie:.9f}"]
             sons = ["-af", ",".join(chaine_son)] if chaine_son else []
             # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
-            # avec -t seul. Même résultat en 6.1 et en 7.x.
-            limite = []
-            if duration:
-                n = max(1, round(float(duration) * float(output_fps(info, s))))
-                limite = ["-frames:v", str(n)]
+            # avec -t seul. Même résultat en 6.1 et en 7.x. La chauffe n'est pas comptée.
+            limite = ["-frames:v", str(n_images)] if n_images else []
             cmd = (_ff_base(tools) + args + ["-map", vmap, "-map", amap, "-vf", vf,
                    *encode_args(info, s), *retime_args(info, s), *_cfr_args(info, s),
                    *sons, *limite, "-f", "mp4", str(part)])
@@ -1209,7 +1290,9 @@ def _concat_sans_recompression(tools: Toolset, morceaux: list[Path], dest: Path,
     for morceau in morceaux:
         nom = morceau.resolve().as_posix().replace("'", "'\\''")
         lignes.append(f"file '{nom}'")
-        # La durée AAC du conteneur inclut parfois le délai de l’encodeur.
+        # Le premier paquet AAC est un délai d'encodeur à temps négatif. Sans inpoint,
+        # l'assemblage le ramène à zéro et retarde l'image d'une trame (21 ms).
+        lignes.append("inpoint 0.000000")
         r = run_capture([tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
                          "-show_entries", "stream=duration", "-of", "csv=p=0", str(morceau)])
         lignes.append(f"duration {float(r.stdout.strip()):.9f}")
@@ -1271,6 +1354,87 @@ def _export_morceaux(info: MediaInfo, s: Settings, out_path: Path, tools: Toolse
         raise
     finally:
         shutil.rmtree(travail, ignore_errors=True)
+    if progress:
+        progress(1.0, "Terminé")
+    log.info("Export terminé : %s", out_path)
+    return out_path
+
+
+def _export_parties(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset,
+                    cancel: threading.Event | None, progress: Progress | None,
+                    gardes: list[tuple[float, float]]) -> Path:
+    """Restaure chaque partie de 10 minutes, reprend celles déjà faites, assemble."""
+    out_path = Path(out_path).resolve()
+    if out_path.resolve() == info.path.resolve():
+        raise ToolError("Le fichier de sortie ne peut pas être le fichier original.")
+    if not out_path.parent.is_dir():
+        raise ToolError(f"Dossier de sortie introuvable : {out_path.parent}")
+    parties = reprise.decouper(gardes)
+    if len(parties) < 2:
+        raise ToolError("La reprise par parties ne s'applique pas à ce film.")
+    somme = sum(max(0.0, b - a) for a, b in parties) or 1.0
+    dossier = reprise.preparer(info, s, gardes)
+    fps = float(output_fps(info, s))
+    attend_son = bool(info.has_audio)
+    probe = tools.ffprobe.path or ""
+    n = len(parties)
+    etats = [reprise.partie_valide(probe, reprise.fichier(dossier, i), reprise.temoin(dossier, i),
+                                   b - a, fps, attend_son)
+             for i, (a, b) in enumerate(parties, start=1)]
+    final, temp = disk_needs(info, s, None, somme)
+    manquante = sum((b - a) for ok, (a, b) in zip(etats, parties) if not ok)
+    reprise.verifier_place([
+        (dossier, final * (manquante / somme)),
+        (out_path.parent, final),
+        (Path(_work_root()), temp),
+    ])
+    part = partiel_unique(out_path)
+    verifier_chemin(part)
+    try:
+        deja = sum(etats)
+        if deja and progress:
+            faite = sum((b - a) for ok, (a, b) in zip(etats, parties) if ok)
+            if deja == 1:
+                annonce = f"Reprise : 1 partie sur {n} déjà faite."
+            else:
+                annonce = f"Reprise : {deja} parties sur {n} déjà faites."
+            progress(faite / somme, annonce)
+        faits = 0.0
+        fichiers: list[Path] = []
+        for i, ((a, b), ok) in enumerate(zip(parties, etats), start=1):
+            if cancel is not None and cancel.is_set():
+                raise Cancelled("Annulé.")
+            dest = reprise.fichier(dossier, i)
+            duree = b - a
+            if not ok:
+                reprise.oublier_partie(dossier, i)
+                ch = reprise.chauffe_partie(a, gardes)
+
+                def sous(f: float, m: str, *, i: int = i, faits: float = faits, duree: float = duree) -> None:
+                    if progress:
+                        progress((faits + max(0.0, min(1.0, f)) * duree) / somme,
+                                 f"Partie {i} sur {n} — {m}")
+
+                _export(info, dataclasses.replace(s, audio_copy=""), dest, tools, morceau=True,
+                        _partie=True, chauffe=ch, cancel=cancel, progress=sous,
+                        start=a if a > 0 else None, duration=duree)
+                if not reprise.sonder(probe, dest, duree, fps, attend_son):
+                    reprise.oublier_partie(dossier, i)
+                    raise ToolError("Une partie restaurée est incomplète. Relancez pour la refaire.")
+                reprise.ecrire_temoin(reprise.temoin(dossier, i), duree)
+            fichiers.append(dest)
+            faits += duree
+        if progress:
+            progress(0.98, "Assemblage des parties…")
+        _concat_sans_recompression(tools, fichiers, part, cancel)
+        finaliser(part, out_path)
+        reprise.supprimer(dossier)
+        with copie_annexe(out_path, "La copie du son"):
+            _write_audio_copy(out_path, info, s, tools, cancel, progress)
+    except BaseException as exc:
+        if not isinstance(exc, FichierOccupe):
+            effacer(part)
+        raise
     if progress:
         progress(1.0, "Terminé")
     log.info("Export terminé : %s", out_path)

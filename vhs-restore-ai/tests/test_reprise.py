@@ -1,46 +1,17 @@
-"""Reprendre une restauration interrompue (demande n°19).
+"""Reprise d'une restauration : parties, chauffe, témoin, raccords.
 
-Les constantes de production (parties de 10 min, seuil de 20 min, chauffe de 8 s)
-sont ramenées ici à 20 s / 30 s / 3 s. Film de synthèse : 80 s, deux scènes,
-mouvement, son avec bips.
+Constantes raccourcies dans les tests qui restaurent vraiment : parties de 20 s,
+seuil 30 s, chauffe 3 s. Le film de synthèse dure 80 s.
 
-API attendue de `vhs_restore.reprise` (agent R1, branche grok/reprise-moteur) —
-ces noms sont déduits de la demande ; R1 n'avait pas encore poussé de code au
-moment de l'écriture. Si l'API publiée diffère, les tests seront alignés à la
-fusion.
-
-Constantes (secondes), à remplacer par les tests :
-  DUREE_PARTIE, SEUIL, CHAUFFE
-
-Fonctions :
-  dossier_racine() -> Path
-      %LOCALAPPDATA%\\VHSRestoreAI\\reprise ou ~/.local/share/VHSRestoreAI/reprise
-  cle(info, s, passages=None) -> str
-  dossier(info, s, passages=None) -> Path   # racine / cle
-  applicable(info, s, passages=None) -> bool
-      Vrai seulement si la durée gardée ≥ SEUIL, sans IA, sans poussières,
-      sans réparation de bande, sans changement de cadence, sans stabilisation.
-  decouper(passages, duree_partie=None) -> list[tuple[float, float]]
-      Parties de duree_partie au plus, à l'intérieur de chaque passage gardé.
-      Si la dernière partie d'un passage est plus courte que duree_partie, elle
-      rejoint la précédente.
-  fenetre(debut, fin, chauffe=None) -> tuple[float, float]
-      (start, duration) pour _export(..., morceau=True), chauffe comprise,
-      bornée au début du film (t = 0). L'origine des scènes suit le temps source.
-  restaurer(info, s, out_path, tools, *, cancel=None, progress=None,
-            start=None, duration=None, passages=None) -> Path
-  parties_faites(dossier) -> séquence (chemin ou objet avec debut/fin/chemin)
-  verifier_partie(path, duree_attendue, tools) -> bool
-
-Messages (R2 peut les réutiliser tels quels, vouvoiement, mot « partie ») :
-  message_ouverture(faites, total) -> str
-  message_progression(faites, total) -> str
-  message_arret() -> str
+Fichier issu de la fusion R1 + R3 (demande n°19). Base : l'API réelle de
+`vhs_restore.reprise` et de `pipeline.export` (R1). Les 8 cas de la demande
+sont couverts ; les assertions les plus strictes des deux côtés sont gardées.
+Les textes d'écran (cas 8) sont dans `ergonomie` (R2) : voir aussi
+`tests/test_ergonomie.py`, et `test_messages_ouverture_et_arret` ci-dessous
+après fusion de R2.
 """
-from __future__ import annotations
-
 import dataclasses
-import math
+import os
 import shutil
 import subprocess
 import threading
@@ -50,426 +21,559 @@ from pathlib import Path
 
 import pytest
 
-from conftest import ff
-from vhs_restore.probe import analyze
-from vhs_restore.profiles import profile_for
-from vhs_restore import pipeline
-
-try:
-    from vhs_restore import reprise
-except ImportError:  # agent R1 pas encore fusionné
-    reprise = None
-
-DUREE_FILM = 80.0
-PARTIE = 20.0
-SEUIL = 30.0
-CHAUFFE = 3.0
-# Bips de 50 ms à t = 0, 10, 20, …, 70 s (temps source), pour caler le son sur l'image.
-PERIODE_BIP = 10.0
-DUREE_BIP = 0.05
+from conftest import ff, probe_json
+from vhs_restore import pipeline, reprise
+from vhs_restore.probe import MediaInfo, analyze
+from vhs_restore.profiles import PROFILES, profile_for
+from vhs_restore.scenes import Scene
+from vhs_restore.tools import AAC, Cancelled, ToolError
 
 
-def _constantes(monkeypatch, tmp_path):
-    if reprise is None:
-        pytest.fail("vhs_restore.reprise n'existe pas encore (agent R1, branche grok/reprise-moteur).")
-    monkeypatch.setattr(reprise, "DUREE_PARTIE", PARTIE)
-    monkeypatch.setattr(reprise, "SEUIL", SEUIL)
-    monkeypatch.setattr(reprise, "CHAUFFE", CHAUFFE)
-    racine = tmp_path / "VHSRestoreAI" / "reprise"
-    racine.mkdir(parents=True)
-    monkeypatch.setattr(reprise, "dossier_racine", lambda: racine)
-    return reprise
+def _suite(cmd, suite) -> bool:
+    suite = list(suite)
+    for i in range(len(cmd) - len(suite) + 1):
+        if list(cmd[i:i + len(suite)]) == suite:
+            return True
+    return False
 
 
-@pytest.fixture
-def r(monkeypatch, tmp_path):
-    return _constantes(monkeypatch, tmp_path)
+def _ss(cmd) -> list[str]:
+    return [cmd[i + 1] for i, arg in enumerate(cmd) if arg == "-ss"]
 
 
-def reglages(**kw):
-    s = pipeline.Settings(profile_for("fidele", "video"), source="video",
-                          restore_audio=True, preset="ultrafast", crf=23,
-                          scan="progressive", use_ai=False, stabilize=False,
-                          dust=False, denoise_hq=False)
-    return dataclasses.replace(s, **kw) if kw else s
+# ---------------------------------------------------------------- découpage
 
 
-def _graphe_film(largeur=320, hauteur=240, cadence=25, duree_scene=40.0) -> str:
-    """Deux scènes, motif animé (testsrc2), bips toutes les 10 s."""
-    s1 = (f"testsrc2=s={largeur}x{hauteur}:r={cadence}:d={duree_scene},"
-          "eq=brightness=-0.12:saturation=0.75,colorchannelmixer=rr=1.12:bb=0.88[v1]")
-    s2 = (f"testsrc2=s={largeur}x{hauteur}:r={cadence}:d={duree_scene},"
-          "eq=brightness=0.08,colorchannelmixer=rr=0.90:bb=1.10[v2]")
-    video = (f"{s1};{s2};[v1][v2]concat=n=2:v=1:a=0,setsar=1[v]")
-    # Fond 440 Hz + bip 2 kHz pendant 50 ms au début de chaque période.
-    son = (f"sine=frequency=440:sample_rate=48000:duration={DUREE_FILM},volume=0.15[a0];"
-           f"sine=frequency=2000:sample_rate=48000:duration={DUREE_FILM},"
-           f"volume=enable='lt(mod(t\\,{PERIODE_BIP:.3f})\\,{DUREE_BIP})':volume=0.8[a1];"
-           f"[a0][a1]amix=inputs=2:duration=longest[a]")
-    return video + ";" + son
+def test_decoupage_parties_coupes_et_reste():
+    """20 s au plus, un reste plus court que la chauffe rejoint la précédente,
+    une coupe au milieu n'est pas traversée."""
+    plein = reprise.decouper([(0, 80)], 20, 3)
+    assert plein == [(0, 20), (20, 40), (40, 60), (60, 80)]
+    assert all(b - a <= 20 for _, (a, b) in enumerate(plein))
+
+    avec_trou = reprise.decouper([(0, 50), (70, 100)], 20, 3)
+    assert avec_trou == [(0, 20), (20, 40), (40, 50), (70, 90), (90, 100)]
+    assert all(b <= 50 or a >= 70 for a, b in avec_trou)
+
+    court = reprise.decouper([(0, 42)], 20, 3)
+    assert court == [(0, 20), (20, 42)]
+    # « Trop courte » = plus courte que la chauffe (pas que DUREE_PARTIE) :
+    # un reste de 10 s (>= 3 s) reste une partie ; un reste de 1,5 s rejoint.
+    assert reprise.decouper([(0, 50)], 20, 3) == [(0, 20), (20, 40), (40, 50)]
+    assert reprise.decouper([(0, 41.5)], 20, 3) == [(0, 20), (20, 41.5)]
+    assert reprise.chauffe_partie(0, [(0, 42)], 3) == 0
+    assert reprise.chauffe_partie(20, [(0, 42)], 3) == 3
+
+    gardes = [(0, 25), (40, 70)]
+    assert reprise.chauffe_partie(40, gardes, 3) == 0
+    assert reprise.chauffe_partie(60, gardes, 3) == 3
+
+
+def test_possible_seulement_quand_cest_sur():
+    s = pipeline.Settings(PROFILES["fidele"])
+    assert reprise.possible(s, 1200, cadence=False, bande=False)
+    assert not reprise.possible(s, 1199, cadence=False, bande=False)
+    assert not reprise.possible(dataclasses.replace(s, use_ai=True), 4000, cadence=False, bande=False)
+    assert not reprise.possible(dataclasses.replace(s, dust=True), 4000, cadence=False, bande=False)
+    assert not reprise.possible(dataclasses.replace(s, stabilize=True), 4000, cadence=False, bande=False)
+    assert not reprise.possible(s, 4000, cadence=True, bande=False)
+    assert not reprise.possible(s, 4000, cadence=False, bande=True)
+
+
+def test_applicable_dossier_et_parties_faites(tmp_path, monkeypatch):
+    """Signatures lues par l'écran : applicable, dossier, parties_faites, decouper."""
+    film = tmp_path / "cassette.mp4"
+    film.write_bytes(b"abcdef")
+    info = MediaInfo(path=film, duration=3600, fps=Fraction(25, 1))
+    s = pipeline.Settings(PROFILES["fidele"])
+    assert reprise.applicable(info, s, passages=None) is True
+    gardes = reprise.intervalles(info, None, None, None)
+    assert len(reprise.decouper(gardes)) == 6
+
+    assert reprise.applicable(MediaInfo(path=film, duration=60, fps=Fraction(25, 1)), s) is False
+    assert reprise.applicable(info, dataclasses.replace(s, use_ai=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, dust=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, stabilize=True)) is False
+    assert reprise.applicable(info, dataclasses.replace(s, tape_noise=True)) is False
+    pellicule = pipeline.Settings(profile_for("fidele", "film"), source="film",
+                                  playback_fps=Fraction(24, 1))
+    assert reprise.applicable(info, pellicule) is False
+    # Début et fin seuls : la durée gardée, pas le film entier.
+    assert reprise.applicable(info, s, start=0, duration=60) is False
+    assert reprise.applicable(info, s, passages=[(0.0, 1000.0), (1500.0, 3600.0)]) is True
+
+    local = tmp_path / "loc"
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    chemin = reprise.dossier(info, s, passages=None)
+    assert chemin == reprise.racine() / reprise.calculer_cle(info, s, [(0.0, 3600.0)])
+    assert not chemin.exists()
+    assert reprise.parties_faites(chemin) == []
+
+    chemin.mkdir(parents=True)
+    reprise.fichier(chemin, 1).write_bytes(b"x" * 40)
+    assert reprise.parties_faites(chemin) == []
+    reprise.ecrire_temoin(reprise.temoin(chemin, 1), 600)
+    reprise.fichier(chemin, 2).write_bytes(b"y" * 40)
+    reprise.ecrire_temoin(reprise.temoin(chemin, 2), 600)
+    (chemin / "partie-0003.mp4").write_bytes(b"trop court")
+    assert reprise.parties_faites(chemin) == [reprise.fichier(chemin, 1), reprise.fichier(chemin, 2)]
+    assert not (chemin / "manifeste.json").exists()
+
+
+def test_cle_change_avec_reglages_scenes_et_passages(tmp_path, monkeypatch):
+    film = tmp_path / "cassette.mp4"
+    film.write_bytes(b"abcdef")
+    info = MediaInfo(path=film, duration=3600)
+    s = pipeline.Settings(PROFILES["fidele"])
+    base = [(0.0, 3600.0)]
+    cle = reprise.calculer_cle(info, s, base)
+    assert reprise.calculer_cle(info, s, base) == cle
+    assert reprise.calculer_cle(info, dataclasses.replace(s, crf=19), base) != cle
+    assert reprise.calculer_cle(info, s, [(0.0, 60.0), (120.0, 3600.0)]) != cle
+    scenes = (
+        Scene(0, 10, 0.2, 0.6, (1.1, 1.0, 0.9), True, (140, 100, 80)),
+        Scene(10, 3600, 0.05, 0.9, (0.9, 1.0, 1.1), True, (80, 100, 140)),
+    )
+    assert reprise.calculer_cle(dataclasses.replace(info, scenes=scenes), s, base) != cle
+    monkeypatch.setattr(reprise, "DUREE_PARTIE", 300.0)
+    assert reprise.calculer_cle(info, s, base) != cle
+    monkeypatch.setattr(reprise, "DUREE_PARTIE", 600.0)
+    monkeypatch.setattr(reprise, "CHAUFFE", 4.0)
+    assert reprise.calculer_cle(info, s, base) != cle
+
+
+def test_menage_autre_cle_et_trente_jours(tmp_path, monkeypatch):
+    rac = tmp_path / "reprise"
+    rac.mkdir()
+    monkeypatch.setattr(reprise, "racine", lambda: rac)
+    film = tmp_path / "cassette.mp4"
+    film.write_bytes(b"abcdef")
+    info = MediaInfo(path=film, duration=3600)
+    ancienne = rac / ("ab" * 32)
+    ancienne.mkdir()
+    (ancienne / "manifeste.json").write_text(
+        '{"version": 1, "chemin": "%s", "taille": 6, "date": 1}' % str(film.resolve()),
+        encoding="utf-8")
+    (ancienne / "partie-0001.mp4").write_bytes(b"partie")
+    vieux = rac / ("cd" * 32)
+    vieux.mkdir()
+    (vieux / "manifeste.json").write_text('{"version": 1, "chemin": "/ailleurs", "taille": 1, "date": 1}',
+                                         encoding="utf-8")
+    passe = time.time() - 31 * 86400
+    os.utime(vieux, (passe, passe))
+    os.utime(vieux / "manifeste.json", (passe, passe))
+
+    dossier = reprise.preparer(info, pipeline.Settings(PROFILES["fidele"]), [(0.0, 3600.0)])
+    assert dossier.is_dir() and (dossier / "manifeste.json").is_file()
+    assert not ancienne.exists()
+    assert not vieux.exists()
+    assert dossier.name != ancienne.name
+
+
+def test_place_disque_insuffisante(tmp_path, monkeypatch):
+    class Usage:
+        def __init__(self, libre):
+            self.free = libre
+
+    (tmp_path / "sous").mkdir()
+    monkeypatch.setattr(reprise.shutil, "disk_usage", lambda _p: Usage(5_000))
+    with pytest.raises(ToolError, match="Espace disque insuffisant"):
+        reprise.verifier_place([(tmp_path, 3_000), (tmp_path / "sous", 3_000)])
+    monkeypatch.setattr(reprise.shutil, "disk_usage", lambda _p: Usage(20_000))
+    reprise.verifier_place([(tmp_path, 3_000), (tmp_path / "sous", 3_000)])
+
+
+# ---------------------------------------------------------------- pièges de la commande
+
+
+def _info_long(samples, tools):
+    info = analyze(samples["pal_tff"], tools)
+    return dataclasses.replace(info, duration=3600, scan="tff", scenes=(
+        Scene(0, 30, 0.2, 0.6, (1.18, 1.0, 0.85), True, (150, 100, 80)),
+        Scene(30, 3600, 0.16, 0.55, (0.85, 1.0, 1.18), True, (80, 100, 150)),
+    ))
+
+
+def _reglages_piege():
+    return pipeline.Settings(PROFILES["fidele"], level_black=0.2, level_white=0.8,
+                             audio_offset_ms=100, audio_drift_ms_per_min=600)
+
+
+def _capturer(monkeypatch):
+    commandes = []
+
+    def faux(cmd, **_k):
+        commandes.append(list(cmd))
+        Path(cmd[-1]).write_bytes(b"x")
+        return []
+
+    monkeypatch.setattr(pipeline, "run", faux)
+    return commandes
+
+
+def test_commande_chauffe_scenes_son_images_aac(samples, tools, tmp_path, monkeypatch):
+    """La chauffe est en temps source : scènes, dérive, -frames:v et AAC."""
+    info = _info_long(samples, tools)
+    s = _reglages_piege()
+    commandes = _capturer(monkeypatch)
+    pipeline._export(info, s, tmp_path / "partie.mp4", tools, morceau=True, _partie=True,
+                     chauffe=3, start=20, duration=20)
+    cmd = commandes[-1]
+    assert _suite(cmd, AAC)
+    assert _ss(cmd)[0] == "17.000"
+    vf = cmd[cmd.index("-vf") + 1]
+    assert "trim=start_frame=150" in vf
+    assert "PTS+17.000000" in vf and "PTS+20" not in vf
+    assert cmd[cmd.index("-frames:v") + 1] == "1000"
+    af = cmd[cmd.index("-af") + 1]
+    assert "apad=whole_dur=20.000000000" in af
+    assert "atrim=duration=20.000000000" in af
+    assert "atrim=start=3.000000000" in af
+    assert af.index("atrim=start=") < af.index("apad=")
+    vitesse = pipeline._tempo_factor(info, s, drift=True)
+    attendu = (17 - 0.1) * vitesse
+    assert _ss(cmd)[1] == f"{attendu:.3f}"
+    assert abs(attendu - 17.07) < 0.05
+    assert abs(attendu - (20 - 0.1) * vitesse) > 1
+
+
+def test_commande_sans_chauffe_inchangee(samples, tools, tmp_path, monkeypatch):
+    info = _info_long(samples, tools)
+    s = _reglages_piege()
+    commandes = _capturer(monkeypatch)
+    pipeline._export(info, s, tmp_path / "morceau.mp4", tools, morceau=True, start=20, duration=20)
+    cmd = commandes[-1]
+    assert _suite(cmd, AAC)
+    assert "trim=start_frame" not in cmd[cmd.index("-vf") + 1]
+    assert _ss(cmd)[0] == "20.000"
+    assert cmd[cmd.index("-frames:v") + 1] == "1000"
+    af = cmd[cmd.index("-af") + 1]
+    assert "apad=whole_dur=20.000000000" in af and "atrim=duration=20.000000000" in af
+    assert "atrim=start=" not in af
+
+
+def test_film_court_ou_ia_ne_cree_pas_de_dossier(samples, tools, tmp_path, monkeypatch):
+    local = tmp_path / "loc"
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    info = analyze(samples["prog"], tools)
+    pipeline.export(info, pipeline.Settings(PROFILES["fidele"]), tmp_path / "court.mp4", tools)
+    assert not (local / "VHSRestoreAI" / "reprise").exists()
+
+    monkeypatch.setattr(reprise, "SEUIL", 1.0)
+    assert not reprise.possible(pipeline.Settings(PROFILES["fidele"], use_ai=True),
+                                info.duration, cadence=False, bande=False)
+    if not tools.stab_available:
+        with pytest.raises(ToolError):
+            pipeline.export(info, pipeline.Settings(PROFILES["fidele"], stabilize=True),
+                            tmp_path / "stab.mp4", tools)
+        assert not (local / "VHSRestoreAI" / "reprise").exists()
+
+
+# ---------------------------------------------------------------- film de 80 s
 
 
 @pytest.fixture(scope="module")
-def film80(tmp_path_factory, tools):
-    dossier = tmp_path_factory.mktemp("reprise-80s")
-    dest = dossier / "deux-scenes-80s.mkv"
-    ff("-filter_complex", _graphe_film(), "-map", "[v]", "-map", "[a]",
-       "-c:v", "ffv1", "-c:a", "pcm_s16le", str(dest))
-    info = analyze(dest, tools)
-    return dest, info
+def film_80(tmp_path_factory):
+    dossier = tmp_path_factory.mktemp("film80")
+    chemin = dossier / "vacances.mp4"
+    # Bip court autour de chaque seconde + 0,25 s, pas sur les raccords entiers.
+    son = "aevalsrc=0.7*sin(2*PI*880*t)*gte(sin(2*PI*t)\\,0.97):s=48000"
+    ff("-f", "lavfi", "-i", "testsrc2=size=160x120:rate=25",
+       "-f", "lavfi", "-i", son, "-t", "80", "-frames:v", "2000",
+       "-c:v", "libx264", "-preset", "ultrafast", "-crf", "16", "-pix_fmt", "yuv420p",
+       "-c:a", "pcm_s16le", str(chemin))
+    return chemin
 
 
-# --------------------------------------------------------------------------- 1. découpage
-
-def test_decoupage_passages_et_coupes(r):
-    """Parties de 20 s au plus ; dernière trop courte rejoint la précédente ;
-    coupes au milieu respectées (on ne traverse pas un trou)."""
-    assert r.decouper([(0.0, 80.0)]) == [(0.0, 20.0), (20.0, 40.0), (40.0, 60.0), (60.0, 80.0)]
-    # 50 s : 20 + 20 + 10 → la dernière (10 s) rejoint la précédente → 20 + 30
-    assert r.decouper([(0.0, 50.0)]) == [(0.0, 20.0), (20.0, 50.0)]
-    # un passage trop court pour deux parties
-    assert r.decouper([(0.0, 25.0)]) == [(0.0, 25.0)]
-    # coupe au milieu 25–35 : chaque passage est découpé séparément
-    parties = r.decouper([(0.0, 25.0), (35.0, 80.0)])
-    assert parties[0] == (0.0, 25.0)
-    assert parties[-1][1] == pytest.approx(80.0)
-    for a, b in parties:
-        assert 0 < (b - a) <= 2 * PARTIE + 1e-6
-        # aucune partie ne chevauche le trou
-        assert b <= 25.0 + 1e-6 or a >= 35.0 - 1e-6
-    # à l'intérieur du second passage (45 s) : 20 + 25 (10 s trop court rejoint)
-    assert r.decouper([(35.0, 80.0)]) == [(35.0, 55.0), (55.0, 80.0)]
+def _locaux(monkeypatch, tmp_path):
+    local = tmp_path / "loc"
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    monkeypatch.setattr(reprise, "DUREE_PARTIE", 20.0)
+    monkeypatch.setattr(reprise, "SEUIL", 30.0)
+    monkeypatch.setattr(reprise, "CHAUFFE", 3.0)
+    return local
 
 
-# --------------------------------------------------------------------------- 2. même résultat qu'en une fois
+def _scenes_80():
+    # La coupure de scène tombe dans la chauffe de la partie qui commence à 20 s.
+    return (
+        Scene(0, 21.5, 0.2, 0.6, (1.18, 1.0, 0.85), True, (150, 100, 80)),
+        Scene(21.5, 80, 0.16, 0.55, (0.85, 1.0, 1.18), False, (80, 100, 150)),
+    )
 
-def _nb_images(tools, path: Path) -> int:
+
+def _info_80(chemin, tools):
+    info = analyze(chemin, tools)
+    return dataclasses.replace(info, scenes=_scenes_80(), scan="progressive")
+
+
+def _reglages_80():
+    return pipeline.Settings(profile_for("fidele", "video"), preset="ultrafast", crf=4,
+                             level_black=0.2, level_white=0.8, scan="progressive")
+
+
+def _image(ffmpeg, chemin, numero):
     r = subprocess.run(
-        [tools.ffprobe.path, "-v", "error", "-select_streams", "v:0",
-         "-count_frames", "-show_entries", "stream=nb_read_frames",
-         "-of", "csv=p=0", str(path)],
-        capture_output=True, text=True, check=True)
-    return int(r.stdout.strip().splitlines()[-1])
+        [ffmpeg, "-v", "error", "-i", str(chemin), "-vf", f"select=eq(n\\,{numero})",
+         "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:"],
+        capture_output=True, check=True)
+    if not r.stdout:
+        raise RuntimeError(f"image {numero} absente")
+    return r.stdout
 
 
-def _duree_flux(tools, path: Path, typ: str) -> float:
+def _ecart(a: bytes, b: bytes) -> float:
+    return sum(abs(x - y) for x, y in zip(a, b)) / len(a) / 255
+
+
+def _pcm(ffmpeg, chemin) -> bytes:
     r = subprocess.run(
-        [tools.ffprobe.path, "-v", "error", "-select_streams", f"{typ}:0",
-         "-show_entries", "stream=duration", "-of", "csv=p=0", str(path)],
-        capture_output=True, text=True, check=True)
-    return float(r.stdout.strip().splitlines()[-1])
-
-
-def _pcm(tools, path: Path) -> bytes:
-    r = subprocess.run(
-        [tools.ffmpeg.path, "-hide_banner", "-loglevel", "error", "-i", str(path),
-         "-map", "0:a:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "-"],
+        [ffmpeg, "-v", "error", "-i", str(chemin), "-vn", "-ac", "1", "-ar", "48000",
+         "-f", "s16le", "pipe:"],
         capture_output=True, check=True)
     return r.stdout
 
 
-def _bips(pcm: bytes, sr=48000, seuil=2000) -> list[float]:
-    """Instants (s) où l'énergie franchit un seuil, un par paquet."""
-    n = len(pcm) // 2
+def _creneaux(pcm: bytes, pas: int = 480) -> list[float]:
+    """Instants des bips : énergie forte, pas plus d'un par demi-seconde."""
+    import array
+    vals = array.array("h")
+    vals.frombytes(pcm[:len(pcm) // 2 * 2])
+    energie = []
+    for i in range(0, len(vals) - pas, pas):
+        energie.append(sum(abs(int(v)) for v in vals[i:i + pas]) / pas)
+    seuil = max(energie) * 0.45 if energie else 0
     instants = []
-    i = 0
-    while i < n:
-        echan = int.from_bytes(pcm[2 * i:2 * i + 2], "little", signed=True)
-        if abs(echan) >= seuil:
-            t = i / sr
-            if not instants or t - instants[-1] > PERIODE_BIP / 2:
-                instants.append(t)
-            i += int(sr * 0.2)
-        else:
-            i += 1
+    dernier = -1.0
+    for i, e in enumerate(energie):
+        t = i * pas / 48000
+        if e >= seuil and t - dernier > 0.4:
+            instants.append(t)
+            dernier = t
     return instants
 
 
-def _ecart_moyen_gris(ffmpeg: str, a: Path, b: Path, instant: float, n=3) -> float:
-    """Écart moyen |A−B| / 255 sur n images autour de `instant`."""
-    def cadre(src):
-        r = subprocess.run(
-            [ffmpeg, "-hide_banner", "-loglevel", "error", "-ss", f"{instant:.3f}",
-             "-i", str(src), "-frames:v", str(n), "-f", "rawvideo", "-pix_fmt", "gray", "-"],
-            capture_output=True, check=True)
-        return r.stdout
-    da, db = cadre(a), cadre(b)
-    m = min(len(da), len(db))
-    assert m > 0
-    s = sum(abs(da[i] - db[i]) for i in range(m))
-    return s / m / 255.0
+def _saut(pcm: bytes, instant: float, demi: int = 240) -> int:
+    import array
+    vals = array.array("h")
+    vals.frombytes(pcm[:len(pcm) // 2 * 2])
+    i = int(round(instant * 48000))
+    a, b = max(1, i - demi), min(len(vals) - 1, i + demi)
+    return max(abs(int(vals[k]) - int(vals[k - 1])) for k in range(a, b))
 
 
-def _sauts_echantillons(pcm: bytes, instants: list[float], sr=48000, fenetre=0.005) -> list[int]:
-    """Plus grand saut d'échantillon dans une fenêtre autour de chaque instant."""
-    n = len(pcm) // 2
-    vals = [int.from_bytes(pcm[2 * i:2 * i + 2], "little", signed=True) for i in range(n)]
-    sauts = []
-    for t in instants:
-        i0 = max(1, int((t - fenetre) * sr))
-        i1 = min(n, int((t + fenetre) * sr))
-        if i1 - i0 < 2:
-            continue
-        sauts.append(max(abs(vals[i] - vals[i - 1]) for i in range(i0, i1)))
-    return sauts
+def test_meme_resultat_que_d_une_fois(film_80, tools, tmp_path, monkeypatch):
+    """Même nombre d'images, bips calés, raccords proches, pas de claquement."""
+    _locaux(monkeypatch, tmp_path)
+    info = _info_80(film_80, tools)
+    s = _reglages_80()
+    monkeypatch.setattr(reprise, "SEUIL", 1e9)
+    une = pipeline.export(info, s, tmp_path / "une.mp4", tools)
+    monkeypatch.setattr(reprise, "SEUIL", 30.0)
+    parties = pipeline.export(info, s, tmp_path / "parties.mp4", tools)
+    rac = tmp_path / "loc" / "VHSRestoreAI" / "reprise"
+    assert not rac.exists() or not any(p for p in rac.iterdir() if p.is_dir())
 
+    du, vu, au = _flux(une)
+    dp, vp, ap = _flux(parties)
+    assert int(vu["nb_read_frames"]) == int(vp["nb_read_frames"]) == 2000
+    assert abs(float(ap[0]["duration"]) - float(vp["duration"])) < 0.02
+    assert abs(float(au[0]["duration"]) - float(vu["duration"])) < 0.02
 
-def test_meme_resultat_qu_en_une_fois(r, film80, tools, tmp_path, monkeypatch):
-    dest, info = film80
-    s = reglages()
-    une = tmp_path / "une-fois.mp4"
-    # Forcer le chemin « une fois » : seuil plus haut que le film.
-    monkeypatch.setattr(r, "SEUIL", 10_000)
-    r.restaurer(info, s, une, tools)
-    monkeypatch.setattr(r, "SEUIL", SEUIL)
-    parties = tmp_path / "par-parties.mp4"
-    r.restaurer(info, s, parties, tools)
+    ffmpeg = tools.ffmpeg.path
+    for numero in (499, 500, 550, 999, 1000, 1499, 1500):
+        ecart = _ecart(_image(ffmpeg, une, numero), _image(ffmpeg, parties, numero))
+        assert ecart < 2 / 255, (numero, ecart)
 
-    n_une, n_part = _nb_images(tools, une), _nb_images(tools, parties)
-    assert n_une == n_part
-    dv_u, da_u = _duree_flux(tools, une, "v"), _duree_flux(tools, une, "a")
-    dv_p, da_p = _duree_flux(tools, parties, "v"), _duree_flux(tools, parties, "a")
-    assert abs(da_u - dv_u) <= 0.020 and abs(da_p - dv_p) <= 0.020
-
-    bips_u = _bips(_pcm(tools, une))
-    bips_p = _bips(_pcm(tools, parties))
-    assert len(bips_u) == len(bips_p) >= 7
-    for a, b in zip(bips_u, bips_p):
+    pu, pp = _pcm(ffmpeg, une), _pcm(ffmpeg, parties)
+    bu, bp = _creneaux(pu), _creneaux(pp)
+    assert len(bu) >= 70 and len(bu) == len(bp)
+    for a, b in zip(bu, bp):
         assert abs(a - b) <= 0.020, (a, b)
-
-    # Raccords attendus à 20, 40, 60 s (parties de 20 s sur 80 s).
-    for t in (20.0, 40.0, 60.0):
-        ecart = _ecart_moyen_gris(tools.ffmpeg.path, une, parties, t)
-        assert ecart < 2 / 255, (t, ecart)
-
-    pcm_p = _pcm(tools, parties)
-    # Pas de claquement : le saut au raccord ne dépasse pas clairement celui du
-    # même instant dans la restauration en une fois (marge pour le bruit).
-    pcm_u = _pcm(tools, une)
-    sauts_p = _sauts_echantillons(pcm_p, [20.0, 40.0, 60.0])
-    sauts_u = _sauts_echantillons(pcm_u, [20.0, 40.0, 60.0])
-    assert sauts_p and sauts_u
-    for sp, su in zip(sauts_p, sauts_u):
-        assert sp <= su + 2000, (sp, su)
+    for instant in (20, 40, 60):
+        assert _saut(pp, instant) <= max(1500, _saut(pu, instant) * 4)
 
 
-# --------------------------------------------------------------------------- 3. interruption et relance
+def test_reprise_partie_abimee_et_menage(film_80, tools, tmp_path, monkeypatch):
+    """Arrêt après deux parties, une partie abîmée est refaite, le dossier disparaît."""
+    local = _locaux(monkeypatch, tmp_path)
+    info = _info_80(film_80, tools)
+    s = _reglages_80()
+    vrai = pipeline._export
+    etat = {"n": 0}
 
-def test_interruption_puis_reprise(r, film80, tools, tmp_path):
-    dest, info = film80
-    s = reglages()
-    out = tmp_path / "repris.mp4"
-    cancel = threading.Event()
-    dossier = r.dossier(info, s)
+    def compte(*args, **kwargs):
+        if kwargs.get("_partie"):
+            etat["n"] += 1
+            if etat["n"] > 2:
+                raise Cancelled("Annulé.")
+        return vrai(*args, **kwargs)
 
-    def surveiller():
-        # Dès que 2 parties complètes sont là, on arrête.
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < 180:
-            if len(list(r.parties_faites(dossier))) >= 2:
-                cancel.set()
-                return
-            time.sleep(0.2)
-        cancel.set()
+    monkeypatch.setattr(pipeline, "_export", compte)
+    with pytest.raises(Cancelled):
+        pipeline.export(info, s, tmp_path / "incomplet.mp4", tools)
+    monkeypatch.setattr(pipeline, "_export", vrai)
 
-    fil = threading.Thread(target=surveiller, daemon=True)
-    fil.start()
-    with pytest.raises(Exception) as exc:
-        r.restaurer(info, s, out, tools, cancel=cancel)
-    # Annulation typique : Cancelled. On accepte toute exception d'arrêt.
-    assert not out.exists() or out.stat().st_size == 0 or "Annul" in type(exc.value).__name__
-    fil.join(timeout=5)
-    faites = list(r.parties_faites(dossier))
-    assert len(faites) == 2, faites
-    chemins = []
-    for p in faites:
-        chemin = Path(getattr(p, "chemin", p))
-        chemins.append(chemin)
-        assert chemin.is_file()
-    mtimes = [c.stat().st_mtime for c in chemins]
+    rac = local / "VHSRestoreAI" / "reprise"
+    dossiers = [p for p in rac.iterdir() if p.is_dir()]
+    assert len(dossiers) == 1
+    dossier = dossiers[0]
+    assert reprise.fichier(dossier, 1).is_file() and reprise.temoin(dossier, 1).is_file()
+    assert reprise.fichier(dossier, 2).is_file() and reprise.temoin(dossier, 2).is_file()
+    assert not reprise.fichier(dossier, 3).exists()
+    assert not list(dossier.glob("*.partiel*"))
 
-    out2 = tmp_path / "repris-complet.mp4"
-    r.restaurer(info, s, out2, tools)
-    assert out2.is_file() and out2.stat().st_size > 0
-    # Les deux premières parties n'ont pas été réécrites.
-    for c, t0 in zip(chemins, mtimes):
-        assert c.stat().st_mtime == t0
-    assert len(list(r.parties_faites(dossier))) == 0 or not dossier.exists()
-    # Dossier effacé après succès.
-    assert not dossier.exists() or not any(dossier.iterdir())
+    reprise.fichier(dossier, 2).write_bytes(b"partie incomplete")
+    messages = []
+    out = pipeline.export(info, s, tmp_path / "repris.mp4", tools,
+                          progress=lambda _f, m: messages.append(m))
+    assert any(m.startswith("Reprise : 1 partie sur") and "déjà faite." in m for m in messages)
+    assert not any(rac.iterdir())
+    d, v, a = _flux(out)
+    assert int(v["nb_read_frames"]) == 2000
+    assert a and abs(float(a[0]["duration"]) - float(v["duration"])) < 0.02
 
 
-# --------------------------------------------------------------------------- 4. partie incomplète ou abîmée
+def test_interruption_puis_reprise(film_80, tools, tmp_path, monkeypatch):
+    """Arrêt après 2 parties : seules les autres sont restaurées, dossier effacé."""
+    local = _locaux(monkeypatch, tmp_path)
+    info = _info_80(film_80, tools)
+    s = _reglages_80()
+    vrai = pipeline._export
+    etat = {"n": 0}
 
-def test_partie_abimee_est_refaite(r, film80, tools, tmp_path):
-    dest, info = film80
-    s = reglages()
-    out = tmp_path / "abime.mp4"
-    cancel = threading.Event()
-    dossier = r.dossier(info, s)
+    def stop(*args, **kwargs):
+        if kwargs.get("_partie"):
+            etat["n"] += 1
+            if etat["n"] > 2:
+                raise Cancelled("Annulé.")
+        return vrai(*args, **kwargs)
 
-    def stop_apres_une():
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < 180:
-            if len(list(r.parties_faites(dossier))) >= 1:
-                cancel.set()
-                return
-            time.sleep(0.2)
-        cancel.set()
+    monkeypatch.setattr(pipeline, "_export", stop)
+    with pytest.raises(Cancelled):
+        pipeline.export(info, s, tmp_path / "incomplet.mp4", tools)
+    monkeypatch.setattr(pipeline, "_export", vrai)
 
-    threading.Thread(target=stop_apres_une, daemon=True).start()
-    try:
-        r.restaurer(info, s, out, tools, cancel=cancel)
-    except Exception:
-        pass
-    faites = list(r.parties_faites(dossier))
-    assert faites, "aucune partie à abîmer"
-    premiere = Path(getattr(faites[0], "chemin", faites[0]))
-    # Tronquer le fichier : il ne doit plus être réutilisé.
-    data = premiere.read_bytes()
-    premiere.write_bytes(data[: max(0, len(data) // 4)])
-    t_avant = premiere.stat().st_mtime
-    out2 = tmp_path / "abime-ok.mp4"
-    r.restaurer(info, s, out2, tools)
-    assert out2.is_file() and out2.stat().st_size > 0
-    # La partie douteuse a été refaite (nouveau contenu ou nouveau fichier).
-    if premiere.exists():
-        assert premiere.stat().st_mtime > t_avant or premiere.stat().st_size != len(data) // 4
-        # Si le même chemin est réutilisé, le témoin doit à nouveau le valider.
-        if premiere.stat().st_size > len(data) // 4:
-            assert r.verifier_partie(premiere, PARTIE, tools)
-    assert out2.is_file() and out2.stat().st_size > 0
+    rac = local / "VHSRestoreAI" / "reprise"
+    dossier = next(p for p in rac.iterdir() if p.is_dir())
+    p1, p2 = reprise.fichier(dossier, 1), reprise.fichier(dossier, 2)
+    assert p1.is_file() and p2.is_file() and reprise.temoin(dossier, 1).is_file()
+    assert not reprise.fichier(dossier, 3).exists()
+    t1, t2 = p1.stat().st_mtime_ns, p2.stat().st_mtime_ns
 
+    refaits = {"n": 0}
 
-# --------------------------------------------------------------------------- 5. réglages changés
+    def compte(*args, **kwargs):
+        if kwargs.get("_partie"):
+            if refaits["n"] == 0:
+                assert p1.stat().st_mtime_ns == t1
+                assert p2.stat().st_mtime_ns == t2
+            refaits["n"] += 1
+        return vrai(*args, **kwargs)
 
-def test_reglages_changes_repart_de_zero(r, film80, tools, tmp_path):
-    dest, info = film80
-    s = reglages()
-    out = tmp_path / "r1.mp4"
-    cancel = threading.Event()
-    d1 = r.dossier(info, s)
-
-    def stop():
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < 180:
-            if len(list(r.parties_faites(d1))) >= 1:
-                cancel.set()
-                return
-            time.sleep(0.2)
-        cancel.set()
-
-    threading.Thread(target=stop, daemon=True).start()
-    try:
-        r.restaurer(info, s, out, tools, cancel=cancel)
-    except Exception:
-        pass
-    assert d1.exists() and list(r.parties_faites(d1))
-    cle1 = r.cle(info, s)
-    s2 = dataclasses.replace(s, lumiere=2)
-    cle2 = r.cle(info, s2)
-    assert cle1 != cle2
-    out2 = tmp_path / "r2.mp4"
-    r.restaurer(info, s2, out2, tools)
-    # Ancien dossier effacé, nouveau différent.
-    assert not d1.exists() or not list(r.parties_faites(d1))
-    d2 = r.dossier(info, s2)
-    assert d2 != d1
-    assert out2.is_file()
-    # Après succès, le nouveau dossier est aussi ménagé.
-    assert not d2.exists() or not any(d2.iterdir())
+    monkeypatch.setattr(pipeline, "_export", compte)
+    messages = []
+    out = pipeline.export(info, s, tmp_path / "repris.mp4", tools,
+                          progress=lambda _f, m: messages.append(m))
+    assert refaits["n"] == 2
+    assert any("2 parties sur" in m and "déjà faites" in m for m in messages)
+    assert not any(rac.iterdir())
+    _d, v, a = _flux(out)
+    assert int(v["nb_read_frames"]) == 2000
+    assert a and abs(float(a[0]["duration"]) - float(v["duration"])) < 0.02
 
 
-# --------------------------------------------------------------------------- 6. cas non concernés
-
-def test_non_concernes_une_seule_fois_sans_dossier(r, film80, tools, tmp_path, monkeypatch):
-    dest, info = film80
-    racine = r.dossier_racine()
-
-    def aucun_dossier():
-        if not racine.exists():
-            return True
-        return not any(racine.rglob("*"))
-
-    # Film court : seuil au-dessus de la durée gardée.
-    s = reglages()
-    assert not r.applicable(info, s, passages=[(0.0, 20.0)])  # 20 s < 30 s
-    court = tmp_path / "court.mp4"
-    r.restaurer(info, s, court, tools, start=0, duration=20)
-    assert court.is_file()
-    assert aucun_dossier() or not r.applicable(info, s, passages=[(0.0, 20.0)])
-
-    # IA
-    sia = reglages(use_ai=True)
-    assert not r.applicable(info, sia)
-    # Stabilisation
-    sstab = reglages(stabilize=True)
-    assert not r.applicable(info, sstab)
-    # Poussières
-    sdust = reglages(dust=True, source="film")
-    assert not r.applicable(info, sdust)
-    # Réparation de bande
-    stape = reglages(tape_noise=True)
-    assert not r.applicable(info, stape)
-    # Changement de cadence
-    sfilm = reglages(source="film", playback_fps=Fraction(18), scan="progressive")
-    info_film = dataclasses.replace(info, fps=Fraction(16, 1)) if hasattr(info, "fps") else info
-    # retime vrai si playback_fps != fps et source film
-    if pipeline.retime(info_film, sfilm):
-        assert not r.applicable(info_film, sfilm)
+def test_scenes_identiques_de_part_et_dautre_du_raccord(film_80, tools, tmp_path, monkeypatch):
+    """Le raccord à 20 s tombe dans la première scène (0–21,5 s) : même image qu'en une fois."""
+    _locaux(monkeypatch, tmp_path)
+    info = _info_80(film_80, tools)
+    s = _reglages_80()
+    monkeypatch.setattr(reprise, "SEUIL", 1e9)
+    une = pipeline.export(info, s, tmp_path / "une-scenes.mp4", tools)
+    monkeypatch.setattr(reprise, "SEUIL", 30.0)
+    parties = pipeline.export(info, s, tmp_path / "parties-scenes.mp4", tools)
+    ffmpeg = tools.ffmpeg.path
+    # 19,48 s, 19,96 s, 20,00 s, 20,48 s (25 im/s)
+    for numero in (487, 499, 500, 512):
+        ecart = _ecart(_image(ffmpeg, une, numero), _image(ffmpeg, parties, numero))
+        assert ecart < 2 / 255, (numero, ecart)
 
 
-# --------------------------------------------------------------------------- 7. scènes de part et d'autre d'un raccord
+def test_reglages_changes_effacent_l_ancien_dossier(film_80, tools, tmp_path, monkeypatch):
+    local = _locaux(monkeypatch, tmp_path)
+    info = _info_80(film_80, tools)
+    s = _reglages_80()
+    vrai = pipeline._export
+    etat = {"n": 0}
 
-def _ylow_yhigh(ffmpeg, path, debut, n=8):
-    r = subprocess.run(
-        [ffmpeg, "-hide_banner", "-i", str(path), "-ss", f"{debut:.3f}",
-         "-frames:v", str(n), "-an",
-         "-vf", "signalstats,metadata=print:key=lavfi.signalstats.YAVG",
-         "-f", "null", "-"],
-        capture_output=True, text=True)
-    import re
-    vals = [float(x) for x in re.findall(r"signalstats\.YAVG=([\d.]+)", r.stderr)]
-    assert vals
-    return sum(vals) / len(vals)
+    def stop(*args, **kwargs):
+        if kwargs.get("_partie"):
+            etat["n"] += 1
+            if etat["n"] > 1:
+                raise Cancelled("Annulé.")
+        return vrai(*args, **kwargs)
 
-
-def test_scenes_identiques_de_part_et_dautre_du_raccord(r, film80, tools, tmp_path):
-    """Un raccord à 20 s tombe dans la première scène (0–40 s) : même correction des deux côtés."""
-    dest, info = film80
-    s = reglages()
-    # Attacher les scènes si le moteur n°17 est là, pour que la correction suive la source.
-    if hasattr(info, "scenes"):
-        try:
-            from vhs_restore import scenes
-            scenes.attacher(info, tools.ffmpeg.path)
-        except Exception:
-            pass
-    out = tmp_path / "scenes.mp4"
-    r.restaurer(info, s, out, tools)
-    # 0,5 s avant et après le raccord à 20 s (chauffe 3 s déjà retirée).
-    avant = _ylow_yhigh(tools.ffmpeg.path, out, 19.5)
-    apres = _ylow_yhigh(tools.ffmpeg.path, out, 20.5)
-    assert abs(avant - apres) < 5.0, (avant, apres)
+    monkeypatch.setattr(pipeline, "_export", stop)
+    with pytest.raises(Cancelled):
+        pipeline.export(info, s, tmp_path / "a.mp4", tools)
+    monkeypatch.setattr(pipeline, "_export", vrai)
+    rac = local / "VHSRestoreAI" / "reprise"
+    ancienne = next(p for p in rac.iterdir() if p.is_dir())
+    etat["n"] = 0
+    monkeypatch.setattr(pipeline, "_export", stop)
+    with pytest.raises(Cancelled):
+        pipeline.export(info, dataclasses.replace(s, crf=8), tmp_path / "b.mp4", tools)
+    assert not ancienne.exists()
+    restants = [p for p in rac.iterdir() if p.is_dir()]
+    assert len(restants) == 1 and restants[0] != ancienne
 
 
-# --------------------------------------------------------------------------- 8. interface
+def test_dvd_en_plusieurs_morceaux(tools, tmp_path, monkeypatch):
+    """Les parties de 20 s se font dans le film réuni, chauffe comprise, à travers les VOB."""
+    local = _locaux(monkeypatch, tmp_path)
+    source = tmp_path / "source.mp4"
+    ff("-f", "lavfi", "-i", "testsrc2=size=160x120:rate=25",
+       "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
+       "-t", "40", "-frames:v", "1000", "-c:v", "libx264", "-preset", "ultrafast",
+       "-c:a", "pcm_s16le", str(source))
+    dossier = tmp_path / "VIDEO_TS"
+    dossier.mkdir()
+    v1, v2 = dossier / "VTS_01_1.VOB", dossier / "VTS_01_2.VOB"
+    ff("-i", str(source), "-t", "20", "-c:v", "mpeg2video", "-b:v", "2M", "-c:a", "mp2",
+       "-f", "vob", str(v1))
+    ff("-ss", "20", "-i", str(source), "-c:v", "mpeg2video", "-b:v", "2M", "-c:a", "mp2",
+       "-f", "vob", str(v2))
+    from vhs_restore.dvd import open_media
+    info = open_media(v1, tools)
+    assert len(info.parts) == 2 and info.duration >= 30
+    messages = []
+    out = pipeline.export(info, _reglages_80(), tmp_path / "dvd.mp4", tools,
+                          progress=lambda _f, m: messages.append(m))
+    assert any(m.startswith("Partie ") for m in messages)
+    rac = local / "VHSRestoreAI" / "reprise"
+    assert not rac.exists() or not any(p for p in rac.iterdir() if p.is_dir())
+    _d, v, a = _flux(out)
+    assert a and int(v["nb_read_frames"]) >= 900
 
-def test_messages_ouverture_et_arret(r):
-    """Textes exacts de la demande, vouvoiement, mot « partie » (pas « morceau »)."""
-    ouv = r.message_ouverture(5, 11)
-    # Exemple de la demande : « … s'était arrêtée à 45 %. « Lancer la restauration » la reprendra. »
-    pct = round(5 / 11 * 100)
-    assert f"{pct} %" in ouv or f"{pct}%" in ouv
-    assert "Lancer la restauration" in ouv
-    assert "reprendra" in ouv
-    bas = " " + ouv.lower() + " "
-    assert " tu " not in bas and " te " not in bas
-    assert "morceau" not in ouv.lower() and "chunk" not in ouv.lower()
 
-    prog = r.message_progression(6, 12)
-    assert prog == "Reprise : 6 parties sur 12 déjà faites."
-
-    arret = r.message_arret()
+def test_messages_ouverture_et_arret():
+    """Textes exacts de la demande (module ergonomie, agent R2), vouvoiement, mot « partie »."""
+    from vhs_restore import ergonomie
+    ouv = ergonomie.message_ouverture(5, 11)
+    assert ouv == ("Une restauration de ce film s'était arrêtée à 45 %. "
+                   "« Lancer la restauration » la reprendra.")
+    assert ergonomie.message_progression(6, 12) == "Reprise : 6 parties sur 12 déjà faites."
+    assert ergonomie.message_progression(1, 12) == "Reprise : 1 partie sur 12 déjà faite."
+    arret = ergonomie.message_arret()
     assert arret == "Arrêté. Les parties déjà restaurées sont gardées : relancez pour reprendre."
-    assert "morceau" not in arret.lower() and "chunk" not in arret.lower()
+    for texte in (ouv, ergonomie.message_progression(6, 12), arret):
+        bas = f" {texte.lower()} "
+        assert "morceau" not in bas and "chunk" not in bas
+        assert " tu " not in bas and " te " not in bas
+
+
+def _flux(path):
+    d = probe_json(path)
+    v = next(s for s in d["streams"] if s["codec_type"] == "video")
+    a = [s for s in d["streams"] if s["codec_type"] == "audio"]
+    return d, v, a
