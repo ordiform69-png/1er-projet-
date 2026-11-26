@@ -65,6 +65,8 @@ def test_comment_faire_schema_et_aide(tools, samples, monkeypatch):
     monkeypatch.setattr("PySide6.QtWidgets.QDialog.exec", capturer)
     win._comment_faire_coupes()
     assert vus
+    assert "«\u00a0Couper\u00a0ici\u00a0»" in vus[0]
+    assert "«\u00a0Le\u00a0film\u00a0reprend\u00a0ici\u00a0»" in vus[0]
     vu = vus[0].replace("\xa0", " ")
     assert GUIDE_COUPES_AUCUNE in vu
     assert GUIDE_COUPES_OUVERTE in vu

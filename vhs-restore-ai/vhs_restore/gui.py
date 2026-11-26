@@ -318,8 +318,10 @@ class DropZone(QLabel):
             self.dropped.emit(urls[0].toLocalFile())
 
 
-def _insecables(texte: str) -> str:
+def _insecables(texte: str, *, citations_entieres: bool = False) -> str:
     """Espaces insécables dans « … » : le guillemet ne se retrouve jamais seul en bout de ligne."""
+    if citations_entieres:
+        return re.sub(r"«[^»\n]*»", lambda citation: citation[0].replace(" ", "\u00a0"), texte)
     return texte.replace("« ", "«\u00a0").replace(" »", "\u00a0»")
 
 
@@ -3529,11 +3531,13 @@ class MainWindow(QMainWindow):
         etapes = QLabel(_insecables(
             GUIDE_COUPES_AUCUNE + "\n\n"
             "Après le premier clic : " + GUIDE_COUPES_OUVERTE + "\n\n"
-            "Après une coupe : " + GUIDE_COUPES_FAITE))
+            "Après une coupe : " + GUIDE_COUPES_FAITE, citations_entieres=True))
+        etapes.setTextFormat(Qt.PlainText)
         etapes.setWordWrap(True)
         etapes.setMinimumWidth(0)
         lay.addWidget(etapes)
-        carres = QLabel(_insecables(GUIDE_COUPES_CARRES))
+        carres = QLabel(_insecables(GUIDE_COUPES_CARRES, citations_entieres=True))
+        carres.setTextFormat(Qt.PlainText)
         carres.setWordWrap(True)
         carres.setObjectName("note")
         lay.addWidget(carres)
