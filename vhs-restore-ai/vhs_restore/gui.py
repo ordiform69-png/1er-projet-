@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -885,13 +886,17 @@ class _Copie:
         finally:
             self.fini.set()
 
-    def stop(self) -> None:
+    def stop(self, attendre: float = 0.0) -> None:
+        """`attendre` : secondes au plus pour que FFmpeg soit vraiment fini (sous Windows, un
+        programme tué s'arrête un peu après ; « Arrêter » doit le voir arrêté, n°20 E6)."""
         self.annuler.set()
         for proc in list(self.procs):
             try:
                 if proc.poll() is None:
                     proc.kill()
-            except OSError:
+                    if attendre > 0:
+                        proc.wait(timeout=attendre)
+            except (OSError, subprocess.TimeoutExpired):
                 pass
 
 
@@ -3498,8 +3503,9 @@ class MainWindow(QMainWindow):
         copie_lecture.oublier(dossier)
         shutil.rmtree(dossier, ignore_errors=True)
 
-    def _arreter_copie(self) -> None:
-        """Annule la copie en cours et efface son dossier. N'attend pas à l'écran."""
+    def _arreter_copie(self, attendre: float = 0.0) -> None:
+        """Annule la copie en cours et efface son dossier. N'attend pas à l'écran, sauf
+        `attendre` secondes au plus que FFmpeg soit fini (« Arrêter »)."""
         attente = getattr(self, "_attente_copie", None)
         if attente is not None:
             attente.stop()
@@ -3513,7 +3519,7 @@ class MainWindow(QMainWindow):
         self._dossier_copie = None
         self._copie_prete = None
         if job is not None:
-            job.stop()
+            job.stop(attendre)
         if dossier is not None and self._lecteur_sur_copie(dossier):
             self.lecteur.fermer()
 
@@ -4656,7 +4662,7 @@ class MainWindow(QMainWindow):
         self.worker.cancel_event.set()
         # « Arrêter » arrête aussi la copie de lecture en fond (n°20, E6) : sinon FFmpeg continuait
         # de recopier tout le film. Elle sera refaite à la prochaine ouverture du film.
-        self._arreter_copie()
+        self._arreter_copie(attendre=2.0)
         self.status.setText("Annulation en cours…")
 
     def _travail_long(self) -> bool:
