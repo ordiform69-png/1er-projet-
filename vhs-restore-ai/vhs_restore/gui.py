@@ -3712,7 +3712,8 @@ class MainWindow(QMainWindow):
         if info is None or getattr(self, "is_photo", False):
             return
         ffmpeg = self.tools.ffmpeg.path if self.tools and self.tools.ffmpeg else None
-        if not ffmpeg:
+        if not ffmpeg or not scenes.ACTIF:
+            # correction scène par scène désactivée : pas de lecture de tout le film pour rien
             info.scenes_vues = True
             return
         self._suivi_scenes = scenes.Suivi()

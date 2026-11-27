@@ -19,6 +19,15 @@ from vhs_restore.advice import advise, apply
 from vhs_restore.probe import MediaInfo, analyze
 from vhs_restore.profiles import profile_for
 
+DEFAUT = scenes.ACTIF                     # lu avant le réglage des essais ci-dessous
+
+
+@pytest.fixture(autouse=True)
+def _scene_par_scene(monkeypatch):
+    """Le mécanisme reste essayé tel quel, même désactivé dans le logiciel (voir `scenes.ACTIF`)."""
+    monkeypatch.setattr(scenes, "ACTIF", True)
+
+
 _SPEC = importlib.util.spec_from_file_location(
     "recette_scenes_n17",
     Path(__file__).resolve().parents[1] / "partage-grok" / "recette-scenes-n17.py")
@@ -381,3 +390,76 @@ def test_analyse_impossible_ou_trop_longue(tools, tmp_path, monkeypatch):
     assert any("une seule fois" in w for w in lu.warnings)
     assert not any("a pris" in w for w in lu.warnings)
     assert "sendcmd=" not in pipeline.filter_chain(lu, s)
+
+
+# --- 27 novembre 2026 : saut de couleur au milieu d'un plan, sur un vrai film de famille ---
+
+# Moyennes R, V, B, noir, blanc (5 images/s, 160 x 90) d'un plan CONTINU d'un vrai film de famille
+# (capture de l'utilisateur) : 7,7 s lues à l'endroit puis à l'envers, aucune coupure, aucune
+# lumière qui change. Seulement des moyennes : rien de l'image n'est gardé.
+PLAN_CONTINU_REEL = [
+    (69.4, 55.7, 50.8, 14, 169), (68.6, 52.8, 47.9, 15, 162), (67.7, 50.3, 45.7, 15, 159), (69.1, 50.7, 46.3, 15, 154),
+    (71.4, 52.3, 47.6, 14, 162), (72.6, 54.1, 49.0, 15, 163), (73.0, 55.7, 50.8, 14, 166), (74.0, 56.8, 51.4, 14, 168),
+    (75.1, 58.9, 53.7, 15, 172), (76.5, 61.3, 57.1, 15, 173), (76.9, 62.5, 58.3, 14, 175), (77.0, 62.8, 59.1, 14, 175),
+    (76.6, 63.2, 59.5, 14, 175), (76.3, 63.2, 59.8, 14, 174), (76.2, 63.4, 59.8, 14, 175), (76.3, 63.3, 60.0, 14, 174),
+    (75.7, 63.0, 59.6, 14, 173), (75.9, 63.1, 60.1, 14, 173), (75.6, 63.1, 60.0, 14, 173), (75.1, 62.6, 60.0, 14, 172),
+    (75.0, 62.7, 60.1, 14, 172), (74.3, 61.9, 59.7, 14, 171), (73.8, 61.7, 59.0, 14, 170), (73.4, 61.1, 58.3, 14, 169),
+    (73.8, 61.7, 58.8, 14, 170), (74.1, 62.3, 59.1, 14, 171), (75.0, 63.2, 59.9, 13, 173), (75.5, 63.8, 60.2, 14, 173),
+    (75.6, 64.2, 60.1, 13, 173), (75.7, 64.2, 59.9, 14, 173), (75.4, 64.2, 59.7, 13, 173), (76.6, 65.0, 60.6, 13, 174),
+    (75.7, 64.4, 59.6, 13, 172), (75.5, 63.9, 58.9, 13, 171), (74.5, 63.0, 57.9, 13, 169), (73.6, 62.2, 57.4, 13, 170),
+    (73.2, 61.9, 56.6, 13, 169), (77.4, 64.5, 58.2, 14, 168), (76.7, 63.9, 57.1, 13, 168), (77.6, 64.7, 58.3, 14, 168),
+    (74.5, 62.6, 57.1, 14, 168), (73.4, 61.9, 57.0, 13, 169), (74.6, 62.9, 58.0, 13, 170), (75.2, 63.8, 58.7, 13, 171),
+    (75.7, 64.2, 59.5, 13, 172), (76.5, 65.0, 60.5, 13, 174), (75.9, 64.5, 60.2, 13, 173), (75.5, 64.1, 59.6, 13, 173),
+    (75.8, 64.3, 60.2, 14, 173), (75.3, 63.8, 59.9, 13, 173), (75.7, 63.7, 60.7, 14, 174), (74.1, 62.4, 59.0, 13, 171),
+    (73.9, 61.7, 58.9, 14, 170), (73.4, 61.2, 58.4, 14, 169), (74.0, 61.7, 59.2, 14, 170), (74.0, 61.9, 59.5, 14, 171),
+    (75.1, 62.7, 60.1, 14, 172), (75.0, 62.6, 60.0, 14, 173), (75.8, 63.0, 60.3, 14, 174), (75.7, 63.0, 59.9, 14, 173),
+    (75.9, 63.0, 59.9, 14, 173), (76.1, 63.2, 59.8, 14, 174), (76.4, 63.4, 60.1, 14, 174), (76.0, 63.2, 59.6, 14, 174),
+    (76.7, 63.2, 59.7, 14, 175), (76.7, 62.8, 59.0, 14, 175), (77.2, 62.7, 58.7, 15, 175), (76.4, 61.6, 57.4, 14, 174),
+    (75.7, 59.7, 54.7, 15, 172), (74.0, 57.2, 51.6, 14, 168), (73.5, 56.0, 51.0, 14, 167), (72.7, 54.7, 49.5, 15, 165),
+    (72.4, 53.1, 48.1, 14, 162), (69.5, 51.1, 46.7, 14, 155), (68.1, 50.3, 45.8, 15, 158), (68.0, 52.0, 47.2, 15, 162),
+    (69.5, 55.5, 50.8, 14, 168),
+]
+
+
+def test_desactivee_par_defaut_correction_unique(monkeypatch):
+    """Tant que la découpe n'est pas sûre sur de vrais films, le logiciel garde la correction
+    unique : la même du début à la fin du film, donc aucun saut possible."""
+    assert DEFAUT is False
+    monkeypatch.setattr(scenes, "ACTIF", DEFAUT)
+    images = _images((
+        (15, 180, 90, 50, 55, 100),     # 3 s, sombre orangé
+        (15, 70, 130, 190, 145, 185),   # 3 s, clair bleuté
+    ))
+    trouvees = scenes.segmenter(images, duree=6.0)
+    assert len(trouvees) == 2
+    s = dataclasses.replace(neutre(), level_black=0.2, level_white=0.7, gain_r=1.1, gain_g=0.95, gain_b=0.95)
+    info = MediaInfo(path=Path("x.mkv"), width=320, height=180, fps=Fraction(25), duration=6, scenes=trouvees)
+    assert scenes.filtres(info, s, 0.0) is None
+    chaine = pipeline.filter_chain(info, s)
+    assert "sendcmd=" not in chaine
+    assert pipeline._cast_filter(s) in chaine and pipeline._levels_filter(s) in chaine
+
+
+def test_desactivee_pas_de_lecture_du_film_a_l_ouverture(tools, monkeypatch):
+    pytest.importorskip("PySide6")
+    from PySide6.QtWidgets import QApplication
+    from vhs_restore.gui import MainWindow
+    monkeypatch.setattr(scenes, "ACTIF", False)
+    lancees = []
+    monkeypatch.setattr(scenes.Suivi, "lancer", lambda self, info, ffmpeg: lancees.append(info))
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(tools)
+    try:
+        win.info = MediaInfo(path=Path("x.mkv"), width=320, height=180, fps=Fraction(25), duration=60)
+        win._lancer_scenes()
+        app.processEvents()
+        assert lancees == [] and win.info.scenes_vues and not win._scenes_occupent(win.info)
+    finally:
+        win.close()
+
+
+@pytest.mark.xfail(strict=True, reason="défaut connu : la découpe invente une coupure dans un plan "
+                   "continu réel (1,7 niveau sur 255 à 10,2 s) ; c'est pourquoi elle est désactivée")
+def test_plan_continu_reel_reste_une_seule_scene():
+    images = [scenes.Image(i * scenes.PAS, *v) for i, v in enumerate(PLAN_CONTINU_REEL)]
+    assert len(scenes.segmenter(images, duree=len(images) * scenes.PAS)) == 1

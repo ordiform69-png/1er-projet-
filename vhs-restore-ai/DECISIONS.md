@@ -1091,3 +1091,30 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   n'est jamais plus basse que son texte (le sous-titre était coupé sur un écran bas avec
   l'avertissement). Mesuré : à 1280 × 641, 4 px de moins qu'avant à 100 et 125 % ; à 150 % avec
   l'avertissement, l'étape 1 défile de 42 px (31 avant), le texte n'y est plus coupé.
+
+## Correction scène par scène désactivée (27 novembre 2026)
+
+- Constat (film de l'utilisateur, copie pour la télévision) : à 7,8 s, toute l'image passe d'un
+  coup du blanc au jaune entre deux images, l'enfant immobile. Le son est normal.
+- Trois défauts, prouvés :
+  1. Une « coupure » est un écart de couleur moyenne nettement plus fort qu'autour (rapport
+     1,6), **sans minimum**. Sur 15 s d'un vrai plan continu (lu à l'endroit puis à l'envers),
+     une coupure est inventée à 10,2 s pour un écart de 1,7 niveau sur 255, invisible : le plan
+     y est immobile, la moindre variation paraît « nette ».
+  2. Toute coupure trouvée est marquée franche : le fondu de 0,5 s n'est jamais utilisé.
+  3. Chaque morceau reçoit la correction de sa propre moyenne, en tout ou rien (dominante si
+     l'écart RVB dépasse 15, niveaux selon un seuil) : deux morceaux d'un même plan peuvent
+     recevoir des corrections très différentes.
+- Pourquoi les essais ne l'ont pas vu : films de mire (testsrc2) dont la couleur moyenne ne
+  bouge pas, coupures exactes ; le cas « lampe qu'on allume » (demandé par Claude) a rendu la
+  règle plus sensible ; le second tour, jugé sûr, n'a été vérifié que sur 4 variantes de mire.
+  Aucun essai sur un vrai film de famille avant la fusion. Erreur de méthode de Claude.
+- Décision : `scenes.ACTIF = False`. Correction unique pour tout le film (celle d'avant la
+  n°17, la même du début à la fin : aucun saut possible) ; plus de lecture de tout le film à
+  l'ouverture. Le mécanisme reste dans le code et ses essais tournent (ils le rallument).
+  `test_plan_continu_reel_reste_une_seule_scene` (moyennes du vrai plan, rien de l'image)
+  échoue exprès tant que la découpe invente des coupures.
+- Pour la rallumer, les quatre ensemble : coupure = vrai changement d'image (contenu) avec un
+  seuil minimum ; fondu partout sauf vraie coupure ; correction de chaque scène proche de celle
+  du film (écart plafonné, sans tout ou rien) ; validée sur de vrais films de l'utilisateur, sur
+  son PC (les films ne quittent pas le PC) : aucune coupure inventée, aucun saut visible.

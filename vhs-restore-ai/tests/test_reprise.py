@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 from conftest import ff, probe_json
-from vhs_restore import pipeline, reprise
+from vhs_restore import pipeline, reprise, scenes
 from vhs_restore.probe import MediaInfo, analyze
 from vhs_restore.profiles import PROFILES, profile_for
 from vhs_restore.scenes import Scene
@@ -215,6 +215,7 @@ def _capturer(monkeypatch):
 
 def test_commande_chauffe_scenes_son_images_aac(samples, tools, tmp_path, monkeypatch):
     """La chauffe est en temps source : scènes, dérive, -frames:v et AAC."""
+    monkeypatch.setattr(scenes, "ACTIF", True)          # mécanisme essayé, même désactivé
     info = _info_long(samples, tools)
     s = _reglages_piege()
     commandes = _capturer(monkeypatch)
@@ -487,6 +488,7 @@ def test_interruption_puis_reprise(film_80, tools, tmp_path, monkeypatch):
 
 def test_scenes_identiques_de_part_et_dautre_du_raccord(film_80, tools, tmp_path, monkeypatch):
     """Le raccord à 20 s tombe dans la première scène (0–21,5 s) : même image qu'en une fois."""
+    monkeypatch.setattr(scenes, "ACTIF", True)          # mécanisme essayé, même désactivé
     _locaux(monkeypatch, tmp_path)
     info = _info_80(film_80, tools)
     s = _reglages_80()

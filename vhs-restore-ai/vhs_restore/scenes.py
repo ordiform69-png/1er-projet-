@@ -47,6 +47,15 @@ FENETRE_MOYENNE = 5               # 1 s à 5 i/s
 RAYON_VOISIN = 12                 # 2 s autour, hors de l'épaule du pic
 FACTEUR_RAPPORT = 1.6             # le rapport au pic, contre le plus fort des alentours
 BUDGET_MAX = 900.0               # plafond seulement si on le demande ; la restauration n'en a pas
+# DÉSACTIVÉ (27 novembre 2026). Sur un vrai film de famille (capture de l'utilisateur), la
+# couleur sautait d'une image à l'autre au milieu d'un même plan (7,8 s). Trois défauts :
+# 1. une « coupure » est un écart moyen nettement plus fort qu'autour, SANS minimum : dans un
+#    moment calme, 1,7 niveau sur 255 (invisible) suffit (mesuré sur un plan continu réel) ;
+# 2. toute coupure trouvée est traitée comme franche : jamais de fondu ;
+# 3. chaque morceau reçoit la correction de SA moyenne (tout ou rien : écart RVB > 15).
+# Les essais n'utilisaient que des mires, dont la couleur moyenne ne bouge pas.
+# Correction unique pour tout le film, comme avant la demande n°17. Voir DECISIONS.md.
+ACTIF = False
 
 
 class _TropLong(Exception):
@@ -631,6 +640,8 @@ def filtres(info, s, origine: float = 0.0) -> list[str] | None:
     `origine` est le temps source de la première image vue par le filtre
     (un `-ss` avant l'entrée remet l'horloge du filtre à zéro).
     """
+    if not ACTIF:
+        return None                      # correction unique (voir ACTIF)
     scenes = tuple(getattr(info, "scenes", ()) or ())
     if len(scenes) < 2 or not _demandee(s):
         return None
