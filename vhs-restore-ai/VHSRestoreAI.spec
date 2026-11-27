@@ -17,6 +17,7 @@ a = Analysis(
            ("vhs_restore/models/RNNOISE-LICENSE.txt", "vhs_restore/models"),
            ("vhs_restore/assets/fonts", "vhs_restore/assets/fonts"),
            ("vhs_restore/assets/icons", "vhs_restore/assets/icons"),
+           ("vhs_restore/assets/VHSRestoreAI.ico", "vhs_restore/assets"),
            *_dust_data],
     hiddenimports=_dust_mods,
     # modules Qt inutiles : paquet plus léger
@@ -26,5 +27,5 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="VHSRestoreAI",
-          console=False, upx=False)
+          console=False, upx=False, icon="vhs_restore/assets/VHSRestoreAI.ico")
 coll = COLLECT(exe, a.binaries, a.datas, name="VHSRestoreAI", upx=False)

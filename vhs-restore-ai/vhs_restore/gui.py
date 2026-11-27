@@ -20,7 +20,7 @@ from typing import Any, Callable, Iterator
 
 from PySide6.QtCore import (QEvent, QObject, QPoint, QRect, QSettings, QSize, QSignalBlocker, QStandardPaths, Qt, QThread,
                             QTimer, QUrl, Signal)
-from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QButtonGroup,
                                QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGridLayout,
@@ -4855,6 +4855,9 @@ def main() -> int:
     import sys
     app = QApplication(sys.argv)
     app.setApplicationName("VHS Restore AI")
+    icone = Path(__file__).resolve().parent / "assets" / "VHSRestoreAI.ico"
+    if icone.is_file():
+        app.setWindowIcon(QIcon(str(icone)))              # la cassette, comme sur le bureau
     app.aboutToQuit.connect(_eteindre_a_la_sortie)
     from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
     traduction = QTranslator(app)           # textes standard de Qt en français (« Annuler », « Ouvrir »…)

@@ -1,13 +1,22 @@
 VHS Restore AI — mode d'emploi
 ==============================
 
+Installer
+---------
+Double-cliquez sur « Installer-VHS-Restore-AI… », puis sur « Installer ».
+Une icône « VHS Restore AI » (une cassette) apparaît sur le bureau et dans le
+menu Démarrer. Aucun mot de passe d'administrateur n'est demandé. Pour une
+nouvelle version, faites de même : elle remplace l'ancienne, et vos réglages
+et outils sont gardés. Pour l'enlever : Paramètres, Applications.
+
+Windows peut afficher « Windows a protégé votre ordinateur » (le logiciel est
+gratuit et n'est pas signé par un éditeur). Cliquez sur « Informations
+complémentaires », puis sur « Exécuter quand même ».
+
 Démarrer
 --------
-Double-cliquez sur VHSRestoreAI.exe.
-
-La première fois, Windows peut afficher « Windows a protégé votre ordinateur »
-(le logiciel est gratuit et n'est pas signé par un éditeur). Cliquez sur
-« Informations complémentaires », puis sur « Exécuter quand même ».
+Double-cliquez sur l'icône « VHS Restore AI » du bureau. (Sans le programme
+d'installation : double-cliquez sur VHSRestoreAI.exe, dans le dossier du zip.)
 
 Au premier lancement, une fenêtre explique les trois étapes. Le bouton « Aide »
 (en haut à droite) la rouvre à tout moment. « A− », « A » et « A+ », en haut à droite, agrandissent le texte. Le choix est gardé.

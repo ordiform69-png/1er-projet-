@@ -80,6 +80,10 @@ jobs:
           $sha = (Get-FileHash "livraison/$nom.zip" -Algorithm SHA256).Hash
           "$sha  $nom.zip" | Set-Content "livraison/$nom.sha256" -Encoding ascii
 
+      - name: Programme d'installation (icône sur le bureau, Inno Setup)
+        if: success() && steps.tests.outcome == 'success'
+        run: ./scripts/installateur.ps1 -Version "1.0.${{ github.run_number }}" -Nom "Installer-VHS-Restore-AI-${{ github.run_number }}"
+
       - uses: actions/upload-artifact@v4
         if: success() && steps.tests.outcome == 'success'
         with:

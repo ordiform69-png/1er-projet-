@@ -102,7 +102,19 @@ New-Item -ItemType Directory -Force livraison | Out-Null
 Compress-Archive -Path dist\VHSRestoreAI -DestinationPath "livraison\$nom.zip" -Force
 $empreinte = (Get-FileHash "livraison\$nom.zip" -Algorithm SHA256).Hash
 "$empreinte  $nom.zip" | Set-Content "livraison\$nom.sha256" -Encoding Ascii
+
+Etape "Programme d'installation (icône « VHS Restore AI » sur le bureau)"
+$setup = "Installer-VHS-Restore-AI-local-$(Get-Date -Format 'yyyyMMdd-HHmm')-$commit"
+try {
+    & (Join-Path $PSScriptRoot 'installateur.ps1') -Version (Get-Date -Format 'yyyy.M.d.Hmm') -Nom $setup
+} catch {
+    # le zip est prêt quoi qu'il arrive : un échec ici ne le perd pas
+    Write-Warning "Programme d'installation non fabriqué : $($_.Exception.Message) Le zip, lui, est prêt."
+}
 $minutes = [math]::Round(((Get-Date) - $debut).TotalMinutes, 1)
 Write-Host ''
 Write-Host "Prêt en $minutes min : livraison\$nom.zip" -ForegroundColor Green
+if (Test-Path "livraison\$setup.exe") {
+    Write-Host "Pour installer avec une icône sur le bureau : livraison\$setup.exe" -ForegroundColor Green
+}
 Start-Process explorer.exe (Resolve-Path livraison).Path

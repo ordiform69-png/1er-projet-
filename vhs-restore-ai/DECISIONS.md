@@ -1135,3 +1135,19 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   s'arrêtait avant sa fenêtre. Toute recherche d'outil passe par `tools.est_fichier`, qui ne
   plante pas ; un outil présent mais refusé est marqué inutilisable, avec la raison et quoi faire
   (Historique de protection de la Sécurité Windows, redémarrer, réinstaller).
+
+## Programme d'installation (27 novembre 2026)
+
+- Demande de l'utilisateur, après une journée de difficultés sur son PC principal : que son père
+  ne soit pas perdu. Plus de zip à extraire : `Installer-VHS-Restore-AI-….exe` (Inno Setup
+  6.7.4, gratuit), un double-clic puis « Installer » ; icône « VHS Restore AI » (une cassette)
+  sur le bureau et dans le menu Démarrer ; sans droits d'administrateur
+  (`%LOCALAPPDATA%\Programs\VHS Restore AI`) ; une nouvelle version s'installe par-dessus
+  (même `AppId`), outils et réglages du profil gardés ; désinstallation dans Paramètres.
+- Fabriqué par `scripts/installateur.ps1`, appelé par `fabriquer_exe.ps1` (après le zip : un
+  échec n'empêche pas le zip) et par la fabrication GitHub. Inno Setup est installé au besoin,
+  version figée, empreinte SHA-256 vérifiée, dans le profil. Ce n'est pas une dépendance Python.
+- Icône de l'exe et de la fenêtre : `vhs_restore/assets/VHSRestoreAI.ico` (16 à 256 px).
+- Non essayé par Claude (Inno Setup ne tourne que sous Windows) : premier essai sur le PC de
+  l'utilisateur. Vérifié ici : encodage des scripts pour PowerShell 5.1, empreinte, icône, appels
+  (`tests/test_installateur.py`).
