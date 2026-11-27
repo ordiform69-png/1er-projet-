@@ -3,7 +3,7 @@ geste précis, affichage clair possible, aide accessible."""
 import pytest
 
 pytest.importorskip("PySide6")
-from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox  # noqa: E402
 
 from vhs_restore import theme  # noqa: E402
 from vhs_restore.advice import Advice  # noqa: E402
@@ -59,10 +59,12 @@ def test_aide_et_premier_lancement(app, tools, monkeypatch):
 
     def capter(self):
         vus.append(self.windowTitle())
-        textes.append(self.text())
+        # l'aide est une fenêtre qui défile (n°20, C1) : son texte est gardé dans dlg.texte
+        textes.append(self.texte if hasattr(self, "texte") else self.text())
         return 0
 
     monkeypatch.setattr(QMessageBox, "exec", capter)
+    monkeypatch.setattr(QDialog, "exec", capter)
     win = MainWindow(tools)
     win.maybe_welcome()                       # en test, pas de préférences : rien ne s'ouvre
     assert vus == []
