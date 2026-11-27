@@ -66,6 +66,7 @@ class MediaInfo:
     edge_damage: int = 0                   # bords abîmés (traits colorés, neige) en pixels du film, 0 = aucun
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     audio_channels: int = 0
+    audio_rate: int = 0                    # Hz ; 0 = inconnu
     channel_issue: str = ""                # "" | left_silent | right_silent | phase (audio_check)
     clipped: float = 0.0                   # part d'échantillons saturés
     hum_hz: int = 0                        # ronflement détecté : 0 | 50 | 60
@@ -444,6 +445,10 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.audio_desc = (f"{a.get('codec_name', '?')}, {a.get('sample_rate', '?')} Hz, "
                            f"{a.get('channels', '?')} canal(aux)")
         info.audio_channels = int(a.get("channels") or 0)
+        try:
+            info.audio_rate = int(float(a.get("sample_rate") or 0))
+        except (TypeError, ValueError):
+            info.audio_rate = 0
         _audio_timing_notes(info, a, v, fmt)
 
     # --- entrelacement mesuré sur le contenu (au tiers du film, hors amorce)

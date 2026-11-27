@@ -240,7 +240,6 @@ GARDE_NAN = "aeval='if(isnan(val(ch))+isinf(val(ch)),0,val(ch))':c=same"
 
 
 AFFTDN_RETARD = 0.025   # s : afftdn de FFmpeg, mesuré à 48 000, 44 100 et 32 000 Hz (corrélation)
-PRE_SILENCE = 0.1       # s de silence devant le nettoyage du son, retiré ensuite
 
 
 def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
@@ -275,7 +274,6 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
             chain.append("equalizer=f=3000:t=q:w=1:g=3")
     if restore and s.restore_audio and not info.audio_silent:
         p = s.profile
-        debut_nettoyage = len(chain)
         latence = 0.0
         if p.adeclick and _has(present, "adeclick"):
             chain.append("adeclick")
@@ -291,15 +289,15 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
         elif p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
             chain.append(f"afftdn=nr={p.afftdn_nr:g}:nf=-50:tn=1")
             latence = AFFTDN_RETARD
-        if len(chain) > debut_nettoyage and _has(present, "adelay") and _has(present, "atrim"):
-            # Mesuré (n°20, A2 et A4) : afftdn retarde le son de 25 ms exactement et coupe ses
-            # premières millisecondes ; adeclick écrase le tout début. Un court silence est mis
-            # devant (les filtres sont lancés avant le film), puis retiré avec le retard : le
-            # premier mot reste entier, le son reste calé, la durée reste exacte.
-            chain.insert(debut_nettoyage, f"adelay={int(PRE_SILENCE * 1000)}:all=1")
-            chain += [f"atrim=start={PRE_SILENCE + latence:.3f}", "asetpts=PTS-STARTPTS"]
-            if latence:
-                chain.append(f"apad=pad_dur={latence:.3f}")
+        frequence = int(getattr(info, "audio_rate", 0) or 0)
+        if latence and frequence > 0 and _has(present, "atrim"):
+            # Mesuré (n°20, A2) : afftdn retarde le son de 25 ms exactement (48 000, 44 100 et
+            # 32 000 Hz) et sort d'abord 25 ms de silence. Ce silence est retiré, compté en
+            # ÉCHANTILLONS, puis l'horloge reculée d'autant : son calé, début gardé, durée exacte.
+            # Pas de silence ajouté devant (adelay) : lu au milieu du film (passages gardés),
+            # adelay donne une horloge invalide que la suite propage (son coupé à 0,25 s).
+            chain += [f"atrim=start_sample={round(latence * frequence)}", f"asetpts=PTS-{latence:.3f}/TB",
+                      f"apad=pad_dur={latence:.3f}"]
         if p.loudnorm and _has(present, "dynaudnorm"):
             # gain plafonné : rattrape les écarts de volume sans écraser l'ambiance
             chain.append("dynaudnorm=f=250:g=15:p=0.95:m=8")
@@ -1556,6 +1554,8 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
              "-progress", "pipe:1", "-nostats",
              "-i", str(out_path), "-vn", "-map", "0:a:0", *codec, str(part)],
             cancel=cancel, on_line=suivi, what="FFmpeg (copie du son)")
+        if progress:
+            progress(1.0, "Copie du son restauré…")
         finaliser(part, dest)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):

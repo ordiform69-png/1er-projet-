@@ -29,7 +29,7 @@ def _bips(ffmpeg: str, path: Path, ecart_min: float = 0.4) -> list[float]:
     if not energie:
         return []
     seuil = max(energie) * 0.4
-    instants, dernier = [], -1.0
+    instants, dernier = [], float("-inf")   # un bip à 0 s compte, même avec un grand écart (Claude, n°21)
     for i, e in enumerate(energie):
         t = i * pas / 48000
         if e >= seuil and t - dernier > ecart_min:
