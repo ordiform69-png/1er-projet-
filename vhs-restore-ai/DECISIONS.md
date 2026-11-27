@@ -1130,3 +1130,8 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   par `curl.exe` de Windows (System32, Windows 10 et 11), qui vérifie comme le navigateur ;
   empreinte SHA-256 vérifiée de la même façon. Pas de nouvelle dépendance. Message juste si tout
   échoue : le certificat, pas « Vérifiez la connexion Internet ».
+- Puis, au démarrage : « PermissionError: [WinError 5] Accès refusé » sur
+  `realesrgan-ncnn-vulkan.exe` (dans le profil), probablement gardé par un antivirus : le logiciel
+  s'arrêtait avant sa fenêtre. Toute recherche d'outil passe par `tools.est_fichier`, qui ne
+  plante pas ; un outil présent mais refusé est marqué inutilisable, avec la raison et quoi faire
+  (Historique de protection de la Sécurité Windows, redémarrer, réinstaller).

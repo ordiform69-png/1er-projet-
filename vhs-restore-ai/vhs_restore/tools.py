@@ -123,19 +123,31 @@ class Toolset:
                             + ", ".join(self.missing_filters) + "). Version 5.0 ou plus requise.")
 
 
+def est_fichier(chemin, refus: list[tuple[str, str]] | None = None) -> bool:
+    """`is_file()` qui ne plante pas. Chez l'utilisateur, « Accès refusé » (WinError 5) sur
+    realesrgan-ncnn-vulkan.exe, gardé par un antivirus, arrêtait le logiciel au démarrage."""
+    try:
+        return Path(chemin).is_file()
+    except OSError as exc:
+        log.warning("fichier inaccessible : %s (%s)", chemin, exc)
+        if refus is not None:
+            refus.append((str(chemin), exc.strerror or str(exc)))
+        return False
+
+
 def _find(env: str, names: Iterable[str], subdirs: Iterable[str],
-          exts: Iterable[str] = (EXE,)) -> str | None:
+          exts: Iterable[str] = (EXE,), refus: list[tuple[str, str]] | None = None) -> str | None:
     """Ordre de recherche : variable d'environnement, dossier tools/ de l'appli, outils
     installés depuis l'application (profil de l'utilisateur), PATH."""
     value = os.environ.get(env)
-    if value and Path(value).is_file():
+    if value and est_fichier(value, refus):
         return value
     for base in (TOOLS_DIR, user_tools_dir()):
         for sub in subdirs:
             for n in names:
                 for ext in exts:
                     p = (Path(sys.executable).parent if sub == "@python" else base / sub) / (n + ext)
-                    if p.is_file():
+                    if est_fichier(p, refus):
                         return str(p)
     for n in names:
         p = shutil.which(n)
@@ -337,7 +349,7 @@ def _version(path: str) -> str:
 def _rnnoise_model() -> str | None:
     """Modèle std de RNNoise (BSD). Variable, dossier tools, ou copie livrée."""
     env = os.environ.get("VHSRA_RNNOISE")
-    if env and Path(env).is_file():
+    if env and est_fichier(env):
         return env
     names = [
         Path(__file__).resolve().parent / "models" / "rnnoise_std.rnnn",
@@ -349,23 +361,38 @@ def _rnnoise_model() -> str | None:
     if mei:
         names.insert(0, Path(mei) / "vhs_restore" / "models" / "rnnoise_std.rnnn")
     for p in names:
-        if p.is_file():
+        if est_fichier(p):
             return str(p)
     return None
 
 
+REFUS_ACCES = ("Windows refuse l'accès à ce fichier ({raison}). Un antivirus le bloque peut-être : "
+               "regardez l'« Historique de protection » de la Sécurité Windows, ou redémarrez "
+               "l'ordinateur puis réinstallez-le.")
+
+
+def _outil(nom: str, env: str, names: list[str], subdirs: list[str]) -> Tool:
+    """Un outil trouvé, absent, ou présent mais refusé par Windows (dit, jamais un plantage)."""
+    refus: list[tuple[str, str]] = []
+    t = Tool(nom, _find(env, names, subdirs, refus=refus))
+    if t.path is None and refus:
+        t.path, raison = refus[0]
+        t.problem = REFUS_ACCES.format(raison=raison)
+    return t
+
+
 def detect_tools() -> Toolset:
-    ff = Tool("FFmpeg", _find("VHSRA_FFMPEG", ["ffmpeg"], ["ffmpeg/bin", "ffmpeg"]))
-    fp = Tool("FFprobe", _find("VHSRA_FFPROBE", ["ffprobe"], ["ffmpeg/bin", "ffmpeg"]))
-    re_ = Tool("Real-ESRGAN", _find("VHSRA_REALESRGAN", ["realesrgan-ncnn-vulkan"],
-                                    ["realesrgan", "realesrgan-ncnn-vulkan"]))
+    ff = _outil("FFmpeg", "VHSRA_FFMPEG", ["ffmpeg"], ["ffmpeg/bin", "ffmpeg"])
+    fp = _outil("FFprobe", "VHSRA_FFPROBE", ["ffprobe"], ["ffmpeg/bin", "ffmpeg"])
+    re_ = _outil("Real-ESRGAN", "VHSRA_REALESRGAN", ["realesrgan-ncnn-vulkan"],
+                 ["realesrgan", "realesrgan-ncnn-vulkan"])
     missing: list[str] = []
     vidstab = False
     audio_present: set[str] = set()
     for t in (ff, fp):
-        if t.path:
+        if t.path and not t.problem:
             t.version = _version(t.path)
-    if ff.path:
+    if ff.path and not ff.problem:
         try:
             listing = run_capture([ff.path, "-hide_banner", "-filters"], timeout=15).stdout
             present = {line.split()[1] for line in listing.splitlines() if len(line.split()) > 2}
@@ -374,21 +401,21 @@ def detect_tools() -> Toolset:
             audio_present = {f for f in AUDIO_FILTERS if f in present}
         except (OSError, subprocess.TimeoutExpired) as exc:
             ff.problem = f"FFmpeg ne répond pas : {exc}"
-    if re_.path:
+    if re_.path and not re_.problem:
         # L'exécutable n'a pas d'option --version : on vérifie la présence du modèle.
         models = Path(re_.path).parent / "models"
-        if not (models / "realesrgan-x4plus.param").is_file():
+        if not est_fichier(models / "realesrgan-x4plus.param"):
             re_.problem = f"modèle realesrgan-x4plus absent de {models}"
         re_.version = "ncnn-vulkan"
-    df = Tool("DeepFilterNet", _find("VHSRA_DEEPFILTER", ["deep-filter"], ["deepfilter", "DeepFilterNet"]))
-    if df.path:
+    df = _outil("DeepFilterNet", "VHSRA_DEEPFILTER", ["deep-filter"], ["deepfilter", "DeepFilterNet"])
+    if df.path and not df.problem:
         df.version = "deep-filter"
     from . import colorize, dust
     model = _rnnoise_model()
     ts = Toolset(ff, fp, re_, missing, detect_qtgmc(), vidstab, dust.available(),
                  df, frozenset(audio_present), model, colorize.detect())
-    ts.losslesscut = Tool("LosslessCut", _find("VHSRA_LOSSLESSCUT", ["LosslessCut"], ["losslesscut"]))
-    ts.shotcut = Tool("Shotcut", _find("VHSRA_SHOTCUT", ["shotcut"], ["shotcut"]))
+    ts.losslesscut = _outil("LosslessCut", "VHSRA_LOSSLESSCUT", ["LosslessCut"], ["losslesscut"])
+    ts.shotcut = _outil("Shotcut", "VHSRA_SHOTCUT", ["shotcut"], ["shotcut"])
     log.info("Outils : ffmpeg=%s (%s) ffprobe=%s realesrgan=%s %s qtgmc=%s %s "
              "deepfilter=%s rnnoise=%s colorisation=%s %s audio=%s filtres manquants=%s",
              ff.path, ff.version, fp.path, re_.path, re_.problem, ts.vspipe.path, ts.vspipe.problem,

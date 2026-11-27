@@ -131,6 +131,31 @@ def test_outil_du_profil_trouve(tmp_path, monkeypatch):
     assert t.realesrgan.path == str(exe) and t.ai_available
 
 
+def test_outil_refuse_par_windows_ne_bloque_pas_le_demarrage(tmp_path, monkeypatch):
+    """Chez l'utilisateur : « PermissionError: [WinError 5] Accès refusé » sur
+    realesrgan-ncnn-vulkan.exe (antivirus) arrêtait le logiciel avant sa fenêtre. Il démarre,
+    et l'outil est marqué inutilisable avec la raison, sans être lancé."""
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.delenv("VHSRA_REALESRGAN", raising=False)
+    monkeypatch.setattr(tools_mod, "TOOLS_DIR", tmp_path / "application" / "tools")
+    d = tools_mod.user_tools_dir() / "realesrgan"
+    (d / "models").mkdir(parents=True)
+    exe = d / f"realesrgan-ncnn-vulkan{EXE}"
+    exe.write_bytes(b"x")
+    (d / "models" / "realesrgan-x4plus.param").write_text("p")
+    vrai = Path.is_file
+
+    def refuse(self):
+        if self == exe:                                        # ce fichier-là seulement
+            raise PermissionError(13, "Accès refusé", str(self))
+        return vrai(self)
+    monkeypatch.setattr(Path, "is_file", refuse)
+    t = tools_mod.detect_tools()                               # ne lève rien
+    assert t.realesrgan.path == str(exe) and not t.ai_available
+    assert "refuse l'accès" in t.realesrgan.problem and "Accès refusé" in t.realesrgan.problem
+    assert t.ffmpeg.ok or t.ffmpeg.path is None                # le reste est détecté comme avant
+
+
 def test_voyant_cliquable_propose_installer(paquets, tools, monkeypatch):
     pytest.importorskip("PySide6")
     from PySide6.QtWidgets import QApplication, QMessageBox

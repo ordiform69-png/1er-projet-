@@ -23,7 +23,7 @@ from pathlib import Path
 
 from .tools import partiel_unique, reserver_sorties
 from .tools import FichierOccupe, effacer, finaliser
-from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, ff_input, run_capture, user_tools_dir
+from .tools import TOOLS_DIR, Cancelled, Tool, ToolError, est_fichier, ff_input, run_capture, user_tools_dir
 
 MODEL_NAME = "ddcolor-tiny-fp16.onnx"
 MODEL_URL = ("https://huggingface.co/edgetools/ddcolor/resolve/"
@@ -41,7 +41,7 @@ def model_path() -> Path | None:
     env = os.environ.get("VHSRA_DDCOLOR")
     for p in ([Path(env)] if env else []) + [TOOLS_DIR / "ddcolor" / MODEL_NAME,
                                              user_tools_dir() / "ddcolor" / MODEL_NAME]:
-        if p.is_file():
+        if est_fichier(p):                      # « Accès refusé » (antivirus) : absent, pas un plantage
             return p
     return None
 
