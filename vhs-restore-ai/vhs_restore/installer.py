@@ -235,10 +235,15 @@ def _poser_installation(staged: Path, final: Path, nom: str) -> None:
             shutil.rmtree(ancien, ignore_errors=True)
         try:
             final.rename(ancien)
-        except PermissionError:
+        except OSError:
+            # Constaté chez l'utilisateur, ordinateur tout juste allumé : ce n'est pas forcément
+            # un programme ouvert. Un antivirus qui bloque le fichier donne la même erreur.
             raise ToolError(
-                f"{nom} est ouvert dans un autre programme. Fermez-le, puis recommencez l'installation. "
-                "Rien n'a été désinstallé.") from None
+                f"Windows refuse de remplacer l'installation précédente de {nom}. Le plus souvent, "
+                "l'antivirus de Windows bloque ce fichier : ouvrez « Sécurité Windows », puis "
+                "« Protection contre les virus et menaces », puis « Historique de protection ». "
+                f"Sinon, {nom} est peut-être ouvert : fermez-le ou redémarrez l'ordinateur, "
+                "puis recommencez l'installation. Rien n'a été désinstallé.") from None
         deplace = True
     try:
         shutil.move(str(staged), final)

@@ -197,8 +197,11 @@ def test_outil_ouvert_n_est_pas_desinstalle(tmp_path, monkeypatch):
         return vrai(self, dest)
 
     monkeypatch.setattr(Path, "rename", bloque)
-    with pytest.raises(tools_mod.ToolError, match="Fermez-le"):
+    # message juste (n°21) : l'antivirus d'abord (ordinateur tout juste allumé chez l'utilisateur),
+    # puis le programme ouvert
+    with pytest.raises(tools_mod.ToolError, match="refuse de remplacer") as e:
         installer._poser_installation(staged, final, "LosslessCut")
+    assert "Historique de protection" in str(e.value) and "fermez-le" in str(e.value)
     assert (final / "LosslessCut.exe").read_text(encoding="utf-8") == "ancien"
     clair, _ = ergonomie.expliquer(str(tools_mod.ToolError(
         "LosslessCut est ouvert dans un autre programme. Fermez-le, puis recommencez l'installation.")))
