@@ -59,12 +59,51 @@ def test_disque_plein_ffmpeg_explique_la_place():
     assert "n'est plus là" not in bas
 
 
+def _vivant(pid: int) -> bool:
+    """Le processus tourne-t-il encore ? Sans le tuer (sous Windows, os.kill(pid, 0) le tue)."""
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            k.GetExitCodeProcess(h, ctypes.byref(code))
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            k.CloseHandle(h)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    try:  # un zombie (fini, pas encore ramassé) ne compte pas
+        etat = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+        return etat != "Z"
+    except (OSError, IndexError):
+        return True
+
+
+def _tuer(pid: int) -> None:
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
+        return
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except OSError:
+        pass
+
+
 @pytest.mark.xfail(strict=True, reason="FFmpeg lancé comme dans tools.run() survit à la mort du processus père")
 def test_ffmpeg_meurt_avec_le_processus_qui_l_a_lance(tools):
     """Même Popen que tools.run (CREATE_NO_WINDOW, pas d'objet Job, pas de PDEATHSIG).
 
     Sous Windows, « Fin de tâche » sur l'exe laisse FFmpeg écrire et verrouiller le résultat.
     Ici : le père fait os._exit sans terminate() ; FFmpeg ne doit plus être vivant.
+
+    Le FFmpeg du test s'arrête de lui-même après 30 s (-re, d=30) et il est tué à la fin quoi qu'il
+    arrive : l'ancienne version (os.fsync sur un tube) plantait avant de donner le numéro, et
+    laissait à chaque lancement un FFmpeg sans fin qui ralentissait toute la machine.
     """
     ffmpeg = tools.ffmpeg.path
     code = r"""
@@ -72,12 +111,11 @@ import os, sys, subprocess
 flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 proc = subprocess.Popen(
     [sys.argv[1], "-hide_banner", "-nostdin", "-loglevel", "error",
-     "-f", "lavfi", "-i", "nullsrc=s=64x64:r=1", "-f", "null", "-"],
+     "-re", "-f", "lavfi", "-i", "nullsrc=s=64x64:r=1:d=30", "-f", "null", "-"],
     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     creationflags=flags,
 )
 os.write(1, str(proc.pid).encode("ascii"))
-os.fsync(1)
 os._exit(0)
 """
     aide = subprocess.run(
@@ -87,17 +125,9 @@ os._exit(0)
     pid = int(aide.stdout.decode().strip())
     try:
         time.sleep(0.4)
-        encore = True
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            encore = False
-        assert encore is False
+        assert _vivant(pid) is False
     finally:
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError:
-            pass
+        _tuer(pid)
 
 
 def test_atexit_efface_les_dossiers_temporaires_de_la_fenetre(tools):
