@@ -13,6 +13,7 @@ après fusion de R2.
 import dataclasses
 import json
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -252,7 +253,9 @@ def test_commande_sans_chauffe_inchangee(samples, tools, tmp_path, monkeypatch):
     assert cmd[cmd.index("-frames:v") + 1] == "1000"
     af = cmd[cmd.index("-af") + 1]
     assert "apad=whole_dur=20.000000000" in af and "atrim=duration=20.000000000" in af
-    assert "atrim=start=" not in af
+    # Pas de chauffe retirée (elle s'écrit « atrim=start=… » à 9 décimales). Le nettoyage du son
+    # retire, lui, son propre silence de mise en route (n°21, A2 et A4 : « atrim=start=0.125 »).
+    assert not re.search(r"atrim=start=\d+\.\d{9}", af), af
 
 
 def test_film_court_ou_ia_ne_cree_pas_de_dossier(samples, tools, tmp_path, monkeypatch):
