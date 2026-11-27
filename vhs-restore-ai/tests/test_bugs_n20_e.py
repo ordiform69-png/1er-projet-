@@ -62,7 +62,6 @@ def _fenetre(tmp_path: Path, duree: float, restauration_s: float, cle: str = "eq
              settings=lambda: pipeline.Settings(profile_for(cle, "video"), source="video"))
 
 
-@pytest.mark.xfail(strict=True, reason="capture SD sans format : la copie sort en 5:4, l'analyse dit 4:3")
 def test_copie_sd_sans_sar_reste_en_4_3(tools, tmp_path):
     """Une capture 720×576 dont le fichier dit « pixels carrés » est un 4:3 pour l'analyse.
     La copie légère et celle pour la télévision doivent garder ce 4:3, le son, et toute la durée."""
@@ -85,7 +84,6 @@ def test_copie_sd_sans_sar_reste_en_4_3(tools, tmp_path):
     assert all(m["son"] == 2 and abs(m["duree"] - 4) < 0.25 for m in mesures), mesures
 
 
-@pytest.mark.xfail(strict=True, reason="un écart fixe de durée est annoncé comme une dérive en ms par minute")
 def test_avertissement_derive_ne_transforme_pas_un_decalage_fixe(tools, tmp_path):
     """Film de 20 s dont le son est simplement plus court d'une demi-seconde (pas une accélération).
     L'avertissement ne doit pas parler de millisecondes par minute, ni de « lèvres »."""
@@ -135,7 +133,6 @@ def test_duree_annoncee_film_de_trois_heures_nest_pas_trop_courte(tmp_path):
     assert estimation.phrase_temps(5399) != "environ 1 heure"
 
 
-@pytest.mark.xfail(strict=True, reason="durée inconnue : la barre est déjà à 100 % dès la première image")
 def test_progression_duree_inconnue_ne_saute_pas_a_100(tools, tmp_path):
     """Un conteneur sans durée (ici forcée à 0, comme certains VOB) ne doit pas afficher 100 % tout de suite."""
     src = tmp_path / "sans_duree.mp4"
@@ -153,7 +150,6 @@ def test_progression_duree_inconnue_ne_saute_pas_a_100(tools, tmp_path):
     assert avant_la_fin and avant_la_fin[0] < 0.5, valeurs
 
 
-@pytest.mark.xfail(strict=True, reason="un fichier .reserve oublié fait choisir le nom (2)")
 def test_verrou_perime_ne_renomme_pas_la_sortie(tmp_path):
     """Après une coupure, le verrou peut rester sans qu'aucun film existe. Le prochain essai
     doit reprendre le nom prévu, pas « (2) »."""
@@ -177,7 +173,6 @@ def test_nommer_le_meme_nom_garde_le_fichier(tools, tmp_path):
     assert out.is_file() and not (tmp_path / "Noël 1988 (2).mp4").exists()
 
 
-@pytest.mark.xfail(strict=True, reason="Arrêter le travail laisse la copie de lecture FFmpeg en cours")
 def test_arreter_coupe_aussi_la_copie_de_lecture(tools, tmp_path):
     """Film entrelacé : une copie de lecture démarre toute seule. « Arrêter » doit la couper aussi."""
     pytest.importorskip("PySide6")
@@ -223,7 +218,6 @@ def test_arreter_coupe_aussi_la_copie_de_lecture(tools, tmp_path):
         win.close()
 
 
-@pytest.mark.xfail(strict=True, reason="la copie WAV du son n'envoie aucun avancement, seulement 99 %")
 def test_copie_du_son_fait_avancer_la_barre(tools, tmp_path, monkeypatch):
     """Le son d'un film long est recopié en WAV sans ligne de progression : la barre reste à 99 %."""
     src = tmp_path / "film.mp4"

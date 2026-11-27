@@ -364,11 +364,19 @@ def _audio_timing_notes(info: MediaInfo, audio: dict, video: dict, fmt: dict) ->
         delta = a_dur - v_dur
         if abs(delta) >= 0.15 and abs(delta) / v_dur >= 0.002:
             per_min = delta / v_dur * 60000.0
-            info.warnings.append(
-                f"La piste son dure {delta:+.2f} s de plus que l'image "
-                f"(environ {per_min:+.0f} ms par minute). "
-                "Si le décalage s'aggrave, réglez « Dérive du son ». "
-                "L'application ne détecte pas les lèvres.")
+            plus = "plus" if delta > 0 else "moins"
+            if v_dur < 600:
+                # Film court (n°20, E2) : un simple décalage ne doit pas passer pour une dérive
+                # (20 s et 0,5 s d'écart faisaient annoncer « 1500 ms par minute »).
+                info.warnings.append(
+                    f"Le son dure {abs(delta):.2f} s de {plus} que l'image. "
+                    "Si le son se décale peu à peu au fil du film, réglez « Dérive du son ».")
+            else:
+                info.warnings.append(
+                    f"Le son dure {abs(delta):.2f} s de {plus} que l'image "
+                    f"(environ {abs(per_min):.0f} ms par minute). "
+                    "Si le son se décale peu à peu au fil du film, réglez « Dérive du son ». "
+                    "Le logiciel ne regarde pas les lèvres : vérifiez à l'oreille.")
 
 
 def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) -> MediaInfo:

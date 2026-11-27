@@ -239,6 +239,10 @@ def _has(present: frozenset[str] | None, name: str) -> bool:
 GARDE_NAN = "aeval='if(isnan(val(ch))+isinf(val(ch)),0,val(ch))':c=same"
 
 
+AFFTDN_RETARD = 0.025   # s : afftdn de FFmpeg, mesuré à 48 000, 44 100 et 32 000 Hz (corrélation)
+PRE_SILENCE = 0.1       # s de silence devant le nettoyage du son, retiré ensuite
+
+
 def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
                   skip_afftdn: bool = False, apply_offset: bool = True,
                   apply_drift: bool = True,
@@ -271,6 +275,8 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
             chain.append("equalizer=f=3000:t=q:w=1:g=3")
     if restore and s.restore_audio and not info.audio_silent:
         p = s.profile
+        debut_nettoyage = len(chain)
+        latence = 0.0
         if p.adeclick and _has(present, "adeclick"):
             chain.append("adeclick")
         # RNNoise (Xiph, modèle livré) seulement si la case est cochée, et seulement
@@ -284,6 +290,16 @@ def audio_filters(info: MediaInfo, s: Settings, *, restore: bool = True,
                 chain.append(GARDE_NAN)
         elif p.afftdn_nr and not skip_afftdn and _has(present, "afftdn"):
             chain.append(f"afftdn=nr={p.afftdn_nr:g}:nf=-50:tn=1")
+            latence = AFFTDN_RETARD
+        if len(chain) > debut_nettoyage and _has(present, "adelay") and _has(present, "atrim"):
+            # Mesuré (n°20, A2 et A4) : afftdn retarde le son de 25 ms exactement et coupe ses
+            # premières millisecondes ; adeclick écrase le tout début. Un court silence est mis
+            # devant (les filtres sont lancés avant le film), puis retiré avec le retard : le
+            # premier mot reste entier, le son reste calé, la durée reste exacte.
+            chain.insert(debut_nettoyage, f"adelay={int(PRE_SILENCE * 1000)}:all=1")
+            chain += [f"atrim=start={PRE_SILENCE + latence:.3f}", "asetpts=PTS-STARTPTS"]
+            if latence:
+                chain.append(f"apad=pad_dur={latence:.3f}")
         if p.loudnorm and _has(present, "dynaudnorm"):
             # gain plafonné : rattrape les écarts de volume sans écraser l'ambiance
             chain.append("dynaudnorm=f=250:g=15:p=0.95:m=8")
@@ -567,10 +583,12 @@ def _cast_filter(s: Settings) -> str | None:
     """Balance calculée une fois (gains fixes). Absente si les trois canaux sont déjà égaux.
     La teinte de l'utilisateur (−3 froide … +3 chaude) s'y ajoute : 3 % de rouge / bleu par cran."""
     t = cran(s.teinte)
-    gains = (float(s.gain_r) * (1 + PAS_TEINTE * t), float(s.gain_g), float(s.gain_b) * (1 - PAS_TEINTE * t))
-    if all(abs(g - 1.0) < 0.02 for g in gains):
+    # Plafond de la dominante d'abord, PUIS la teinte (n°20, B2) : au plafond (1,18), « Plus
+    # chaude » n'ajoutait plus rien au film alors que l'aperçu, lui, réchauffait l'image.
+    gr, gg, gb = safe_gains((float(s.gain_r), float(s.gain_g), float(s.gain_b)))
+    rr, bb = gr * (1 + PAS_TEINTE * t), gb * (1 - PAS_TEINTE * t)
+    if all(abs(g - 1.0) < 0.02 for g in (rr, gg, bb)):
         return None
-    rr, gg, bb = safe_gains(gains)
     return f"colorchannelmixer=rr={rr:.4f}:gg={gg:.4f}:bb={bb:.4f}"
 
 
@@ -596,6 +614,8 @@ def pre_filters(info: MediaInfo, s: Settings, origine: float | None = None) -> l
     shift = max(-8, min(8, int(s.chroma_shift or 0)))
     if shift:
         # VHS : la couleur glisse souvent horizontalement. 0 = filtre absent.
+        # Compté en pixels de couleur (deux pixels d'image en 4:2:0 et 4:2:2) : la détection
+        # automatique et ses essais comptent ainsi (n°20, B3 : limite connue, gardée).
         f.append(f"chromashift=cbh={shift}:crh={shift}")
     if p.despeckle:
         f.append("removegrain=m0=1:m1=1:m2=1")
@@ -646,6 +666,8 @@ def _bottom_mask(info: MediaInfo, s: Settings) -> list[str]:
     if n < 2 or s.source != "video":
         return []
     w, h, _ = target_size(info, s)
+    # n est compté en lignes du film d'origine (n°20, B4) : en Full HD, 16 lignes de 576 en font 30
+    n = round(n * h / max(1, int(info.height or h)))
     n = min(n // 2 * 2, (h // 4) // 2 * 2)
     if n < 2 or h - n < 2:
         return []
@@ -750,6 +772,7 @@ class _FFProgress:
     """Convertit les lignes 'out_time_us=' de -progress en fraction."""
 
     def __init__(self, total: float, cb: Progress | None, lo: float, hi: float, label: str):
+        self.inconnue = not total or total <= 0.01
         self.total, self.cb, self.lo, self.hi, self.label = max(total, 0.001), cb, lo, hi, label
 
     def __call__(self, line: str) -> None:
@@ -758,7 +781,13 @@ class _FFProgress:
                 t = int(line.split("=", 1)[1]) / 1e6
             except ValueError:
                 return
-            self.cb(self.lo + (self.hi - self.lo) * min(1.0, max(0.0, t / self.total)), self.label)
+            if self.inconnue:
+                # Durée inconnue (n°20, E5) : la barre avance sans jamais toucher la fin
+                # (moitié à 5 minutes de film), au lieu de 100 % dès la première image.
+                part = max(0.0, t) / (max(0.0, t) + 300.0)
+            else:
+                part = min(1.0, max(0.0, t / self.total))
+            self.cb(self.lo + (self.hi - self.lo) * part, self.label)
 
 
 def source_inputs(info: MediaInfo, s: Settings, tools: Toolset, start: float | None,
@@ -1521,9 +1550,12 @@ def _write_audio_copy(out_path: Path, info: MediaInfo, s: Settings, tools: Tools
     if progress:
         progress(0.99, "Copie du son restauré…")
     try:
+        # avancement suivi (n°20, E9) : la barre restait à 99 % pendant toute la copie
+        suivi = _FFProgress(float(info.duration or 0), progress, 0.99, 1.0, "Copie du son restauré…")
         run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "error",
+             "-progress", "pipe:1", "-nostats",
              "-i", str(out_path), "-vn", "-map", "0:a:0", *codec, str(part)],
-            cancel=cancel, what="FFmpeg (copie du son)")
+            cancel=cancel, on_line=suivi, what="FFmpeg (copie du son)")
         finaliser(part, dest)
     except BaseException as exc:
         if not isinstance(exc, FichierOccupe):

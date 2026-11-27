@@ -194,6 +194,51 @@ def partiel_unique(final: Path) -> Path:
     return Path(nom)
 
 
+def _prendre_verrou(chemin: Path) -> int | None:
+    """Ouvre le fichier verrou et le tient (verrou du système) tant que le travail dure.
+
+    Un verrou laissé par un arrêt brutal (coupure, plantage) n'est plus tenu par personne : il est
+    repris (n°20, D4 et E7 : il faisait sortir le film sous le nom « (2) »). Tenu par un autre
+    logiciel en cours : None."""
+    try:
+        fd = os.open(chemin, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+    except FileExistsError:
+        try:
+            fd = os.open(chemin, os.O_RDWR)
+        except OSError:
+            return None
+    try:
+        if IS_WIN:
+            import msvcrt
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(fd)
+        return None
+    return fd
+
+
+def _rendre_verrou(fd: int, chemin: Path) -> None:
+    try:
+        if IS_WIN:
+            import msvcrt
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    except OSError:
+        pass
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+    effacer(chemin)
+
+
 @contextmanager
 def reserver_sorties(principal, annexes):
     """Un verrou exclusif par sortie, partagé entre instances, sur le disque cible."""
@@ -203,31 +248,33 @@ def reserver_sorties(principal, annexes):
     while True:
         candidat = principal if numero == 1 else principal.with_name(
             f"{principal.stem} ({numero}){principal.suffix}")
-        verrous = []
+        verrous: list[tuple[int, Path]] = []
         try:
             for cible in [candidat, *annexes(candidat)]:
                 verrou = cible.with_name("." + cible.name + ".reserve")
                 verifier_chemin(verrou)
-                verrou.touch(exist_ok=False)
+                fd = _prendre_verrou(verrou)
+                if fd is None:                         # un autre travail en cours écrit ce nom
+                    raise FileExistsError(verrou)
+                verrous.append((fd, verrou))
                 cacher(verrou)
-                verrous.append(verrou)
                 if cible.exists():
                     raise FileExistsError(cible)
         except FileExistsError:
             numero += 1
         except BaseException:
-            for verrou in verrous:
-                effacer(verrou)
+            for fd, verrou in verrous:
+                _rendre_verrou(fd, verrou)
             raise
         else:
             try:
                 yield candidat
             finally:
-                for verrou in verrous:
-                    effacer(verrou)
+                for fd, verrou in verrous:
+                    _rendre_verrou(fd, verrou)
             return
-        for verrou in verrous:
-            effacer(verrou)
+        for fd, verrou in verrous:
+            _rendre_verrou(fd, verrou)
 
 
 def _publier(part, final):
@@ -268,8 +315,9 @@ def effacer(path: Path) -> None:
 
 def verifier_chemin(path: Path, *, origine: bool = False) -> None:
     """Windows refuse souvent les chemins de plus de 260 caractères : on le dit AVANT de travailler."""
-    if IS_WIN and len(str(Path(path).resolve())) >= 250:
-        n = len(str(Path(path)))
+    complet = str(Path(path).resolve())
+    if IS_WIN and len(complet) >= 250:
+        n = len(complet)              # la longueur vérifiée, pas celle d'un nom relatif (n°20, D7)
         if origine:
             raise ToolError(
                 f"Le chemin du film d'origine est trop long pour Windows ({n} caractères). "

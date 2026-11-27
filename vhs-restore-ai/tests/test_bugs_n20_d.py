@@ -23,7 +23,6 @@ from vhs_restore.profiles import profile_for
 from vhs_restore.pipeline import Settings
 
 
-@pytest.mark.xfail(strict=True, reason="un verrou .reserve orphelin fait sauter le nom libre")
 def test_verrou_reserve_orphelin_ne_bloque_pas_le_nom(tmp_path):
     """Un arrêt brutal laisse « .noel.mp4.reserve ». Le film n'existe pas, le nom doit rester disponible."""
     dest = tmp_path / "noel.mp4"
@@ -32,7 +31,6 @@ def test_verrou_reserve_orphelin_ne_bloque_pas_le_nom(tmp_path):
         assert choisi == dest
 
 
-@pytest.mark.xfail(strict=True, reason="le message de chemin trop long reprend la forme relative, trop courte")
 def test_verifier_chemin_annonce_la_longueur_reelle(tmp_path, monkeypatch):
     """Windows : on refuse dès 250 caractères. Le nombre annoncé doit être celui du chemin résolu."""
     monkeypatch.setattr(tools_mod, "IS_WIN", True)
@@ -102,7 +100,6 @@ os._exit(0)
             pass
 
 
-@pytest.mark.xfail(strict=True, reason="atexit n'efface pas preview_dir ni le dossier de Lumiere")
 def test_atexit_efface_les_dossiers_temporaires_de_la_fenetre(tools):
     """Fermeture par interruption (Ctrl+C, fin du processus) : closeEvent peut ne pas passer.
 

@@ -73,9 +73,6 @@ def test_passages_gardes_le_son_ne_derive_pas(tmp_path, tools):
         f"retard en plus {croissance * 1000:.0f} ms")
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "afftdn (profil Nettoyage léger) retarde tout le son d'environ 24 ms. "
-    "Sur un film d'une heure, le bip de 3590 s est encore à 3590,024 s."))
 def test_film_long_bip_et_repere_a_20ms(tmp_path, tools, monkeypatch):
     """60 min, 320×240, bip et repère toutes les 10 s. Ils doivent rester à 20 ms."""
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "loc"))
@@ -104,9 +101,6 @@ def _tempo(info, s) -> float:
     return pipeline._tempo_factor(info, s, drift=True)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Profil Bien nettoyé : le bip du début (0 s) disparaît. "
-    "Le suivant, à 10 s, reste audible mais 24 ms trop tard."))
 def test_equilibre_garde_le_bip_d_ouverture(tmp_path, tools):
     src = _film_bips(tmp_path, 12, "source.mp4")
     info = dataclasses.replace(analyze(src, tools), scan="progressive")

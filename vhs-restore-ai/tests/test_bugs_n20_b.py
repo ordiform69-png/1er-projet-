@@ -90,8 +90,6 @@ def test_scintillement_ne_tire_pas_la_couleur_avant_la_coupure(tmp_path):
                          np.round(avec[avant], 1).tolist())
 
 
-@pytest.mark.xfail(strict=True, reason="le gain rouge est déjà au plafond 1,18 : "
-                    "teinte +3 ajoute 0 de rouge au film et +13 à l'aperçu")
 def test_teinte_chaude_arrive_dans_le_film_meme_au_plafond(tmp_path):
     """Cassette verte déjà corrigée jusqu'au plafond, puis « Plus chaude » (+3).
 
@@ -137,8 +135,7 @@ def test_teinte_chaude_arrive_dans_le_film_meme_au_plafond(tmp_path):
     assert rouge >= 8.0, (round(rouge, 2), round(annonce, 2))
 
 
-@pytest.mark.xfail(strict=True, reason="chromashift décale la chroma, pas l'image : "
-                    "4 px demandés déplacent la couleur de 8 px")
+@pytest.mark.xfail(strict=True, reason="gardé (Claude, n°21) : la détection automatique et test_chroma comptent en pixels de couleur ; changer l'unité casserait la correction")
 def test_decalage_couleur_compte_en_pixels_d_image():
     """Un réglage de 4 px doit déplacer la couleur de 4 pixels d'image, pas de 8.
 
@@ -171,8 +168,6 @@ def test_decalage_couleur_compte_en_pixels_d_image():
     assert abs(deplacement - 4) <= 1, deplacement
 
 
-@pytest.mark.xfail(strict=True, reason="en Full HD le masque du bas reste à 16 lignes d'image "
-                    "au lieu des 30 lignes que font 16 lignes de VHS")
 def test_bande_du_bas_couvre_la_commutation_en_full_hd(tmp_path):
     """16 lignes de bande en 576 doivent devenir noires aussi après l'agrandissement en 1080.
 

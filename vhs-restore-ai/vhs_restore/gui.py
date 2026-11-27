@@ -101,6 +101,13 @@ def _eteindre_a_la_sortie() -> None:
             pass
     for fil in list(_NETTOYEURS):
         fil.join(3)
+    # Dossiers temporaires de la fenêtre (n°20, D5) : effacés aussi quand la fenêtre n'a pas pu
+    # se fermer normalement (Ctrl+C, fin du programme), sinon ils restaient dans %TEMP%.
+    for win in list(_FENETRES):
+        for chemin in (getattr(win, "preview_dir", None),
+                       getattr(getattr(win, "lumiere", None), "dossier", None)):
+            if chemin:
+                shutil.rmtree(str(chemin), ignore_errors=True)
     try:
         sys.stdout.flush()
         sys.stderr.flush()
@@ -4647,6 +4654,9 @@ class MainWindow(QMainWindow):
             if not self._busy():                    # fini pendant la question : rien à arrêter
                 return
         self.worker.cancel_event.set()
+        # « Arrêter » arrête aussi la copie de lecture en fond (n°20, E6) : sinon FFmpeg continuait
+        # de recopier tout le film. Elle sera refaite à la prochaine ouverture du film.
+        self._arreter_copie()
         self.status.setText("Annulation en cours…")
 
     def _travail_long(self) -> bool:

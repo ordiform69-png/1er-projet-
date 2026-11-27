@@ -128,11 +128,17 @@ def infos_video(ffprobe: str, chemin: Path) -> InfosVideo:
         dar = Fraction(str(v.get("display_aspect_ratio", "")).replace(":", "/"))
     except (ValueError, ZeroDivisionError):
         dar = Fraction(0)
+    try:
+        sar = Fraction(str(v.get("sample_aspect_ratio", "1:1")).replace(":", "/"))
+    except (ValueError, ZeroDivisionError):
+        sar = Fraction(1)
+    if sar <= 0 or sar == 1:
+        from .probe import SD_SIZES
+        if (largeur, hauteur) in SD_SIZES:
+            # Capture SD sans format (pixels « carrés ») : 4:3, la même règle que l'analyse
+            # (n°20, E1 : la copie sortait en 5:4, visages trop étroits).
+            dar = Fraction(4, 3)
     if dar <= 0:
-        try:
-            sar = Fraction(str(v.get("sample_aspect_ratio", "1:1")).replace(":", "/"))
-        except (ValueError, ZeroDivisionError):
-            sar = Fraction(1)
         dar = Fraction(largeur, hauteur) * (sar if sar > 0 else 1)
     try:
         duree = float(d.get("format", {}).get("duration") or 0)
