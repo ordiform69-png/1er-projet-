@@ -47,9 +47,12 @@ if (-not $SansTests) {
     if ($TousLesTests) {
         $cibles = @('tests')
     } else {
+        # + les corrections propres à Windows (verrous, installation, écran zoomé, chemins)
         $cibles = @('tests/test_aac_ffmpeg9.py', 'tests/test_pipeline.py', 'tests/test_scenes.py',
                     'tests/test_reprise.py', 'tests/test_copie_lecture.py', 'tests/test_lumiere.py',
-                    'tests/test_estimation.py', 'tests/test_ecrans.py')
+                    'tests/test_estimation.py', 'tests/test_ecrans.py', 'tests/test_installer.py',
+                    'tests/test_installateur.py', 'tests/test_pieges_windows.py',
+                    'tests/test_bugs_n20_c.py', 'tests/test_bugs_n20_d.py', 'tests/test_bugs_n20_e.py')
     }
     $env:QT_QPA_PLATFORM = 'offscreen'
     $env:PYTHONUTF8 = '1'
