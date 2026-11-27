@@ -505,9 +505,13 @@ def installer(w):
         lay.addWidget(host)
     grid.addWidget(w._row_edge, 2, 0)
     grid.addWidget(w._row_chroma, 2, 1)
+    # Les quatre cases les plus longues à gauche, les courtes à droite : une colonne prend la
+    # largeur de sa plus longue case. Mélangées, la section dépassait de côté à 1024 px sous
+    # Windows (polices plus larges). Scintillement et poussières (film seulement) sur la même
+    # ligne : cachées ensemble, la ligne disparaît.
     for index, widget in enumerate((
-                                    w.cast_check, w.hq_check, w.stab_check, w.flicker_check,
-                                    w.dust_check, w.tape_check, w.dropout_check, w.chroma_check)):
+                                    w.cast_check, w.stab_check, w.chroma_check, w.tape_check,
+                                    w.hq_check, w.dropout_check, w.flicker_check, w.dust_check)):
         widget.setMinimumWidth(0)
         grid.addWidget(widget, 3 + index // 2, index % 2)
 

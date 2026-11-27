@@ -11,6 +11,7 @@ Les textes d'écran (cas 8) sont dans `ergonomie` (R2) : voir aussi
 après fusion de R2.
 """
 import dataclasses
+import json
 import os
 import shutil
 import subprocess
@@ -151,8 +152,9 @@ def test_menage_autre_cle_et_trente_jours(tmp_path, monkeypatch):
     info = MediaInfo(path=film, duration=3600)
     ancienne = rac / ("ab" * 32)
     ancienne.mkdir()
+    # json.dumps : sous Windows, les « \ » du chemin cassaient un JSON écrit à la main
     (ancienne / "manifeste.json").write_text(
-        '{"version": 1, "chemin": "%s", "taille": 6, "date": 1}' % str(film.resolve()),
+        json.dumps({"version": 1, "chemin": str(film.resolve()), "taille": 6, "date": 1}),
         encoding="utf-8")
     (ancienne / "partie-0001.mp4").write_bytes(b"partie")
     vieux = rac / ("cd" * 32)

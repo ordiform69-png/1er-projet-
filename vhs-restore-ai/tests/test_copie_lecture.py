@@ -392,5 +392,5 @@ def test_vitesse_de_preparation(tmp_path, tools):
         f"coeurs={os.cpu_count()} ffmpeg={tools.ffmpeg.version}"
     )
     print("VITESSE " + texte)
-    Path("/tmp/vhs-vitesse-copie.txt").write_text(texte + "\n", encoding="utf-8")
+    (tmp_path / "vhs-vitesse-copie.txt").write_text(texte + "\n", encoding="utf-8")   # /tmp n'existe pas sous Windows
     assert par_seconde > 1
