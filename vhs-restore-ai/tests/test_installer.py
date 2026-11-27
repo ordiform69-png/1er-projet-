@@ -9,7 +9,10 @@ import hashlib
 import http.server
 import io
 import os
+import shutil
+import ssl
 import threading
+import urllib.error
 import zipfile
 from pathlib import Path
 
@@ -181,6 +184,60 @@ def test_telechargement_coupe_reessaye(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
     assert len(essais) == 2 and (tmp_path / "x").read_bytes() == data
+
+
+def _certificat_refuse(*_a, **_k):
+    """Le message exact vu chez l'utilisateur (Windows, PC principal, connexion qui marche)."""
+    raise urllib.error.URLError(ssl.SSLCertVerificationError(
+        1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get issuer certificate "
+           "(_ssl.c:1010)"))
+
+
+def test_certificat_refuse_passe_par_curl_de_windows(paquets, tmp_path, monkeypatch):
+    """Python refuse le certificat alors que la connexion marche : le fichier est repris par
+    curl.exe (certificats de Windows), son empreinte vérifiée, sans trois essais inutiles."""
+    curl = shutil.which("curl")
+    if curl is None:
+        pytest.skip("curl absent")
+    essais = []
+
+    def refus(*a, **k):
+        essais.append(1)
+        _certificat_refuse()
+    monkeypatch.setattr(installer.urllib.request, "urlopen", refus)
+    monkeypatch.setattr(installer, "_curl_windows", lambda: curl)
+    avancees = []
+    chemin = installer.install("realesrgan", root=tmp_path / "outils",
+                               progress=lambda f, m: avancees.append((f, m)))
+    assert chemin.is_file() and chemin.read_bytes() == b"exe factice"
+    assert len(essais) == 1                              # pas trois essais ni 30 s d'attente
+    assert avancees and avancees[-1][0] == 1.0
+
+
+def test_certificat_refuse_sans_curl_message_juste(paquets, tmp_path, monkeypatch):
+    """Sans curl.exe : on ne dit pas « Vérifiez la connexion Internet » à quelqu'un de connecté."""
+    monkeypatch.setattr(installer.urllib.request, "urlopen", _certificat_refuse)
+    monkeypatch.setattr(installer, "_curl_windows", lambda: None)
+    with pytest.raises(ToolError) as e:
+        installer.install("realesrgan", root=tmp_path / "outils")
+    texte = str(e.value)
+    assert "certificat" in texte and "connexion n'est pas en cause" in texte
+    assert "Vérifiez la connexion Internet" not in texte
+    assert not (tmp_path / "outils" / installer.PAQUETS["realesrgan"].folder).exists()
+
+
+def test_certificat_refuse_curl_mauvais_fichier_refuse(paquets, tmp_path, monkeypatch):
+    curl = shutil.which("curl")
+    if curl is None:
+        pytest.skip("curl absent")
+    monkeypatch.setattr(installer.urllib.request, "urlopen", _certificat_refuse)
+    monkeypatch.setattr(installer, "_curl_windows", lambda: curl)
+    p = dict(installer.PAQUETS)
+    p["realesrgan"] = dataclasses.replace(p["realesrgan"], sha256="0" * 64)
+    monkeypatch.setattr(installer, "PAQUETS", p)
+    with pytest.raises(ToolError, match="empreinte différente"):
+        installer.install("realesrgan", root=tmp_path / "outils")
+    assert not (tmp_path / "outils" / p["realesrgan"].folder).exists()
 
 
 def test_installation_script_et_interface_partagent_le_manifeste():

@@ -18,8 +18,11 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import re
+import ssl
 import stat
+import subprocess
 from pathlib import PureWindowsPath
 import shutil
 import tempfile
@@ -31,7 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .tools import IS_WIN, Cancelled, ToolError, run, user_tools_dir
+from .tools import _NO_WINDOW, IS_WIN, Cancelled, ToolError, run, terminate, user_tools_dir
 
 Progress = Callable[[float, str], None]
 
@@ -58,9 +61,68 @@ def can_install(key: str) -> bool:
     return key != "ffmpeg" and p is not None and (IS_WIN or not p.windows_only)
 
 
+def _curl_windows() -> str | None:
+    """curl.exe, livré avec Windows 10 (depuis 2018) et 11. Il vérifie les certificats comme le
+    navigateur : magasin de Windows, qui va chercher lui-même un certificat racine manquant."""
+    if not IS_WIN:
+        return None
+    racine = os.environ.get("SystemRoot") or os.environ.get("WINDIR") or r"C:\Windows"
+    chemin = Path(racine) / "System32" / "curl.exe"
+    return str(chemin) if chemin.is_file() else None
+
+
+def _certificat_refuse(exc: BaseException) -> bool:
+    """[SSL: CERTIFICATE_VERIFY_FAILED] : Python ne trouve pas un certificat que Windows, lui,
+    sait aller chercher (constaté chez l'utilisateur : « unable to get issuer certificate »)."""
+    raison = getattr(exc, "reason", None)
+    return (isinstance(exc, ssl.SSLCertVerificationError) or isinstance(raison, ssl.SSLCertVerificationError)
+            or "CERTIFICATE_VERIFY_FAILED" in str(exc))
+
+
+def _empreinte(chemin: Path) -> str:
+    h = hashlib.sha256()
+    with open(chemin, "rb") as f:
+        for bloc in iter(lambda: f.read(1 << 20), b""):
+            h.update(bloc)
+    return h.hexdigest()
+
+
+def _download_curl(curl: str, url: str, dest: Path, cancel: threading.Event | None,
+                   progress: Progress | None, label: str, taille_mo: int) -> None:
+    """Le même téléchargement par curl.exe de Windows. OSError si curl échoue."""
+    options = ["--location", "--fail", "--silent", "--show-error", "--retry", "3", "--retry-delay", "2",
+               "--connect-timeout", "30", "--user-agent", "VHSRestoreAI", "--output", str(dest), url]
+    # révocation « au mieux », comme les navigateurs ; un curl trop ancien ne connaît pas l'option
+    for essai in (["--ssl-revoke-best-effort"], []):
+        dest.unlink(missing_ok=True)
+        proc = subprocess.Popen([curl, *essai, *options], stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, creationflags=_NO_WINDOW)
+        try:
+            while proc.poll() is None:
+                if cancel is not None and cancel.is_set():
+                    terminate(proc)
+                    raise Cancelled()
+                if progress and taille_mo:
+                    fait = dest.stat().st_size if dest.exists() else 0
+                    progress(0.9 * min(1.0, fait / (taille_mo * 1_000_000)),
+                             f"Téléchargement de {label} ({fait // 1_000_000} / {taille_mo} Mo)…")
+                time.sleep(0.25)
+        finally:
+            if proc.poll() is None:
+                terminate(proc)
+        erreur = (proc.stderr.read() if proc.stderr else b"").decode("utf-8", "replace").strip()
+        if proc.returncode == 0:
+            return
+        if proc.returncode != 2 or not essai:             # 2 : option inconnue (curl ancien)
+            raise OSError(f"curl {proc.returncode} : {erreur[-300:] or 'échec'}")
+
+
 def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event | None,
-              progress: Progress | None, label: str) -> None:
-    """Téléchargement avec 3 essais, progression, annulation et vérification SHA-256."""
+              progress: Progress | None, label: str, taille_mo: int = 0) -> None:
+    """Téléchargement avec 3 essais, progression, annulation et vérification SHA-256.
+
+    Certificat refusé par Python (ou réseau en échec) : le même fichier par curl.exe de
+    Windows, avec la même vérification d'empreinte."""
     last: Exception | None = None
     for essai in range(1, 4):
         try:
@@ -91,12 +153,33 @@ def _download(url: str, dest: Path, expected_sha: str, cancel: threading.Event |
             raise
         except OSError as exc:            # réseau coupé, site indisponible…
             last = exc
+            if _certificat_refuse(exc):
+                break                     # réessayer ne change rien : on passe par Windows
             if essai < 3:
                 for _ in range(10 * essai):
                     if cancel is not None and cancel.is_set():
                         raise Cancelled()
                     time.sleep(0.5)
-    raise ToolError(f"Téléchargement impossible de {label} : {last}. Vérifiez la connexion Internet.")
+    curl = _curl_windows()
+    if curl is not None:
+        try:
+            _download_curl(curl, url, dest, cancel, progress, label, taille_mo)
+        except OSError as exc:
+            log_curl = exc
+        else:
+            if _empreinte(dest) != expected_sha:
+                raise ToolError(f"Le fichier téléchargé pour {label} n'est pas le bon (empreinte différente). "
+                                "Rien n'a été installé. Réessayez plus tard.")
+            return
+    else:
+        log_curl = None
+    if last is not None and _certificat_refuse(last):
+        raise ToolError(f"Téléchargement impossible de {label} : le certificat de sécurité du site n'a pas pu "
+                        "être vérifié sur cet ordinateur. Votre connexion n'est pas en cause. Réessayez plus "
+                        "tard ; si cela continue, un antivirus qui filtre les connexions sécurisées peut en être "
+                        f"la cause.\n(Détail : {last}" + (f" ; {log_curl}" if log_curl else "") + ")")
+    raise ToolError(f"Téléchargement impossible de {label} : {last}"
+                    + (f" ; {log_curl}" if log_curl else "") + ". Vérifiez la connexion Internet.")
 
 
 def _membre(dest, nom):
@@ -183,7 +266,7 @@ def install(key: str, *, cancel: threading.Event | None = None, progress: Progre
     work = Path(tempfile.mkdtemp(prefix=f"vhsra_{p.key}_", dir=base))
     try:
         dl = work / ({"zip": "paquet.zip", "7z": "paquet.7z"}.get(p.kind) or p.file_name)
-        _download(p.url, dl, p.sha256, cancel, progress, p.name)
+        _download(p.url, dl, p.sha256, cancel, progress, p.name, p.size_mb)
         if progress:
             progress(0.93, f"Installation de {p.name}…")
         staged = work / "installe"

@@ -1118,3 +1118,15 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   seuil minimum ; fondu partout sauf vraie coupure ; correction de chaque scène proche de celle
   du film (écart plafonné, sans tout ou rien) ; validée sur de vrais films de l'utilisateur, sur
   son PC (les films ne quittent pas le PC) : aucune coupure inventée, aucun saut visible.
+
+## Installation des modules : certificat refusé par Python sous Windows (27 novembre 2026)
+
+- Chez l'utilisateur (PC principal, connexion qui marche) : « Téléchargement impossible de
+  Real-ESRGAN : [SSL: CERTIFICATE_VERIFY_FAILED] … unable to get issuer certificate ».
+  Real-ESRGAN, DeepFilterNet, LosslessCut et Shotcut (tous sur GitHub). Les adresses et les
+  empreintes sont bonnes (vérifiées le 27 novembre). Cause : Python lit les certificats de Windows
+  mais ne va pas chercher un certificat racine manquant, ce que Windows fait pour le navigateur.
+- Correction : certificat refusé (ou réseau en échec après 3 essais), le même fichier est repris
+  par `curl.exe` de Windows (System32, Windows 10 et 11), qui vérifie comme le navigateur ;
+  empreinte SHA-256 vérifiée de la même façon. Pas de nouvelle dépendance. Message juste si tout
+  échoue : le certificat, pas « Vérifiez la connexion Internet ».
