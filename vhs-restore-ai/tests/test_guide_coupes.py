@@ -75,9 +75,10 @@ def test_comment_faire_schema_et_aide(tools, samples, monkeypatch):
     assert "carrés blancs" in vu
     assert "Annuler la dernière coupe" in vu
 
-    from PySide6.QtWidgets import QMessageBox
+    # l'aide est une fenêtre qui défile (n°20, C1) : même texte, lu dans la fenêtre
+    from PySide6.QtWidgets import QDialog
     boites: list[str] = []
-    monkeypatch.setattr(QMessageBox, "exec", lambda self: boites.append(self.text()) or 0)
+    monkeypatch.setattr(QDialog, "exec", lambda self: boites.append(getattr(self, "texte", "")) or 0)
     win.show_welcome()
     assert boites
     assert GUIDE_COUPES_AUCUNE in boites[0]

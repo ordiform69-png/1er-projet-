@@ -1381,7 +1381,15 @@ class MainWindow(QMainWindow):
     def __init__(self, tools: Toolset | None = None) -> None:
         super().__init__()
         self.setWindowTitle("VHS Restore AI")
-        self.resize(1100, 760)
+        # Taille « normale » ramenée à l'écran (n°20, C2) : 1100 × 760 dépassait 1280 × 641
+        # (« Lancer la restauration » sortait du bas) et 1024 de large.
+        ecran = QApplication.primaryScreen()
+        dispo = ecran.availableGeometry() if ecran is not None else None
+        largeur, hauteur = 1100, 760
+        if dispo is not None and dispo.width() > 0 and dispo.height() > 0:
+            largeur = min(largeur, dispo.width())
+            hauteur = min(hauteur, max(300, dispo.height() - 32))        # barre de titre
+        self.resize(largeur, hauteur)
         app = QApplication.instance()
         if app is not None:
             theme.apply(app)
@@ -2113,8 +2121,7 @@ class MainWindow(QMainWindow):
 
     def show_welcome(self) -> None:
         """Mode d'emploi en trois étapes (au premier lancement, puis par le bouton « Aide »)."""
-        box = QMessageBox(QMessageBox.Information, "Bienvenue dans VHS Restore AI",
-                          "Restaurer un film ou une photo se fait en trois étapes :\n\n"
+        texte = ("Restaurer un film ou une photo se fait en trois étapes :\n\n"
                           "1.  « Choisir un film ou une photo » : sélectionnez le fichier.\n"
                           "2.  « Voir l'avant / après » : regardez le résultat sur un petit extrait. "
                           "Image trop sombre ou couleurs ternes ? « Lumière et couleurs » les règle "
@@ -2145,11 +2152,43 @@ class MainWindow(QMainWindow):
                           "il faut renumériser ou couper ;\n"
                           "· la qualité de la numérisation compte plus que les filtres ;\n"
                           "· les couleurs restaurées sont une estimation ;\n"
-                          "· l'IA peut inventer des textures : regardez toujours l'avant / après.",
-                          parent=self)
-        box.setStyleSheet("QLabel#qt_msgbox_label { min-width: 620px; font-size: 14pt; }")   # large, lisible
-        box.addButton("C'est parti", QMessageBox.AcceptRole)
-        box.exec()
+                          "· l'IA peut inventer des textures : regardez toujours l'avant / après.")
+        # Une fenêtre qui tient sur l'écran (n°20, C1) : le texte défile, « C'est parti » reste
+        # visible en bas (Entrée), Échap ferme. Avant : une boîte de 1169 px de haut sur un écran
+        # de 641, bouton hors de vue.
+        dlg = QDialog(self)
+        dlg.setObjectName("aide")
+        dlg.setWindowTitle("Bienvenue dans VHS Restore AI")
+        dlg.texte = texte
+        lab = QLabel(texte)
+        lab.setObjectName("texteAide")
+        lab.setTextFormat(Qt.PlainText)
+        lab.setWordWrap(True)
+        lab.setStyleSheet("font-size: 14pt;")                          # large, lisible
+        lab.setContentsMargins(4, 4, 12, 4)
+        zone = QScrollArea()
+        zone.setWidgetResizable(True)
+        zone.setFrameShape(QFrame.NoFrame)
+        zone.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        zone.setWidget(lab)
+        zone.setMinimumHeight(80)
+        parti = QPushButton("C'est parti")
+        parti.setObjectName("cestParti")
+        parti.setDefault(True)
+        parti.setAutoDefault(True)
+        parti.clicked.connect(dlg.accept)
+        bas = QHBoxLayout()
+        bas.addStretch(1)
+        bas.addWidget(parti)
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(zone, 1)
+        lay.addLayout(bas)
+        ecran = (self.screen() or QApplication.primaryScreen())
+        dispo = ecran.availableGeometry() if ecran is not None else QRect(0, 0, 1280, 641)
+        # 520 au plus : tient aussi sur le plus petit écran courant (1093 × 535) ; le texte défile
+        dlg.resize(max(320, min(780, dispo.width() - 40)), max(240, min(520, dispo.height() - 60)))
+        parti.setFocus()
+        dlg.exec()
 
     def maybe_welcome(self) -> None:
         """Premier lancement : montre le mode d'emploi une fois."""
