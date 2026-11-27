@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
 import re
 import shutil
 import threading
@@ -307,8 +308,23 @@ def nommer(ffmpeg: str, src: Path, nom: str, date: str = "", *, annexes: list[Pa
     if not propre:
         raise ToolError("Le nom choisi est vide. Tapez par exemple « Noël 1988 ».")
     voulu = src.with_name(propre + src.suffix)
+    meta = ["-metadata", f"title={nom.strip()}"]
+    if date.strip():
+        meta += ["-metadata", f"date={date.strip()}"]
     if voulu.resolve() == src.resolve():
-        voulu = src.with_name(f"{propre} (2){src.suffix}")
+        # Même nom (n°20, E8) : le fichier garde son nom. Avant : « (2) » et l'ancien nom perdu.
+        if src.suffix.lower() != ".mp4":
+            return src                            # photo : rien à changer
+        partiel = partiel_unique(src)
+        try:
+            run([ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-i", str(src),
+                 "-map", "0", "-c", "copy", "-map_metadata", "0", *meta, "-movflags", "+faststart",
+                 "-f", "mp4", str(partiel)], cancel=cancel, what="FFmpeg (nommer le film)")
+            os.replace(partiel, src)
+        except BaseException:
+            effacer(partiel)
+            raise
+        return src
     annexes = [Path(p) for p in (annexes or []) if Path(p).is_file()]
     with reserver_sorties(voulu, lambda p: [p.with_suffix(a.suffix) for a in annexes]) as dst:
         if src.suffix.lower() != ".mp4":         # photo : un simple changement de nom, sans écrasement
@@ -320,9 +336,6 @@ def nommer(ffmpeg: str, src: Path, nom: str, date: str = "", *, annexes: list[Pa
                     pass
             return dst
         partiel = partiel_unique(dst)
-        meta = ["-metadata", f"title={nom.strip()}"]
-        if date.strip():
-            meta += ["-metadata", f"date={date.strip()}"]
         cmd = [ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-i", str(src),
                "-map", "0", "-c", "copy", "-map_metadata", "0", *meta, "-movflags", "+faststart",
                "-f", "mp4", str(partiel)]

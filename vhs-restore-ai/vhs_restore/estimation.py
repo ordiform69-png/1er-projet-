@@ -7,6 +7,7 @@ Aucun filtre n'est modifié.
 """
 from __future__ import annotations
 
+import math
 import os
 import shutil
 from pathlib import Path
@@ -49,10 +50,13 @@ def phrase_temps(secondes: float) -> str:
         return "environ 1 minute"
     if secondes < 3600:
         return f"environ {max(2, round(secondes / 60))} minutes"
-    if secondes < 5400:
-        return "environ 1 heure"
-    n = max(2, round(secondes / 3600))
-    return f"environ {n} heure" if n == 1 else f"environ {n} heures"
+    # Au-delà d'une heure : au quart d'heure SUPÉRIEUR, jamais moins que le calcul (n°20, E4 :
+    # 1 h 19 était annoncé « environ 1 heure », de quoi éteindre l'ordinateur avant la fin).
+    quarts = math.ceil(secondes / 900)
+    heures, reste = divmod(quarts, 4)
+    if reste == 0:
+        return "environ 1 heure" if heures == 1 else f"environ {heures} heures"
+    return f"environ {heures} h {reste * 15:02d}"
 
 
 def _go(octets: float) -> str:

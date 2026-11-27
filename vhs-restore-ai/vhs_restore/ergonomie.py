@@ -82,6 +82,11 @@ def expliquer(message: str) -> tuple[str, str]:
             or "fermez-le, puis recommencez l'installation" in bas
             or "fat32" in bas):
         clair = brut                        # message déjà écrit pour la personne : il dit quoi faire
+    elif any(mot in bas for mot in ("no space left", "errno 28", "winerror 112", "not enough space",
+                                    "espace insuffisant", "espace disque", "disk full", "disque plein")):
+        # avant « accès refusé » : un disque plein est souvent signalé en même temps (n°20, D3)
+        clair = ("Le disque est plein : il n'y a plus assez de place pour le film restauré. "
+                 "Libérez de la place, ou choisissez un autre dossier (un autre disque), puis recommencez.")
     elif any(mot in bas for mot in ("permission denied", "errno 13", "winerror 32", "winerror 5",
                                     "used by another process", "read-only file system", "lecture seule",
                                     "accès refusé", "access is denied")):

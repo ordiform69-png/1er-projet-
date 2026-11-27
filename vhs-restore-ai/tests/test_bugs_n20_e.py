@@ -121,7 +121,6 @@ def test_arreter_la_separation_ne_laisse_pas_de_film(tools, tmp_path):
     assert list(dossier.glob("*.mp4")) == []
 
 
-@pytest.mark.xfail(strict=True, reason="entre 1 h et 1 h 30 le texte dit « environ 1 heure »")
 def test_duree_annoncee_film_de_trois_heures_nest_pas_trop_courte(tmp_path):
     """Film de 3 h, aperçu de 10 s chronométré à 2,5 s, profil Équilibré.
 
@@ -167,7 +166,6 @@ def test_verrou_perime_ne_renomme_pas_la_sortie(tmp_path):
         assert not cible.exists()
 
 
-@pytest.mark.xfail(strict=True, reason="nommer un film avec son nom actuel le renomme en (2)")
 def test_nommer_le_meme_nom_garde_le_fichier(tools, tmp_path):
     """Ajouter seulement la date ne doit pas changer « Noël 1988.mp4 » en « Noël 1988 (2).mp4 »."""
     src = tmp_path / "Noël 1988.mp4"
@@ -248,7 +246,6 @@ def test_copie_du_son_fait_avancer_la_barre(tools, tmp_path, monkeypatch):
     assert max(vu.get("fractions") or [0]) >= 1.0
 
 
-@pytest.mark.xfail(strict=True, reason="au démarrage, les noms de filtres FFmpeg sont montrés tels quels")
 def test_message_ffmpeg_incomplet_est_lisible():
     """Si un filtre manque, l'homme de 76 ans doit lire quoi faire, pas « bwdif, hqdn3d »."""
     pytest.importorskip("PySide6")

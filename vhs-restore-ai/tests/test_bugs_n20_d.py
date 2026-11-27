@@ -50,7 +50,6 @@ def test_verifier_chemin_annonce_la_longueur_reelle(tmp_path, monkeypatch):
     assert f"{n} caractères" in str(exc.value)
 
 
-@pytest.mark.xfail(strict=True, reason="« No space left on device » n'est pas reconnu comme un disque plein")
 def test_disque_plein_ffmpeg_explique_la_place():
     """FFmpeg, en cours de route, dit « No space left on device ». Le père doit lire que le disque est plein."""
     clair, _ = ergonomie.expliquer(
@@ -138,7 +137,6 @@ def test_atexit_efface_les_dossiers_temporaires_de_la_fenetre(tools):
             pass
 
 
-@pytest.mark.xfail(strict=True, reason="l'extraction 7-Zip n'active pas -sccUTF-8, contrairement à la liste")
 def test_extraction_7z_demande_l_utf8_comme_la_liste():
     """Un dossier d'installation avec accent (C:\\Users\\Gérard\\…) : 7-Zip sous Windows
     interprète -o… selon la page de code s'il n'a pas -sccUTF-8."""

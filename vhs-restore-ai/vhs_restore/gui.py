@@ -4922,8 +4922,13 @@ def main() -> int:
                              "Lancez « installer.bat » (il télécharge FFmpeg dans le dossier tools), "
                              "ou installez FFmpeg et ajoutez-le au PATH.")
     elif win.tools.missing_filters:
-        QMessageBox.critical(win, "FFmpeg trop ancien",
-                             "Filtres manquants : " + ", ".join(win.tools.missing_filters))
+        # des mots simples, pas les noms des filtres (n°20, E10) ; les noms restent dans le journal
+        log.warning("FFmpeg incomplet : filtres manquants %s", ", ".join(win.tools.missing_filters))
+        QMessageBox.critical(win, "FFmpeg incomplet",
+                             "FFmpeg, l'outil qui lit et écrit les films, est incomplet sur cet "
+                             "ordinateur : le logiciel ne peut pas restaurer.\n\n"
+                             "Réinstallez le logiciel avec son programme d'installation, "
+                             "puis relancez-le.")
     else:
         QTimer.singleShot(400, win.maybe_welcome)       # premier lancement : mode d'emploi
     return app.exec()

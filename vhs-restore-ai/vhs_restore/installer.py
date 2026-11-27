@@ -221,7 +221,8 @@ def _extraire_7z(archive: Path, dest: Path, base: Path, cancel: threading.Event 
     run([str(outil), "l", "-slt", "-ba", "-sccUTF-8", str(archive)], cancel=cancel,
         on_line=lignes.append, what="Vérification de l’archive")
     _verifier_liste_7z("\n".join(lignes), dest)
-    run([str(outil), "x", str(archive), f"-o{dest}", "-y", "-bso0", "-bsp0"], cancel=cancel,
+    # -sccUTF-8 comme pour la liste (n°20, D6) : un profil Windows accentué (« Hélène »)
+    run([str(outil), "x", "-sccUTF-8", str(archive), f"-o{dest}", "-y", "-bso0", "-bsp0"], cancel=cancel,
         what="7-Zip (extraction)")
 
 
