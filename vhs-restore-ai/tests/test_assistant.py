@@ -179,9 +179,17 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert intro is not None and intro.text() == "Cliquez sur la ligne qui vous plaît."
     assert "hésitez" not in intro.text()
     for cle in ("fidele", "equilibre", "maximum"):
-        # 86 × 65 (avant 96 × 72) : l'image tient dans sa ligne, et les lignes sont séparées de 6 px
-        assert (a.tuiles[cle].iconSize().width(), a.tuiles[cle].iconSize().height()) == (86, 65)
-    assert a._liste_rendu.spacing() >= 6
+        # L'image tient dans sa ligne, à 4 px du bord (capture à 150 % : elle en dépassait) ;
+        # 86 × 65 (avant 96 × 72), un peu moins avec la ligne « Des détails sont déjà perdus »
+        t = a.tuiles[cle]
+        taille = (t.iconSize().width(), t.iconSize().height())
+        dedans = assistant.taille_image(t.height())
+        assert taille == (dedans.width(), dedans.height()), (taille, t.height())
+        if a._ligne_num.isVisible():
+            assert 72 <= taille[0] <= 86 and taille[1] >= 54, taille
+        else:
+            assert taille == (86, 65), taille
+    assert a._liste_rendu.spacing() >= 6                                   # lignes bien séparées
     assert a.tuiles["original"].minimumHeight() < a.tuiles["fidele"].minimumHeight()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1
