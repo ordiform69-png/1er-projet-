@@ -1151,3 +1151,27 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
 - Non essayé par Claude (Inno Setup ne tourne que sous Windows) : premier essai sur le PC de
   l'utilisateur. Vérifié ici : encodage des scripts pour PowerShell 5.1, empreinte, icône, appels
   (`tests/test_installateur.py`).
+
+## Chasse aux bugs (n°20, bots) et corrections (n°21, Claude) — 27 novembre 2026
+
+- n°20 : 33 constats des bots, avec preuves ; Claude a relancé les 35 tests sur la base : 34
+  échouent pour la raison annoncée ; le test de D1 plantait dans sa propre préparation.
+  Tests et rapports repris dans la branche (`tests/test_bugs_n20_*.py`, `partage-grok/RAPPORT-N20-*`).
+- n°21 faite par Claude (crédits des bots épuisés). Corrigés, test sans marqueur, vert :
+  C1 (aide du premier lancement : fenêtre qui défile, « C'est parti » visible, Échap), C2
+  (taille de la fenêtre ramenée à l'écran), C3 et C4 (image du film extraite à 576 lignes,
+  petites images de la barre à 72 × zoom, dessinées en vrais pixels), C5 (« Détails du
+  fichier »), A3 (petite dérive), A2 et A4 (retard de 25 ms d'afftdn compensé, 0,1 s de silence
+  devant le nettoyage du son), E2 (message d'écart de durée), B2 (teinte après le plafond de la
+  dominante), B4 (masque du bas en lignes du film), D3 (disque plein), D4/E7 (verrou tenu par le
+  système, repris après un arrêt brutal), D5, D6, D7, E1 (copie 4:3 d'une capture SD sans
+  format), E4 (durée au quart d'heure supérieur), E5, E6, E8, E9, E10.
+- Tests de netteté C3/C4 de la n°20 : ils mesuraient une image fixe que le zoom étale forcément ;
+  réécrits avec la taille que le logiciel extrait vraiment (échouent avec l'ancien code).
+- Gardés, avec leur test toujours marqué : B3 (la détection automatique compte le décalage de
+  couleur en pixels de couleur ; changer l'unité casserait la correction), D2 (refuser un disque
+  de type inconnu bloquerait les disques réseau ; à faire en avertissement), B1 (scintillement,
+  option rare).
+- Restent à faire : A1 (3 ms de son par raccord des passages enlevés : refaire le son en une
+  fois après le collage), E3 (« Arrêter » pendant la séparation), D1 (FFmpeg survit à un
+  plantage : « Job Object » Windows, à essayer sur le PC de l'utilisateur), D8 à D10 (Windows).
