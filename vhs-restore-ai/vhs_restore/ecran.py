@@ -1,6 +1,6 @@
 """Disposition de la fenêtre de restauration. Les commandes gardent leurs signaux Qt."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
+from PySide6.QtWidgets import (QApplication,
     QComboBox, QDialog, QFrame, QFormLayout, QGridLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
@@ -229,7 +229,17 @@ def installer(w):
     fermer.clicked.connect(dialog.accept)
     dv.addWidget(fermer)
     dialog.resize(850, 580)
-    w.details.clicked.connect(dialog.open)
+
+    def ouvrir_details() -> None:
+        # jamais plus grand que l'écran (n°20, C5) : à 535 px de haut, « Fermer » sortait du bas
+        ecran = w.screen() or QApplication.primaryScreen()
+        if ecran is not None:
+            dispo = ecran.availableGeometry()
+            # ni plus haut que l'écran, ni plus haut que la fenêtre (agrandie, elle a la taille de l'écran)
+            dialog.resize(max(400, min(850, dispo.width() - 40, w.width())),
+                          max(300, min(580, dispo.height() - 40, w.height())))
+        dialog.open()
+    w.details.clicked.connect(ouvrir_details)
 
     milieu = QHBoxLayout()
     root.addLayout(milieu, 1)

@@ -196,7 +196,9 @@ def _tempo_factor(info: MediaInfo, s: Settings, *, drift: bool) -> float:
 
 
 def _atempo_chain(factor: float) -> list[str]:
-    if abs(factor - 1.0) < 1e-4:
+    # 1e-7 (n°20, A3) : avec 1e-4, une dérive de moins de 6 ms par minute était ignorée
+    # (5 ms/min laissaient 0,9 s de décalage à la fin d'un film de 3 h).
+    if abs(factor - 1.0) < 1e-7:
         return []
     f, chain = factor, []
     while f > 2.0:

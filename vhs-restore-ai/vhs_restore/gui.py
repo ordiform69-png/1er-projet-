@@ -1221,10 +1221,15 @@ class _Ruban(QWidget):
             if pix.isNull():
                 p.fillRect(dest, QColor("#5c6570"))
                 continue
-            scaled = pix.scaled(dest.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-            sx = max(0, (scaled.width() - dest.width()) // 2)
-            sy = max(0, (scaled.height() - dest.height()) // 2)
-            p.drawPixmap(dest, scaled, QRect(sx, sy, dest.width(), dest.height()))
+            # en vrais pixels d'écran (n°20, C4) : préparée à la taille logique, l'image était
+            # ensuite agrandie par le zoom de Windows (150 % chez le père), donc floue
+            dpr = p.device().devicePixelRatioF() or 1.0
+            cible = QSize(max(1, round(dest.width() * dpr)), max(1, round(dest.height() * dpr)))
+            scaled = pix.scaled(cible, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            scaled.setDevicePixelRatio(1.0)
+            sx = max(0, (scaled.width() - cible.width()) // 2)
+            sy = max(0, (scaled.height() - cible.height()) // 2)
+            p.drawPixmap(dest, scaled, QRect(sx, sy, cible.width(), cible.height()))
         p.restore()
 
     def paintEvent(self, _event) -> None:  # noqa: N802
@@ -3795,7 +3800,9 @@ class MainWindow(QMainWindow):
         dossier = Path(tempfile.mkdtemp(prefix="vhsrestore_vignettes_"))
         self._dossier_images = dossier
         generation = self._gen_images
-        lw, lh = vignettes.taille(self.info, vignettes.HAUTEUR_VIGNETTE)
+        # petites images en vrais pixels d'écran : 72 × zoom de Windows (n°20, C4)
+        zoom = max(1.0, float(self.devicePixelRatioF() or 1.0))
+        lw, lh = vignettes.taille(self.info, round(vignettes.HAUTEUR_VIGNETTE * zoom))
         mw, mh = vignettes.taille(self.info, vignettes.HAUTEUR_MOMENT)
         for barre in self._barres():
             barre.vider_images(len(moments), cache)

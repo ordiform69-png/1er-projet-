@@ -91,9 +91,6 @@ def test_film_long_bip_et_repere_a_20ms(tmp_path, tools, monkeypatch):
     assert ecart <= 0.020, f"bip le plus proche de {cible:.0f} s : {proche:.3f} s ({ecart * 1000:.0f} ms)"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Une dérive demandée sous 6 ms par minute ne produit aucun atempo. "
-    "5 ms/min pendant 3 h laissent 0,9 s de décalage."))
 def test_petite_derive_est_corrigee():
     info = MediaInfo(path=Path("film.mp4"), duration=3 * 3600, fps=Fraction(25), has_audio=True)
     s = pipeline.Settings(profile_for("fidele", "video"), audio_drift_ms_per_min=5)

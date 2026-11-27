@@ -18,7 +18,9 @@ from .tools import _NO_WINDOW, ff_input
 PAS_PX = 90
 MAX_CACHE = 128
 HAUTEUR_VIGNETTE = 72
-HAUTEUR_MOMENT = 180
+# 576 (n°20, C3) : avec 180, l'image du film au-dessus de la barre était agrandie deux à trois
+# fois dans le grand cadre, floue, surtout sur l'écran du père à 150 % (cadre de ~540 pixels).
+HAUTEUR_MOMENT = 576
 
 _EN_COURS: list[subprocess.Popen] = []
 _VERROU = threading.Lock()
