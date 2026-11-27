@@ -233,7 +233,9 @@ def test_commande_chauffe_scenes_son_images_aac(samples, tools, tmp_path, monkey
     assert "apad=whole_dur=20.000000000" in af
     assert "atrim=duration=20.000000000" in af
     assert "atrim=start=3.000000000" in af
-    assert af.index("atrim=start=") < af.index("apad=")
+    # la chauffe est retirée avant le remplissage final (apad=whole_dur) ; « apad=pad_dur » plus
+    # tôt appartient au recalage d'afftdn (n°21, A2)
+    assert af.index("atrim=start=") < af.index("apad=whole_dur=")
     vitesse = pipeline._tempo_factor(info, s, drift=True)
     attendu = (17 - 0.1) * vitesse
     assert _ss(cmd)[1] == f"{attendu:.3f}"

@@ -40,9 +40,12 @@ def onset(p):
 
 
 def test_profiles_chains(mono):
-    assert pipeline.audio_filters(mono, S("fidele")) == ["afftdn=nr=4:nf=-50:tn=1"]
+    # afftdn retarde le son de 25 ms : retiré en échantillons (48 kHz), horloge reculée (n°21, A2)
+    recale = ["atrim=start_sample=1200", "asetpts=PTS-0.025/TB", "apad=pad_dur=0.025"]
+    assert pipeline.audio_filters(mono, S("fidele")) == ["afftdn=nr=4:nf=-50:tn=1", *recale]
     eq = pipeline.audio_filters(mono, S())
-    assert eq[0] == "adeclick" and eq[1].startswith("afftdn=nr=10") and eq[2].startswith("dynaudnorm")
+    assert eq[0] == "adeclick" and eq[1].startswith("afftdn=nr=10") and eq[2:5] == recale
+    assert eq[5].startswith("dynaudnorm")
     assert pipeline.audio_filters(mono, S(restore_audio=False)) == []
     assert pipeline.audio_filters(dataclasses.replace(mono, audio_silent=True), S()) == []
     assert pipeline.audio_filters(dataclasses.replace(mono, has_audio=False), S()) == []
