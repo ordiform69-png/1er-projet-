@@ -1072,3 +1072,22 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   vraies parties : +3 % (FFV1) à +9 % (MPEG-2).
 - Fabrication Windows : un seul test échouait depuis la n°155 (1 px de défilement de côté à
   1024 px dans « Lumière et couleurs », polices Windows) ; corrigé, marge de 82 px.
+
+## Fabrication sur le PC de l'utilisateur et petites images de l'étape 1
+
+- `fabriquer_exe.bat` (double-clic) fabrique l'exe sur un PC Windows : mise à jour (`git pull`),
+  Python et modules, FFmpeg, une courte sélection de tests, PyInstaller, essai de l'exe, zip et
+  SHA-256 dans `livraison\`. Il a trouvé 3 défauts propres à Windows, corrigés : chemin JSON écrit
+  à la main (les « \ » cassaient le JSON), fichier écrit dans `/tmp`, et « Régler l'image » qui
+  dépassait de 9 px à 1024 px (cases longues à gauche, courtes à droite : marge 50 à 78 px).
+- Capture de l'utilisateur (Windows à 150 %, comme l'écran du père) : les petites images de
+  l'étape 1 sortaient aux 2/3, collées en haut à gauche, et leur cadre dépassait de la ligne. Le
+  dessin tient compte du zoom de l'écran ; l'image se loge dans sa ligne, à 4 px du bord
+  (`taille_image`). Test avec un vrai zoom de 150 % (programme à part) : il échoue avec l'ancien
+  dessin.
+- Lignes de l'étape 1 séparées de 6 px (avant : 1 px avec la ligne « Des détails sont déjà
+  perdus », 4 px sans ; 4 px sur un écran bas). Pour que la fenêtre ne grandisse pas, lignes un
+  peu moins hautes (rendus 76 px, original 52 px ; images 86 × 65 au lieu de 96 × 72). Une ligne
+  n'est jamais plus basse que son texte (le sous-titre était coupé sur un écran bas avec
+  l'avertissement). Mesuré : à 1280 × 641, 4 px de moins qu'avant à 100 et 125 % ; à 150 % avec
+  l'avertissement, l'étape 1 défile de 42 px (31 avant), le texte n'y est plus coupé.

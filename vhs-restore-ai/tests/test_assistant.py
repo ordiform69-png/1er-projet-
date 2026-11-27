@@ -51,6 +51,66 @@ def test_ecoute_de_dix_secondes(tools, tmp_path):
     assert abs(float(next(x.split("=")[1] for x in r.stdout.split() if x.startswith("duration="))) - 10) < 0.3
 
 
+_DESSIN_TUILE = r"""
+import json, sys
+from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtWidgets import QApplication
+from vhs_restore import assistant
+app = QApplication([])
+haut = int(sys.argv[1])
+tuile = assistant.TuileRendu("Nettoyage léger", "Garde l'aspect d'époque", original=False)
+tuile.setMinimumHeight(haut)                     # comme `_poser_tuiles`
+tuile.setMaximumHeight(haut)
+tuile.resize(586, haut)
+tuile.setIconSize(assistant.taille_image(haut))
+rouge = QPixmap(480, 360)                      # taille des vraies images des rendus (scale=480)
+rouge.fill(QColor(255, 0, 0))
+tuile.setIcon(QIcon(rouge))
+tuile.show()
+app.processEvents()
+image = tuile.grab().toImage()
+xs, ys = [], []
+for y in range(image.height()):
+    for x in range(image.width() // 3):
+        c = image.pixelColor(x, y)
+        if c.red() > 200 and c.green() < 40 and c.blue() < 40:
+            xs.append(x)
+            ys.append(y)
+attendu = assistant.taille_image(haut)
+print(json.dumps({"dpr": tuile.devicePixelRatioF(), "h": image.height(), "xs": [min(xs), max(xs)] if xs else None,
+                  "ys": [min(ys), max(ys)] if ys else None, "attendu": [attendu.width(), attendu.height()],
+                  "marge": assistant.MARGE_IMAGE}))
+"""
+
+
+@pytest.mark.parametrize("zoom", ["1", "1.5"])
+@pytest.mark.parametrize("haut", [76, 44])
+def test_petite_image_du_rendu_entiere_et_centree(zoom, haut):
+    """Capture de l'utilisateur (Windows à 150 %, comme l'écran du père) : l'image sortait aux 2/3,
+    collée en haut à gauche, et son cadre dépassait de la ligne. Elle doit remplir son cadre,
+    centrée, sans toucher le bord, aussi dans une ligne basse (avertissement, écran bas).
+    Un vrai zoom d'écran ne se règle qu'au démarrage de Qt : d'où le petit programme à part."""
+    pytest.importorskip("PySide6")
+    import json
+    import os
+    import sys
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen", QT_SCALE_FACTOR=zoom,
+               PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+    r = subprocess.run([sys.executable, "-c", _DESSIN_TUILE, str(haut)], capture_output=True, text=True,
+                       env=env, timeout=120)
+    assert r.returncode == 0, r.stderr[-2000:]
+    m = json.loads(r.stdout.strip().splitlines()[-1])
+    z = float(zoom)
+    assert abs(m["dpr"] - z) < 0.01, m
+    assert m["xs"], "aucune image dessinée"
+    largeur = (m["xs"][1] - m["xs"][0] + 1) / z
+    hauteur = (m["ys"][1] - m["ys"][0] + 1) / z
+    assert abs(largeur - m["attendu"][0]) <= 2 and abs(hauteur - m["attendu"][1]) <= 2, (largeur, hauteur, m)
+    haut_libre, bas_libre = m["ys"][0] / z, (m["h"] - 1 - m["ys"][1]) / z
+    assert haut_libre >= m["marge"] and bas_libre >= m["marge"], (haut_libre, bas_libre)
+    assert abs(haut_libre - bas_libre) <= 3, (haut_libre, bas_libre)                  # centrée
+
+
 @pytest.fixture()
 def fenetre(tools, monkeypatch):
     pytest.importorskip("PySide6")
@@ -119,7 +179,9 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     assert intro is not None and intro.text() == "Cliquez sur la ligne qui vous plaît."
     assert "hésitez" not in intro.text()
     for cle in ("fidele", "equilibre", "maximum"):
-        assert (a.tuiles[cle].iconSize().width(), a.tuiles[cle].iconSize().height()) == (96, 72)
+        # 86 × 65 (avant 96 × 72) : l'image tient dans sa ligne, et les lignes sont séparées de 6 px
+        assert (a.tuiles[cle].iconSize().width(), a.tuiles[cle].iconSize().height()) == (86, 65)
+    assert a._liste_rendu.spacing() >= 6
     assert a.tuiles["original"].minimumHeight() < a.tuiles["fidele"].minimumHeight()
     assert "n'est jamais modifié" in win.bandeau_original.text()
     assert not win.run_btn.isEnabled()                                     # rien à lancer à l'étape 1

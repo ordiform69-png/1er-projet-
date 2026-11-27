@@ -21,7 +21,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, QRect, QSize, QTimer, QUrl, Qt
+from PySide6.QtCore import QPoint, QPointF, QRect, QSize, QTimer, QUrl, Qt
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
                                QLayout, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
@@ -40,9 +40,25 @@ PHRASES_RENDU = {
     "equilibre": "Bon équilibre",
     "maximum": "Plus long",
 }
-# Petites images de l'étape 1 (4:3). L'original est un repère plus bas, pas un choix.
-TAILLE_ORIGINAL = QSize(64, 48)
-TAILLE_RENDU = QSize(96, 72)
+# Lignes de l'étape 1 : hauteur de chaque ligne et écart entre elles. La petite image (4:3) se
+# loge dedans, à MARGE_IMAGE du bord ; l'original est un repère plus bas, pas un choix.
+# Écart de 6 px (au lieu de 1 à 4) : lignes bien séparées. Pour que la fenêtre 1280 × 641 ne
+# grandisse pas, les lignes sont un peu moins hautes (rendus 76 au lieu de 78, original 52 au
+# lieu de 56) : images 88 × 66 au lieu de 96 × 72.
+HAUT_ORIGINAL = 52
+HAUT_RENDU = 76
+ESPACE_TUILES = 6
+MARGE_IMAGE = 4
+
+
+def taille_image(haut_tuile: int) -> QSize:
+    """Taille (4:3) de la petite image dans une ligne de cette hauteur."""
+    h = max(18, haut_tuile - 3 - 2 * MARGE_IMAGE)        # 3 : le cadre arrondi (rect ajusté)
+    return QSize(h * 4 // 3, h)
+
+
+TAILLE_ORIGINAL = taille_image(HAUT_ORIGINAL)
+TAILLE_RENDU = taille_image(HAUT_RENDU)
 # L'assistant s'ouvre d'office avec un film. Les tests de l'écran complet l'éteignent
 # (tests/conftest.py) ; ceux de l'assistant le rallument (marque « assistant »).
 PAR_DEFAUT = True
@@ -197,15 +213,33 @@ class TuileRendu(QToolButton):
             self.setObjectName("tuileOriginal")
             self.setFocusPolicy(Qt.NoFocus)
             self.setIconSize(TAILLE_ORIGINAL)
-            self.setMinimumHeight(TAILLE_ORIGINAL.height() + 8)  # ligne grise plus basse que les rendus
+            self.setMinimumHeight(HAUT_ORIGINAL)         # ligne grise plus basse que les rendus
         else:
             self.setObjectName("tuileRendu")
             self.setCheckable(True)
             self.setCursor(Qt.PointingHandCursor)
             self.setFocusPolicy(Qt.StrongFocus)
             self.setIconSize(TAILLE_RENDU)
-            self.setMinimumHeight(TAILLE_RENDU.height() + 6)
+            self.setMinimumHeight(HAUT_RENDU)
         self.setAttribute(Qt.WA_Hover, True)
+
+    @staticmethod
+    def polices(echelle: float, famille: str) -> tuple[QFont, QFont]:
+        """Nom (gras) et sous-titre, à la taille du texte choisie (A−, A, A+)."""
+        nom = QFont(famille)
+        nom.setBold(True)
+        nom.setPointSizeF(max(11, 13 * echelle))
+        phrase = QFont(famille)
+        phrase.setPointSizeF(max(10, 11 * echelle))
+        return nom, phrase
+
+    @classmethod
+    def haut_texte(cls, echelle: float, famille: str, original: bool) -> int:
+        """Hauteur de ligne sous laquelle le texte serait coupé (nom, et sous-titre des rendus)."""
+        nom, phrase = cls.polices(echelle, famille)
+        if original:
+            return QFontMetrics(nom).height() + 3 + 8
+        return 3 + 6 + QFontMetrics(nom).height() + 2 + QFontMetrics(phrase).height() + 4
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(280, self.minimumHeight())
@@ -253,24 +287,30 @@ class TuileRendu(QToolButton):
                 p.drawLine(cx - 6, cy, cx - 2, cy + 5)
                 p.drawLine(cx - 2, cy + 5, cx + 6, cy - 5)
             x += 30
-        taille = TAILLE_ORIGINAL if self._original else TAILLE_RENDU
-        cadre = QRect(x, r.center().y() - taille.height() // 2, taille.width(), taille.height())
+        # L'image reste dans sa ligne (jamais sur le bord), quelle que soit la hauteur donnée.
+        h = min(self.iconSize().height(), r.height() - 2 * MARGE_IMAGE)
+        taille = QSize(max(1, h) * 4 // 3, max(1, h))
+        cadre = QRect(x, r.top() + (r.height() - taille.height()) // 2, taille.width(), taille.height())
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(theme.FOND_DESACTIVE))
         p.drawRoundedRect(cadre, 4, 4)
-        src = self.icon().pixmap(taille * 2)
+        src = self.icon().pixmap(QSize(480, 360))
         if not src.isNull():
-            image = src.scaled(taille, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            p.drawPixmap(cadre.x() + (cadre.width() - image.width()) // 2,
-                         cadre.y() + (cadre.height() - image.height()) // 2, image)
+            # Écran agrandi par Windows (150 % : celui du père) : l'image est préparée en vrais
+            # pixels, puis posée à sa taille d'écran. Sans cela, elle sortait aux 2/3, en haut à gauche.
+            dpr = p.device().devicePixelRatioF() or 1.0
+            image = src.scaled(QSize(round(taille.width() * dpr), round(taille.height() * dpr)),
+                               Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            image.setDevicePixelRatio(dpr)
+            iw, ih = image.width() / dpr, image.height() / dpr
+            p.drawPixmap(QPointF(cadre.x() + (cadre.width() - iw) / 2,
+                                 cadre.y() + (cadre.height() - ih) / 2), image)
         lignes = self.text().split("\n", 1)
         nom, phrase = lignes[0], lignes[1] if len(lignes) > 1 else ""
         tx = cadre.right() + 12
         tw = max(40, r.right() - tx - 6)
         e = float(getattr(self.window(), "_echelle", 1.0) or 1.0)
-        f = QFont(theme.BODY_FAMILY or p.font().family())
-        f.setBold(True)
-        f.setPointSizeF(max(11, 13 * e))
+        f, f_phrase = self.polices(e, theme.BODY_FAMILY or p.font().family())
         p.setFont(f)
         p.setPen(QColor(theme.TEXTE_DOUX if self._original else theme.TEXTE))
         if self._original:
@@ -280,9 +320,7 @@ class TuileRendu(QToolButton):
         haut_nom = p.fontMetrics().boundingRect(QRect(0, 0, tw, 80), Qt.TextWordWrap, nom).height()
         p.drawText(QRect(tx, r.top() + 6, tw, haut_nom), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, nom)
         if phrase:
-            f.setBold(False)
-            f.setPointSizeF(max(10, 11 * e))
-            p.setFont(f)
+            p.setFont(f_phrase)
             p.setPen(QColor(theme.TEXTE_DOUX))
             p.drawText(QRect(tx, r.top() + 8 + haut_nom, tw, r.height() - haut_nom - 12),
                        Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, phrase)
@@ -627,26 +665,29 @@ class Assistant(QWidget):
             ligne.setFixedHeight(haut_ligne)
         else:
             haut_ligne = 0
-        ecarts = max(0, len(tuiles) - 1)
-        espacement = 1 if visible else 4
         liste = getattr(self, "_liste_rendu", None)
-        economie = (4 - espacement) * ecarts if liste is not None else 0
         if liste is not None:
-            liste.setSpacing(espacement)
+            # lignes bien séparées, avertissement ou non ; écran bas : 4 px, pour garder de la marge
+            liste.setSpacing(ESPACE_TUILES - 2 if serre else ESPACE_TUILES)
         cout = 0
         if visible:
             page = getattr(self, "_rendu_lay", None)
-            cout = haut_ligne + (page.spacing() if page is not None else 4) + 2 - economie
-            cout = max(0, cout)
+            cout = haut_ligne + (page.spacing() if page is not None else 4) + 2
+        echelle = float(getattr(self.w, "_echelle", 1.0) or 1.0)
+        famille = theme.BODY_FAMILY or self.font().family()
+        hauts = []
         pads = []
-        tailles = []
+        planchers = []
         for tuile in tuiles:
             originale = tuile.objectName() == "tuileOriginal"
-            taille = TAILLE_ORIGINAL if originale else TAILLE_RENDU
-            if serre:
-                taille = QSize(taille.width() * 2 // 3, taille.height() * 2 // 3)
-            tailles.append(taille)
-            pads.append(8 if originale else 6)
+            haut = HAUT_ORIGINAL if originale else HAUT_RENDU
+            if serre:                                     # écran bas : lignes et images aux 2/3 environ
+                haut = 38 if originale else 52
+            hauts.append(haut)
+            pads.append(8 if originale else 10)           # baisse au plus, pour la ligne de numérisation
+            # jamais moins que le texte : le sous-titre (« Garde l'aspect d'époque ») restait coupé
+            # sur un écran bas avec la ligne de numérisation
+            planchers.append(TuileRendu.haut_texte(echelle, famille, originale))
         baisse = [0] * len(tuiles)
         reste = cout
         while reste > 0 and any(baisse[i] < pads[i] for i in range(len(tuiles))):
@@ -656,9 +697,9 @@ class Assistant(QWidget):
                 if baisse[i] < pads[i]:
                     baisse[i] += 1
                     reste -= 1
-        for tuile, taille, pad, moins in zip(tuiles, tailles, pads, baisse):
-            tuile.setIconSize(taille)
-            haut = taille.height() + pad - moins
+        for tuile, haut0, moins, plancher in zip(tuiles, hauts, baisse, planchers):
+            haut = max(haut0 - moins, plancher)
+            tuile.setIconSize(taille_image(haut))
             # Lever le plafond avant le plancher : sinon la tuile ne peut pas reprendre sa hauteur.
             tuile.setMaximumHeight(16777215)
             tuile.setMinimumHeight(haut)
@@ -682,7 +723,7 @@ class Assistant(QWidget):
         self._ligne_num.setVisible(False)
         v.addWidget(self._ligne_num)
         liste = QVBoxLayout()
-        liste.setSpacing(4)
+        liste.setSpacing(ESPACE_TUILES)
         self.tuiles: dict[str, QToolButton] = {}
         self._groupe = QButtonGroup(self)
         self._groupe.setExclusive(True)
