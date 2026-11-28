@@ -38,3 +38,14 @@ Essai depuis la fenêtre, film PAL de 4 s avec son, profil Maximum, agrandisseme
 | Exécutable qui quitte en erreur | Même avertissement | Même avertissement |
 
 Sur la base, les deux cas échouent dès la première assertion : `assert 'DeepFilterNet indisponible. Le nettoyage habituel a été utilisé.' in "Aperçu prêt (extrait de 0 s à 4 s)…"`. La correction conserve l’information de repli pendant le travail en cours, y compris lorsque plusieurs morceaux sont traités.
+
+## P1.1 — Image restaurée en pleine taille
+
+Vrai Real-ESRGAN ncnn-vulkan 20220424 Ubuntu, modèle realesrgan-x4plus, Vulkan logiciel Mesa lavapipe 25.0.7 (LLVM 19). Pièce et jardin de test_couleur_film, réduits à 64 × 48, cinq images/s, une seconde chacun. Profil Équilibré avec IA ; même instant dans apercu_restaure.mp4 et dans l’export (1440 × 1080). Décodage RGB24 avec FFmpeg, PSNR calculé sur les trois canaux ; différences signées aperçu moins export en niveaux sur 255.
+
+| Scène / instant | PSNR aperçu-export | ΔR moyen | ΔG moyen | ΔB moyen |
+|---|---:|---:|---:|---:|
+| Pièce, 0,4 s | 46,99 dB | +0,056 | −0,045 | +0,039 |
+| Jardin, 1,4 s | 46,81 dB | −0,018 | −0,001 | −0,021 |
+
+Sur ces deux images, rendu très proche, avec de petites différences d’encodage. La comparaison côte à côte reste limitée à 540 lignes.
