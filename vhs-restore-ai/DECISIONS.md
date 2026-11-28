@@ -1248,3 +1248,19 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
 - Choix : fond propre aux bulles (blanc en affichage clair, foncé en sombre), texte du thème,
   13 pt au lieu de 12. Contraste 17,3 (clair) et 13,6 (sombre). Le couple est ajouté à la liste
   des contrastes vérifiés, et `test_bulle_d_aide_lisible` lit le style réellement appliqué.
+
+## Caler la voix sur les lèvres : l'écran l'explique — 28 novembre 2026
+
+- Constat de l'utilisateur : « Il faut l'indiquer, sinon l'utilisateur ne comprend pas. »
+  Réglages libres : légende coupée à 150 % (« Décalage entre la voix et »), « − » et « + »
+  sans explication, et le calage au début et à la fin (qui calcule la dérive) n'existait que
+  dans l'assistant, sans chemin pour y aller. Assistant : « Le son est en retard ? » trompait
+  (la voix peut être en avance) ; on ne savait ni où s'ouvrent les 10 secondes, ni ce qui était
+  déjà corrigé.
+- Choix. Réglages libres : « Voix et lèvres », une ligne qui explique « − » et « + », et
+  « Caler au début et à la fin… », qui ouvre l'étape du son de l'assistant, réglage ouvert.
+  Assistant : « La voix ne colle pas aux lèvres ? », la phrase dit que l'extrait s'ouvre dans le
+  lecteur vidéo de Windows et qu'un clic décale la voix d'une image ; une ligne dit ce qui est
+  réglé, en images (« Au début : voix avancée de 2 images. »), jamais en millisecondes.
+- Vérifié à 1280 × 641 et 150 % (captures). Tests : `tests/test_calage_son.py` (échouent avec
+  l'ancien code) ; l'assertion du texte du bouton dans `test_assistant.py` vérifie le nouveau.

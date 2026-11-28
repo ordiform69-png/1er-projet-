@@ -222,7 +222,7 @@ def test_parcours_complet_d_un_film(fenetre, cassette):
     a.suivant.click()
     attendre(win)
     assert a.titre.text() == "Le son"
-    assert a.regler_son.text() == "Le son est en retard ?" and not a.regler_son.isChecked()
+    assert a.regler_son.text() == "La voix ne colle pas aux lèvres ?" and not a.regler_son.isChecked()
     a.rangs_son["debut"][1].click()                                        # « Écouter » : 10 s ouvertes
     attendre(win)
     assert ouverts and ouverts[-1].toLocalFile().endswith(".mp4")

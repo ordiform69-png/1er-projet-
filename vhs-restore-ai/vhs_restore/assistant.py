@@ -773,14 +773,17 @@ class Assistant(QWidget):
         v = QVBoxLayout(page)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        v.addWidget(_texte("La voix colle-t-elle aux lèvres ? Écoutez le début, puis la fin. "
+        v.addWidget(_texte("La voix colle-t-elle aux lèvres ? Cliquez « Écouter » : 10 secondes du film "
+                           "s'ouvrent dans le lecteur vidéo de Windows. Écoutez le début, puis la fin. "
                            "Si c'est juste, passez à la suite."))
-        self.regler_son = _bouton("Le son est en retard ?")
+        self.regler_son = _bouton("La voix ne colle pas aux lèvres ?")
         self.regler_son.setCheckable(True)
         self.regler_son.clicked.connect(self._montrer_reglage_son)
         v.addWidget(self.regler_son)
-        self.aide_son = _texte("Si la voix arrive après les lèvres, « Voix trop tard ». "
-                               "Si elle arrive avant, « Voix trop tôt ». Puis réécoutez.")
+        self.aide_son = _texte("La voix arrive après les lèvres : « Voix trop tard ». Elle arrive avant : "
+                               "« Voix trop tôt ». Chaque clic décale la voix d'une image ; réécoutez "
+                               "après chaque clic. Réglez le début, puis la fin : le logiciel en déduit "
+                               "le calage de tout le film.")
         self.aide_son.hide()
         v.addWidget(self.aide_son)
         self.rangs_son = {}
@@ -810,6 +813,9 @@ class Assistant(QWidget):
             v.addLayout(h)
             self.rangs_son[cle] = (lab, ecouter, champ)
             self._reglages_son.extend((moins, plus))
+            champ.valueChanged.connect(lambda _v: self._dire_calage())
+        self.etat_son = _texte()                 # ce qui est déjà réglé, en images (pas en ms)
+        v.addWidget(self.etat_son)
         self.note_son = _texte()
         v.addWidget(self.note_son)
         self.appliquer_derive = _bouton("Appliquer la correction proposée")
@@ -1127,6 +1133,23 @@ class Assistant(QWidget):
         self.aide_son.setVisible(montre)
         for b in self._reglages_son:
             b.setVisible(montre)
+
+    def _dire_calage(self) -> None:
+        """« Au début : voix avancée de 2 images. À la fin : rien de changé. » Vide si rien."""
+        if len(self.rangs_son) < 2 or not hasattr(self, "etat_son"):
+            return                               # page encore en construction
+        morceaux = []
+        for cle, nom in (("debut", "Au début"), ("fin", "À la fin")):
+            valeur = self.rangs_son[cle][2].value()
+            n = round(abs(valeur) / PAS_SON)
+            if n == 0:
+                morceaux.append(f"{nom} : rien de changé.")
+            else:
+                images = f"{n} image" + ("s" if n > 1 else "")
+                sens = "retardée" if valeur > 0 else "avancée"
+                morceaux.append(f"{nom} : voix {sens} de {images}.")
+        reglee = any(self.rangs_son[c][2].value() for c in ("debut", "fin"))
+        self.etat_son.setText(" ".join(morceaux) if reglee else "")
 
     def _ecouter(self, cle: str) -> None:
         w = self.w

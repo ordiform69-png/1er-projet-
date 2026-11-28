@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QApplication,
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from . import icons, lecteur, lumiere, theme
+from . import ergonomie, icons, lecteur, lumiere, theme
 from .assistant import Assistant, phrase_son
 
 
@@ -166,7 +166,7 @@ def ajuster_son(w) -> None:
     """« Régler le son » replié : commandes plus grandes. Déplié : taille d'origine,
     sinon la section ne tient plus dans l'écran à 125 %."""
     grand = not w.plus_son.isChecked()
-    for bouton, haut in ((w.ecouter, 64), (w.plus_son, 56), (w.audio_check, 48),
+    for bouton, haut in ((w.ecouter, 64), (w.caler_debut_fin, 56), (w.plus_son, 56), (w.audio_check, 48),
                          (w.libelle_decalage, 0)):
         bouton.setProperty("large", True if grand else False)
         if haut:
@@ -534,12 +534,26 @@ def installer(w):
     moins.setFixedWidth(48)
     plus.setFixedWidth(48)
     w._son_moins, w._son_plus = moins, plus
-    w.libelle_decalage = QLabel("Décalage entre la voix et les lèvres")
-    w.libelle_decalage.setWordWrap(True)          # deux lignes sur un écran de 1024 px
+    # « Décalage entre la voix et les lèvres » était coupé à 150 % (« … la voix et ») : un nom
+    # court sur la ligne, et l'explication des deux boutons en dessous.
+    w.libelle_decalage = QLabel("Voix et lèvres")
     son.addLayout(ligne(w.libelle_decalage, moins, w.offset_spin, plus))
+    w.aide_decalage = QLabel(ergonomie.insecables(
+        "La voix arrive après les lèvres : « − ». Avant les lèvres : « + ». "
+        "Puis « Écouter ces 10 secondes »."))
+    w.aide_decalage.setWordWrap(True)
+    w.aide_decalage.setObjectName("note")
+    son.addWidget(w.aide_decalage)
     w.ecouter = QPushButton("Écouter ces 10 secondes")
     w.ecouter.clicked.connect(w._ecouter_extrait)
+    w.caler_debut_fin = QPushButton("Caler au début et à la fin…")
+    w.caler_debut_fin.setToolTip("Pas à pas : écouter le début, puis la fin du film, et corriger "
+                                 "la voix d'une image à la fois. Le logiciel en déduit le calage "
+                                 "de tout le film, même si le décalage grandit peu à peu.")
+    w.caler_debut_fin.clicked.connect(lambda: caler_la_voix(w))
     son.addWidget(w.ecouter)
+    son.addSpacing(6)
+    son.addWidget(w.caler_debut_fin)
     w.ai_check.setText("Amélioration IA")
     w.audio_check.setText("Nettoyer le son")
     son.addWidget(w.audio_check)
@@ -673,6 +687,19 @@ def mode_libre(w, libre: bool) -> None:
     w._update_state()
 
 
+def caler_la_voix(w) -> None:
+    """Réglages libres → l'étape « Le son » de l'assistant, le réglage du calage déjà ouvert."""
+    a = w.assistant
+    pages = [page for _titre, page in a._liste()]
+    if a._page_son not in pages or w._busy():
+        return
+    a.actif = True
+    a.aller(pages.index(a._page_son))
+    a.regler_son.setChecked(True)
+    a._montrer_reglage_son()
+    w._update_state()
+
+
 def son_a_zero(w) -> None:
     for sp in (w.offset_spin, w.drift_spin):
         sp.setValue(0)
@@ -766,3 +793,6 @@ def actualiser(w, charge, photo, occupe, termine):
     phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
     w.s_note.setText("L'original est conservé." + (f" Correction du son : {phrase}." if phrase else ""))
     w.son_zero.setVisible(bool(phrase))
+    if hasattr(w, "caler_debut_fin"):
+        avec_son = charge and not photo and w.info is not None and w.info.has_audio
+        w.caler_debut_fin.setEnabled(bool(avec_son) and not occupe)
