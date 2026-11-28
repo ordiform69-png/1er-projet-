@@ -96,3 +96,9 @@ Le vrai modèle confirme l’écart de 40 ms par rapport au chemin normal, avec 
 - **Son** : avec DeepFilterNet 0.5.6, le calage des bips correspond au nettoyage habituel après correction. Le souffle et la voix restent reconnaissables dans l’aperçu ; le niveau de voix du profil Maximum peut différer sensiblement du film. En cas de repli, l’utilisateur est averti.
 - **Avant de valider le calage de l’export IA**, reprendre les horodatages dans `_export_ai`, avec une première image source à +40 ms et une première piste son à zéro. Vérifier aussi le cas de dérive négative avec extrait pris au milieu. Aucune correction à cette fonction dans cette branche.
 - **Tests** : les cinq fichiers demandés ensemble, avec DeepFilterNet activé pour son test, donnent `34 passed` en 302 s. Le contrôle d’écran distinct demandé pour les changements d’interface donne `9 passed` (1280 × 641, 100/125/150 %). FFmpeg 7.1.5, Linux ; les deux outils IA réels ont tourné. Suite complète et Windows : non lancés ; la demande réserve la suite complète à Claude avant fusion, et l’environnement de mesure est Linux.
+
+## n°4 — Calage, avertissements et volume
+
+### Extraction des images
+
+Le mode passthrough de la sortie PNG conserve une image par trame décodée. L’horodatage initial reste appliqué une seule fois par l’encodeur. Un contrôle arrête le traitement si le nombre extrait diffère du nombre attendu. Sur une source AVI MPEG-2 dont chaque image porte son numéro en binaire, les trois paquets contiennent 60, 60 et 11 PNG. L’export conserve les 131 numéros de l’intermédiaire dans l’ordre. Sur f9cc499 le test échoue dès le deuxième numéro (« At index 1 diff: 0 != 1 »).

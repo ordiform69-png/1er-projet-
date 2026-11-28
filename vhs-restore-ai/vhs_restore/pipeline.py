@@ -1787,9 +1787,13 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                 dd.mkdir()
             ss = ["-ss", f"{v_off + (done - 0.5) / float(fps):.6f}"] if done else []
             run([tools.ffmpeg.path, "-hide_banner", "-nostdin", "-y", "-loglevel", "warning",
-                 *ss, "-i", str(inter), "-map", "0:v:0", "-frames:v", str(cnt),
+                 *ss, "-i", str(inter), "-map", "0:v:0", "-fps_mode", "passthrough", "-frames:v", str(cnt),
                  "-pix_fmt", "rgb24", "-start_number", "0", "%08d.png"],     # motif relatif : un « % »
                 cancel=cancel, what="FFmpeg (extraction d'images)", cwd=d_in)   # du dossier ne gêne pas
+
+            extraites = sum(1 for _ in d_in.glob("*.png"))
+            if extraites != cnt:
+                raise ToolError(f"Extraction IA : {extraites} images extraites sur {cnt} attendues.")
 
             def on_count(k: int, done=done) -> None:
                 if progress:

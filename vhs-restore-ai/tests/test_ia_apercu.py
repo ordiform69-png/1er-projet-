@@ -99,3 +99,67 @@ def test_apercu_sans_ia_annonce_le_choix(tools, samples, monkeypatch):
         assert "Aperçu prêt sans agrandissement IA." in win.status.text()
     finally:
         win.close()
+
+
+@pytest.fixture
+def outils_ia(tmp_path, monkeypatch):
+    """Même contrat que l'exécutable portable : dossier de PNG en entrée et en sortie."""
+    import os
+    import sys
+    from vhs_restore.tools import detect_tools
+
+    script = tmp_path / "agrandir.py"
+    script.write_text("""import subprocess, sys
+from pathlib import Path
+src = Path(sys.argv[sys.argv.index('-i') + 1])
+dst = Path(sys.argv[sys.argv.index('-o') + 1])
+subprocess.run(['ffmpeg', '-v', 'error', '-i', str(src / '%08d.png'),
+                '-vf', 'scale=iw*4:ih*4', '-threads', '1', '-start_number', '0',
+                str(dst / '%08d.png')], check=True)
+""", encoding="utf-8")
+    if os.name == "nt":
+        exe = tmp_path / "agrandir.cmd"
+        exe.write_text(f'@"{sys.executable}" "{script}" %*\n')
+    else:
+        exe = script
+        exe.write_text(f"#!{sys.executable}\n" + script.read_text())
+        exe.chmod(0o755)
+    model = tmp_path / "models" / "realesrgan-x4plus.param"
+    model.parent.mkdir()
+    model.touch()
+    monkeypatch.setenv("VHSRA_REALESRGAN", str(exe))
+    outils = detect_tools()
+    assert outils.ai_available
+    return outils
+
+
+def test_ia_garde_chaque_image_des_paquets(outils_ia, tmp_path, monkeypatch):
+    import subprocess
+    from conftest import ff
+
+    # Huit bandes codent en binaire le numéro de chaque image.
+    src = tmp_path / "numeros.avi"
+    ff("-f", "lavfi", "-i", "nullsrc=s=64x48:r=25,geq=lum='32+180*mod(trunc(N/pow(2,trunc(X/8))),2)':cb=128:cr=128",
+       "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", "5.24",
+       "-c:v", "mpeg2video", "-c:a", "pcm_s16le", str(src))
+    def numeros(film):
+        donnees = subprocess.check_output([outils_ia.ffmpeg.path, "-v", "error", "-i", str(film),
+                                          "-an", "-vf", "scale=64:48", "-fps_mode", "passthrough",
+                                          "-pix_fmt", "gray", "-f", "rawvideo", "-"])
+        return [sum((donnees[i + 24*64 + 8*b + 4] > 128) << b for b in range(8))
+                for i in range(0, len(donnees), 64*48)]
+
+    reference, tailles = [], []
+    agrandir = pipeline.RealEsrganUpscaler.upscale_dir
+    def compter(moteur, entree, sortie, **kwargs):
+        if not reference:
+            reference.extend(numeros(entree.parent / "inter.mkv"))
+        tailles.append(len(list(entree.glob("*.png"))))
+        return agrandir(moteur, entree, sortie, **kwargs)
+
+    monkeypatch.setattr(pipeline.RealEsrganUpscaler, "upscale_dir", compter)
+    s = pipeline.Settings(PROFILES["equilibre"], resolution="96", use_ai=True)
+    film = pipeline.export(analyze(src, outils_ia), s, tmp_path / "film.mp4", outils_ia)
+    assert reference == list(range(131))
+    assert tailles == [60, 60, 11]
+    assert numeros(film) == reference
