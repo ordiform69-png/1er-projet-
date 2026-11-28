@@ -102,3 +102,7 @@ Le vrai modèle confirme l’écart de 40 ms par rapport au chemin normal, avec 
 ### Extraction des images
 
 Le mode passthrough de la sortie PNG conserve une image par trame décodée. L’horodatage initial reste appliqué une seule fois par l’encodeur. Un contrôle arrête le traitement si le nombre extrait diffère du nombre attendu. Sur une source AVI MPEG-2 dont chaque image porte son numéro en binaire, les trois paquets contiennent 60, 60 et 11 PNG. L’export conserve les 131 numéros de l’intermédiaire dans l’ordre. Sur f9cc499 le test échoue dès le deuxième numéro (« At index 1 diff: 0 != 1 »).
+
+### Son retardé dans l’aperçu IA
+
+Après un saut dans l’entrée, le silence ajouté et la dérive sont déjà présents dans les échantillons. Reconstruire leurs horodatages en sortie de la chaîne son, avant l’intermédiaire FLAC, évite le PTS invalide ; le calcul de l’horodatage de l’image et l’export normal sont conservés. Sur la base f9cc499, la dérive négative échoue au milieu : « Real-ESRGAN a échoué (code 1) », aucun PNG à lire. Le contrôle intermédiaire avec la seule correction image reproduit « Invalid duration for option itsoffset: 192153584101141.156250 ».

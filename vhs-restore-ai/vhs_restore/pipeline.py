@@ -1748,10 +1748,15 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
         if df_wav is not None:
             args = args + ["-i", str(df_wav)]
             amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
+        filtres_son = audio_filters(info, s, skip_afftdn=df_wav is not None,
+                                    present=present, rnnoise=tools.rnnoise_model)
+        if start and info.has_audio and s.audio_offset_ms > 0 and _has(present, "adelay"):
+            # Après -ss, adelay puis atempo peuvent laisser un PTS inconnu.
+            # L'échantillonnage du résultat contient déjà le silence et la dérive.
+            filtres_son.append("asetpts=N/SR/TB")
         run(_ff_base(tools) + args + [
             "-map", vmap, "-map", amap, "-vf", pre, *retime_args(info, s),
-            *audio_args(info, s, skip_afftdn=df_wav is not None, present=present,
-                       rnnoise=tools.rnnoise_model),
+            *(["-af", ",".join(filtres_son)] if filtres_son else []),
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))

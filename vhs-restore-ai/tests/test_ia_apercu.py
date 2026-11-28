@@ -163,3 +163,38 @@ def test_ia_garde_chaque_image_des_paquets(outils_ia, tmp_path, monkeypatch):
     assert reference == list(range(131))
     assert tailles == [60, 60, 11]
     assert numeros(film) == reference
+
+
+@pytest.fixture(scope="module", params=["avi", "mkv"])
+def court_a_reperes(request, reperes, tmp_path_factory):
+    from conftest import ff
+
+    ext = request.param
+    film = tmp_path_factory.mktemp(ext) / ("court." + ext)
+    ff("-i", str(reperes), "-t", "8", "-vf", "scale=64:48",
+       "-c:v", "mpeg2video" if ext == "avi" else "ffv1", "-c:a", "pcm_s16le", str(film))
+    return film
+
+
+@pytest.mark.parametrize("derive,retard", [(0, 0), (400, 0), (-400, 0), (0, 80)])
+def test_calage_ia_comme_export_normal(court_a_reperes, derive, retard, outils_ia, tmp_path):
+    from dataclasses import replace
+
+    info = analyze(court_a_reperes, outils_ia)
+    s = pipeline.Settings(PROFILES["equilibre"], resolution="96", audio_drift_ms_per_min=derive,
+                          audio_offset_ms=retard)
+    mesures = {}
+    for ia in (False, True):
+        choix = replace(s, use_ai=ia)
+        cible = tmp_path / f"film-{ia}.mp4"
+        pipeline.export(info, choix, cible, outils_ia)
+        mesures[ia, "film"] = _ecarts(cible)
+        for debut in (0, 4):
+            extrait = pipeline.make_preview(info, choix, outils_ia, tmp_path / f"ap-{ia}-{debut}", debut, 2)
+            mesures[ia, debut] = _ecarts(extrait.restored, debut)
+    for passage in ("film", 0, 4):
+        avant, apres = mesures[False, passage], mesures[True, passage]
+        assert avant and avant.keys() == apres.keys()
+        erreurs = [abs(avant[t] - apres[t]) for t in avant]
+        print(court_a_reperes.suffix, derive, retard, passage, "écart maximal", max(erreurs))
+        assert max(erreurs) <= 5
