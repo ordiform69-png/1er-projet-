@@ -2022,6 +2022,13 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         if old.is_file():
             effacer(old)          # encore ouvert dans le lecteur (« Écouter ») : il reste, sans gêner
     sp = dataclasses.replace(s, preset="veryfast")
+    if start and abs(s.audio_drift_ms_per_min) >= 1:
+        # La dérive court depuis le début du FILM, pas de l'extrait : correction au temps t =
+        # décalage − dérive × t / 60. L'extrait part donc avec la correction déjà accumulée.
+        # Sans cela, l'aperçu de la fin du film n'entendait pas l'export (mesuré : voix avancée
+        # de 80 ms dans l'aperçu, retardée de 130 ms dans le film, au même endroit).
+        t_sortie = float(start) * time_ratio(info, s)
+        sp = dataclasses.replace(sp, audio_offset_ms=s.audio_offset_ms - s.audio_drift_ms_per_min * t_sortie / 60.0)
     restored = workdir / "apercu_restaure.mp4"
 
     def sub(lo: float, hi: float) -> Progress | None:

@@ -1264,3 +1264,27 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   réglé, en images (« Au début : voix avancée de 2 images. »), jamais en millisecondes.
 - Vérifié à 1280 × 641 et 150 % (captures). Tests : `tests/test_calage_son.py` (échouent avec
   l'ancien code) ; l'assertion du texte du bouton dans `test_assistant.py` vérifie le nouveau.
+
+## Calage voix-lèvres vérifié de bout en bout (P0) — 28 novembre 2026
+
+- Demande de l'utilisateur : vérifier que l'aperçu fait entendre le calage que l'on retrouve
+  dans le film exporté, du clic jusqu'au fichier. Mesure : film d'essai (éclair blanc d'une
+  image et bip toutes les 2 s, 3 min), fenêtre réelle pilotée (clics sur les boutons,
+  « Écouter ces 10 secondes », assistant), écart « bip − éclair » relevé dans chaque fichier
+  ouvert et dans l'export (précision : 1 ms pour le son, image exacte pour l'éclair).
+- Constat et correction : avec une dérive (réglage au début et à la fin), l'aperçu repartait de
+  zéro pour la dérive au début de l'extrait. À 139 s : voix avancée de 80 ms dans l'aperçu,
+  retardée de 130 ms dans le film. `make_preview` part maintenant de la correction accumulée à
+  cet endroit (décalage − dérive × t / 60), pour les trois chemins (normal, IA, réparation de
+  bande). Après : 0,3 ms d'écart au début, 8 ms au plus à la fin.
+- Limite connue, mesurée : la dérive passe par atempo, qui avance le son d'environ 15 à 20 ms
+  (moins d'une demi-image, sous le seuil de perception de 45 ms), autant dans l'aperçu que dans
+  le film. Les écoutes de l'assistant (sans atempo) ont exactement le décalage demandé.
+- P2 : « Avancer la voix » / « Retarder la voix » remplacent « − » / « + » (10 ms par clic) :
+  une image par clic, comme l'assistant, qui prend les mêmes mots. La case en ms est cachée ;
+  la ligne au-dessus dit le réglage en images. Le résumé et la note disent aussi les images :
+  « voix avancée de 2 images au début, retardée de 3 images à la fin », au lieu de « son avancé
+  de 94 ms, ralenti de 92 ms par minute ». Une dérive rabotée par la limite de la case (±2 000
+  ms/min, film très court) se voit désormais dans ce résumé.
+- Tests : `tests/test_calage_apercu_export.py` (échoue avec l'ancien code : 61 ms d'écart à
+  40 s), `tests/test_calage_son.py`, phrases dans `tests/test_assistant.py`.

@@ -22,8 +22,14 @@ def test_calcul_decalage_et_derive():
 
 def test_phrase_du_son():
     assert assistant.phrase_son(0, 0) == ""
-    assert assistant.phrase_son(-40, -190) == "son avancé de 40 ms, ralenti de 190 ms par minute"
-    assert assistant.phrase_son(91, 145) == "son retardé de 91 ms, accéléré de 145 ms par minute"
+    # avec les mots des boutons, en images ; la dérive dite aux deux moments écoutés
+    assert assistant.phrase_son(-80, 0) == "voix avancée de 2 images"
+    assert assistant.phrase_son(40, 0) == "voix retardée d'une image"
+    assert assistant.phrase_son(-94, -92, (9, 140)) == "voix avancée de 2 images au début, retardée de 3 images à la fin"
+    assert assistant.phrase_son(-40, -190) == ("voix avancée d'une image au début du film, "
+                                               "puis de plus en plus retardée (190 ms par minute)")
+    assert assistant.phrase_son(91, 145) == ("voix retardée de 91 ms au début du film, "
+                                             "puis de plus en plus avancée (145 ms par minute)")
 
 
 @pytest.mark.parametrize("son,attendu", [(70.21, 180), (70.0, None)])

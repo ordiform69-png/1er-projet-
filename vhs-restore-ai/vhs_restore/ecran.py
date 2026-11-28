@@ -1,12 +1,12 @@
 """Disposition de la fenêtre de restauration. Les commandes gardent leurs signaux Qt."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication,
+from PySide6.QtWidgets import (QApplication, QBoxLayout,
     QComboBox, QDialog, QFrame, QFormLayout, QGridLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from . import ergonomie, icons, lecteur, lumiere, theme
-from .assistant import Assistant, phrase_son
+from .assistant import PAS_SON, Assistant, phrase_son, voix_decalee
 
 
 def regles(echelle: float) -> str:
@@ -166,8 +166,11 @@ def ajuster_son(w) -> None:
     """« Régler le son » replié : commandes plus grandes. Déplié : taille d'origine,
     sinon la section ne tient plus dans l'écran à 125 %."""
     grand = not w.plus_son.isChecked()
-    for bouton, haut in ((w.ecouter, 64), (w.caler_debut_fin, 56), (w.plus_son, 56), (w.audio_check, 48),
-                         (w.libelle_decalage, 0)):
+    for boite in (w._boite_ecoute, w._boite_nettoyer):
+        boite.setDirection(QBoxLayout.TopToBottom if grand else QBoxLayout.LeftToRight)
+    # La consigne au-dessus des deux boutons reste en taille normale : en grand, elle prenait trois
+    # lignes à 150 % et coupait le bas de la section.
+    for bouton, haut in ((w.ecouter, 56), (w.caler_debut_fin, 52), (w.plus_son, 56), (w.audio_check, 48)):
         bouton.setProperty("large", True if grand else False)
         if haut:
             bouton.setMinimumHeight(haut if grand else 0)
@@ -526,24 +529,28 @@ def installer(w):
         grid.addWidget(widget, 3 + index // 2, index % 2)
 
     son = contenu("Régler le son")
-    moins, plus = QPushButton("−"), QPushButton("+")
-    moins.setAccessibleName("Avancer le son")
-    plus.setAccessibleName("Retarder le son")
-    moins.clicked.connect(w.offset_spin.stepDown)
-    plus.clicked.connect(w.offset_spin.stepUp)
-    moins.setFixedWidth(48)
-    plus.setFixedWidth(48)
-    w._son_moins, w._son_plus = moins, plus
-    # « Décalage entre la voix et les lèvres » était coupé à 150 % (« … la voix et ») : un nom
-    # court sur la ligne, et l'explication des deux boutons en dessous.
-    w.libelle_decalage = QLabel("Voix et lèvres")
-    son.addLayout(ligne(w.libelle_decalage, moins, w.offset_spin, plus))
-    w.aide_decalage = QLabel(ergonomie.insecables(
-        "La voix arrive après les lèvres : « − ». Avant les lèvres : « + ». "
-        "Puis « Écouter ces 10 secondes »."))
-    w.aide_decalage.setWordWrap(True)
-    w.aide_decalage.setObjectName("note")
-    son.addWidget(w.aide_decalage)
+    # « Avancer la voix » / « Retarder la voix » : la réponse directe à « j'entends la voix après
+    # avoir vu les lèvres bouger, sur quoi cliquer ? ». Un clic = une image (comme l'assistant).
+    # La case en millisecondes (jargon) reste cachée : la ligne au-dessus dit le réglage en images.
+    avancer, retarder = QPushButton("Avancer la voix"), QPushButton("Retarder la voix")
+    avancer.setAccessibleName("Avancer la voix : elle arrivait après les lèvres")
+    retarder.setAccessibleName("Retarder la voix : elle arrivait avant les lèvres")
+    avancer.setToolTip("La voix arrive après les lèvres : chaque clic l'avance d'une image.")
+    retarder.setToolTip("La voix arrive avant les lèvres : chaque clic la retarde d'une image.")
+    avancer.clicked.connect(lambda: decaler_voix(w, -1))
+    retarder.clicked.connect(lambda: decaler_voix(w, +1))
+    w._son_moins, w._son_plus = avancer, retarder
+    w.libelle_decalage = QLabel()
+    w.libelle_decalage.setWordWrap(True)
+    son.addWidget(w.libelle_decalage)
+    boutons_voix = ligne(avancer, retarder)
+    boutons_voix.setSpacing(6)
+    son.addLayout(boutons_voix)
+    son.addWidget(w.offset_spin)
+    w.offset_spin.hide()
+    w.offset_spin.valueChanged.connect(lambda _v: dire_voix(w))
+    w.drift_spin.valueChanged.connect(lambda _v: dire_voix(w))
+    dire_voix(w)
     w.ecouter = QPushButton("Écouter ces 10 secondes")
     w.ecouter.clicked.connect(w._ecouter_extrait)
     w.caler_debut_fin = QPushButton("Caler au début et à la fin…")
@@ -551,15 +558,19 @@ def installer(w):
                                  "la voix d'une image à la fois. Le logiciel en déduit le calage "
                                  "de tout le film, même si le décalage grandit peu à peu.")
     w.caler_debut_fin.clicked.connect(lambda: caler_la_voix(w))
-    son.addWidget(w.ecouter)
-    son.addSpacing(6)
-    son.addWidget(w.caler_debut_fin)
+    w._boite_ecoute = QBoxLayout(QBoxLayout.TopToBottom)      # côte à côte quand tout est déplié
+    w._boite_ecoute.setSpacing(6)
+    w._boite_ecoute.addWidget(w.ecouter)
+    w._boite_ecoute.addWidget(w.caler_debut_fin)
+    son.addLayout(w._boite_ecoute)
     w.ai_check.setText("Amélioration IA")
     w.audio_check.setText("Nettoyer le son")
-    son.addWidget(w.audio_check)
     w.plus_son = QPushButton("Plus de réglages…")
     w.plus_son.setCheckable(True)
-    son.addWidget(w.plus_son)
+    w._boite_nettoyer = QBoxLayout(QBoxLayout.TopToBottom)     # côte à côte quand tout est déplié
+    w._boite_nettoyer.addWidget(w.audio_check)
+    w._boite_nettoyer.addWidget(w.plus_son)
+    son.addLayout(w._boite_nettoyer)
     w.plus_son.toggled.connect(lambda _on: ajuster_son(w))
     fin = QWidget()
     fg = QGridLayout(fin)
@@ -687,6 +698,23 @@ def mode_libre(w, libre: bool) -> None:
     w._update_state()
 
 
+def decaler_voix(w, sens: int) -> None:
+    """« Avancer la voix » (−1) ou « Retarder la voix » (+1) : une image par clic."""
+    w.offset_spin.setValue(w.offset_spin.value() + sens * PAS_SON)
+
+
+def dire_voix(w) -> None:
+    """La ligne au-dessus des deux boutons : la consigne, ou le réglage en images."""
+    v = w.offset_spin.value()
+    if abs(v) < 1:
+        texte = "Voix après les lèvres : « Avancer la voix ». Avant : « Retarder la voix »."
+    else:
+        texte = f"Voix {voix_decalee(v)}. Vérifiez avec « Écouter ces 10 secondes »."
+    if abs(w.drift_spin.value()) >= 1:
+        texte += " Calée aussi à la fin (pas à pas)."
+    w.libelle_decalage.setText(ergonomie.insecables(texte))
+
+
 def caler_la_voix(w) -> None:
     """Réglages libres → l'étape « Le son » de l'assistant, le réglage du calage déjà ouvert."""
     a = w.assistant
@@ -790,7 +818,8 @@ def actualiser(w, charge, photo, occupe, termine):
             w.run_btn.setToolTip("")
         for b in (a.retour, a.suivant, a.chercher, a.grand, a.voir):
             b.setEnabled(not occupe)
-    phrase = phrase_son(w.offset_spin.value(), w.drift_spin.value()) if charge and not photo else ""
+    phrase = (phrase_son(w.offset_spin.value(), w.drift_spin.value(), a.moments_son() if a is not None else None)
+              if charge and not photo else "")
     w.s_note.setText("L'original est conservé." + (f" Correction du son : {phrase}." if phrase else ""))
     w.son_zero.setVisible(bool(phrase))
     if hasattr(w, "caler_debut_fin"):

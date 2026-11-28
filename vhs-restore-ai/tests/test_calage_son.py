@@ -2,8 +2,9 @@
 
 Constat de l'utilisateur : « Il faut l'indiquer, sinon l'utilisateur ne comprend pas. »
 - Réglages libres : la légende « Décalage entre la voix et les lèvres » était coupée à 150 %,
-  et rien ne disait à quoi servent « − » et « + » ; le calage au début et à la fin (dérive)
-  n'existait que dans l'assistant, sans chemin pour y aller.
+  et rien ne disait à quoi servent « − » et « + » (10 ms par clic) ; le calage au début et à
+  la fin (dérive) n'existait que dans l'assistant, sans chemin pour y aller. Maintenant :
+  « Avancer la voix » / « Retarder la voix », une image par clic, comme dans l'assistant.
 - Assistant : « Le son est en retard ? » trompait (la voix peut être en avance), on ne savait
   pas où s'ouvrent les 10 secondes, ni ce qui était déjà corrigé.
 """
@@ -55,12 +56,22 @@ def test_reglages_libres_expliquent_et_menent_au_calage(app, tools, samples, mon
         ecran.ouvrir(win, "Régler le son")
         app.processEvents()
         lab = win.libelle_decalage
-        assert lab.text() == "Voix et lèvres"
-        assert lab.isVisible() and lab.width() >= lab.sizeHint().width()       # rien de coupé
-        aide = win.aide_decalage.text().replace(" ", " ")
-        assert win.aide_decalage.isVisible()
-        assert "après les lèvres : « − »" in aide and "Avant les lèvres : « + »" in aide
-        assert "Écouter ces 10 secondes" in aide
+        consigne = lab.text().replace("\u00a0", " ")
+        assert lab.isVisible()
+        assert consigne == "Voix après les lèvres : « Avancer la voix ». Avant : « Retarder la voix »."
+        avancer, retarder = win._son_moins, win._son_plus
+        for b in (avancer, retarder):                 # libellé entier, pas « − » ni « + »
+            assert b.isVisible() and b.width() >= b.sizeHint().width(), b.text()
+        assert (avancer.text(), retarder.text()) == ("Avancer la voix", "Retarder la voix")
+        assert not win.offset_spin.isVisible()        # les millisecondes restent cachées
+        avancer.click()
+        avancer.click()                               # deux clics = deux images plus tôt
+        assert win.offset_spin.value() == -80
+        assert lab.text().replace("\u00a0", " ").startswith("Voix avancée de 2 images.")
+        for _ in range(5):
+            retarder.click()
+        assert win.offset_spin.value() == 120
+        assert lab.text().replace("\u00a0", " ").startswith("Voix retardée de 3 images.")
         assert win.caler_debut_fin.isVisible() and win.caler_debut_fin.isEnabled()
 
         win.caler_debut_fin.click()                          # vers l'étape « Le son » de l'assistant
@@ -91,8 +102,17 @@ def test_assistant_dit_ou_s_ouvre_l_extrait_et_ce_qui_est_corrige(app, tools, sa
         assert a.etat_son.text() == "Au début : voix avancée de 2 images. À la fin : rien de changé."
         trop_tot_fin.click()
         assert a.etat_son.text() == ("Au début : voix avancée de 2 images. "
-                                     "À la fin : voix retardée de 1 image.")
+                                     "À la fin : voix retardée d'une image.")
         assert a.rangs_son["debut"][2].value() == -80 and a.rangs_son["fin"][2].value() == 40
+        for _ in range(3):
+            trop_tard_fin.click()                            # la fin comme le début : pas de dérive
+        assert a.etat_son.text() == ("Au début : voix avancée de 2 images. "
+                                     "À la fin : voix avancée de 2 images.")
+        a.suivant.click()                                    # validé : le résumé dit la même chose
+        attendre(app, win)
+        note = win.s_note.text()
+        assert note.endswith("Correction du son : voix avancée de 2 images."), note
+        assert win.offset_spin.value() == -80 and win.drift_spin.value() == 0
     finally:
         _fermer(win)
 

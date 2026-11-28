@@ -89,14 +89,36 @@ def son_depuis_debut_fin(d_debut: float, t_debut: float, d_fin: float, t_fin: fl
     return round(decalage), round(derive)
 
 
-def phrase_son(decalage: float, derive: float) -> str:
-    """« son retardé de 40 ms, ralenti de 190 ms par minute » ; vide si rien n'est corrigé."""
-    parts = []
-    if abs(decalage) >= 1:
-        parts.append(f"son {'retardé' if decalage > 0 else 'avancé'} de {abs(decalage):.0f} ms")
-    if abs(derive) >= 1:
-        parts.append(f"{'accéléré' if derive > 0 else 'ralenti'} de {abs(derive):.0f} ms par minute")
-    return ", ".join(parts)
+def voix_decalee(valeur: float) -> str:
+    """« avancée de 2 images », « retardée d'une image » ; en ms si ce n'est pas un nombre
+    entier d'images (une image = PAS_SON, un clic). Vide si rien n'est décalé."""
+    if abs(valeur) < 1:
+        return ""
+    sens = "retardée" if valeur > 0 else "avancée"
+    n = round(abs(valeur) / PAS_SON)
+    if n >= 1 and abs(abs(valeur) - n * PAS_SON) <= 3:
+        return f"{sens} d'une image" if n == 1 else f"{sens} de {n} images"
+    return f"{sens} de {abs(valeur):.0f} ms"
+
+
+def phrase_son(decalage: float, derive: float, moments: tuple[float, float] | None = None) -> str:
+    """Ce que le film fera de la voix, avec les mots des boutons. Vide si rien n'est corrigé.
+
+    Sans dérive : « voix avancée de 2 images ». Avec une dérive et les deux moments écoutés
+    dans l'assistant : « voix avancée de 2 images au début, retardée de 3 images à la fin »
+    (correction au temps t : décalage − dérive × t / 60). Sans ces moments : la correction au
+    début du film, puis le sens du glissement. Avant : « son avancé de 94 ms, ralenti de 92 ms
+    par minute », juste mais incompréhensible, et sans rapport visible avec les clics faits."""
+    if abs(derive) < 1:
+        return f"voix {voix_decalee(decalage)}" if abs(decalage) >= 1 else ""
+    if moments:
+        d1, d2 = (decalage - derive * m / 60.0 for m in moments)
+        debut = voix_decalee(d1) or "inchangée"
+        fin = voix_decalee(d2) or "inchangée"
+        return f"voix {debut} au début, {fin} à la fin"
+    glisse = "avancée" if derive > 0 else "retardée"
+    depart = f"voix {voix_decalee(decalage)} au début du film, puis" if abs(decalage) >= 1 else "voix"
+    return f"{depart} de plus en plus {glisse} ({abs(derive):.0f} ms par minute)"
 
 
 def suggestion_derive(ffprobe: str, chemin: Path) -> tuple[float, float] | None:
@@ -780,8 +802,8 @@ class Assistant(QWidget):
         self.regler_son.setCheckable(True)
         self.regler_son.clicked.connect(self._montrer_reglage_son)
         v.addWidget(self.regler_son)
-        self.aide_son = _texte("La voix arrive après les lèvres : « Voix trop tard ». Elle arrive avant : "
-                               "« Voix trop tôt ». Chaque clic décale la voix d'une image ; réécoutez "
+        self.aide_son = _texte("La voix arrive après les lèvres : « Avancer la voix ». Elle arrive avant : "
+                               "« Retarder la voix ». Chaque clic décale la voix d'une image ; réécoutez "
                                "après chaque clic. Réglez le début, puis la fin : le logiciel en déduit "
                                "le calage de tout le film.")
         self.aide_son.hide()
@@ -793,7 +815,7 @@ class Assistant(QWidget):
             lab = QLabel()
             lab.setMinimumWidth(150)
             ecouter = _bouton("Écouter")
-            moins, plus = _bouton("Voix trop tard"), _bouton("Voix trop tôt")
+            moins, plus = _bouton("Avancer la voix"), _bouton("Retarder la voix")
             moins.setAccessibleName("Avancer le son")
             plus.setAccessibleName("Retarder le son")
             champ = QSpinBox()
@@ -1134,6 +1156,11 @@ class Assistant(QWidget):
         for b in self._reglages_son:
             b.setVisible(montre)
 
+    def moments_son(self) -> tuple[float, float] | None:
+        """Les deux moments écoutés (début, fin), pour dire la dérive avec les clics faits."""
+        t = getattr(self, "_t_son", None)
+        return (t["debut"], t["fin"]) if t else None
+
     def _dire_calage(self) -> None:
         """« Au début : voix avancée de 2 images. À la fin : rien de changé. » Vide si rien."""
         if len(self.rangs_son) < 2 or not hasattr(self, "etat_son"):
@@ -1141,13 +1168,8 @@ class Assistant(QWidget):
         morceaux = []
         for cle, nom in (("debut", "Au début"), ("fin", "À la fin")):
             valeur = self.rangs_son[cle][2].value()
-            n = round(abs(valeur) / PAS_SON)
-            if n == 0:
-                morceaux.append(f"{nom} : rien de changé.")
-            else:
-                images = f"{n} image" + ("s" if n > 1 else "")
-                sens = "retardée" if valeur > 0 else "avancée"
-                morceaux.append(f"{nom} : voix {sens} de {images}.")
+            dit = voix_decalee(valeur)
+            morceaux.append(f"{nom} : voix {dit}." if dit else f"{nom} : rien de changé.")
         reglee = any(self.rangs_son[c][2].value() for c in ("debut", "fin"))
         self.etat_son.setText(" ".join(morceaux) if reglee else "")
 
@@ -1251,7 +1273,7 @@ class Assistant(QWidget):
             ligne("Passages enlevés :", (", ".join(morceaux) if morceaux else "aucun") + ".")
             if w.info is not None and w.info.has_audio:
                 son = "nettoyé" if s.restore_audio else "gardé tel quel"
-                detail = phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min)
+                detail = phrase_son(s.audio_offset_ms, s.audio_drift_ms_per_min, self.moments_son())
                 if detail:
                     son += ", " + detail
                 ligne("Son :", son + ".")
@@ -1317,4 +1339,5 @@ class Assistant(QWidget):
         return "Pas encore. Terminez les étapes."
 
 
-__all__ = ["Assistant", "faire_ecoute", "faire_rendus", "phrase_son", "son_depuis_debut_fin", "suggestion_derive"]
+__all__ = ["Assistant", "faire_ecoute", "faire_rendus", "phrase_son", "son_depuis_debut_fin", "suggestion_derive",
+           "voix_decalee"]
