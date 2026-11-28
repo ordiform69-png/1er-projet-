@@ -57,7 +57,11 @@ def test_repli_visible_dans_apercu_et_bilan(etat, tools, samples, tmp_path, monk
         wait(app, win)
         message = "DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
         assert win.preview is not None
-        assert (message in win.status.text()) == (etat != "absent")
+        statut = win.status.text().replace("\u00a0", " ")
+        assert (message in statut) == (etat != "absent")
+        assert statut.startswith("Aperçu prêt (extrait de ")
+        assert "Comparez avec les boutons « Avant » et « Après »." in statut
+        assert "Durée estimée" in statut
         win.start_export()
         wait(app, win)
         assert win._fini_fichier.is_file()
@@ -76,7 +80,8 @@ def test_apercu_sans_ia_annonce_le_choix(tools, samples, monkeypatch):
     from vhs_restore.tools import Tool
 
     app = QApplication.instance() or QApplication([])
-    win = MainWindow(replace(tools, realesrgan=Tool("Real-ESRGAN", tools.ffmpeg.path)))
+    win = MainWindow(replace(tools, realesrgan=Tool("Real-ESRGAN", tools.ffmpeg.path),
+                             deepfilter=Tool("DeepFilterNet", "refuse", problem="Accès refusé")))
     secondes = [0]
     demandes = []
 
@@ -92,15 +97,27 @@ def test_apercu_sans_ia_annonce_le_choix(tools, samples, monkeypatch):
     monkeypatch.setattr(pipeline.RealEsrganUpscaler, "upscale_dir", mesure)
     monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: time.monotonic() + secondes[0]))
     try:
+        win.resize(1280, 641)
+        win.show()
+        win.set_taille_texte(150, annoncer=False)
         win.load_file(str(samples["pal_tff"]))
         wait(app, win)
+        win.profile_buttons["maximum"].setChecked(True)
+        win.audio_check.setChecked(True)
         win.ai_check.setChecked(True)
         win.start_preview()
         wait(app, win)
         assert demandes and demandes[0] > 120
         assert win.ai_check.isChecked()
         assert win.compare.after_label == "APRÈS (sans IA)"
-        assert "Aperçu prêt sans agrandissement IA." in win.status.text()
+        statut = win.status.text().replace("\u00a0", " ")
+        assert statut.startswith("Aperçu prêt (extrait de ")
+        assert "Comparez avec les boutons « Avant » et « Après »." in statut
+        assert "Durée estimée" in statut
+        assert "Aperçu sans agrandissement IA." in statut
+        assert "DeepFilterNet indisponible." in statut
+        assert win.status.height() >= win.status.heightForWidth(win.status.width())
+        assert (win.width(), win.height()) == (1280, 641)
     finally:
         win.close()
 

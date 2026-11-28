@@ -3446,10 +3446,10 @@ class MainWindow(QMainWindow):
             if annonce:
                 texte += " " + annonce
         if sans_ia:
-            texte = "Aperçu prêt sans agrandissement IA. L’IA reste cochée pour la restauration."
+            texte += " Aperçu sans agrandissement IA. L’IA reste cochée pour la restauration."
         if getattr(tache, "repli_deepfilter", False):
             alerte = "DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
-            texte = (texte if sans_ia else "Aperçu prêt.") + " " + alerte
+            texte += " " + alerte
         self.status.setText(texte)
 
     def _ecouter_extrait(self) -> None:

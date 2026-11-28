@@ -110,3 +110,7 @@ Après un saut dans l’entrée, le silence ajouté et la dérive sont déjà pr
 ### DeepFilterNet facultatif
 
 Le profil Maximum utilise le nettoyage habituel sans avertissement quand aucun binaire n’est installé. Le refus d’accès à un binaire identifié et l’échec à l’exécution restent signalés dans l’aperçu et dans le bilan d’export. Le test exerce les trois cas à travers la fenêtre. Sur f9cc499, l’assertion d’absence échoue : le statut contient « DeepFilterNet indisponible ».
+
+### Phrase de fin d’aperçu
+
+Le statut conserve les bornes de l’extrait, l’invitation à comparer et l’estimation déjà affichée. Les indications d’agrandissement désactivé et de repli sonore sont ajoutées ensuite. Le test force les deux alertes ensemble, affiche la fenêtre à 1280 × 641 avec texte à 150 %, et vérifie que le libellé dispose de sa hauteur de texte intégrale. Sur la base, `startswith("Aperçu prêt (extrait de ")` renvoie False. Après correction le test passe.
