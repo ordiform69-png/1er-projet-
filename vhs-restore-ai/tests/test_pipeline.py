@@ -184,6 +184,46 @@ def test_preview_aligned_when_video_starts_after_audio(tools, tmp_path):
     assert float(re.findall(r"average:([\d.]+)", out)[-1]) > 30
 
 
+def test_apercu_full_hd_garde_les_couleurs(tools, tmp_path):
+    """Avant / après en Full HD (« Nettoyage au plus fort ») : la moitié « après » ne tire pas au vert.
+
+    Le film restauré en Full HD est codé en BT.709, l'original en BT.601. Collées telles quelles,
+    les deux moitiés différaient de +46 niveaux de vert sur la mire, et le rouge perdait 10 niveaux,
+    alors que le film lui-même était juste. La moitié « après » doit ressembler à l'original.
+    """
+    import shutil
+    import subprocess
+    src = tmp_path / "mire.mpg"
+    subprocess.run([shutil.which("ffmpeg"), "-loglevel", "error", "-f", "lavfi", "-i", "smptebars=s=720x576:r=25",
+                    "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "3", "-c:v", "mpeg2video", "-b:v", "8M",
+                    "-aspect", "4:3", "-c:a", "mp2", "-f", "dvd", str(src)], check=True)
+    info = analyze(src, tools)
+    r = pipeline.make_preview(info, S(resolution="1080"), tools, tmp_path / "ap", start=1, duration=1)
+    largeur, hauteur = 1440, 540
+    brut = subprocess.run([shutil.which("ffmpeg"), "-loglevel", "error", "-i", str(r.stills[1]),
+                           "-vf", f"scale={largeur}:{hauteur}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                          capture_output=True, check=True).stdout
+    assert len(brut) == largeur * hauteur * 3
+
+    def couleur(x, y):
+        somme = [0, 0, 0]
+        for dy in range(-4, 5):
+            for dx in range(-4, 5):
+                i = ((y + dy) * largeur + x + dx) * 3
+                for c in range(3):
+                    somme[c] += brut[i + c]
+        return [v / 81 for v in somme]
+
+    y = int(hauteur * 0.3)
+    moitie = largeur // 2
+    for k in range(7):                       # gris, jaune, cyan, vert, magenta, rouge, bleu
+        x = int(moitie / 7 * (k + 0.5))
+        avant, apres = couleur(x, y), couleur(moitie + x, y)
+        assert max(abs(a - b) for a, b in zip(avant, apres)) <= 15, (k, avant, apres)
+    tags = _vstream(r.compare)[1]
+    assert tags.get("color_space") in ("bt470bg", "smpte170m")   # les lecteurs décodent en BT.601
+
+
 def test_exports_concurrents_et_temoins(pal, tools, tmp_path):
     from concurrent.futures import ThreadPoolExecutor
     from dataclasses import replace

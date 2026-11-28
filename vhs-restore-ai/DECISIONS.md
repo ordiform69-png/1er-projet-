@@ -1175,3 +1175,15 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
 - Restent à faire : A1 (3 ms de son par raccord des passages enlevés : refaire le son en une
   fois après le collage), E3 (« Arrêter » pendant la séparation), D1 (FFmpeg survit à un
   plantage : « Job Object » Windows, à essayer sur le PC de l'utilisateur), D8 à D10 (Windows).
+
+## Avant / après en Full HD : couleurs justes — 28 novembre 2026
+
+- Constat de l'utilisateur : en « Nettoyage au plus fort », l'aperçu tirait au vert, couleurs
+  ternes, lumière trop jaune. Mesuré sur une mire : moitié « après » +46 niveaux de vert, rouge
+  −10. Le film restauré, lui, était juste (écart de 0 à 9 niveaux, comme en « Bien nettoyé »).
+- Cause : le film en Full HD est codé en BT.709, l'original en BT.601 ; la comparaison collait
+  les deux moitiés sans convertir, dans un fichier sans étiquette de couleurs.
+- Choix : les deux moitiés sont converties en BT.601 (taille de définition standard, 540
+  lignes) et le fichier de comparaison est étiqueté BT.601. Écart retombé à 8 niveaux au plus.
+  Ni Real-ESRGAN ni DeepFilterNet n'étaient en cause (DeepFilterNet ne traite que le son).
+  Test : `test_apercu_full_hd_garde_les_couleurs` (échoue avec l'ancien code).

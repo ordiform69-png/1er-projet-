@@ -2044,8 +2044,15 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
     r = retime(info, s)
     if r:
         ref_vf.append(f"setpts=N*{r.denominator}/{r.numerator}/TB")
-    ref_vf += [f"fps={fps.numerator}/{fps.denominator}", f"scale={w}:{h}:flags=lanczos", "setsar=1",
-               "format=yuv420p"]
+    # Les deux moitiés en couleurs de définition standard (BT.601), dites dans le fichier.
+    # Le film restauré en Full HD est codé en BT.709 : collé tel quel à côté de l'original,
+    # sa moitié tirait au vert et ses rouges étaient ternes (constaté en « Nettoyage au plus
+    # fort », alors que le film lui-même était juste).
+    ref_vf += [f"fps={fps.numerator}/{fps.denominator}",
+               f"scale={w}:{h}:flags=lanczos:in_color_matrix={_in_matrix(info)}:out_color_matrix=bt601",
+               "setsar=1", "format=yuv420p"]
+    matrice_restaure = "bt709" if effective_resolution(s) != "source" else _in_matrix(info)
+    etiquette_sd = "smpte170m" if info.standard == "525/30" else "bt470bg"
     out_duration = duration * time_ratio(info, s)
     reference = workdir / "apercu_original.mp4"
     run(_ff_base(tools) + _seek(start, duration) + [
@@ -2055,12 +2062,13 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         *audio_args(info, s, restore=False, apply_offset=False, apply_drift=False), "-f", "mp4", str(reference)],
         cancel=cancel, what="FFmpeg (aperçu de l'original)",
         on_line=_FFProgress(out_duration, progress, 0.8, 0.88, "Comparaison…"))
-    fc = (f"[0:v]setpts=PTS-STARTPTS[a];[1:v]scale={w}:{h}:flags=lanczos,setsar=1,setpts=PTS-STARTPTS[b];"
+    fc = (f"[0:v]setpts=PTS-STARTPTS[a];[1:v]scale={w}:{h}:flags=lanczos:in_color_matrix={matrice_restaure}"
+          ":out_color_matrix=bt601,setsar=1,setpts=PTS-STARTPTS[b];"
           "[a][b]hstack=inputs=2:shortest=1,format=yuv420p[v]")
     compare = workdir / "apercu_comparaison.mp4"
     run(_ff_base(tools) + ["-i", str(reference), "-i", str(restored),
         "-filter_complex", fc, "-map", "[v]", "-map", "1:a:0?", "-c:v", "libx264", "-preset",
-        "veryfast", "-crf", "16", "-c:a", "copy", "-movflags", "+faststart",
+        "veryfast", "-crf", "16", "-colorspace", etiquette_sd, "-c:a", "copy", "-movflags", "+faststart",
         str(compare)], cancel=cancel, what="FFmpeg (comparaison)",
         on_line=_FFProgress(out_duration, progress, 0.88, 0.95, "Comparaison…"))
     stills = []
