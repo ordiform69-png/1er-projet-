@@ -281,10 +281,20 @@ def _gris_probable(px: bytes) -> tuple[float, float, float] | None:
 
 
 def _images_reduites(ffmpeg: str, path: Path, start: float, images: int) -> bytes | None:
+    m = _lire_moment(ffmpeg, path, start, images)
+    return m[0] if m else None
+
+
+def _lire_moment(ffmpeg: str, path: Path, start: float,
+                 images: int = 1) -> tuple[bytes, float | None, float | None] | None:
+    """Une lecture courte : l'image réduite (pour la couleur) et les niveaux YLOW / YHIGH de
+    l'image entière (pour la lumière, mêmes mesures que l'analyse d'un moment)."""
     try:
-        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
-                     "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
-                     "-map", "0:v:0", "-vf", f"scale={COULEUR_L}:{COULEUR_H},format=rgb24",
+        r = capture([ffmpeg, "-hide_banner", "-nostdin",
+                     "-ss", f"{max(0.0, start):.3f}", *ff_input(path), "-map", "0:v:0", "-vf",
+                     "signalstats,metadata=print:key=lavfi.signalstats.YLOW,"
+                     "metadata=print:key=lavfi.signalstats.YHIGH,"
+                     f"scale={COULEUR_L}:{COULEUR_H},format=rgb24",
                      "-frames:v", str(images), "-an", "-f", "rawvideo", "-"],
                     capture_output=True, timeout=60, stdin=subprocess.DEVNULL,
                     creationflags=_NO_WINDOW)
@@ -292,11 +302,37 @@ def _images_reduites(ffmpeg: str, path: Path, start: float, images: int) -> byte
         return None
     if r.returncode or len(r.stdout) < COULEUR_L * COULEUR_H * 3:
         return None
-    return r.stdout
+    texte = r.stderr.decode("utf-8", "replace") if isinstance(r.stderr, bytes) else str(r.stderr or "")
+    bas = re.findall(r"signalstats\.YLOW=([\d.]+)", texte)
+    haut = re.findall(r"signalstats\.YHIGH=([\d.]+)", texte)
+    return r.stdout, (float(bas[0]) if bas else None), (float(haut[0]) if haut else None)
 
 
-def couleur_du_film(ffmpeg: str, path: Path, duree: float,
-                    start: float = 0.0) -> tuple[tuple[float, float, float] | None, bool]:
+def lire_moments(ffmpeg: str, path: Path, duree: float) -> list[tuple[bytes, float | None, float | None]]:
+    """24 moments répartis de 3 % à 97 % du film (plus d'une minute) ; [] sinon."""
+    if duree <= 60:
+        return []
+    out = []
+    for k in range(COULEUR_MOMENTS):
+        m = _lire_moment(ffmpeg, path, duree * (0.03 + 0.94 * (k + 0.5) / COULEUR_MOMENTS))
+        if m:
+            out.append(m)
+    return out
+
+
+def niveaux_des_moments(moments: list) -> tuple[float, float] | None:
+    """Noirs et blancs de tout le film : le quart le plus sombre des moments donne les noirs, le
+    quart le plus clair les blancs. Une scène terne au tiers du film ne fait plus éclaircir tout
+    le film (les blancs du dehors brûlaient) ; seul un film terne presque partout est corrigé."""
+    bas = sorted(m[1] for m in moments if m[1] is not None)
+    haut = sorted(m[2] for m in moments if m[2] is not None)
+    if len(bas) < 6 or len(haut) < 6:
+        return None
+    return bas[len(bas) // 4], haut[(len(haut) * 3) // 4]
+
+
+def couleur_du_film(ffmpeg: str, path: Path, duree: float, start: float = 0.0,
+                    moments: list | None = None) -> tuple[tuple[float, float, float] | None, bool]:
     """Dominante de tout le film, et « l'éclairage change d'une scène à l'autre ».
 
     Avant : 8 images d'un seul moment (au tiers du film) décidaient pour tout le film ; un plan
@@ -306,10 +342,10 @@ def couleur_du_film(ffmpeg: str, path: Path, duree: float,
     répartir ; ses essais sur mire restent valables)."""
     if duree <= 60:
         return rgb_mean(ffmpeg, path, start), False
-    moments = [duree * (0.03 + 0.94 * (k + 0.5) / COULEUR_MOMENTS) for k in range(COULEUR_MOMENTS)]
+    if moments is None:
+        moments = lire_moments(ffmpeg, path, duree)
     mesures = []
-    for t in moments:
-        px = _images_reduites(ffmpeg, path, t, 1)
+    for px, *_ in moments:
         m = _gris_probable(px) if px else None
         if m and min(m) >= 1:
             mesures.append(m)
@@ -565,7 +601,12 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.repeated_fields, info.repeated_frames, info.saturation, info.saturation_high = \
             sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
         info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
-        info.cast_rgb, info.couleur_variable = couleur_du_film(tools.ffmpeg.path, p, info.duration, start)
+        moments = lire_moments(tools.ffmpeg.path, p, info.duration)
+        info.cast_rgb, info.couleur_variable = couleur_du_film(tools.ffmpeg.path, p, info.duration, start,
+                                                               moments)
+        niveaux = niveaux_des_moments(moments)
+        if niveaux:                         # film de plus d'une minute : tout le film, pas un moment
+            info.level_low, info.level_high = niveaux
         info.edge_damage = edge_damage(tools.ffmpeg.path, p, info.width, start)
     except subprocess.TimeoutExpired:
         info.idet = {}

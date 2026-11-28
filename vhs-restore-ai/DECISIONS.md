@@ -1225,3 +1225,17 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
 - Limite : scènes d'essai synthétiques ; à confirmer sur les cassettes de l'utilisateur.
   Étape suivante : une correction par ambiance (intérieur / dehors), quand la mesure par moments
   aura été vérifiée sur ses cassettes.
+
+## Lumière : noirs et blancs mesurés sur tout le film — 28 novembre 2026
+
+- Même défaut que la dominante : les niveaux (YLOW / YHIGH) venaient d'un seul moment, au tiers
+  du film. Une pièce terne à cet endroit faisait éclaircir tout le film, et les blancs des
+  scènes bien exposées (dehors) brûlaient.
+- Choix (films de plus d'une minute) : les mêmes 24 moments, lus en une seule passe avec la
+  couleur (signalstats sur l'image entière, puis l'image réduite). Noirs : le quart le plus
+  sombre des moments ; blancs : le quart le plus clair. Seul un film terne presque partout est
+  corrigé ; l'étirement reste à moitié et une seule fois pour tout le film.
+- Mesuré : pièce terne au tiers entre deux scènes de jardin : avant, noirs 88 / blancs 130,
+  conseil « éclaircir » pour tout le film ; maintenant, blancs 193, aucun étirement. Film terne
+  partout : toujours corrigé. Film d'une minute ou moins : la mesure d'avant.
+  Tests : `tests/test_couleur_film.py`.

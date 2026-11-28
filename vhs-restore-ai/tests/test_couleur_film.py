@@ -1,4 +1,4 @@
-"""Dominante mesurée sur tout le film (24 moments), pas sur un seul moment.
+"""Dominante et lumière mesurées sur tout le film (24 moments), pas sur un seul moment.
 
 Avant : 8 images au tiers du film décidaient pour tout le film. Un plan de pelouse à cet
 endroit faisait virer tout le film au magenta ; une lampe orangée à l'intérieur faisait
@@ -11,7 +11,7 @@ import pytest
 
 from conftest import ff
 from vhs_restore.advice import advise
-from vhs_restore.probe import analyze, cast_gains, rgb_mean
+from vhs_restore.probe import _lire_moment, analyze, cast_gains, rgb_mean
 
 TAILLE = "320x240"
 
@@ -92,3 +92,25 @@ def test_interieur_puis_dehors_repere_et_dit(tools, tmp_path):
     tips = _conseil(info)
     if tips:
         assert "changent d'une scène à l'autre" in tips[0].text
+
+
+TERNE = ",lutyuv=y='50+val*0.5'"            # noirs gris, blancs ternes
+
+
+def _conseil_lumiere(info):
+    return [a for a in advise(info) if a.key == "levels"]
+
+
+def test_film_terne_partout_toujours_eclairci(tools, tmp_path):
+    info = analyze(_film(tmp_path / "terne.mkv", [(PIECE + TERNE, 90)]), tools)
+    assert _conseil_lumiere(info), (info.level_low, info.level_high)
+
+
+def test_piece_terne_au_tiers_n_eclaircit_plus_tout_le_film(tools, tmp_path):
+    """Avant : la pièce terne au tiers faisait éclaircir tout le film, et les blancs du jardin
+    bien exposé brûlaient. La majorité du film est bien exposée : rien n'est étiré."""
+    f = _film(tmp_path / "piece_terne.mkv", [(JARDIN, 30), (PIECE + TERNE, 30), (JARDIN, 30)])
+    info = analyze(f, tools)
+    _, bas, haut = _lire_moment(tools.ffmpeg.path, f, info.duration / 3)
+    assert bas > 35 and haut < 190            # le piège existe : au tiers, que la pièce terne
+    assert not _conseil_lumiere(info), (info.level_low, info.level_high)
