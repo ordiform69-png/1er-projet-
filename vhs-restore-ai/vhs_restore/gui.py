@@ -3414,6 +3414,10 @@ class MainWindow(QMainWindow):
         self.preview = res
         self._etiquette_apres = ("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
                                  else "APRÈS")
+        tache = getattr(self.worker, "cancel_event", None)
+        sans_ia = getattr(tache, "apercu_sans_ia", False)
+        if sans_ia:
+            self._etiquette_apres = "APRÈS (sans IA)"
         self._apercu_perime = False
         self.compare.set_after_label(self._etiquette_apres)
         self.still_combo.blockSignals(True)
@@ -3441,8 +3445,11 @@ class MainWindow(QMainWindow):
             annonce = estimation.annonce(self)
             if annonce:
                 texte += " " + annonce
-        if getattr(getattr(self.worker, "cancel_event", None), "repli_deepfilter", False):
-            texte = "Aperçu prêt. DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
+        if sans_ia:
+            texte = "Aperçu prêt sans agrandissement IA. L’IA reste cochée pour la restauration."
+        if getattr(tache, "repli_deepfilter", False):
+            alerte = "DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
+            texte = (texte if sans_ia else "Aperçu prêt.") + " " + alerte
         self.status.setText(texte)
 
     def _ecouter_extrait(self) -> None:

@@ -49,3 +49,11 @@ Vrai Real-ESRGAN ncnn-vulkan 20220424 Ubuntu, modèle realesrgan-x4plus, Vulkan 
 | Jardin, 1,4 s | 46,81 dB | −0,018 | −0,001 | −0,021 |
 
 Sur ces deux images, rendu très proche, avec de petites différences d’encodage. La comparaison côte à côte reste limitée à 540 lignes.
+
+## P1.2 — L’utilisateur choisit un aperçu sans IA
+
+| Réglage de départ | Décision dans le dialogue (> 2 min) | Étiquette et ligne d’état | Réglage du film |
+|---|---|---|---|
+| Amélioration IA cochée | Continuer sans l’IA | « APRÈS (sans IA) » et « Aperçu prêt sans agrandissement IA. L’IA reste cochée pour la restauration. » | Case toujours cochée |
+
+Le test pilote la fenêtre, simule un agrandisseur lent et remplace demander_ia pour répondre « sans ». Sortie sur la base : `assert 'APRÈS' == 'APRÈS (sans IA)'`. Après correction : `1 passed`. Les indications de repli son et image peuvent apparaître ensemble.

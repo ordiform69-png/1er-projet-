@@ -60,3 +60,42 @@ def test_repli_visible_dans_apercu_et_bilan(absent, tools, samples, tmp_path, mo
         assert message in win.s_fini_texte.text()
     finally:
         win.close()
+
+
+def test_apercu_sans_ia_annonce_le_choix(tools, samples, monkeypatch):
+    from dataclasses import replace
+    from types import SimpleNamespace
+    import time
+    from test_apercu_perime import wait
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    from vhs_restore.gui import MainWindow, Worker
+    from vhs_restore.tools import Tool
+
+    app = QApplication.instance() or QApplication([])
+    win = MainWindow(replace(tools, realesrgan=Tool("Real-ESRGAN", tools.ffmpeg.path)))
+    secondes = [0]
+    demandes = []
+
+    def mesure(moteur, src, dst, cancel=None):
+        secondes[0] += 9 * len(list(src.glob("*.png")))
+
+    def sans(worker, estimation, *args):
+        demandes.append(estimation)
+        return "sans"
+
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    monkeypatch.setattr(Worker, "demander_ia", sans)
+    monkeypatch.setattr(pipeline.RealEsrganUpscaler, "upscale_dir", mesure)
+    monkeypatch.setattr(pipeline, "time", SimpleNamespace(monotonic=lambda: time.monotonic() + secondes[0]))
+    try:
+        win.load_file(str(samples["pal_tff"]))
+        wait(app, win)
+        win.ai_check.setChecked(True)
+        win.start_preview()
+        wait(app, win)
+        assert demandes and demandes[0] > 120
+        assert win.ai_check.isChecked()
+        assert win.compare.after_label == "APRÈS (sans IA)"
+        assert "Aperçu prêt sans agrandissement IA." in win.status.text()
+    finally:
+        win.close()

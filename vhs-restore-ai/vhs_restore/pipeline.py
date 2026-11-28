@@ -1721,6 +1721,8 @@ def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=Fals
         if choix == "annuler":
             raise Cancelled()
         if choix == "sans":
+            if apercu and cancel is not None:
+                cancel.apercu_sans_ia = True
             return dataclasses.replace(s, use_ai=False, resolution="1080" if s.resolution == "2160" else s.resolution)
     return s
 
