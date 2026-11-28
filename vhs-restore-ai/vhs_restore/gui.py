@@ -1423,6 +1423,7 @@ class MainWindow(QMainWindow):
         self.lumiere = lumiere.Lumiere(self)          # lumière et couleurs : avant de lancer
         self._build()
         self._refresh_tools()
+        self._suivre_reglages()
         self._update_state()
         _FENETRES.add(self)
 
@@ -2743,7 +2744,52 @@ class MainWindow(QMainWindow):
     def _busy(self) -> bool:
         return self.worker is not None and self.worker.isRunning()
 
+    # ------------------------------------------------------------ avant / après et réglages
+    def _suivre_reglages(self) -> None:
+        """Chaque case, liste ou nombre : l'avant / après affiché correspond-il encore ?"""
+        for c in self.findChildren(QAbstractButton):
+            if c.isCheckable():
+                c.toggled.connect(self._verifier_apercu)
+        for c in self.findChildren(QComboBox):
+            c.currentIndexChanged.connect(self._verifier_apercu)
+        for c in self.findChildren(QSpinBox) + self.findChildren(QDoubleSpinBox):
+            c.valueChanged.connect(self._verifier_apercu)
+
+    def _signature_reglages(self) -> str | None:
+        try:
+            return repr(dataclasses.astuple(self.settings(with_advice=True)))
+        except Exception:                       # réglages en cours de changement
+            return None
+
+    def _verifier_apercu(self, *_args) -> None:
+        """Réglages libres : un réglage changé après l'avant / après le rend ancien. On le dit
+        sur l'image (« APRÈS (ancien réglage) »), en bas, et « Voir l'avant / après » redevient
+        l'étape conseillée. Revenir au réglage vu efface l'avertissement. L'assistant a le sien."""
+        if self._busy():
+            return                              # l'aperçu en cours se règle à son arrivée
+        avant = getattr(self, "_apercu_perime", False)
+        sig = getattr(self, "_sig_apercu", None)
+        guide = getattr(getattr(self, "assistant", None), "actif", False)
+        if self.preview is None or sig is None or guide:
+            if avant:                           # nouveau film, ou l'assistant reprend la main
+                self._apercu_perime = False
+                self.compare.set_after_label(getattr(self, "_etiquette_apres", "APRÈS"))
+            return
+        actuelle = self._signature_reglages()
+        perime = actuelle is not None and actuelle != sig
+        if perime == avant:
+            return
+        self._apercu_perime = perime
+        if perime:
+            self.compare.set_after_label("APRÈS (ancien réglage)")
+            self.status.setText("Réglage changé : cliquez sur « Voir l'avant / après » pour voir son effet.")
+        else:
+            self.compare.set_after_label(getattr(self, "_etiquette_apres", "APRÈS"))
+            self.status.setText("L'avant / après correspond de nouveau à vos réglages.")
+        self._update_state()
+
     def _update_state(self) -> None:
+        self._verifier_apercu()
         busy, loaded = self._busy(), self.info is not None
         self.preview_btn.setEnabled(loaded and not busy)
         self.run_btn.setEnabled(loaded and not busy)
@@ -2830,8 +2876,9 @@ class MainWindow(QMainWindow):
         self.theme_btn.setEnabled(not busy)
         # l'étape suivante conseillée est mise en évidence
         fini = not self.s_fini.isHidden()           # « C'est prêt » : Entrée ne relance rien
-        nxt = None if busy or fini else (self.s_choose if not loaded else self.s_preview if not has_prev
-                                         else self.s_run)
+        ancien = getattr(self, "_apercu_perime", False)       # réglage changé depuis l'avant / après
+        nxt = None if busy or fini else (self.s_choose if not loaded
+                                         else self.s_preview if not has_prev or ancien else self.s_run)
         for b in (self.s_choose, self.s_preview, self.s_run):
             if b.suggested != (b is nxt):
                 b.suggested = b is nxt
@@ -3349,6 +3396,7 @@ class MainWindow(QMainWindow):
         if not self.info or self._busy():
             return
         info, s, start = self.info, self.settings(), self.start_spin.value()
+        self._sig_apercu = self._signature_reglages()          # réglages de cet avant / après
         self.status.setText("Préparation de l'aperçu…")
         # un dossier neuf à chaque aperçu : l'aperçu précédent peut être encore ouvert dans le
         # lecteur vidéo (« Écouter »), et Windows refuse alors de l'effacer
@@ -3364,8 +3412,10 @@ class MainWindow(QMainWindow):
 
     def _preview_done(self, res: pipeline.PreviewResult) -> None:
         self.preview = res
-        self.compare.set_after_label("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
-                                     else "APRÈS")
+        self._etiquette_apres = ("COULEURS IA (inventées)" if res.restored.name.endswith("_colorisee_ia.png")
+                                 else "APRÈS")
+        self._apercu_perime = False
+        self.compare.set_after_label(self._etiquette_apres)
         self.still_combo.blockSignals(True)
         self.still_combo.clear()
         for i, _ in enumerate(res.stills):

@@ -1187,3 +1187,16 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   lignes) et le fichier de comparaison est étiqueté BT.601. Écart retombé à 8 niveaux au plus.
   Ni Real-ESRGAN ni DeepFilterNet n'étaient en cause (DeepFilterNet ne traite que le son).
   Test : `test_apercu_full_hd_garde_les_couleurs` (échoue avec l'ancien code).
+
+## Réglages libres : l'avant / après ancien est signalé — 28 novembre 2026
+
+- Constat de l'utilisateur : après avoir coché des réglages (voix, contraste…), l'ancienne image
+  restait affichée sans rien dire ; on croyait le réglage sans effet. Tous les réglages, image et
+  son, sont pourtant pris en compte quand on refait l'avant / après.
+- Choix : on garde l'image (un écran vide déroute), mais elle dit « APRÈS (ancien réglage) »,
+  le bas de la fenêtre dit « Réglage changé : cliquez sur « Voir l'avant / après » pour voir son
+  effet », et ce bouton redevient l'étape conseillée. Revenir au réglage vu efface
+  l'avertissement. Comparaison faite sur les réglages eux-mêmes (comme l'assistant, qui avait
+  déjà la sienne) : changer d'image fixe ou d'extrait ne déclenche rien.
+- Vérifié à 1280 × 641 et 150 % : l'étiquette passe sous l'image, sans cacher « AVANT ».
+  Tests : `tests/test_apercu_perime.py` (échouent avec l'ancien code).
