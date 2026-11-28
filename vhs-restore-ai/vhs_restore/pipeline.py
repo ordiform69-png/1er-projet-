@@ -337,7 +337,8 @@ def _try_deepfilter(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
              *_seek(start, duration), *dvd_input(info), "-map", "0:a:0",
              "-ar", "48000", "-c:a", "pcm_s16le", str(src)],
             cancel=cancel, what="FFmpeg (extraction du son)")
-        run([tools.deepfilter.path, "-D", "-a", "12", "-o", str(out_dir), str(src)],
+        # En 0.5.6, -D retire 30 ms à un WAV déjà calé (mesuré sur bips).
+        run([tools.deepfilter.path, "-a", "12", "-o", str(out_dir), str(src)],
             cancel=cancel, what="DeepFilterNet")
     except (ToolError, Cancelled):
         if cancel is not None and cancel.is_set():
