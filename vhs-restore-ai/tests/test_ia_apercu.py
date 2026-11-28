@@ -219,3 +219,43 @@ def test_calage_ia_comme_export_normal(court_a_reperes, derive, retard, outils_i
         erreurs = [abs(avant[t] - apres[t]) for t in avant]
         print(court_a_reperes.suffix, derive, retard, passage, "écart maximal", max(erreurs))
         assert max(erreurs) <= 5
+        if passage != "film":
+            film_normal = mesures[False, "film"]
+            assert all(abs(valeur - film_normal[t]) <= 5 for t, valeur in apres.items()), (apres, film_normal)
+
+
+@pytest.mark.parametrize("ia", [False, True])
+def test_volume_maximum_semblable_apres_chauffe(ia, outils_ia, tmp_path):
+    """Les différences de gain au début et à la fin du passage doivent rester sous 1 dB."""
+    import math
+    import subprocess
+    from array import array
+    from conftest import ff
+
+    tools = outils_ia
+    src = tmp_path / "parole.mkv"
+    # Bouffées harmoniques et pauses, d'abord faibles, puis fortes, sur un souffle stable.
+    ff("-f", "lavfi", "-i", "color=s=96x72:r=25", "-f", "lavfi", "-i",
+       "aevalsrc='if(lt(mod(t,0.5),0.3),if(lt(mod(t,4),2),0.04,0.4)"
+       "*(sin(2*PI*180*t)+0.4*sin(2*PI*360*t)),0)':s=48000",
+       "-f", "lavfi", "-i", "anoisesrc=a=0.025:r=48000:seed=83",
+       "-filter_complex", "[1:a][2:a]amix=inputs=2[a]", "-map", "0:v", "-map", "[a]",
+       "-t", "16", "-c:v", "ffv1", "-c:a", "pcm_s16le", str(src))
+    info = analyze(src, tools)
+    s = pipeline.Settings(PROFILES["maximum"], resolution="96", use_ai=ia)
+    apercu = pipeline.make_preview(info, s, tools, tmp_path / "aperçu", 4, 6)
+    film = pipeline.export(info, s, tmp_path / "film.mp4", tools)
+
+    def echantillons(fichier):
+        son = subprocess.check_output([tools.ffmpeg.path, "-v", "error", "-i", str(fichier),
+                                      "-map", "0:a", "-ar", "48000", "-ac", "1", "-f", "f32le", "-"])
+        return array("f", son)
+
+    a, b = echantillons(apercu.restored), echantillons(film)
+    for instant in (0.5, 2, 5):
+        for debut, fin in ((0.05, 0.25), (0.38, 0.48)):
+            m, n = round((instant + debut)*48000), round((instant + fin)*48000)
+            x, y = a[m:n], b[4*48000+m:4*48000+n]
+            assert len(x) == len(y) == n-m
+            ecart = 10 * math.log10(sum(v*v for v in x) / sum(v*v for v in y))
+            assert abs(ecart) < 1, (instant, debut, ecart)

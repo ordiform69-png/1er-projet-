@@ -114,3 +114,37 @@ Le profil Maximum utilise le nettoyage habituel sans avertissement quand aucun b
 ### Phrase de fin d’aperçu
 
 Le statut conserve les bornes de l’extrait, l’invitation à comparer et l’estimation déjà affichée. Les indications d’agrandissement désactivé et de repli sonore sont ajoutées ensuite. Le test force les deux alertes ensemble, affiche la fenêtre à 1280 × 641 avec texte à 150 %, et vérifie que le libellé dispose de sa hauteur de texte intégrale. Sur la base, `startswith("Aperçu prêt (extrait de ")` renvoie False. Après correction le test passe.
+
+### Contrôle final du calage à l’image et au son
+
+Binaire Real-ESRGAN de substitution créé par le test dans son dossier temporaire, déclaré par VHSRA_REALESRGAN avec le fichier de modèle attendu. FFmpeg agrandit les PNG ×4 et garde leurs noms. Film à repères de 8 s, 25 i/s, 48 kHz, transcodé en AVI MPEG-2 et MKV FFV1. Profil Équilibré. Pour chaque case, écart maximal absolu du bip moins l’éclair **par rapport au même repère de l’export normal complet** (ms, arrondi au millième ; un échantillon vaut 0,021 ms). Les aperçus durent 2 s.
+
+| Source | Dérive ou retard | Export IA | Aperçu IA à 0 s | Aperçu IA à 4 s |
+|---|---|---:|---:|---:|
+| AVI | Aucun | 0 | 0 | 0 |
+| AVI | +400 ms/min | 0,042 | 0 | 0,042 |
+| AVI | −400 ms/min | 0 | 0 | 0 |
+| AVI | Retarder de 80 ms | 0 | 0 | 0 |
+| MKV | Aucun | 0 | 0 | 0,167 |
+| MKV | +400 ms/min | 0,042 | 0 | 0,042 |
+| MKV | −400 ms/min | 0 | 0 | 0 |
+| MKV | Retarder de 80 ms | 0 | 0 | 0,166 |
+
+### Volume de la voix et du souffle
+
+Source de 16 s, voix répétée (Flite SLT) avec des pauses et un souffle blanc fixe (graine 83, amplitude 0,025). Profil Maximum et vrai DeepFilterNet 0.5.6. Extrait de 4 à 10 s. Niveau RMS des fichiers décodés en mono à 48 kHz, en dBFS. À chaque instant donné dans l’extrait, la fenêtre de voix couvre +0,05 à +0,25 s et le souffle seul +0,38 à +0,48 s. La colonne « Avant » est celle de l’aperçu sans contexte. Avec l’agrandisseur ×4 de substitution, l’aperçu corrigé a les mêmes valeurs au centième de dB.
+
+| Instant dans l’extrait | Signal | Avant | Aperçu corrigé | Export normal | Export IA |
+|---|---|---:|---:|---:|---:|
+| 0,5 s | Voix | −15,98 | −7,06 | −7,07 | −7,07 |
+| 0,5 s | Souffle | −53,79 | −45,50 | −45,49 | −45,50 |
+| 2 s | Voix | −14,75 | −12,47 | −12,51 | −12,52 |
+| 2 s | Souffle | −46,91 | −45,72 | −45,79 | −45,76 |
+| 5 s | Voix | −17,75 | −11,14 | −11,15 | −11,15 |
+| 5 s | Souffle | −53,46 | −45,66 | −45,65 | −45,64 |
+
+Lire seulement avant l’extrait laissait encore 5,2 dB d’écart sur la dernière voix. La fenêtre sonore s’étend maintenant jusqu’à 8 s **avant et après** l’extrait, dans les limites de la source. Les filtres reçoivent ce contexte, puis le son est ramené à la durée du passage. La vidéo conserve son point de départ. Les deux chemins d’image utilisent la même entrée et la même chaîne son. Le calage accumulé est pris en compte une fois dans la sélection des échantillons. Cette chauffe vise le profil Maximum ou une dérive active, sur une piste audible, avec la cadence source et sans réparation de bande ni de poussières.
+
+Le test automatisé utilise des bouffées harmoniques et du souffle, reproductibles sans voix de synthèse. Sur f9cc499 : `assert 2.4875156228124107 < 1` à 0,5 s. Sur la correction, les contrôles passent aussi quand DeepFilterNet est absent. Sur la voix Flite mesurée ici, l’écart maximal arrondi entre aperçu et export normal passe de 8,91 à 0,07 dB.
+
+**Validation finale.** Les sept fichiers demandés exécutés ensemble donnent `71 passed, 1 warning in 372.79s`, aucun saut. L’avertissement concerne la dépréciation d’une API pytest utilisée par le module tiers anyio. DeepFilterNet 0.5.6 a tourné sous Linux. Real-ESRGAN neuronal : non lancé pour la n°4 ; le protocole demandé isole l’extraction, le calage et l’encodage avec le substitut FFmpeg ×4. Les mesures du vrai modèle figurent en n°3. Windows : non lancé, environnement Linux.

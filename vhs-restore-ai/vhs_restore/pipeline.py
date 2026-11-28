@@ -1129,14 +1129,15 @@ def _tenter_reprise(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset
 def export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            cancel: threading.Event | None = None, progress: Progress | None = None,
            start: float | None = None, duration: float | None = None,
-           passages: list[tuple[float, float]] | None = None) -> Path:
+           passages: list[tuple[float, float]] | None = None, chauffe_son: float = 0.0) -> Path:
     cible = Path(out_path).resolve()
     if cible == info.path.resolve():
         raise ToolError("Le fichier de sortie ne peut pas remplacer le fichier original.")
     def annexes(p):
         return [p.with_suffix("." + s.audio_copy)] if info.has_audio and s.audio_copy in ("wav", "flac") else []
     with reserver_sorties(cible, annexes) as libre:
-        return _export(info, s, libre, tools, cancel=cancel, progress=progress, start=start, duration=duration, passages=passages)
+        return _export(info, s, libre, tools, cancel=cancel, progress=progress, start=start, duration=duration, passages=passages,
+                       chauffe_son=chauffe_son)
 
 
 def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
@@ -1144,7 +1145,7 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
            start: float | None = None, duration: float | None = None,
            morceau: bool = False,
            passages: list[tuple[float, float]] | None = None,
-           chauffe: float = 0.0, _partie: bool = False) -> Path:
+           chauffe: float = 0.0, chauffe_son: float = 0.0, _partie: bool = False) -> Path:
     """Restaure et encode vers out_path. Le fichier n'apparaît qu'une fois complet.
 
     passages : deux intervalles [début, fin] ou plus, en secondes absolues, à garder.
@@ -1234,12 +1235,18 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
         son_debut, son_duree = start, duration
         manque = 0.0
         vide = False
-        if morceau and info.has_audio:
+        extrait_son = morceau or bool(chauffe_son)
+        avant_son = min(chauffe_son, debut)
+        if extrait_son and info.has_audio:
             vitesse = _tempo_factor(info, s, drift=True)
             # La chauffe se compte en temps source, puis la vitesse de dérive.
             depart_son = origine_entree if chauffe_reelle else float(start or 0)
             # Même marge que l'image : le son de la chauffe ne doit pas être amputé.
             longueur_son = float(duration) + chauffe_reelle + (marge_images if chauffe_reelle else 0.0)
+            if chauffe_son:
+                # Contexte audio seul. Le gain dynamique regarde aussi après l'extrait.
+                depart_son = debut - avant_son
+                longueur_son = float(duration) + avant_son + chauffe_son
             premier = (depart_son - s.audio_offset_ms / 1000) * vitesse
             dernier = premier + longueur_son * vitesse
             son_debut = max(0.0, premier)
@@ -1251,9 +1258,36 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 son_debut, son_duree = 0, 0.1
         df_wav = _try_deepfilter(info, s, tools, work, son_debut, son_duree, cancel) if work and not vide else None
         present = frozenset(tools.audio_filters)
+        entree_son = []
+        if df_wav is not None:
+            entree_son = ["-i", str(df_wav)]
+        elif extrait_son and info.has_audio:
+            entree_son = _seek(son_debut, son_duree, video=False) + dvd_input(info)
+        chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
+                                   apply_offset=not extrait_son, rnnoise=tools.rnnoise_model)
+        if extrait_son and info.has_audio:
+            if vide:
+                chaine_son.append("volume=0")
+            if manque and not vide:
+                chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
+            if (avant_son or images_chauffe) and not vide:
+                # Le filtre sonore peut commencer un peu avant zéro. On recale,
+                # puis on retire exactement les mêmes secondes que les images.
+                secondes = avant_son if chauffe_son else images_chauffe / float(fps_sortie)
+                chaine_son += ["asetpts=PTS-STARTPTS", f"atrim=start={secondes:.9f}",
+                               "asetpts=PTS-STARTPTS"]
+            # apad seul ajoute du silence sans fin et -frames:v ne coupe que l'image :
+            # avec FFmpeg 9.1 (Windows) la commande ne se terminait jamais. whole_dur borne
+            # le silence, atrim garde la durée exacte du morceau (sans la chauffe).
+            chaine_son += [f"apad=whole_dur={duree_audio_sortie:.9f}",
+                           f"atrim=duration={duree_audio_sortie:.9f}"]
+        if s.use_ai and start and info.has_audio and s.audio_offset_ms > 0 and _has(present, "adelay"):
+            # Après -ss, adelay puis atempo peuvent laisser un PTS inconnu dans le FLAC.
+            chaine_son.append("asetpts=N/SR/TB")
+        sons = ["-af", ",".join(chaine_son)] if chaine_son else []
         if s.use_ai:
             _export_ai(info, s, part, tools, cancel, progress, start, duration, total,
-                       df_wav, present)
+                       entree_son, sons)
         else:
             lo = 0.0
             if s.stabilize:
@@ -1262,11 +1296,8 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 lo = 0.35
                 _stab_detect(info, s, tools, work, seek_start, seek_duree, total, cancel, progress, 0, lo)
             args, vs, vmap, amap = source_inputs(info, s, tools, seek_start, seek_duree)
-            if df_wav is not None:
-                args = args + ["-i", str(df_wav)]
-                amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
-            elif morceau and info.has_audio:
-                args += _seek(son_debut, son_duree, video=False) + dvd_input(info)
+            if entree_son:
+                args += entree_son
                 amap = f"{args.count('-i') - 1}:a:0"
             if vs and progress:
                 progress(lo, "QTGMC : préparation (indexation de la vidéo)…")
@@ -1278,25 +1309,6 @@ def _export(info: MediaInfo, s: Settings, out_path: Path, tools: Toolset, *,
                 # setpts) fait jeter une image de plus par trim, et la partie sort à N-1.
                 vf += (f",setpts=PTS-STARTPTS,trim=start_frame={images_chauffe}"
                        f",setpts=PTS-STARTPTS")
-            chaine_son = audio_filters(info, s, skip_afftdn=df_wav is not None, present=present,
-                                       apply_offset=not morceau, rnnoise=tools.rnnoise_model)
-            if morceau and info.has_audio:
-                if vide:
-                    chaine_son.append("volume=0")
-                if manque and not vide:
-                    chaine_son.append(f"adelay={round(manque * 1000)}:all=1")
-                if images_chauffe and not vide:
-                    # Le filtre sonore peut commencer un peu avant zéro. On recale,
-                    # puis on retire exactement les mêmes secondes que les images.
-                    secondes = images_chauffe / float(fps_sortie)
-                    chaine_son += ["asetpts=PTS-STARTPTS", f"atrim=start={secondes:.9f}",
-                                   "asetpts=PTS-STARTPTS"]
-                # apad seul ajoute du silence sans fin et -frames:v ne coupe que l'image :
-                # avec FFmpeg 9.1 (Windows) la commande ne se terminait jamais. whole_dur borne
-                # le silence, atrim garde la durée exacte du morceau (sans la chauffe).
-                chaine_son += [f"apad=whole_dur={duree_audio_sortie:.9f}",
-                               f"atrim=duration={duree_audio_sortie:.9f}"]
-            sons = ["-af", ",".join(chaine_son)] if chaine_son else []
             # Nombre d'images imposé : FFmpeg 6.1 garde une image de trop par morceau
             # avec -t seul. FFmpeg 7.1, avec -frames:v, n'écrit pas la durée de la
             # dernière image (499 images comptées, 19,960 s). Une cadence constante
@@ -1730,7 +1742,7 @@ def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=Fals
 def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
                cancel: threading.Event | None, progress: Progress | None,
                start: float | None, duration: float | None, total: float,
-               df_wav: Path | None = None, present: frozenset[str] | None = None) -> None:
+               entree_son: list[str], sons: list[str]) -> None:
     upscaler = RealEsrganUpscaler(tools.realesrgan)
     fps = output_fps(info, s)
     root = _work_root()
@@ -1745,18 +1757,12 @@ def _export_ai(info: MediaInfo, s: Settings, part: Path, tools: Toolset,
         inter = tmp / "inter.mkv"
         pre = ",".join(pre_filters(info, s, origine=start or 0)) or "null"
         args, vs, vmap, amap = source_inputs(info, s, tools, start, duration)
-        if df_wav is not None:
-            args = args + ["-i", str(df_wav)]
-            amap = f"{sum(a == '-i' for a in args) - 1}:a:0"
-        filtres_son = audio_filters(info, s, skip_afftdn=df_wav is not None,
-                                    present=present, rnnoise=tools.rnnoise_model)
-        if start and info.has_audio and s.audio_offset_ms > 0 and _has(present, "adelay"):
-            # Après -ss, adelay puis atempo peuvent laisser un PTS inconnu.
-            # L'échantillonnage du résultat contient déjà le silence et la dérive.
-            filtres_son.append("asetpts=N/SR/TB")
+        if entree_son:
+            args += entree_son
+            amap = f"{args.count('-i') - 1}:a:0"
         run(_ff_base(tools) + args + [
             "-map", vmap, "-map", amap, "-vf", pre, *retime_args(info, s),
-            *(["-af", ",".join(filtres_son)] if filtres_son else []),
+            *sons,
             "-c:v", "ffv1", "-level", "3", "-g", "1", "-c:a", "flac", "-f", "matroska", str(inter)],
             cancel=cancel, what="FFmpeg (pré-traitement)", feeder=vs, cwd=tmp,
             on_line=_FFProgress(total, progress, lo, 0.1, "Nettoyage avant IA…"))
@@ -2041,7 +2047,12 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
         if old.is_file():
             effacer(old)          # encore ouvert dans le lecteur (« Écouter ») : il reste, sans gêner
     sp = dataclasses.replace(s, preset="veryfast")
-    if start and abs(s.audio_drift_ms_per_min) >= 1:
+    chauffe_son = 0.0
+    besoin_contexte = (s.restore_audio and s.profile.deepfilter) or abs(s.audio_drift_ms_per_min) >= 1
+    if (besoin_contexte and info.has_audio and not info.audio_silent
+            and not (s.dust or _tape_job(s) or retime(info, s))):
+        chauffe_son = reprise.CHAUFFE
+    if not chauffe_son and start and abs(s.audio_drift_ms_per_min) >= 1:
         # La dérive court depuis le début du FILM, pas de l'extrait : correction au temps t =
         # décalage − dérive × t / 60. L'extrait part donc avec la correction déjà accumulée.
         # Sans cela, l'aperçu de la fin du film n'entendait pas l'export (mesuré : voix avancée
@@ -2055,7 +2066,7 @@ def make_preview(info: MediaInfo, s: Settings, tools: Toolset, workdir: Path, st
 
     t0 = time.monotonic()
     export(info, sp, restored, tools, cancel=cancel, progress=sub(0, 0.8),
-           start=start, duration=duration)
+           start=start, duration=duration, chauffe_son=chauffe_son)
     restauration_s = time.monotonic() - t0
 
     # Moitié « original » : produite par le même chemin que l'export (même saut,
