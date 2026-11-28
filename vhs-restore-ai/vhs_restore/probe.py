@@ -12,6 +12,7 @@ codec ou le conteneur ne disent rien du support physique d'origine.
 from __future__ import annotations
 
 import json
+import math
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -62,7 +63,8 @@ class MediaInfo:
     saturation_high: float | None = None   # saturation des pixels les plus colorés (SATHIGH)
     level_low: float | None = None         # médiane de YLOW (percentile bas de la luminance)
     level_high: float | None = None        # médiane de YHIGH (percentile haut)
-    cast_rgb: tuple[float, float, float] | None = None   # moyennes R, G, B de l'échantillon
+    cast_rgb: tuple[float, float, float] | None = None   # R, G, B d'un gris du film (dominante)
+    couleur_variable: bool = False         # l'éclairage change d'une scène à l'autre (intérieur, dehors)
     edge_damage: int = 0                   # bords abîmés (traits colorés, neige) en pixels du film, 0 = aucun
     audio_silent: bool = False             # piste son présente mais vide (silence numérique)
     audio_channels: int = 0
@@ -233,6 +235,102 @@ def rgb_mean(ffmpeg: str, path: Path, start: float = 0.0) -> tuple[float, float,
         return None
     n = len(data) // 3
     return (sum(data[0::3]) / n, sum(data[1::3]) / n, sum(data[2::3]) / n)
+
+
+COULEUR_MOMENTS = 24     # moments répartis sur le film pour mesurer la dominante
+COULEUR_L, COULEUR_H = 32, 24
+
+
+def _pixels_utiles(px: bytes) -> list[tuple[int, int, int]]:
+    """Ni noir (bruit), ni brûlé (une couleur à plus de 240 : le blanc d'une lampe orangée
+    sature d'abord en rouge)."""
+    out = []
+    for i in range(0, (len(px) // 3) * 3, 3):
+        r, g, b = px[i], px[i + 1], px[i + 2]
+        if max(r, g, b) <= 240 and r + g + b >= 90:
+            out.append((r, g, b))
+    return out
+
+
+def _gris_probable(px: bytes) -> tuple[float, float, float] | None:
+    """R, G, B d'un gris de la scène, pour une image : deux méthodes classiques, combinées.
+
+    - « monde gris » : moyenne des pixels pas trop colorés (une pelouse, un pull rouge, un
+      ciel vif sont écartés) ;
+    - « blanc de référence » : moyenne des 8 % de pixels les plus clairs (mur, chemise, neige).
+    Seules, chacune se trompe (pièce boisée trop chaude, ciel trop bleu) ; leur moyenne
+    géométrique est restée juste sur les scènes d'essai (pièce, jardin, neige, lampe).
+    None : trop peu de pixels utilisables (image noire, écran bleu, brûlée)."""
+    total = len(px) // 3
+    utiles = _pixels_utiles(px)
+    if len(utiles) < max(1, total // 10):
+        return None
+    peu_colores = [p for p in utiles if max(p) - min(p) <= 0.6 * max(p)]
+    estimations = []
+    if len(peu_colores) >= max(1, total // 10):
+        n = len(peu_colores)
+        estimations.append(tuple(sum(p[c] for p in peu_colores) / n for c in range(3)))
+    clairs = sorted(utiles, key=sum, reverse=True)[:max(1, len(utiles) * 8 // 100)]
+    estimations.append(tuple(sum(p[c] for p in clairs) / len(clairs) for c in range(3)))
+    if any(min(e) < 1 for e in estimations):
+        return None
+    if len(estimations) == 1:
+        return estimations[0]
+    a, b = estimations
+    return tuple(math.sqrt(x * y) for x, y in zip(a, b))
+
+
+def _images_reduites(ffmpeg: str, path: Path, start: float, images: int) -> bytes | None:
+    try:
+        r = capture([ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
+                     "-ss", f"{max(0.0, start):.3f}", *ff_input(path),
+                     "-map", "0:v:0", "-vf", f"scale={COULEUR_L}:{COULEUR_H},format=rgb24",
+                     "-frames:v", str(images), "-an", "-f", "rawvideo", "-"],
+                    capture_output=True, timeout=60, stdin=subprocess.DEVNULL,
+                    creationflags=_NO_WINDOW)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode or len(r.stdout) < COULEUR_L * COULEUR_H * 3:
+        return None
+    return r.stdout
+
+
+def couleur_du_film(ffmpeg: str, path: Path, duree: float,
+                    start: float = 0.0) -> tuple[tuple[float, float, float] | None, bool]:
+    """Dominante de tout le film, et « l'éclairage change d'une scène à l'autre ».
+
+    Avant : 8 images d'un seul moment (au tiers du film) décidaient pour tout le film ; un plan
+    de pelouse faisait virer tout le film au magenta, un ciel ou de la neige au jaune. Ici :
+    24 moments répartis (film de plus d'une minute), les pixels peut-être gris de chacun, puis
+    la médiane des moments. Film d'une minute ou moins : la mesure d'avant (pas de moments à
+    répartir ; ses essais sur mire restent valables)."""
+    if duree <= 60:
+        return rgb_mean(ffmpeg, path, start), False
+    moments = [duree * (0.03 + 0.94 * (k + 0.5) / COULEUR_MOMENTS) for k in range(COULEUR_MOMENTS)]
+    mesures = []
+    for t in moments:
+        px = _images_reduites(ffmpeg, path, t, 1)
+        m = _gris_probable(px) if px else None
+        if m and min(m) >= 1:
+            mesures.append(m)
+    if not mesures:
+        return rgb_mean(ffmpeg, path, start), False     # rien d'utilisable : l'ancienne mesure
+
+    def mediane(valeurs: list[float]) -> float:
+        v = sorted(valeurs)
+        k = len(v) // 2
+        return v[k] if len(v) % 2 else (v[k - 1] + v[k]) / 2
+
+    rg = mediane([math.log(m[0] / m[1]) for m in mesures])
+    bg = mediane([math.log(m[2] / m[1]) for m in mesures])
+    variable = False
+    if len(mesures) >= 6:
+        chaud = sorted(math.log(m[0] / m[2]) for m in mesures)       # orangé (+) ou bleuté (-)
+        variable = chaud[(len(chaud) * 4) // 5] - chaud[len(chaud) // 5] > 0.25
+    # Ramené à une luminosité moyenne de 128 : le seuil du conseil (écart > 15) garde son sens.
+    r, g, b = math.exp(rg), 1.0, math.exp(bg)
+    k = 384 / (r + g + b)
+    return (r * k, g * k, b * k), variable
 
 
 EDGE_STRIP = 48          # pixels examinés de chaque côté (bord + intérieur de référence)
@@ -467,7 +565,7 @@ def analyze(path: str | Path, tools: Toolset, idet_frames: int = IDET_FRAMES) ->
         info.repeated_fields, info.repeated_frames, info.saturation, info.saturation_high = \
             sig["repeated_fields"], sig["repeated_frames"], sig["saturation"], sig["saturation_high"]
         info.level_low, info.level_high = sig.get("level_low"), sig.get("level_high")
-        info.cast_rgb = rgb_mean(tools.ffmpeg.path, p, start)
+        info.cast_rgb, info.couleur_variable = couleur_du_film(tools.ffmpeg.path, p, info.duration, start)
         info.edge_damage = edge_damage(tools.ffmpeg.path, p, info.width, start)
     except subprocess.TimeoutExpired:
         info.idet = {}

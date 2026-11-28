@@ -1200,3 +1200,28 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   déjà la sienne) : changer d'image fixe ou d'extrait ne déclenche rien.
 - Vérifié à 1280 × 641 et 150 % : l'étiquette passe sous l'image, sans cacher « AVANT ».
   Tests : `tests/test_apercu_perime.py` (échouent avec l'ancien code).
+
+## Couleurs : dominante mesurée sur tout le film — 28 novembre 2026
+
+- Demande de l'utilisateur : un rendu moderne pour des cassettes de caméscope (le Super 8 est
+  mis de côté), en retrouvant de bonnes couleurs ; une analyse en amont qui choisit les bons
+  réglages.
+- Constat : la dominante de tout le film venait de 8 images à un seul moment (au tiers du film),
+  par la moyenne des trois couleurs (« monde gris »). Un plan de pelouse à cet endroit faisait
+  virer tout le film au magenta ; de la neige et du ciel, au jaune ; une lampe orangée à
+  l'intérieur bleuissait toutes les scènes du dehors.
+- Choix (films de plus d'une minute) : 24 moments répartis (de 3 % à 97 % du film), une image
+  réduite chacun ; par image, la moyenne géométrique de deux méthodes classiques (« monde gris »
+  sans les pixels très colorés, et « blanc de référence » : les 8 % de pixels les plus clairs,
+  non brûlés) ; puis la médiane des moments. Si l'orangé/bleuté varie beaucoup d'un moment à
+  l'autre (écart entre le 20e et le 80e centile > 0,25 en log), le conseil le dit : la
+  correction est un juste milieu. Film d'une minute ou moins : la mesure d'avant (ses essais sur
+  mire restent valables ; la méthode combinée voit la mire testsrc2 comme magenta).
+- Mesuré sur des scènes d'essai réalistes (pièce, jardin, neige, grain et mollesse de VHS ;
+  écart entre couleurs, 15 = seuil du conseil) : pelouse au tiers 42 → 6 ; neige au tiers
+  48 → 6 ; jardin tout du long 42 → 13 ; pièce neutre 11 → 6 ; lampe orangée 80 → 68 (toujours
+  corrigée) ; intérieur puis dehors : repéré comme variable. Coût : 24 lectures courtes, moins
+  de 2 s ici. Tests : `tests/test_couleur_film.py` (échouent avec l'ancien code).
+- Limite : scènes d'essai synthétiques ; à confirmer sur les cassettes de l'utilisateur.
+  Étape suivante : une correction par ambiance (intérieur / dehors), quand la mesure par moments
+  aura été vérifiée sur ses cassettes.

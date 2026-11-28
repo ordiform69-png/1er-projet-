@@ -58,9 +58,13 @@ def advise(info: MediaInfo) -> list[Advice]:
                                    "la taille ni le format de l'image.", {"mask_sides": info.edge_damage}))
     if info.cast_rgb and max(info.cast_rgb) - min(info.cast_rgb) > 15:
         gr, gg, gb = cast_gains(info.cast_rgb)
-        out.append(Advice("cast", "Une dominante de couleur couvre l'image : elle sera atténuée "
-                                  "(sans raviver une image pâle).",
-                          {"gain_r": gr, "gain_g": gg, "gain_b": gb}))
+        texte = ("Une dominante de couleur couvre l'image : elle sera atténuée "
+                 "(sans raviver une image pâle).")
+        if getattr(info, "couleur_variable", False):
+            # mesurée sur 24 moments : l'éclairage change (lampe à l'intérieur, jour dehors)
+            texte += (" Les couleurs changent d'une scène à l'autre (intérieur, dehors) : "
+                      "la correction est un juste milieu pour tout le film.")
+        out.append(Advice("cast", texte, {"gain_r": gr, "gain_g": gg, "gain_b": gb}))
     return out
 
 
