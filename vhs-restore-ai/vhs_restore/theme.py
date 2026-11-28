@@ -35,6 +35,7 @@ SOMBRE = {
     "CHEVRONS": "", "INTERRUPTEURS": "",
     # Bouton éteint : vert sourd, texte clair, au moins 4,5:1.
     "VERT_ETEINT": "#163028", "VERT_ETEINT_TEXTE": "#d7efe2",
+    "BULLE_FOND": "#0c2c34",
 }
 CLAIR = {
     "FOND": "#eef2f6", "CARTE": "#ffffff", "CARTE_SUR": "#f4f7fa", "CARTE_HAUT": "#ffffff",
@@ -54,6 +55,9 @@ CLAIR = {
     "SEGMENT_CHOISI": "#d8eff3",
     "CHEVRONS": "-sombre", "INTERRUPTEURS": "-clair",
     "VERT_ETEINT": "#d7ebe0", "VERT_ETEINT_TEXTE": "#143d28",
+    # Bulle d'aide : blanche en affichage clair (sur le fond du bandeau, le texte foncé était
+    # illisible : contraste 1,18).
+    "BULLE_FOND": "#ffffff",
 }
 # Vert de l'action principale (Suivant, avant / après, Lancer allumé) : texte blanc,
 # identique dans les deux thèmes. Contraste mesuré : 6,34 / 5,69 / 8,11 contre le blanc.
@@ -116,6 +120,7 @@ CHEVRONS: str = CLAIR["CHEVRONS"]
 INTERRUPTEURS: str = CLAIR["INTERRUPTEURS"]
 VERT_ETEINT: str = CLAIR["VERT_ETEINT"]
 VERT_ETEINT_TEXTE: str = CLAIR["VERT_ETEINT_TEXTE"]
+BULLE_FOND: str = CLAIR["BULLE_FOND"]
 
 
 def set_mode(mode: str) -> None:
@@ -157,6 +162,7 @@ def contrastes() -> tuple:
         ("bouton survolé", TEXTE, SURVOL),
         ("segment choisi", TEXTE, SEGMENT_CHOISI),
         ("lien survolé", LIEN_SURVOL, FOND),
+        ("bulle d'aide", TEXTE, BULLE_FOND),
     )
 
 
@@ -451,8 +457,8 @@ QPushButton#voyant {{
 }}
 QPushButton#voyant:hover {{ color: {ACCENT}; background: {VOYANT_SURVOL}; }}
 QToolTip {{
-    background: {BANDEAU}; color: {TEXTE}; border: 1px solid {ACCENT};
-    padding: 6px; font-size: 12pt;
+    background: {BULLE_FOND}; color: {TEXTE}; border: 1px solid {ACCENT};
+    padding: 6px; font-size: 13pt;
 }}
 QMessageBox QLabel {{ color: {TEXTE}; font-size: 13pt; }}
 QMessageBox QPushButton {{ font-size: 13pt; min-width: 96px; min-height: 36px; }}
@@ -471,7 +477,7 @@ def apply(app: QApplication) -> None:
         (QPalette.Window, FOND), (QPalette.Base, CARTE_SUR), (QPalette.AlternateBase, CARTE),
         (QPalette.Text, TEXTE), (QPalette.WindowText, TEXTE), (QPalette.Button, CARTE),
         (QPalette.ButtonText, TEXTE), (QPalette.Highlight, SELECTION),
-        (QPalette.HighlightedText, TEXTE), (QPalette.ToolTipBase, BANDEAU),
+        (QPalette.HighlightedText, TEXTE), (QPalette.ToolTipBase, BULLE_FOND),
         (QPalette.ToolTipText, TEXTE), (QPalette.PlaceholderText, TEXTE_DOUX),
         (QPalette.Mid, BORD), (QPalette.Dark, FOND), (QPalette.Shadow, "#0a0d11"),
         (QPalette.Light, CARTE_SUR),

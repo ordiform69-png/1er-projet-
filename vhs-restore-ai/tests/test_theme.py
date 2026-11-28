@@ -94,3 +94,23 @@ def test_installation_accessible(app, tools, taille):
     dlg = win.check_btn.window()
     assert dlg.rect().contains(win.check_btn.mapTo(dlg, win.check_btn.rect().bottomRight()))
     win.close()
+
+
+@pytest.mark.parametrize("mode", ["sombre", "clair"])
+def test_bulle_d_aide_lisible(mode):
+    """Les bulles d'aide (description d'un bouton au survol) : le style réellement appliqué.
+
+    Constat de l'utilisateur : en affichage clair, texte presque noir sur le fond foncé du
+    bandeau, contraste 1,18 ; les descriptions étaient illisibles."""
+    import re
+    avant = theme.MODE
+    theme.set_mode(mode)
+    try:
+        bloc = re.search(r"QToolTip\s*\{([^}]*)\}", theme._qss()).group(1)
+        fond = re.search(r"background:\s*(#[0-9a-fA-F]{6})", bloc).group(1)
+        texte = re.search(r"(?<!-)color:\s*(#[0-9a-fA-F]{6})", bloc).group(1)
+        assert theme.contraste(texte, fond) >= 7, (mode, texte, fond)
+        taille = float(re.search(r"font-size:\s*([\d.]+)pt", bloc).group(1))
+        assert taille >= 13
+    finally:
+        theme.set_mode(avant)

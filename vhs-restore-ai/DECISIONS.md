@@ -1239,3 +1239,12 @@ Fait par les agents de Grok, vérifié et mesuré par Claude avant fusion.
   conseil « éclaircir » pour tout le film ; maintenant, blancs 193, aucun étirement. Film terne
   partout : toujours corrigé. Film d'une minute ou moins : la mesure d'avant.
   Tests : `tests/test_couleur_film.py`.
+
+## Bulles d'aide lisibles — 28 novembre 2026
+
+- Constat de l'utilisateur : « les couleurs des descriptions de chaque bouton sont illisibles ».
+  Les bulles d'aide gardaient le fond foncé du bandeau dans les deux affichages, avec la couleur
+  de texte du thème : en affichage clair, texte presque noir sur fond foncé, contraste 1,18.
+- Choix : fond propre aux bulles (blanc en affichage clair, foncé en sombre), texte du thème,
+  13 pt au lieu de 12. Contraste 17,3 (clair) et 13,6 (sombre). Le couple est ajouté à la liste
+  des contrastes vérifiés, et `test_bulle_d_aide_lisible` lit le style réellement appliqué.
