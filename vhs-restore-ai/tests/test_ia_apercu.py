@@ -28,3 +28,35 @@ def test_deepfilter_conserve_les_reperes(reperes, tools, tmp_path):
     communs = ref.keys() & traite.keys()
     assert len(communs) >= 2
     assert max(abs(traite[t] - ref[t]) for t in communs) <= 5
+
+
+@pytest.mark.parametrize("absent", [True, False], ids=["absent", "en-erreur"])
+def test_repli_visible_dans_apercu_et_bilan(absent, tools, samples, tmp_path, monkeypatch):
+    from dataclasses import replace
+    import sys
+    from test_apercu_perime import wait
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    from vhs_restore.gui import MainWindow
+    from vhs_restore.tools import Tool
+
+    app = QApplication.instance() or QApplication([])
+    # Python quitte en erreur sur les options du binaire DeepFilterNet.
+    outils = replace(tools, deepfilter=Tool("DeepFilterNet", None if absent else sys.executable))
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    win = MainWindow(outils)
+    try:
+        win.load_file(str(samples["pal_tff"]))
+        wait(app, win)
+        win.profile_buttons["maximum"].setChecked(True)
+        win.ai_check.setChecked(False)
+        win.audio_check.setChecked(True)
+        win.out_edit.setText(str(tmp_path))
+        win.start_preview()
+        wait(app, win)
+        message = "DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
+        assert message in win.status.text()
+        win.start_export()
+        wait(app, win)
+        assert message in win.s_fini_texte.text()
+    finally:
+        win.close()

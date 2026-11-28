@@ -27,3 +27,14 @@ Voix synthétique Flite SLT, phrase répétée toutes les 4 s, souffle blanc ajo
 | 4,25–5,5 s | Voix suivante | −13,9 | −9,9 | 0,985 |
 
 La forme d’onde de la voix est déjà très proche à 0,25 s. Le niveau ne converge pas durablement pendant les 6 s observées : l’export reste environ 4 dB plus fort sur la dernière fenêtre de voix. Le souffle seul diffère de 0,25 dB. Ces valeurs décrivent le profil complet, qui comprend aussi un gain dynamique. Elles ne permettent pas d’attribuer au seul modèle une durée universelle de démarrage.
+
+## P0.3 — Repli du son
+
+Essai depuis la fenêtre, film PAL de 4 s avec son, profil Maximum, agrandissement IA désactivé.
+
+| Outil | Après aperçu | Dans le bilan du film |
+|---|---|---|
+| DeepFilterNet absent | « DeepFilterNet indisponible. Le nettoyage habituel a été utilisé. » | Même avertissement |
+| Exécutable qui quitte en erreur | Même avertissement | Même avertissement |
+
+Sur la base, les deux cas échouent dès la première assertion : `assert 'DeepFilterNet indisponible. Le nettoyage habituel a été utilisé.' in "Aperçu prêt (extrait de 0 s à 4 s)…"`. La correction conserve l’information de repli pendant le travail en cours, y compris lorsque plusieurs morceaux sont traités.

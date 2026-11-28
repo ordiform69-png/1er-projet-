@@ -3441,6 +3441,8 @@ class MainWindow(QMainWindow):
             annonce = estimation.annonce(self)
             if annonce:
                 texte += " " + annonce
+        if getattr(getattr(self.worker, "cancel_event", None), "repli_deepfilter", False):
+            texte = "Aperçu prêt. DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
         self.status.setText(texte)
 
     def _ecouter_extrait(self) -> None:
@@ -4506,6 +4508,8 @@ class MainWindow(QMainWindow):
             side = out.with_suffix(".wav" if kind == "wav" else ".flac")
             if side.is_file():
                 extra = f"\n\nCopie du son restauré :\n{side.name}"
+        if getattr(getattr(self.worker, "cancel_event", None), "repli_deepfilter", False):
+            extra += "\n\nDeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
         if getattr(self, "is_photo", False):
             colored = photo.colorized_path(out)
             more = (f"\n\nCopie colorisée par l'IA (couleurs inventées) :\n{colored.name}"

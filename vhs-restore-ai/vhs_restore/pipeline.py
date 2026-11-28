@@ -340,13 +340,15 @@ def _try_deepfilter(info: MediaInfo, s: Settings, tools: Toolset, work: Path,
         # En 0.5.6, -D retire 30 ms à un WAV déjà calé (mesuré sur bips).
         run([tools.deepfilter.path, "-a", "12", "-o", str(out_dir), str(src)],
             cancel=cancel, what="DeepFilterNet")
-    except (ToolError, Cancelled):
-        if cancel is not None and cancel.is_set():
-            raise
+    except ToolError:
+        if cancel is not None:
+            cancel.repli_deepfilter = True
         log.warning("DeepFilterNet indisponible ou en échec : repli sur afftdn", exc_info=True)
         return None
     wavs = sorted(out_dir.glob("*.wav"))
     if not wavs:
+        if cancel is not None:
+            cancel.repli_deepfilter = True
         log.warning("DeepFilterNet n'a rien écrit dans %s", out_dir)
         return None
     log.info("Son traité par DeepFilterNet : %s", wavs[0])
@@ -1680,6 +1682,11 @@ def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=Fals
     apercu : ne demander que si l'attente estimée dépasse 2 minutes.
     La restauration garde le seuil actuel (3 × la durée, ou 2 h).
     """
+    # Un événement appartient à une seule tâche, y compris tous ses morceaux.
+    if cancel is not None:
+        cancel.repli_deepfilter = bool(s.restore_audio and s.profile.deepfilter
+                                       and info.has_audio and not info.audio_silent
+                                       and not tools.deepfilter.ok)
     if not s.use_ai:
         return s
     from .tools import ff_input
