@@ -30,8 +30,8 @@ def test_deepfilter_conserve_les_reperes(reperes, tools, tmp_path):
     assert max(abs(traite[t] - ref[t]) for t in communs) <= 5
 
 
-@pytest.mark.parametrize("absent", [True, False], ids=["absent", "en-erreur"])
-def test_repli_visible_dans_apercu_et_bilan(absent, tools, samples, tmp_path, monkeypatch):
+@pytest.mark.parametrize("etat", ["absent", "refuse", "en-erreur"])
+def test_repli_visible_dans_apercu_et_bilan(etat, tools, samples, tmp_path, monkeypatch):
     from dataclasses import replace
     import sys
     from test_apercu_perime import wait
@@ -41,7 +41,9 @@ def test_repli_visible_dans_apercu_et_bilan(absent, tools, samples, tmp_path, mo
 
     app = QApplication.instance() or QApplication([])
     # Python quitte en erreur sur les options du binaire DeepFilterNet.
-    outils = replace(tools, deepfilter=Tool("DeepFilterNet", None if absent else sys.executable))
+    outil = Tool("DeepFilterNet", None if etat == "absent" else sys.executable,
+                 problem="Accès refusé" if etat == "refuse" else "")
+    outils = replace(tools, deepfilter=outil)
     monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
     win = MainWindow(outils)
     try:
@@ -54,10 +56,12 @@ def test_repli_visible_dans_apercu_et_bilan(absent, tools, samples, tmp_path, mo
         win.start_preview()
         wait(app, win)
         message = "DeepFilterNet indisponible. Le nettoyage habituel a été utilisé."
-        assert message in win.status.text()
+        assert win.preview is not None
+        assert (message in win.status.text()) == (etat != "absent")
         win.start_export()
         wait(app, win)
-        assert message in win.s_fini_texte.text()
+        assert win._fini_fichier.is_file()
+        assert (message in win.s_fini_texte.text()) == (etat != "absent")
     finally:
         win.close()
 

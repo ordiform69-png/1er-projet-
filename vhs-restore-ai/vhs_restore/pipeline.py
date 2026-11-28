@@ -1686,7 +1686,7 @@ def essayer_ia(info, s, tools, duree, demander, cancel, progress, *, apercu=Fals
     if cancel is not None:
         cancel.repli_deepfilter = bool(s.restore_audio and s.profile.deepfilter
                                        and info.has_audio and not info.audio_silent
-                                       and not tools.deepfilter.ok)
+                                       and tools.deepfilter.path and not tools.deepfilter.ok)
     if not s.use_ai:
         return s
     from .tools import ff_input

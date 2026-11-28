@@ -106,3 +106,7 @@ Le mode passthrough de la sortie PNG conserve une image par trame décodée. L�
 ### Son retardé dans l’aperçu IA
 
 Après un saut dans l’entrée, le silence ajouté et la dérive sont déjà présents dans les échantillons. Reconstruire leurs horodatages en sortie de la chaîne son, avant l’intermédiaire FLAC, évite le PTS invalide ; le calcul de l’horodatage de l’image et l’export normal sont conservés. Sur la base f9cc499, la dérive négative échoue au milieu : « Real-ESRGAN a échoué (code 1) », aucun PNG à lire. Le contrôle intermédiaire avec la seule correction image reproduit « Invalid duration for option itsoffset: 192153584101141.156250 ».
+
+### DeepFilterNet facultatif
+
+Le profil Maximum utilise le nettoyage habituel sans avertissement quand aucun binaire n’est installé. Le refus d’accès à un binaire identifié et l’échec à l’exécution restent signalés dans l’aperçu et dans le bilan d’export. Le test exerce les trois cas à travers la fenêtre. Sur f9cc499, l’assertion d’absence échoue : le statut contient « DeepFilterNet indisponible ».
